@@ -1,0 +1,7 @@
+{
+  "name": "AviGestão - Controle de Criatório",
+  "description": "Sistema completo para gerenciamento de criatórios de pássaros com conformidade SISPASS, controle genealógico, reprodução e medicamentos.",
+  "requestFramePermissions": [
+    "camera"
+  ]
+}

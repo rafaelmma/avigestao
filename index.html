@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>AviGestão - Controle de Criatório</title>
+
+    <!-- Tailwind via CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <!-- Fontes -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+    <!-- Estilos extras -->
+    <style>
+      :root {
+        --primary: #10B981;
+        --primary-hover: #059669;
+        --primary-soft: rgba(16, 185, 129, 0.1);
+        --accent: #F59E0B;
+      }
+      
+      body { 
+        font-family: 'Inter', sans-serif; 
+        background-color: #f8fafc;
+        -webkit-font-smoothing: antialiased;
+      }
+      
+      h1, h2, h3, h4, h5, h6 { font-family: 'Poppins', sans-serif; }
+
+      /* Scrollbar oculto */
+      .no-scrollbar::-webkit-scrollbar { display: none; }
+      .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+
+      /* --- ESTILOS DE IMPRESSÃO (CORREÇÃO DE LAYOUT) --- */
+      @media print {
+        @page { 
+          size: landscape; 
+          margin: 5mm; 
+        }
+        
+        body { 
+          background: white; 
+          -webkit-print-color-adjust: exact !important; 
+          print-color-adjust: exact !important; 
+        }
+
+        /* 1. Esconde TUDO na tela por padrão */
+        body * {
+          visibility: hidden;
+          height: 0; /* Colapsa o espaço para não gerar páginas em branco */
+          overflow: hidden;
+        }
+
+        /* 2. Torna visível APENAS a área específica do Pedigree e seus filhos */
+        #printable-pedigree, #printable-pedigree * {
+          visibility: visible;
+          height: auto;
+          overflow: visible;
+        }
+
+        /* 3. Posiciona a área do Pedigree para ocupar a folha inteira */
+        #printable-pedigree {
+          position: fixed !important;
+          top: 0 !important;
+          left: 0 !important;
+          width: 100vw !important;
+          min-height: 100vh !important;
+          margin: 0 !important;
+          padding: 20px !important;
+          background: white !important;
+          z-index: 99999 !important;
+          display: block !important;
+          
+          /* Remove estilos de "card" para ficar limpo no papel */
+          border: none !important;
+          box-shadow: none !important;
+          border-radius: 0 !important;
+        }
+
+        /* Esconde botões de ação dentro da área imprimível, se houver */
+        button, .no-print { 
+          display: none !important; 
+        }
+      }
+    </style>
+  <script type="importmap">
+{
+  "imports": {
+    "react": "https://esm.sh/react@^19.2.3",
+    "react-dom/": "https://esm.sh/react-dom@^19.2.3/",
+    "react/": "https://esm.sh/react@^19.2.3/",
+    "lucide-react": "https://esm.sh/lucide-react@^0.562.0",
+    "recharts": "https://esm.sh/recharts@^3.6.0",
+    "vite": "https://esm.sh/vite@^7.3.1",
+    "@vitejs/plugin-react": "https://esm.sh/@vitejs/plugin-react@^5.1.2"
+  }
+}
+</script>
+<link rel="stylesheet" href="/index.css">
+</head>
+  <body class="bg-slate-50 text-slate-900">
+    <div id="root"></div>
+    <script type="module" src="/index.tsx"></script>
+  </body>
+</html>
