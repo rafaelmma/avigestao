@@ -2,16 +2,10 @@ import React, { useRef, useState } from 'react';
 import { BreederSettings } from '../types';
 import {
   User,
-  Palette,
   Image as ImageIcon,
   Upload,
-  Zap,
   Lock,
-  CreditCard,
-  QrCode,
   Loader2,
-  CheckCircle2,
-  Star
 } from 'lucide-react';
 import TipCarousel from '../components/TipCarousel';
 
@@ -40,21 +34,29 @@ const SettingsManager: React.FC<SettingsManagerProps> = ({ settings, updateSetti
   const [activeTab, setActiveTab] = useState<'perfil' | 'plano'>('perfil');
   const [selectedPlanId, setSelectedPlanId] = useState('monthly');
   const [showPaymentModal, setShowPaymentModal] = useState(false);
-  const [paymentStep, setPaymentStep] = useState<'method' | 'processing' | 'success'>('method');
-
-  const selectedPlan = PLANS.find(p => p.id === selectedPlanId)!;
+  const [paymentStep, setPaymentStep] = useState<'method' | 'processing'>('method');
 
   const startCheckout = async () => {
     try {
       setPaymentStep('processing');
 
+      const priceId = PRICE_ID_MAP[selectedPlanId];
+      if (!priceId) throw new Error('Plano inválido');
+
       const res = await fetch('/api/create-checkout', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ priceId: PRICE_ID_MAP[selectedPlanId] }),
+        body: JSON.stringify({
+          priceId,
+          // ⚠️ TEMPORÁRIO (sem Supabase Auth)
+          userId: settings.breederName || 'usuario_demo',
+        }),
       });
 
-      if (!res.ok) throw new Error('Erro no checkout');
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.error || 'Erro no checkout');
+      }
 
       const { url } = await res.json();
       window.location.href = url;
@@ -68,6 +70,7 @@ const SettingsManager: React.FC<SettingsManagerProps> = ({ settings, updateSetti
   const handleLogoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
+
     const reader = new FileReader();
     reader.onloadend = () =>
       updateSettings({ ...settings, logoUrl: reader.result as string });
@@ -87,7 +90,9 @@ const SettingsManager: React.FC<SettingsManagerProps> = ({ settings, updateSetti
           <button
             onClick={() => setActiveTab('perfil')}
             className={`px-6 py-2 rounded-xl text-xs font-black uppercase ${
-              activeTab === 'perfil' ? 'bg-slate-900 text-white' : 'text-slate-400'
+              activeTab === 'perfil'
+                ? 'bg-slate-900 text-white'
+                : 'text-slate-400'
             }`}
           >
             Perfil
@@ -95,7 +100,9 @@ const SettingsManager: React.FC<SettingsManagerProps> = ({ settings, updateSetti
           <button
             onClick={() => setActiveTab('plano')}
             className={`px-6 py-2 rounded-xl text-xs font-black uppercase ${
-              activeTab === 'plano' ? 'bg-slate-900 text-white' : 'text-slate-400'
+              activeTab === 'plano'
+                ? 'bg-slate-900 text-white'
+                : 'text-slate-400'
             }`}
           >
             Plano
@@ -105,8 +112,8 @@ const SettingsManager: React.FC<SettingsManagerProps> = ({ settings, updateSetti
 
       <TipCarousel category="settings" />
 
-      {/* PERFIL */}
-      {activeTab === 'perfil' && (
+      {/* GARANTIA DE RENDER */}
+      {activeTab === 'perfil' ? (
         <div className="bg-white p-8 rounded-3xl border space-y-6">
           <h3 className="font-black flex items-center gap-2">
             <User /> Dados do Criatório
@@ -115,7 +122,10 @@ const SettingsManager: React.FC<SettingsManagerProps> = ({ settings, updateSetti
           <div className="flex gap-6">
             <div className="w-24 h-24 border rounded-xl flex items-center justify-center">
               {settings.logoUrl ? (
-                <img src={settings.logoUrl} className="w-full h-full object-contain" />
+                <img
+                  src={settings.logoUrl}
+                  className="w-full h-full object-contain"
+                />
               ) : (
                 <ImageIcon className="text-slate-300" />
               )}
@@ -163,10 +173,7 @@ const SettingsManager: React.FC<SettingsManagerProps> = ({ settings, updateSetti
             />
           </div>
         </div>
-      )}
-
-      {/* PLANO */}
-      {activeTab === 'plano' && (
+      ) : activeTab === 'plano' ? (
         <div className="bg-slate-900 text-white p-10 rounded-3xl space-y-8">
           <h3 className="text-2xl font-black">Plano Profissional</h3>
 
@@ -195,13 +202,13 @@ const SettingsManager: React.FC<SettingsManagerProps> = ({ settings, updateSetti
             Assinar Agora
           </button>
         </div>
-      )}
+      ) : null}
 
       {/* MODAL */}
       {showPaymentModal && (
         <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50">
           <div className="bg-white rounded-3xl p-8 w-full max-w-md">
-            {paymentStep === 'method' && (
+            {paymentStep === 'method' ? (
               <>
                 <h3 className="font-black mb-4">Pagamento</h3>
                 <button
@@ -211,9 +218,7 @@ const SettingsManager: React.FC<SettingsManagerProps> = ({ settings, updateSetti
                   Pagar com Stripe
                 </button>
               </>
-            )}
-
-            {paymentStep === 'processing' && (
+            ) : (
               <div className="text-center">
                 <Loader2 className="animate-spin mx-auto mb-4" />
                 Processando pagamento…
