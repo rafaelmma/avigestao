@@ -92,7 +92,9 @@ export default async function handler(req: VercelReq, res: VercelRes) {
         // Tipos podem variar conforme lib -> usar any para evitar TS quebrando
         const currentPeriodEnd = (subscription as any)?.current_period_end ?? null;
 
-        await supabase.from("subscriptions").upsert({
+        const userId = session.metadata?.user_id ?? null;
+		
+		await supabase.from("subscriptions").upsert({
           user_id: userId,
           user_email: session.customer_email ?? null,
           stripe_customer_id: session.customer ?? null,

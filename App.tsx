@@ -86,22 +86,54 @@ const App: React.FC = () => {
 
   // --- MIGRAÇÃO DE DADOS AUTOMÁTICA ---
   // Se o usuário é antigo e não tem trialEndDate, define automaticamente para ele ver a mudança.
-  useEffect(() => {
-    if (state.settings.plan === 'Básico' && !state.settings.trialEndDate) {
-      const trialEnd = new Date();
-      trialEnd.setDate(trialEnd.getDate() + 7); // Dá 7 dias de teste
-      
+	useEffect(() => {
+  const syncSubscriptionStatus = async () => {
+    try {
+      const userId = state.settings.userId;
+      if (!userId) return;
+
+      const res = await fetch("/api/subscription-status", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ user_id: userId }),
+      });
+
+      const data = await res.json();
+      if (!data) return;
+
+      // ATIVO → PRO
+      if (data.isActive) {
+        setState(prev => ({
+          ...prev,
+          settings: {
+            ...prev.settings,
+            plan: "Profissional",
+            trialEndDate:
+              data.isTrial && data.current_period_end
+                ? new Date(data.current_period_end).toISOString()
+                : undefined,
+          },
+        }));
+        return;
+      }
+
+      // CANCELADO OU EXPIRADO → BÁSICO
       setState(prev => ({
         ...prev,
         settings: {
           ...prev.settings,
-          plan: 'Profissional', // Eleva temporariamente para PRO
-          trialEndDate: trialEnd.toISOString()
-        }
+          plan: "Básico",
+          trialEndDate: undefined,
+        },
       }));
-      console.log("Migração V2.0: Trial ativado automaticamente para usuário existente.");
+    } catch (err) {
+      console.error("Erro ao sincronizar assinatura:", err);
     }
-  }, []);
+  };
+
+  syncSubscriptionStatus();
+}, [isAuthenticated]);
+
 
   // Check for Trial Expiration on Mount
   useEffect(() => {
