@@ -340,8 +340,9 @@ const App: React.FC = () => {
   }
 
   if (!state || !state.settings) {
-    return <div className="h-screen flex items-center justify-center">Recarregando dados...</div>;
-  }
+  return null;
+}
+
 
   // Verifica expiração do plano trial para o usuário ver
   const isTrial = state.settings.plan === 'Profissional' && state.settings.trialEndDate;
