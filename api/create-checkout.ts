@@ -27,8 +27,8 @@ export default async function handler(req: any, res: any) {
           quantity: 1,
         },
       ],
-      success_url: `${process.env.FRONTEND_URL}/settings?success=true`,
-      cancel_url: `${process.env.FRONTEND_URL}/settings?canceled=true`,
+      success_url: `${process.env.FRONTEND_URL}/?checkout=success`,
+      cancel_url: `${process.env.FRONTEND_URL}/?checkout=canceled`,
       metadata: {
         userId,
       },
