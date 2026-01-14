@@ -86,54 +86,26 @@ const App: React.FC = () => {
 
   // --- MIGRAÇÃO DE DADOS AUTOMÁTICA ---
   // Se o usuário é antigo e não tem trialEndDate, define automaticamente para ele ver a mudança.
-	useEffect(() => {
-  const syncSubscriptionStatus = async () => {
-    try {
-      const userId = state.settings.userId;
-      if (!userId) return;
-
-      const res = await fetch("/api/subscription-status", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ user_id: userId }),
-      });
-
-      const data = await res.json();
-      if (!data) return;
-
-      // ATIVO → PRO
-      if (data.isActive) {
-        setState(prev => ({
-          ...prev,
-          settings: {
-            ...prev.settings,
-            plan: "Profissional",
-            trialEndDate:
-              data.isTrial && data.current_period_end
-                ? new Date(data.current_period_end).toISOString()
-                : undefined,
-          },
-        }));
-        return;
-      }
-
-      // CANCELADO OU EXPIRADO → BÁSICO
+  useEffect(() => {
+    if (
+  state.settings.plan === 'Básico' &&
+  !state.settings.trialEndDate &&
+  !localStorage.getItem("avigestao_user_id")
+) {
+      const trialEnd = new Date();
+      trialEnd.setDate(trialEnd.getDate() + 7); // Dá 7 dias de teste
+      
       setState(prev => ({
         ...prev,
         settings: {
           ...prev.settings,
-          plan: "Básico",
-          trialEndDate: undefined,
-        },
+          plan: 'Profissional', // Eleva temporariamente para PRO
+          trialEndDate: trialEnd.toISOString()
+        }
       }));
-    } catch (err) {
-      console.error("Erro ao sincronizar assinatura:", err);
+      console.log("Migração V2.0: Trial ativado automaticamente para usuário existente.");
     }
-  };
-
-  syncSubscriptionStatus();
-}, [isAuthenticated]);
-
+  }, []);
 
   // Check for Trial Expiration on Mount
   useEffect(() => {
@@ -163,6 +135,57 @@ const App: React.FC = () => {
     }
     setAuthLoading(false);
   }, []);
+  
+  // 🔄 Sincroniza status da assinatura Stripe (global)
+useEffect(() => {
+  if (!isAuthenticated) return;
+
+  const syncSubscriptionStatus = async () => {
+    try {
+      const userId = localStorage.getItem("avigestao_user_id");
+      if (!userId) return;
+
+      const res = await fetch("/api/subscription-status", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ user_id: userId }),
+      });
+
+      if (!res.ok) return;
+
+      const data = await res.json();
+      if (!data || !data.status) return;
+
+      if (data.isActive) {
+        setState(prev => ({
+          ...prev,
+          settings: {
+            ...prev.settings,
+            plan: "Profissional",
+            trialEndDate: data.isTrial
+              ? data.current_period_end
+              : undefined,
+          },
+        }));
+        return;
+      }
+
+      // Cancelado ou expirado
+      setState(prev => ({
+        ...prev,
+        settings: {
+          ...prev.settings,
+          plan: "Básico",
+          trialEndDate: undefined,
+        },
+      }));
+    } catch (err) {
+      console.error("Erro ao sincronizar assinatura:", err);
+    }
+  };
+
+  syncSubscriptionStatus();
+}, [isAuthenticated]);
   
   // 🔁 Retorno do Stripe (success / canceled)
 useEffect(() => {
@@ -201,15 +224,21 @@ useEffect(() => {
   }, [state]);
 
   const handleLogin = (newSettings?: Partial<BreederSettings>) => {
-    localStorage.setItem('avigestao_auth', 'true');
-    setIsAuthenticated(true);
-    if (newSettings) {
-      updateSettings({
-        ...state.settings,
-        ...newSettings
-      });
-    }
-  };
+  localStorage.setItem('avigestao_auth', 'true');
+
+  if (newSettings?.userId) {
+    localStorage.setItem('avigestao_user_id', newSettings.userId);
+  }
+
+  setIsAuthenticated(true);
+
+  if (newSettings) {
+    updateSettings({
+      ...state.settings,
+      ...newSettings
+    });
+  }
+};
 
   const handleLogout = () => {
     localStorage.removeItem('avigestao_auth');
@@ -394,9 +423,7 @@ useEffect(() => {
 
 
   // Verifica expiração do plano trial para o usuário ver
-  const isTrial = state.settings.plan === 'Profissional' && state.settings.trialEndDate;
-  const trialExpired = isTrial && new Date(state.settings.trialEndDate!) < new Date();
-
+  
   const renderContent = () => {
     const currentTab = activeTab || 'dashboard';
     
