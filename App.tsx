@@ -1,5 +1,18 @@
 import React, { useState, useEffect } from 'react';
-import { AppState, Bird, Pair, Clutch, Medication, MedicationApplication, BreederSettings, MovementRecord, Transaction, MaintenanceTask, TournamentEvent, ContinuousTreatment } from './types';
+import {
+  AppState,
+  Bird,
+  Pair,
+  Clutch,
+  Medication,
+  MedicationApplication,
+  BreederSettings,
+  MovementRecord,
+  Transaction,
+  MaintenanceTask,
+  TournamentEvent,
+  ContinuousTreatment
+} from './types';
 import { MOCK_BIRDS, MOCK_MEDS, INITIAL_SETTINGS } from './constants';
 import Sidebar from './components/Sidebar';
 import Dashboard from './pages/Dashboard';
@@ -21,17 +34,20 @@ const App: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [authLoading, setAuthLoading] = useState(true);
-  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false); 
-  
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+
   const [state, setState] = useState<AppState>(() => {
     try {
       const saved = localStorage.getItem('avigestao_state');
       if (saved) {
         const parsed = JSON.parse(saved);
         if (parsed && typeof parsed === 'object') {
-          const safeSettings = parsed.settings ? { ...INITIAL_SETTINGS, ...parsed.settings } : INITIAL_SETTINGS;
+          const safeSettings = parsed.settings
+            ? { ...INITIAL_SETTINGS, ...parsed.settings }
+            : INITIAL_SETTINGS;
+
           return {
-            birds: parsed.birds || MOCK_BIRDS,
+            birds: Array.isArray(parsed.birds) ? parsed.birds : MOCK_BIRDS,
             deletedBirds: parsed.deletedBirds || [],
             pairs: parsed.pairs || [],
             deletedPairs: parsed.deletedPairs || [],
@@ -54,7 +70,10 @@ const App: React.FC = () => {
           };
         }
       }
-    } catch {}
+    } catch (e) {
+      console.warn('Erro ao carregar estado salvo, usando padrão.', e);
+    }
+
     return {
       birds: MOCK_BIRDS,
       deletedBirds: [],
@@ -79,21 +98,30 @@ const App: React.FC = () => {
     };
   });
 
-  /** 🔥 TRATAMENTO DO RETORNO DO STRIPE (SUCCESS / CANCELED) */
+  // MIGRAÇÃO TRIAL
   useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    const checkoutStatus = params.get('checkout');
-
-    if (checkoutStatus === 'success') {
-      setActiveTab('settings');
-      alert('Pagamento realizado com sucesso!');
-      window.history.replaceState({}, '', '/');
+    if (state.settings.plan === 'Básico' && !state.settings.trialEndDate) {
+      const trialEnd = new Date();
+      trialEnd.setDate(trialEnd.getDate() + 7);
+      setState(prev => ({
+        ...prev,
+        settings: {
+          ...prev.settings,
+          plan: 'Profissional',
+          trialEndDate: trialEnd.toISOString()
+        }
+      }));
     }
+  }, []);
 
-    if (checkoutStatus === 'canceled') {
-      setActiveTab('settings');
-      alert('Pagamento cancelado.');
-      window.history.replaceState({}, '', '/');
+  useEffect(() => {
+    if (state.settings.plan === 'Profissional' && state.settings.trialEndDate) {
+      if (new Date() > new Date(state.settings.trialEndDate)) {
+        setState(prev => ({
+          ...prev,
+          settings: { ...prev.settings, plan: 'Básico', trialEndDate: undefined }
+        }));
+      }
     }
   }, []);
 
@@ -103,62 +131,61 @@ const App: React.FC = () => {
     setAuthLoading(false);
   }, []);
 
+  // 🔁 AJUSTE STRIPE
   useEffect(() => {
-    localStorage.setItem('avigestao_state', JSON.stringify(state));
+    const params = new URLSearchParams(window.location.search);
+    const checkout = params.get('checkout');
+
+    if (checkout === 'success') {
+      setActiveTab('settings');
+      alert('Pagamento realizado com sucesso!');
+      window.history.replaceState({}, '', '/');
+    }
+
+    if (checkout === 'canceled') {
+      setActiveTab('settings');
+      alert('Pagamento cancelado.');
+      window.history.replaceState({}, '', '/');
+    }
+  }, []);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('avigestao_state', JSON.stringify(state));
+      const root = document.documentElement;
+      const pColor = state.settings.primaryColor || '#10B981';
+      root.style.setProperty('--primary', pColor);
+      root.style.setProperty('--primary-hover', pColor + 'ee');
+      root.style.setProperty('--primary-soft', pColor + '15');
+      root.style.setProperty('--accent', state.settings.accentColor || '#F59E0B');
+    } catch (e) {
+      setError('Erro ao salvar dados.');
+    }
   }, [state]);
 
-  const updateSettings = (settings: BreederSettings) =>
-    setState(prev => ({ ...prev, settings }));
-
-  if (authLoading) {
-    return <div className="h-screen flex items-center justify-center">Carregando…</div>;
-  }
-
-  if (!isAuthenticated) {
-    return <Auth onLogin={() => setIsAuthenticated(true)} />;
-  }
-
-  const renderContent = () => {
-    switch (activeTab) {
-      case 'dashboard': return <Dashboard state={state} updateSettings={updateSettings} navigateTo={setActiveTab} />;
-      case 'birds': return <BirdManager state={state} />;
-      case 'breeding': return <BreedingManager state={state} />;
-      case 'movements': return <MovementsManager state={state} />;
-      case 'documents': return <DocumentsManager settings={state.settings} updateSettings={updateSettings} />;
-      case 'meds': return <MedsManager state={state} />;
-      case 'finance':
-        if (state.settings.plan === 'Básico') {
-          return (
-            <div className="h-[70vh] flex flex-col items-center justify-center">
-              <DollarSign size={64} />
-              <p>Plano Profissional necessário</p>
-              <button onClick={() => setActiveTab('settings')}>
-                <Zap /> Assinar PRO
-              </button>
-            </div>
-          );
-        }
-        return <FinanceManager state={state} />;
-      case 'tasks': return <TaskManager state={state} />;
-      case 'tournaments': return <TournamentCalendar state={state} />;
-      case 'settings': return <SettingsManager settings={state.settings} updateSettings={updateSettings} />;
-      case 'help': return <HelpCenter />;
-      default: return <Dashboard state={state} updateSettings={updateSettings} navigateTo={setActiveTab} />;
-    }
-  };
+  if (authLoading) return null;
+  if (!isAuthenticated) return <Auth onLogin={() => setIsAuthenticated(true)} />;
 
   return (
     <div className="min-h-screen flex bg-slate-50">
       <Sidebar
         activeTab={activeTab}
         setActiveTab={setActiveTab}
+        logoUrl={state.settings.logoUrl}
+        breederName={state.settings.breederName || 'Meu Criatório'}
         plan={state.settings.plan}
+        trialEndDate={state.settings.trialEndDate}
         onLogout={() => setIsAuthenticated(false)}
+        isOpen={isMobileMenuOpen}
+        onClose={() => setIsMobileMenuOpen(false)}
       />
-
-      <main className="flex-1 p-6">
-        {error && <div className="text-red-500">{error}</div>}
-        {renderContent()}
+      <main className="flex-1 lg:ml-64 p-4 lg:p-8 max-w-7xl mx-auto">
+        {error && (
+          <div className="mb-4 bg-rose-50 text-rose-600 p-4 rounded-xl">
+            <AlertTriangle size={16} /> {error}
+          </div>
+        )}
+        <Dashboard state={state} updateSettings={s => setState(p => ({ ...p, settings: s }))} navigateTo={setActiveTab} />
       </main>
     </div>
   );
