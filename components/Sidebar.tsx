@@ -28,12 +28,13 @@ interface SidebarProps {
   breederName: string;
   plan: SubscriptionPlan;
   trialEndDate?: string; // Novo: Data do fim do trial
+  isAdmin?: boolean;
   onLogout: () => void;
   isOpen?: boolean; 
   onClose?: () => void; 
 }
 
-const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab, logoUrl, breederName, plan, trialEndDate, onLogout, isOpen = true, onClose }) => {
+const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab, logoUrl, breederName, plan, trialEndDate, isAdmin, onLogout, isOpen = true, onClose }) => {
   const menuItems = [
     { id: 'dashboard', label: 'Dashboard', icon: <LayoutDashboard size={20} /> },
     { id: 'birds', label: 'Plantel', icon: <BirdIcon size={20} /> },
@@ -87,9 +88,16 @@ const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab, logoUrl, bre
             </div>
             <div className="overflow-hidden">
               <h1 className="font-black text-slate-900 text-base leading-tight truncate max-w-[120px]">AviGestão</h1>
-              <span className={`text-[8px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded ${plan === 'Profissional' ? 'bg-amber-100 text-amber-700' : 'bg-slate-100 text-slate-400'}`}>
-                {trialEndDate ? 'PRO (Teste)' : `Plano ${plan}`}
-              </span>
+              <div className="flex items-center gap-1.5">
+                <span className={`text-[8px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded ${plan === 'Profissional' ? 'bg-amber-100 text-amber-700' : 'bg-slate-100 text-slate-400'}`}>
+                  {trialEndDate ? 'PRO (Teste)' : `Plano ${plan}`}
+                </span>
+                {isAdmin && (
+                  <span className="text-[8px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded bg-rose-100 text-rose-700">
+                    Admin
+                  </span>
+                )}
+              </div>
             </div>
           </div>
           {/* Botão fechar apenas mobile */}

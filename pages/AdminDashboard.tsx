@@ -4,6 +4,8 @@ import { supabase } from '../supabaseClient';
 const AdminDashboard: React.FC = () => {
   const [metrics, setMetrics] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [promoteEmail, setPromoteEmail] = useState('');
+  const [promoting, setPromoting] = useState(false);
 
   useEffect(() => {
     const load = async () => {
@@ -59,6 +61,46 @@ const AdminDashboard: React.FC = () => {
               <div className="font-mono text-sm">{e.event_type} — {e.amount ? `R$ ${e.amount}` : ''}</div>
             </div>
           ))}
+        </div>
+      </div>
+
+      <div className="bg-white rounded p-4 mt-6">
+        <h3 className="font-bold mb-2">Promover usuário</h3>
+        <div className="flex gap-2">
+          <input
+            value={promoteEmail}
+            onChange={(e) => setPromoteEmail(e.target.value)}
+            placeholder="email@exemplo.com"
+            className="flex-1 border p-2 rounded"
+          />
+          <button
+            disabled={!promoteEmail || promoting}
+            onClick={async () => {
+              setPromoting(true);
+              try {
+                const session = await supabase.auth.getSession();
+                const res = await fetch('/api/admin/promote', {
+                  method: 'POST',
+                  headers: {
+                    'Content-Type': 'application/json',
+                    Authorization: `Bearer ${session.data.session?.access_token}`,
+                  },
+                  body: JSON.stringify({ email: promoteEmail }),
+                });
+                if (!res.ok) throw new Error('Falha ao promover');
+                alert('Usuário promovido para admin');
+                setPromoteEmail('');
+              } catch (err) {
+                console.error(err);
+                alert('Erro ao promover usuário');
+              } finally {
+                setPromoting(false);
+              }
+            }}
+            className="px-4 py-2 bg-emerald-500 text-white rounded"
+          >
+            Promover
+          </button>
         </div>
       </div>
     </div>

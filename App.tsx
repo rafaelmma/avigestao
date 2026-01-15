@@ -15,15 +15,28 @@ import TournamentCalendar from './pages/TournamentCalendar';
 import HelpCenter from './pages/HelpCenter';
 import Auth from './pages/Auth';
 import { DollarSign, Zap, AlertTriangle, Menu } from 'lucide-react';
-import { supabase } from './supabaseClient';
+import { supabase, SUPABASE_MISSING } from './supabaseClient';
 import { subscribeTable } from './realtime';
 import { migrateLocalData } from './services/migrateLocalData';
 import { loadInitialData } from './services/dataService';
 import { insertRow, updateRow, deleteRow } from './services/writeService';
 
 const App: React.FC = () => {
+  if (SUPABASE_MISSING) {
+    return (
+      <div className="min-h-screen flex items-center justify-center p-6 bg-red-50 text-red-900">
+        <div className="max-w-2xl bg-white p-6 rounded-lg shadow">
+          <h2 className="text-xl font-bold mb-2">Configuração do Supabase ausente</h2>
+          <p className="mb-4">As variáveis de ambiente `VITE_SUPABASE_URL` e `VITE_SUPABASE_ANON_KEY` não foram definidas no build. A aplicação precisa delas para inicializar o Supabase.</p>
+          <p className="text-sm mb-4">No Vercel: Project → Settings → Environment Variables. Defina as chaves para o ambiente de Production/Preview e redeploy.</p>
+          <p className="text-sm">Para testar localmente, crie um arquivo .env com as variáveis e rode npm run build novamente.</p>
+        </div>
+      </div>
+    );
+  }
   const [activeTab, setActiveTab] = useState('dashboard');
   const [error, setError] = useState<string | null>(null);
+  const [isAdmin, setIsAdmin] = useState(false);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [authLoading, setAuthLoading] = useState(true);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false); 
@@ -45,25 +58,28 @@ const App: React.FC = () => {
   // --- MIGRAÇÃO DE DADOS AUTOMÁTICA ---
   // Se o usuário é antigo e não tem trialEndDate, define automaticamente para ele ver a mudança.
   useEffect(() => {
+    // Auto-activate a short trial for legacy users (only if not admin).
+    if (isAdmin) return;
     if (
-  state.settings.plan === 'Básico' &&
-  !state.settings.trialEndDate &&
-  !localStorage.getItem("avigestao_user_id")
-) {
+      state.settings.plan === 'Básico' &&
+      !state.settings.trialEndDate &&
+      !localStorage.getItem('avigestao_user_id')
+    ) {
       const trialEnd = new Date();
-      trialEnd.setDate(trialEnd.getDate() + 7); // Dá 7 dias de teste
-      
+      trialEnd.setDate(trialEnd.getDate() + 7);
+
+      // Keep plan as 'Básico' but set a trialEndDate so UI can show trial while
+      // still allowing the user to upgrade immediately.
       setState(prev => ({
         ...prev,
         settings: {
           ...prev.settings,
-          plan: 'Profissional', // Eleva temporariamente para PRO
           trialEndDate: trialEnd.toISOString()
         }
       }));
-      console.log("Migração V2.0: Trial ativado automaticamente para usuário existente.");
+      console.log('Migração V2.0: Trial ativado automaticamente para usuário existente.');
     }
-  }, []);
+  }, [isAdmin]);
 
   // Check for Trial Expiration on Mount
   useEffect(() => {
@@ -87,20 +103,52 @@ const App: React.FC = () => {
   }, []); // Run once on mount
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data }) => {
+    supabase.auth.getSession().then(async ({ data }) => {
       if (data.session) {
         setIsAuthenticated(true);
         localStorage.setItem('avigestao_user_id', data.session.user.id);
+
+        // Check admin status server-side
+        try {
+          const token = data.session.access_token;
+          const res = await fetch('/api/admin/check', {
+            method: 'GET',
+            headers: {
+              Authorization: `Bearer ${token}`
+            }
+          });
+          if (res.ok) {
+            const js = await res.json();
+            setIsAdmin(!!js.isAdmin);
+          }
+        } catch (e) {
+          console.error('Failed to verify admin status', e);
+        }
       }
       setAuthLoading(false);
     });
 
-    const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
+    const { data: listener } = supabase.auth.onAuthStateChange(async (_event, session) => {
       if (session) {
         setIsAuthenticated(true);
         localStorage.setItem('avigestao_user_id', session.user.id);
+
+        try {
+          const token = session.access_token;
+          const res = await fetch('/api/admin/check', {
+            method: 'GET',
+            headers: { Authorization: `Bearer ${token}` }
+          });
+          if (res.ok) {
+            const js = await res.json();
+            setIsAdmin(!!js.isAdmin);
+          }
+        } catch (e) {
+          console.error('Failed to verify admin status', e);
+        }
       } else {
         setIsAuthenticated(false);
+        setIsAdmin(false);
         localStorage.removeItem('avigestao_user_id');
       }
     });
@@ -664,7 +712,7 @@ useEffect(() => {
             restoreEvent={restoreEvent}
             permanentlyDeleteEvent={permanentlyDeleteEvent}
           />;
-        case 'settings': return <SettingsManager settings={state.settings} updateSettings={updateSettings} />;
+        case 'settings': return <SettingsManager settings={state.settings} updateSettings={updateSettings} isAdmin={isAdmin} />;
         case 'help': return <HelpCenter />;
         default: return <Dashboard state={state} updateSettings={updateSettings} navigateTo={setActiveTab} />;
       }
@@ -688,6 +736,7 @@ useEffect(() => {
         plan={state.settings.plan || 'Básico'}
         trialEndDate={state.settings.trialEndDate} // Pass trial date
         onLogout={handleLogout}
+        isAdmin={isAdmin}
         isOpen={isMobileMenuOpen}
         onClose={() => setIsMobileMenuOpen(false)}
       />

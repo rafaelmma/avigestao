@@ -14,6 +14,7 @@ import { supabase } from '../supabaseClient';
 interface SettingsManagerProps {
   settings: BreederSettings;
   updateSettings: (settings: BreederSettings) => void;
+  isAdmin?: boolean;
 }
 
 const PLANS = [
@@ -30,7 +31,7 @@ const PRICE_ID_MAP: Record<string, string> = {
   annual: 'price_1Sp8uG0btEoqllHfuRKfN0oK',
 };
 
-const SettingsManager: React.FC<SettingsManagerProps> = ({ settings, updateSettings }) => {
+const SettingsManager: React.FC<SettingsManagerProps> = ({ settings, updateSettings, isAdmin }) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [activeTab, setActiveTab] = useState<'perfil' | 'plano'>('perfil');
@@ -39,6 +40,7 @@ const SettingsManager: React.FC<SettingsManagerProps> = ({ settings, updateSetti
   const [paymentStep, setPaymentStep] = useState<'method' | 'processing'>('method');
 
   const [hasStripeCustomer, setHasStripeCustomer] = useState(false);
+  const isTrial = !!settings.trialEndDate;
 
   useEffect(() => {
     // Detecta se já existe um customerId salvo no browser
@@ -135,6 +137,12 @@ const SettingsManager: React.FC<SettingsManagerProps> = ({ settings, updateSetti
           <p className="text-slate-500">Gerencie seu criatório</p>
         </div>
 
+        {isAdmin && (
+          <span className="text-[10px] font-black uppercase tracking-widest px-3 py-2 rounded-xl bg-rose-100 text-rose-700">
+            Admin
+          </span>
+        )}
+
         <div className="flex bg-white border rounded-2xl p-1">
           <button
             onClick={() => setActiveTab('perfil')}
@@ -219,7 +227,7 @@ const SettingsManager: React.FC<SettingsManagerProps> = ({ settings, updateSetti
               <p className="text-xs text-emerald-600 font-black">Trial ativo até {new Date(settings.trialEndDate).toLocaleDateString()}</p>
             )}
 
-            {settings.plan === 'Profissional' && (
+            {settings.plan === 'Profissional' && !isTrial && (
               <button
                 onClick={openBillingPortal}
                 className="mt-4 px-6 py-3 bg-slate-900 text-white rounded-xl font-black"
@@ -230,7 +238,7 @@ const SettingsManager: React.FC<SettingsManagerProps> = ({ settings, updateSetti
           </div>
 
           {/* Plano selection / checkout */}
-          {settings.plan !== 'Profissional' && (
+          {(settings.plan !== 'Profissional' || isTrial) && (
             <>
               <div className="grid grid-cols-2 gap-4">
                 {PLANS.map(plan => (
