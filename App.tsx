@@ -40,6 +40,7 @@ const App: React.FC = () => {
   const [isAdmin, setIsAdmin] = useState(false);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [authLoading, setAuthLoading] = useState(true);
+  const [userId, setUserId] = useState<string | null>(null);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false); 
   
   const [state, setState] = useState<AppState>(() => ({
@@ -64,7 +65,7 @@ const App: React.FC = () => {
     if (
       state.settings.plan === 'Básico' &&
       !state.settings.trialEndDate &&
-      !localStorage.getItem('avigestao_user_id')
+      userId
     ) {
       const trialEnd = new Date();
       trialEnd.setDate(trialEnd.getDate() + 7);
@@ -80,7 +81,7 @@ const App: React.FC = () => {
       }));
       console.log('Migração V2.0: Trial ativado automaticamente para usuário existente.');
     }
-  }, [isAdmin]);
+  }, [isAdmin, userId, state.settings.plan, state.settings.trialEndDate]);
 
   // Check for Trial Expiration on Mount
   useEffect(() => {
@@ -107,7 +108,7 @@ const App: React.FC = () => {
     supabase.auth.getSession().then(async ({ data }: { data: { session: Session | null } }) => {
       if (data.session) {
         setIsAuthenticated(true);
-        localStorage.setItem('avigestao_user_id', data.session.user.id);
+        setUserId(data.session.user.id);
 
         // Check admin status server-side
         try {
@@ -132,7 +133,7 @@ const App: React.FC = () => {
     const { data: listener } = supabase.auth.onAuthStateChange(async (_event: AuthChangeEvent, session: Session | null) => {
       if (session) {
         setIsAuthenticated(true);
-        localStorage.setItem('avigestao_user_id', session.user.id);
+        setUserId(session.user.id);
 
         try {
           const token = session.access_token;
@@ -150,7 +151,7 @@ const App: React.FC = () => {
       } else {
         setIsAuthenticated(false);
         setIsAdmin(false);
-        localStorage.removeItem('avigestao_user_id');
+        setUserId(null);
       }
     });
 
@@ -241,7 +242,6 @@ useEffect(() => {
 useEffect(() => {
   if (!isAuthenticated) return;
 
-  const userId = localStorage.getItem('avigestao_user_id');
   if (!userId) return;
 
   const subs: any[] = [];
@@ -273,7 +273,7 @@ useEffect(() => {
   });
 
   return () => subs.forEach(s => supabase.removeChannel(s));
-}, [isAuthenticated]);
+}, [isAuthenticated, userId]);
 
 
   useEffect(() => {
@@ -302,7 +302,6 @@ useEffect(() => {
   useEffect(() => {
     if (!isAuthenticated) return;
 
-    const userId = localStorage.getItem('avigestao_user_id');
     if (!userId) return;
 
     const bootstrap = async () => {
@@ -325,13 +324,12 @@ useEffect(() => {
     };
 
     bootstrap();
-  }, [isAuthenticated]);
+  }, [isAuthenticated, userId]);
 
   // Realtime listener for subscription status to auto-update plan
   useEffect(() => {
     if (!isAuthenticated) return;
 
-    const userId = localStorage.getItem('avigestao_user_id');
     if (!userId) return;
 
     const channel = subscribeTable('subscriptions', userId, (payload: any) => {
@@ -363,11 +361,11 @@ useEffect(() => {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [isAuthenticated]);
+  }, [isAuthenticated, userId]);
 
   const handleLogin = async (newSettings?: Partial<BreederSettings>) => {
   if (newSettings?.userId) {
-    localStorage.setItem('avigestao_user_id', newSettings.userId);
+    setUserId(newSettings.userId);
     try {
       await migrateLocalData(newSettings.userId);
     } catch (err) {
@@ -404,20 +402,28 @@ useEffect(() => {
     } catch (err) {
       console.error('Logout error', err);
     }
-    localStorage.removeItem('avigestao_user_id');
+    setUserId(null);
     setIsAuthenticated(false);
   };
 
   const updateSettings = (settings: BreederSettings) => setState(prev => ({ ...prev, settings }));
 
+  const getUserId = async () => {
+    if (userId) return userId;
+    const { data } = await supabase.auth.getSession();
+    const id = data.session?.user.id ?? null;
+    if (id) setUserId(id);
+    return id;
+  };
+
   // --- BIRDS ---
   const addBird = async (bird: Bird) => {
-    const userId = localStorage.getItem('avigestao_user_id');
-    if (!userId) return;
+    const uid = await getUserId();
+    if (!uid) return;
 
     const dbRow = {
       id: bird.id,
-      user_id: userId,
+      user_id: uid,
       name: bird.name,
       ring: bird.ringNumber,
       species: bird.species,
@@ -465,9 +471,9 @@ useEffect(() => {
 
   // --- MOVEMENTS ---
   const addMovement = async (mov: MovementRecord) => {
-    const userId = localStorage.getItem('avigestao_user_id');
-    if (!userId) return;
-    await insertRow('movements', { ...mov, user_id: userId });
+    const uid = await getUserId();
+    if (!uid) return;
+    await insertRow('movements', { ...mov, user_id: uid });
     const newStatusMap: Record<string, any> = { 'Óbito': 'Falecido', 'Fuga': 'Fugido', 'Venda': 'Vendido', 'Transporte': 'Transferido' };
     if (newStatusMap[mov.type]) updateBirdStatus(mov.birdId, newStatusMap[mov.type]);
   };
@@ -559,9 +565,9 @@ useEffect(() => {
 
   // --- FINANCE ---
   const addTransaction = async (t: Transaction) => {
-    const userId = localStorage.getItem('avigestao_user_id');
-    if (!userId) return;
-    await insertRow('transactions', { ...t, user_id: userId });
+    const uid = await getUserId();
+    if (!uid) return;
+    await insertRow('transactions', { ...t, user_id: uid });
   };
 
   const deleteTransaction = async (id: string) => {
@@ -579,9 +585,9 @@ useEffect(() => {
 
   // --- TASKS ---
   const addTask = async (t: MaintenanceTask) => {
-    const userId = localStorage.getItem('avigestao_user_id');
-    if (!userId) return;
-    await insertRow('tasks', { ...t, user_id: userId });
+    const uid = await getUserId();
+    if (!uid) return;
+    await insertRow('tasks', { ...t, user_id: uid });
   };
 
   const updateTask = async (updatedTask: MaintenanceTask) => {

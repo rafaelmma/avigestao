@@ -34,7 +34,6 @@ const Auth: React.FC<AuthProps> = ({ onLogin }) => {
         if (error) return alert(error.message);
 
         if (data?.user?.id) {
-          localStorage.setItem('avigestao_user_id', data.user.id);
           onLogin({
             userId: data.user.id,
             breederName: email.split('@')[0],
