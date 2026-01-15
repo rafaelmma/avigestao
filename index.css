@@ -1,3 +1,19 @@
 /* index.css placeholder to avoid 404 in production builds */
 html,body,#root{height:100%;}
 body{margin:0;}
+
+@media print {
+  body * {
+    visibility: hidden;
+  }
+  #printable-pedigree,
+  #printable-pedigree * {
+    visibility: visible;
+  }
+  #printable-pedigree {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+  }
+}

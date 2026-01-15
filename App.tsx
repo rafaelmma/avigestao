@@ -416,27 +416,111 @@ useEffect(() => {
     return id;
   };
 
+  const mapBirdToDb = (bird: Bird, uid: string) => ({
+    id: bird.id,
+    user_id: uid,
+    name: bird.name,
+    ring: bird.ringNumber,
+    species: bird.species,
+    sex: bird.sex,
+    status: bird.status,
+    created_at: bird.createdAt || new Date().toISOString(),
+    ...(bird.fatherId ? { father_id: bird.fatherId } : {}),
+    ...(bird.motherId ? { mother_id: bird.motherId } : {}),
+    ...(bird.manualAncestors ? { manual_ancestors: bird.manualAncestors } : {}),
+  });
+
+  const mapBirdUpdateToDb = (bird: Bird) => ({
+    name: bird.name,
+    ring: bird.ringNumber,
+    species: bird.species,
+    sex: bird.sex,
+    status: bird.status,
+    father_id: bird.fatherId || null,
+    mother_id: bird.motherId || null,
+    manual_ancestors: bird.manualAncestors || null,
+  });
+
+  const mapMovementToDb = (mov: MovementRecord, uid: string) => ({
+    id: mov.id,
+    user_id: uid,
+    bird_id: mov.birdId,
+    type: mov.type,
+    date: mov.date,
+    notes: mov.notes,
+    ...(mov.gtrUrl ? { gtr_url: mov.gtrUrl } : {}),
+    ...(mov.destination ? { destination: mov.destination } : {}),
+    ...(mov.buyerSispass ? { buyer_sispass: mov.buyerSispass } : {}),
+  });
+
+  const mapMovementUpdateToDb = (mov: MovementRecord) => ({
+    bird_id: mov.birdId,
+    type: mov.type,
+    date: mov.date,
+    notes: mov.notes,
+    ...(mov.gtrUrl ? { gtr_url: mov.gtrUrl } : {}),
+    ...(mov.destination ? { destination: mov.destination } : {}),
+    ...(mov.buyerSispass ? { buyer_sispass: mov.buyerSispass } : {}),
+  });
+
+  const mapTransactionToDb = (t: Transaction, uid: string) => ({
+    id: t.id,
+    user_id: uid,
+    description: t.description,
+    amount: t.amount,
+    date: t.date,
+    type: t.type,
+    ...(t.category ? { category: t.category } : {}),
+    ...(t.subcategory ? { subcategory: t.subcategory } : {}),
+  });
+
+  const mapTransactionUpdateToDb = (t: Transaction) => ({
+    description: t.description,
+    amount: t.amount,
+    date: t.date,
+    type: t.type,
+    ...(t.category ? { category: t.category } : {}),
+    ...(t.subcategory ? { subcategory: t.subcategory } : {}),
+  });
+
+  const mapTaskToDb = (t: MaintenanceTask, uid: string) => ({
+    id: t.id,
+    user_id: uid,
+    title: t.title,
+    due_date: t.dueDate,
+    is_completed: t.isCompleted,
+  });
+
+  const mapTaskUpdateToDb = (t: MaintenanceTask) => ({
+    title: t.title,
+    due_date: t.dueDate,
+    is_completed: t.isCompleted,
+  });
+
   // --- BIRDS ---
   const addBird = async (bird: Bird) => {
     const uid = await getUserId();
     if (!uid) return;
 
-    const dbRow = {
-      id: bird.id,
-      user_id: uid,
-      name: bird.name,
-      ring: bird.ringNumber,
-      species: bird.species,
-      sex: bird.sex,
-      status: bird.status,
-      created_at: bird.createdAt || new Date().toISOString(),
-    };
+    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+    const safeBirdId = uuidRegex.test(bird.id)
+      ? bird.id
+      : (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function'
+          ? crypto.randomUUID()
+          : 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
+              const r = (Math.random() * 16) | 0;
+              const v = c === 'x' ? r : (r & 0x3) | 0x8;
+              return v.toString(16);
+            }));
+
+    const safeBird: Bird = bird.id === safeBirdId ? bird : { ...bird, id: safeBirdId };
+    const dbRow = mapBirdToDb(safeBird, uid);
 
     let added = false;
     setState(prev => {
-      if (prev.birds.some(b => b.id === bird.id)) return prev;
+      if (prev.birds.some(b => b.id === safeBird.id)) return prev;
       added = true;
-      return { ...prev, birds: [...prev.birds, bird] };
+      return { ...prev, birds: [...prev.birds, safeBird] };
     });
 
     try {
@@ -451,7 +535,11 @@ useEffect(() => {
   };
 
   const updateBird = async (updatedBird: Bird) => {
-    await updateRow('birds', updatedBird.id, updatedBird);
+    setState(prev => ({
+      ...prev,
+      birds: prev.birds.map(b => b.id === updatedBird.id ? updatedBird : b),
+    }));
+    await updateRow('birds', updatedBird.id, mapBirdUpdateToDb(updatedBird));
   };
 
   const deleteBird = async (id: string) => {
@@ -473,13 +561,13 @@ useEffect(() => {
   const addMovement = async (mov: MovementRecord) => {
     const uid = await getUserId();
     if (!uid) return;
-    await insertRow('movements', { ...mov, user_id: uid });
+    await insertRow('movements', mapMovementToDb(mov, uid));
     const newStatusMap: Record<string, any> = { 'Óbito': 'Falecido', 'Fuga': 'Fugido', 'Venda': 'Vendido', 'Transporte': 'Transferido' };
     if (newStatusMap[mov.type]) updateBirdStatus(mov.birdId, newStatusMap[mov.type]);
   };
 
   const updateMovement = async (updatedMov: MovementRecord) => {
-    await updateRow('movements', updatedMov.id, updatedMov);
+    await updateRow('movements', updatedMov.id, mapMovementUpdateToDb(updatedMov));
   };
 
   const deleteMovement = async (id: string) => {
@@ -567,7 +655,7 @@ useEffect(() => {
   const addTransaction = async (t: Transaction) => {
     const uid = await getUserId();
     if (!uid) return;
-    await insertRow('transactions', { ...t, user_id: uid });
+    await insertRow('transactions', mapTransactionToDb(t, uid));
   };
 
   const deleteTransaction = async (id: string) => {
@@ -587,11 +675,11 @@ useEffect(() => {
   const addTask = async (t: MaintenanceTask) => {
     const uid = await getUserId();
     if (!uid) return;
-    await insertRow('tasks', { ...t, user_id: uid });
+    await insertRow('tasks', mapTaskToDb(t, uid));
   };
 
   const updateTask = async (updatedTask: MaintenanceTask) => {
-    await updateRow('tasks', updatedTask.id, updatedTask);
+    await updateRow('tasks', updatedTask.id, mapTaskUpdateToDb(updatedTask));
   };
 
   const toggleTask = async (id: string) => {
