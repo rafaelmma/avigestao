@@ -250,8 +250,11 @@ useEffect(() => {
         const data = payload.new;
 
         switch (payload.eventType) {
-          case 'INSERT':
-            return { ...prev, [table]: [...(prev as any)[table], data] };
+          case 'INSERT': {
+            const list = (prev as any)[table] || [];
+            if (list.some((r: any) => r.id === data.id)) return prev;
+            return { ...prev, [table]: [...list, data] };
+          }
           case 'UPDATE':
             return { ...prev, [table]: (prev as any)[table].map((r: any) => r.id === data.id ? data : r) };
           case 'DELETE':
@@ -308,7 +311,7 @@ useEffect(() => {
           transactions: data.transactions || [],
           tasks: data.tasks || [],
           tournaments: data.tournaments || [],
-          medications: data.medications || [],
+          medications: data.medications && data.medications.length > 0 ? data.medications : prev.medications,
           settings: data.settings || prev.settings,
         }));
       } catch (err) {
@@ -407,7 +410,23 @@ useEffect(() => {
   const addBird = async (bird: Bird) => {
     const userId = localStorage.getItem('avigestao_user_id');
     if (!userId) return;
-    await insertRow('birds', { ...bird, user_id: userId });
+
+    let added = false;
+    setState(prev => {
+      if (prev.birds.some(b => b.id === bird.id)) return prev;
+      added = true;
+      return { ...prev, birds: [...prev.birds, bird] };
+    });
+
+    try {
+      await insertRow('birds', { ...bird, user_id: userId });
+    } catch (err) {
+      if (added) {
+        setState(prev => ({ ...prev, birds: prev.birds.filter(b => b.id !== bird.id) }));
+      }
+      console.error('Erro ao salvar ave:', err);
+      setError('Falha ao salvar ave. Verifique sua conexão e tente novamente.');
+    }
   };
 
   const updateBird = async (updatedBird: Bird) => {

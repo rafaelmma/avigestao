@@ -1,14 +1,16 @@
-import React, { useRef, useState, useEffect } from 'react';
+﻿import React, { useRef, useState, useEffect } from 'react';
 import { BreederSettings } from '../types';
 import {
   User,
   Image as ImageIcon,
   Upload,
+  Palette,
   Lock,
   Loader2,
   ExternalLink
 } from 'lucide-react';
 import TipCarousel from '../components/TipCarousel';
+import { APP_LOGO } from '../constants';
 import { supabase } from '../supabaseClient';
 
 interface SettingsManagerProps {
@@ -33,6 +35,8 @@ const PRICE_ID_MAP: Record<string, string> = {
 
 const SettingsManager: React.FC<SettingsManagerProps> = ({ settings, updateSettings, isAdmin }) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const primaryColorRef = useRef<HTMLInputElement>(null);
+  const accentColorRef = useRef<HTMLInputElement>(null);
 
   const [activeTab, setActiveTab] = useState<'perfil' | 'plano'>('perfil');
   const [selectedPlanId, setSelectedPlanId] = useState('monthly');
@@ -41,7 +45,14 @@ const SettingsManager: React.FC<SettingsManagerProps> = ({ settings, updateSetti
 
   const [hasStripeCustomer, setHasStripeCustomer] = useState(false);
   const isTrial = !!settings.trialEndDate && !isAdmin;
+  const canUseLogo = !!isAdmin || settings.plan === 'Profissional' || !!settings.trialEndDate;
   const planLabel = isAdmin ? 'Admin' : settings.plan;
+
+  useEffect(() => {
+    if (!canUseLogo && settings.logoUrl && settings.logoUrl !== APP_LOGO) {
+      updateSettings({ ...settings, logoUrl: APP_LOGO });
+    }
+  }, [canUseLogo, settings, updateSettings]);
 
   useEffect(() => {
     // Detecta se já existe um customerId salvo no browser
@@ -132,10 +143,10 @@ const SettingsManager: React.FC<SettingsManagerProps> = ({ settings, updateSetti
   return (
     <div className="space-y-8 max-w-5xl pb-12 animate-in fade-in">
       {/* HEADER */}
-      <header className="flex justify-between items-end">
+      <header className="flex items-end justify-between gap-6">
         <div>
           <h2 className="text-3xl font-black text-slate-900">Configurações</h2>
-          <p className="text-slate-500">Gerencie seu criatório</p>
+          <p className="text-slate-500">Gerencie seu criatório e preferências do sistema.</p>
         </div>
 
         {isAdmin && (
@@ -153,7 +164,7 @@ const SettingsManager: React.FC<SettingsManagerProps> = ({ settings, updateSetti
                 : 'text-slate-400'
             }`}
           >
-            Perfil
+            Perfil do Criatório
           </button>
           <button
             onClick={() => setActiveTab('plano')}
@@ -163,55 +174,131 @@ const SettingsManager: React.FC<SettingsManagerProps> = ({ settings, updateSetti
                 : 'text-slate-400'
             }`}
           >
-            Plano
+            Meu Plano
           </button>
         </div>
       </header>
 
       <TipCarousel category="settings" />
 
-      {/* PERFIL */}
+            {/* PERFIL */}
       {activeTab === 'perfil' && (
-        <div className="bg-white p-8 rounded-3xl border space-y-6">
-          <h3 className="font-black flex items-center gap-2">
-            <User /> Dados do Criatório
-          </h3>
+        <div className="grid grid-cols-1 lg:grid-cols-[1.6fr_0.8fr] gap-6">
+          <div className="bg-white p-8 rounded-3xl border space-y-6">
+            <h3 className="font-black flex items-center gap-2">
+              <User /> Dados do Criatório
+            </h3>
 
-          <div className="flex gap-6">
-            <div className="w-24 h-24 border rounded-xl flex items-center justify-center">
-              {settings.logoUrl ? (
-                <img src={settings.logoUrl} className="w-full h-full object-contain" />
-              ) : (
-                <ImageIcon className="text-slate-300" />
-              )}
+            <div className="bg-slate-50 border border-slate-100 rounded-2xl p-6 flex flex-col sm:flex-row gap-6 items-center sm:items-start">
+              <div className="w-24 h-24 bg-white border rounded-2xl flex items-center justify-center">
+                {settings.logoUrl ? (
+                  <img src={settings.logoUrl} className="w-full h-full object-contain p-2" />
+                ) : (
+                  <ImageIcon className="text-slate-300" />
+                )}
+              </div>
+
+              <div className="flex-1">
+                <p className="font-black text-slate-800">Logomarca do Criatório</p>
+                <p className="text-xs text-slate-500 mt-1">Exibida no menu lateral e nos certificados de Pedigree.</p>
+
+                {canUseLogo ? (
+                  <>
+                    <button
+                      onClick={() => fileInputRef.current?.click()}
+                      className="mt-4 inline-flex items-center gap-2 px-4 py-2 border rounded-xl text-xs font-black"
+                    >
+                      <Upload size={14} /> Carregar nova logo
+                    </button>
+                    <input
+                      type="file"
+                      ref={fileInputRef}
+                      hidden
+                      accept="image/*"
+                      onChange={handleLogoUpload}
+                    />
+                  </>
+                ) : (
+                  <div className="mt-4 inline-flex items-center gap-2 text-amber-600 text-xs font-black">
+                    <Lock size={14} /> Recurso PRO
+                  </div>
+                )}
+              </div>
             </div>
 
-            {settings.plan === 'Profissional' || isAdmin ? (
-              <>
-                <button
-                  onClick={() => fileInputRef.current?.click()}
-                  className="px-4 py-2 border rounded-xl text-xs font-black"
-                >
-                  <Upload size={14} /> Upload Logo
-                </button>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <label className="space-y-2">
+                <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Nome do criatório</span>
                 <input
-                  type="file"
-                  ref={fileInputRef}
-                  hidden
-                  accept="image/*"
-                  onChange={handleLogoUpload}
+                  className="w-full p-3 rounded-2xl bg-slate-50 border border-slate-100 text-sm font-bold"
+                  value={settings.breederName}
+                  onChange={(e) => updateSettings({ ...settings, breederName: e.target.value })}
                 />
-              </>
-            ) : (
-              <div className="flex items-center gap-2 text-amber-600 text-xs font-black">
-                <Lock size={14} /> Recurso PRO
+              </label>
+
+              <label className="space-y-2">
+                <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Número SISPASS</span>
+                <input
+                  className="w-full p-3 rounded-2xl bg-slate-50 border border-slate-100 text-sm font-bold"
+                  value={settings.sispassNumber}
+                  onChange={(e) => updateSettings({ ...settings, sispassNumber: e.target.value })}
+                />
+              </label>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <label className="space-y-2">
+                <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">CPF / CNPJ</span>
+                <input
+                  className="w-full p-3 rounded-2xl bg-slate-50 border border-slate-100 text-sm font-bold"
+                  value={settings.cpfCnpj}
+                  onChange={(e) => updateSettings({ ...settings, cpfCnpj: e.target.value })}
+                />
+              </label>
+            </div>
+          </div>
+
+          <div className="bg-white p-8 rounded-3xl border space-y-6">
+            <div className="flex items-center gap-2 text-emerald-600 font-black text-sm">
+              <Palette size={18} /> Aparência
+            </div>
+
+            <div className="flex items-center justify-center gap-8">
+              <div className="text-center">
+                <p className="text-[10px] font-black text-slate-300 uppercase tracking-widest">Primária</p>
+                <button
+                  className="mt-2 w-12 h-12 rounded-2xl border border-slate-200 shadow-sm"
+                  style={{ backgroundColor: settings.primaryColor }}
+                  onClick={() => primaryColorRef.current?.click()}
+                />
+                <input
+                  ref={primaryColorRef}
+                  type="color"
+                  value={settings.primaryColor}
+                  onChange={(e) => updateSettings({ ...settings, primaryColor: e.target.value })}
+                  className="sr-only"
+                />
               </div>
-            )}
+              <div className="text-center">
+                <p className="text-[10px] font-black text-slate-300 uppercase tracking-widest">Destaque</p>
+                <button
+                  className="mt-2 w-12 h-12 rounded-2xl border border-slate-200 shadow-sm"
+                  style={{ backgroundColor: settings.accentColor }}
+                  onClick={() => accentColorRef.current?.click()}
+                />
+                <input
+                  ref={accentColorRef}
+                  type="color"
+                  value={settings.accentColor}
+                  onChange={(e) => updateSettings({ ...settings, accentColor: e.target.value })}
+                  className="sr-only"
+                />
+              </div>
+            </div>
           </div>
         </div>
       )}
-
-      {/* PLANO */}
+{/* PLANO */}
       {activeTab === 'plano' && (
         <div className="bg-slate-900 text-white p-10 rounded-3xl space-y-8">
           <h3 className="text-2xl font-black">Plano Profissional</h3>
@@ -298,3 +385,8 @@ const SettingsManager: React.FC<SettingsManagerProps> = ({ settings, updateSetti
 };
 
 export default SettingsManager;
+
+
+
+
+
