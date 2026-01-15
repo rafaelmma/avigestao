@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import type { AuthChangeEvent, Session } from '@supabase/supabase-js';
 import { AppState, Bird, Pair, Clutch, Medication, MedicationApplication, BreederSettings, MovementRecord, Transaction, MaintenanceTask, TournamentEvent, ContinuousTreatment } from './types';
 import { MOCK_BIRDS, MOCK_MEDS, INITIAL_SETTINGS } from './constants';
 import Sidebar from './components/Sidebar';
@@ -103,7 +104,7 @@ const App: React.FC = () => {
   }, []); // Run once on mount
 
   useEffect(() => {
-    supabase.auth.getSession().then(async ({ data }) => {
+    supabase.auth.getSession().then(async ({ data }: { data: { session: Session | null } }) => {
       if (data.session) {
         setIsAuthenticated(true);
         localStorage.setItem('avigestao_user_id', data.session.user.id);
@@ -128,7 +129,7 @@ const App: React.FC = () => {
       setAuthLoading(false);
     });
 
-    const { data: listener } = supabase.auth.onAuthStateChange(async (_event, session) => {
+    const { data: listener } = supabase.auth.onAuthStateChange(async (_event: AuthChangeEvent, session: Session | null) => {
       if (session) {
         setIsAuthenticated(true);
         localStorage.setItem('avigestao_user_id', session.user.id);

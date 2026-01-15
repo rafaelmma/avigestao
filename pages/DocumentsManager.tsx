@@ -218,7 +218,8 @@ const DocumentsManager: React.FC<DocumentsManagerProps> = ({ settings, updateSet
                       className="w-full bg-transparent font-mono font-bold text-slate-700 outline-none text-sm"
                       value={sispassNumberValue}
                       onChange={(e) => updateSettings({...settings, sispassNumber: e.target.value})}
-                      disabled={isSispassConfigured && !editSispassNumber}`n                      onBlur={() => { if (isSispassConfigured) setEditSispassNumber(false); }}
+                      disabled={isSispassConfigured && !editSispassNumber}
+                      onBlur={() => { if (isSispassConfigured) setEditSispassNumber(false); }}
                     />
                     {isSispassConfigured && !editSispassNumber && (
                       <button
