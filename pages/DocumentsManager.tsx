@@ -114,6 +114,7 @@ const DocumentsManager: React.FC<DocumentsManagerProps> = ({ settings, updateSet
   const certificateIssuerValue = isCertificateConfigured ? (settings.certificate?.issuer || '') : '';
   const certificateExpiryValue = isCertificateConfigured ? (settings.certificate?.expiryDate || '') : '';
   const sispassActionLabel = isSispassConfigured ? 'Registrar Renovação' : 'Registrar Licença';
+  const certificateActionLabel = isCertificateConfigured ? 'Atualizar Validade' : 'Registrar Certificado';
   
   useEffect(() => {
     if (!isSispassConfigured) {
@@ -407,6 +408,9 @@ const DocumentsManager: React.FC<DocumentsManagerProps> = ({ settings, updateSet
 };
 
 export default DocumentsManager;
+
+
+
 
 
 
