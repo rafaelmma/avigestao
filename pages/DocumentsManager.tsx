@@ -1,5 +1,5 @@
 ﻿
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { BreederSettings, CertificateType } from '../types';
 import { FileBadge, ShieldCheck, ExternalLink, CreditCard, Cloud, FileKey, Usb, AlertTriangle, CheckCircle2, CalendarClock, Save, X, Calendar } from 'lucide-react';
 
@@ -25,6 +25,7 @@ const DocumentsManager: React.FC<DocumentsManagerProps> = ({ settings, updateSet
     const diff = new Date(dateString).getTime() - new Date().getTime();
     return Math.ceil(diff / (1000 * 60 * 60 * 24));
   };
+  const [editSispassNumber, setEditSispassNumber] = useState(false);
 
   const calculateProgress = (startDateStr?: string, endDateStr?: string) => {
     if (!startDateStr || !endDateStr) return 0;
@@ -113,7 +114,12 @@ const DocumentsManager: React.FC<DocumentsManagerProps> = ({ settings, updateSet
   const certificateIssuerValue = isCertificateConfigured ? (settings.certificate?.issuer || '') : '';
   const certificateExpiryValue = isCertificateConfigured ? (settings.certificate?.expiryDate || '') : '';
   const sispassActionLabel = isSispassConfigured ? 'Registrar Renovação' : 'Registrar Licença';
-  const certificateActionLabel = isCertificateConfigured ? 'Atualizar Validade' : 'Registrar Certificado';
+  
+  useEffect(() => {
+    if (!isSispassConfigured) {
+      setEditSispassNumber(true);
+    }
+  }, [isSispassConfigured]);
 
   return (
     <div className="space-y-8 animate-in fade-in duration-500 pb-12">
@@ -206,13 +212,23 @@ const DocumentsManager: React.FC<DocumentsManagerProps> = ({ settings, updateSet
               )}
 
               <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100 grid grid-cols-2 gap-4">
-                 <div>
+                                  <div>
                     <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest block mb-1">Nº Registro</label>
                     <input 
                       className="w-full bg-transparent font-mono font-bold text-slate-700 outline-none text-sm"
                       value={sispassNumberValue}
                       onChange={(e) => updateSettings({...settings, sispassNumber: e.target.value})}
+                      disabled={isSispassConfigured && !editSispassNumber}`n                      onBlur={() => { if (isSispassConfigured) setEditSispassNumber(false); }}
                     />
+                    {isSispassConfigured && !editSispassNumber && (
+                      <button
+                        type="button"
+                        onClick={() => setEditSispassNumber(true)}
+                        className="mt-2 text-[9px] font-black uppercase tracking-widest text-blue-600"
+                      >
+                        Editar número
+                      </button>
+                    )}
                  </div>
                  <div>
                     <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest block mb-1">Renovação</label>
@@ -390,6 +406,12 @@ const DocumentsManager: React.FC<DocumentsManagerProps> = ({ settings, updateSet
 };
 
 export default DocumentsManager;
+
+
+
+
+
+
 
 
 

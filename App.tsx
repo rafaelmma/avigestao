@@ -411,6 +411,17 @@ useEffect(() => {
     const userId = localStorage.getItem('avigestao_user_id');
     if (!userId) return;
 
+    const dbRow = {
+      id: bird.id,
+      user_id: userId,
+      name: bird.name,
+      ring: bird.ringNumber,
+      species: bird.species,
+      sex: bird.sex,
+      status: bird.status,
+      created_at: bird.createdAt || new Date().toISOString(),
+    };
+
     let added = false;
     setState(prev => {
       if (prev.birds.some(b => b.id === bird.id)) return prev;
@@ -419,7 +430,7 @@ useEffect(() => {
     });
 
     try {
-      await insertRow('birds', { ...bird, user_id: userId });
+      await insertRow('birds', dbRow);
     } catch (err) {
       if (added) {
         setState(prev => ({ ...prev, birds: prev.birds.filter(b => b.id !== bird.id) }));
