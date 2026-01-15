@@ -57,6 +57,17 @@ const BreedingManager: React.FC<BreedingManagerProps> = ({ state, addPair, addBi
   const [hatchlingParentPairId, setHatchlingParentPairId] = useState<string | null>(null);
   const [hatchlingBirthDate, setHatchlingBirthDate] = useState<string>('');
 
+  const makeId = () => {
+    if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
+      return crypto.randomUUID();
+    }
+    return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
+      const r = (Math.random() * 16) | 0;
+      const v = c === 'x' ? r : (r & 0x3) | 0x8;
+      return v.toString(16);
+    });
+  };
+
   // Listas base de aves ativas
   const males = useMemo(() => state.birds.filter(b => b.sex === 'Macho' && b.status === 'Ativo'), [state.birds]);
   const females = useMemo(() => state.birds.filter(b => b.sex === 'Fêmea' && b.status === 'Ativo'), [state.birds]);
@@ -106,7 +117,7 @@ const BreedingManager: React.FC<BreedingManagerProps> = ({ state, addPair, addBi
     if (newPair.maleId && newPair.femaleId && newPair.name) {
       addPair({
         ...newPair as Pair,
-        id: Math.random().toString(36).substr(2, 9),
+        id: makeId(),
         startDate: new Date().toISOString().split('T')[0]
       });
       setShowPairModal(false);
@@ -128,7 +139,7 @@ const BreedingManager: React.FC<BreedingManagerProps> = ({ state, addPair, addBi
         // Modo Criação
         const clutchData: Clutch = {
           ...newClutch as Clutch,
-          id: Math.random().toString(36).substr(2, 9),
+          id: makeId(),
           pairId: selectedPairId
         };
         addClutch(clutchData);
@@ -179,7 +190,7 @@ const BreedingManager: React.FC<BreedingManagerProps> = ({ state, addPair, addBi
     hatchlingsToRegister.forEach(hatchling => {
       // Se o usuário deixou o nome em branco ou padrão, não cadastra (opcional, aqui vou cadastrar tudo)
       const newBird: Bird = {
-        id: Math.random().toString(36).substr(2, 9),
+        id: makeId(),
         name: hatchling.name,
         ringNumber: hatchling.ringNumber || 'S/A', // Sem Anilha
         species: species,
