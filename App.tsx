@@ -162,13 +162,16 @@ const App: React.FC = () => {
   // Sync subscription status (callable from effects)
   const syncSubscriptionStatus = async () => {
     try {
-      const userId = localStorage.getItem("avigestao_user_id");
-      if (!userId) return;
+      const { data: sessionData } = await supabase.auth.getSession();
+      const token = sessionData.session?.access_token;
+      if (!token) return;
 
       const res = await fetch("/api/subscription-status", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ user_id: userId }),
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
       });
 
       if (!res.ok) return;
