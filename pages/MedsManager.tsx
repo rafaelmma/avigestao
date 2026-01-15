@@ -39,6 +39,7 @@ interface MedsManagerProps {
   deleteMed?: (id: string) => void;
   restoreMed?: (id: string) => void;
   permanentlyDeleteMed?: (id: string) => void;
+  isAdmin?: boolean;
   
   // Tratamentos Contínuos
   addTreatment?: (t: ContinuousTreatment) => void;
@@ -57,7 +58,8 @@ interface MedsManagerProps {
 const MedsManager: React.FC<MedsManagerProps> = ({ 
   state, addMed, updateMed, applyMed, deleteMed, restoreMed, permanentlyDeleteMed,
   addTreatment, updateTreatment, deleteTreatment, restoreTreatment, permanentlyDeleteTreatment,
-  updateApplication, deleteApplication, restoreApplication, permanentlyDeleteApplication
+  updateApplication, deleteApplication, restoreApplication, permanentlyDeleteApplication,
+  isAdmin
 }) => {
   const [activeTab, setActiveTab] = useState<'inventory' | 'history' | 'treatments'>('inventory');
   
@@ -254,7 +256,7 @@ const MedsManager: React.FC<MedsManagerProps> = ({
   const handlePermanentDeleteApp = (id: string) => { if (permanentlyDeleteApplication) permanentlyDeleteApplication(id); };
 
   // Verifica plano para exibir restrições
-  const isBasicPlan = state.settings.plan === 'Básico';
+  const isBasicPlan = state.settings.plan === 'Básico' && !isAdmin;
 
   return (
     <div className="space-y-6 animate-in fade-in duration-500">

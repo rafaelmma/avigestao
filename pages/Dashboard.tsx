@@ -28,6 +28,7 @@ interface DashboardProps {
   state: AppState;
   updateSettings: (s: BreederSettings) => void;
   navigateTo: (tab: string) => void;
+  isAdmin?: boolean;
 }
 
 const ALL_WIDGETS = [
@@ -56,7 +57,7 @@ const StatCard = ({ icon, label, value, subValue, isWarning, isPositive, onClick
   </div>
 );
 
-const Dashboard: React.FC<DashboardProps> = ({ state, updateSettings, navigateTo }) => {
+const Dashboard: React.FC<DashboardProps> = ({ state, updateSettings, navigateTo, isAdmin }) => {
   const [showCustomizer, setShowCustomizer] = useState(false);
   
   const dragItem = useRef<number | null>(null);
@@ -347,7 +348,7 @@ const Dashboard: React.FC<DashboardProps> = ({ state, updateSettings, navigateTo
             <h2 className="text-3xl font-black text-[#0F172A] tracking-tight">Painel Geral</h2>
             
             {/* BADGE DE TRIAL NO HEADER */}
-            {state.settings.trialEndDate && trialDays >= 0 && (
+            {state.settings.trialEndDate && trialDays >= 0 && !isAdmin && (
               <span className="flex items-center gap-1 bg-amber-100 text-amber-700 px-3 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest border border-amber-200 shadow-sm animate-in fade-in">
                 <Zap size={10} fill="currentColor" /> Trial: {trialDays} dias restantes
               </span>

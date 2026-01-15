@@ -53,9 +53,12 @@ const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab, logoUrl, bre
     if (onClose) onClose(); 
   };
 
+  const hasTrial = !!trialEndDate && !isAdmin;
+  const planLabel = isAdmin ? 'ADMIN' : hasTrial ? 'PRO (Teste)' : `Plano ${plan}`;
+
   // Lógica de Trial (Arredondamento para cima garante que 0.5 dias vire 1 dia)
   let trialDaysLeft = 0;
-  if (trialEndDate) {
+  if (hasTrial) {
     const diffTime = new Date(trialEndDate).getTime() - new Date().getTime();
     trialDaysLeft = Math.ceil(diffTime / (1000 * 60 * 60 * 24)); 
   }
@@ -84,20 +87,13 @@ const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab, logoUrl, bre
                   className="w-full h-full object-contain" 
                 />
               </div>
-              <div className={`absolute -bottom-1 -right-1 w-4 h-4 border-2 border-white rounded-full ${plan === 'Profissional' ? 'bg-amber-500' : 'bg-emerald-500'}`}></div>
+              <div className={`absolute -bottom-1 -right-1 w-4 h-4 border-2 border-white rounded-full ${isAdmin ? 'bg-rose-500' : plan === 'Profissional' ? 'bg-amber-500' : 'bg-emerald-500'}`}></div>
             </div>
             <div className="overflow-hidden">
               <h1 className="font-black text-slate-900 text-base leading-tight truncate max-w-[120px]">AviGestão</h1>
-              <div className="flex items-center gap-1.5">
-                <span className={`text-[8px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded ${plan === 'Profissional' ? 'bg-amber-100 text-amber-700' : 'bg-slate-100 text-slate-400'}`}>
-                  {trialEndDate ? 'PRO (Teste)' : `Plano ${plan}`}
-                </span>
-                {isAdmin && (
-                  <span className="text-[8px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded bg-rose-100 text-rose-700">
-                    Admin
-                  </span>
-                )}
-              </div>
+              <span className={`text-[8px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded ${isAdmin ? 'bg-rose-100 text-rose-700' : plan === 'Profissional' ? 'bg-amber-100 text-amber-700' : 'bg-slate-100 text-slate-400'}`}>
+                {planLabel}
+              </span>
             </div>
           </div>
           {/* Botão fechar apenas mobile */}
@@ -107,7 +103,7 @@ const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab, logoUrl, bre
         </div>
 
         {/* TRIAL BANNER - REFORÇADO */}
-        {trialEndDate && trialDaysLeft >= 0 && (
+        {hasTrial && trialDaysLeft >= 0 && (
           <div className="px-4 mb-4 animate-in fade-in slide-in-from-left-4 duration-500">
              <div className="bg-gradient-to-r from-amber-500 to-amber-600 rounded-2xl p-4 text-white shadow-lg shadow-amber-500/20 relative overflow-hidden">
                 <div className="flex items-center gap-2 mb-1 relative z-10">
@@ -138,7 +134,7 @@ const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab, logoUrl, bre
                   {item.icon}
                 </span>
                 <span className="font-bold text-sm tracking-tight">{item.label}</span>
-                {item.pro && plan === 'Básico' && !trialEndDate && (
+                {item.pro && plan === 'Básico' && !hasTrial && !isAdmin && (
                   <Zap size={12} className="text-amber-500 fill-amber-500" />
                 )}
               </div>
@@ -148,17 +144,17 @@ const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab, logoUrl, bre
         </nav>
 
         <div className="px-4 py-6 border-t border-slate-50 space-y-2">
-          {(plan === 'Básico' || trialEndDate) && (
+          {(plan === 'Básico' || hasTrial) && !isAdmin && (
             <button 
               onClick={() => handleNavigation('settings')}
               className={`w-full flex items-center gap-3 px-4 py-3 rounded-2xl font-black text-[10px] uppercase tracking-widest transition-all ${
-                trialEndDate 
+                hasTrial 
                   ? 'bg-emerald-50 text-emerald-700 hover:bg-emerald-100' 
                   : 'bg-amber-50 text-amber-700 hover:bg-amber-100'
               }`}
             >
-              <Zap size={16} className={trialEndDate ? "fill-emerald-500 text-emerald-500" : "fill-amber-500 text-amber-500"} />
-              {trialEndDate ? 'Assinar Definitivo' : 'Upgrade para PRO'}
+              <Zap size={16} className={hasTrial ? "fill-emerald-500 text-emerald-500" : "fill-amber-500 text-amber-500"} />
+              {hasTrial ? 'Assinar Definitivo' : 'Upgrade para PRO'}
             </button>
           )}
           <button
@@ -178,7 +174,7 @@ const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab, logoUrl, bre
             <span className="font-bold text-sm">Sair</span>
           </button>
           <div className="text-center pt-2">
-             <span className="text-[9px] font-bold text-slate-300">Versão 2.0 (Trial Ativo)</span>
+             <span className="text-[9px] font-bold text-slate-300">{hasTrial ? 'Versão 2.0 (Trial Ativo)' : 'Versão 2.0'}</span>
           </div>
         </div>
       </div>

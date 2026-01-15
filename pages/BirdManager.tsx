@@ -49,9 +49,10 @@ interface BirdManagerProps {
   deleteBird: (id: string) => void;
   restoreBird?: (id: string) => void;
   permanentlyDeleteBird?: (id: string) => void;
+  isAdmin?: boolean;
 }
 
-const BirdManager: React.FC<BirdManagerProps> = ({ state, addBird, updateBird, deleteBird, restoreBird, permanentlyDeleteBird }) => {
+const BirdManager: React.FC<BirdManagerProps> = ({ state, addBird, updateBird, deleteBird, restoreBird, permanentlyDeleteBird, isAdmin }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [showModal, setShowModal] = useState(false);
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
@@ -87,8 +88,8 @@ const BirdManager: React.FC<BirdManagerProps> = ({ state, addBird, updateBird, d
   const birdPhotoInputRef = useRef<HTMLInputElement>(null);
 
   // Verificação de Plano
-  const isLimitReached = state.settings.plan === 'Básico' && state.birds.length >= MAX_FREE_BIRDS;
-  const isPro = state.settings.plan === 'Profissional' || !!state.settings.trialEndDate;
+  const isLimitReached = !isAdmin && state.settings.plan === 'Básico' && state.birds.length >= MAX_FREE_BIRDS;
+  const isPro = isAdmin || state.settings.plan === 'Profissional' || !!state.settings.trialEndDate;
 
   // New Bird State
   const [newBird, setNewBird] = useState<Partial<Bird>>({
@@ -538,7 +539,7 @@ const BirdManager: React.FC<BirdManagerProps> = ({ state, addBird, updateBird, d
       <header className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <h2 className="text-3xl font-black text-[#0F172A] tracking-tight">Plantel</h2>
-          {state.settings.plan === 'Básico' && (
+          {state.settings.plan === 'Básico' && !isAdmin && (
             <div className="flex items-center gap-2 mt-1">
               <div className="w-24 h-1.5 bg-slate-100 rounded-full overflow-hidden">
                 <div 
@@ -1595,7 +1596,7 @@ const BirdManager: React.FC<BirdManagerProps> = ({ state, addBird, updateBird, d
               </div>
               <h3 className="text-3xl font-black text-slate-800 tracking-tight leading-tight">Limite Atingido!</h3>
               <p className="text-slate-500 font-medium mt-4 max-w-sm mx-auto leading-relaxed">
-                {state.settings.plan === 'Básico' && state.birds.length >= MAX_FREE_BIRDS 
+                {state.settings.plan === 'Básico' && state.birds.length >= MAX_FREE_BIRDS && !isAdmin
                   ? `Você atingiu o limite de ${MAX_FREE_BIRDS} aves do plano básico. Migre para o profissional e tenha gestão ilimitada.`
                   : "O upload de fotos personalizadas é exclusivo do Plano Profissional."
                 }

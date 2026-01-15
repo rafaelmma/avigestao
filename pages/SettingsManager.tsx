@@ -40,7 +40,8 @@ const SettingsManager: React.FC<SettingsManagerProps> = ({ settings, updateSetti
   const [paymentStep, setPaymentStep] = useState<'method' | 'processing'>('method');
 
   const [hasStripeCustomer, setHasStripeCustomer] = useState(false);
-  const isTrial = !!settings.trialEndDate;
+  const isTrial = !!settings.trialEndDate && !isAdmin;
+  const planLabel = isAdmin ? 'Admin' : settings.plan;
 
   useEffect(() => {
     // Detecta se já existe um customerId salvo no browser
@@ -185,7 +186,7 @@ const SettingsManager: React.FC<SettingsManagerProps> = ({ settings, updateSetti
               )}
             </div>
 
-            {settings.plan === 'Profissional' ? (
+            {settings.plan === 'Profissional' || isAdmin ? (
               <>
                 <button
                   onClick={() => fileInputRef.current?.click()}
@@ -217,17 +218,17 @@ const SettingsManager: React.FC<SettingsManagerProps> = ({ settings, updateSetti
 
           <div className="bg-white text-slate-900 p-6 rounded-2xl">
             <p className="text-xs uppercase font-black text-slate-500">Plano atual</p>
-            <h3 className="text-2xl font-black">{settings.plan}</h3>
+            <h3 className="text-2xl font-black">{planLabel}</h3>
 
-            {settings.plan === 'Básico' && (
+            {settings.plan === 'Básico' && !isAdmin && (
               <p className="text-xs text-amber-600 font-black">Você está usando o plano gratuito</p>
             )}
 
-            {settings.trialEndDate && (
+            {settings.trialEndDate && !isAdmin && (
               <p className="text-xs text-emerald-600 font-black">Trial ativo até {new Date(settings.trialEndDate).toLocaleDateString()}</p>
             )}
 
-            {settings.plan === 'Profissional' && !isTrial && (
+            {settings.plan === 'Profissional' && !isTrial && !isAdmin && (
               <button
                 onClick={openBillingPortal}
                 className="mt-4 px-6 py-3 bg-slate-900 text-white rounded-xl font-black"
@@ -238,7 +239,7 @@ const SettingsManager: React.FC<SettingsManagerProps> = ({ settings, updateSetti
           </div>
 
           {/* Plano selection / checkout */}
-          {(settings.plan !== 'Profissional' || isTrial) && (
+          {!isAdmin && (settings.plan !== 'Profissional' || isTrial) && (
             <>
               <div className="grid grid-cols-2 gap-4">
                 {PLANS.map(plan => (

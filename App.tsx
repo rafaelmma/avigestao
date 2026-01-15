@@ -609,7 +609,7 @@ useEffect(() => {
     
     // Se for Financeiro e o plano for Básico (e não for um trial válido), bloqueia
     // Nota: A lógica de App.tsx já rebaixa o plano se o trial expirou, então só checar 'Básico' basta.
-    if (currentTab === 'finance' && state.settings.plan === 'Básico') {
+    if (currentTab === 'finance' && state.settings.plan === 'Básico' && !isAdmin) {
       return (
         <div className="h-[70vh] flex flex-col items-center justify-center text-center p-10 animate-in fade-in duration-500">
            <div className="w-24 h-24 bg-amber-100 text-amber-600 rounded-[32px] flex items-center justify-center mb-8 shadow-inner">
@@ -631,7 +631,7 @@ useEffect(() => {
 
     try {
       switch (currentTab) {
-        case 'dashboard': return <Dashboard state={state} updateSettings={updateSettings} navigateTo={setActiveTab} />;
+        case 'dashboard': return <Dashboard state={state} updateSettings={updateSettings} navigateTo={setActiveTab} isAdmin={isAdmin} />;
         case 'birds': 
           return <BirdManager 
             state={state} 
@@ -640,6 +640,7 @@ useEffect(() => {
             deleteBird={deleteBird} 
             restoreBird={restoreBird}
             permanentlyDeleteBird={permanentlyDeleteBird}
+            isAdmin={isAdmin}
           />;
         case 'movements': 
           return <MovementsManager 
@@ -684,6 +685,7 @@ useEffect(() => {
             deleteApplication={deleteApplication}
             restoreApplication={restoreApplication}
             permanentlyDeleteApplication={permanentlyDeleteApplication}
+            isAdmin={isAdmin}
           />;
         case 'finance': 
           return <FinanceManager 
@@ -714,7 +716,7 @@ useEffect(() => {
           />;
         case 'settings': return <SettingsManager settings={state.settings} updateSettings={updateSettings} isAdmin={isAdmin} />;
         case 'help': return <HelpCenter />;
-        default: return <Dashboard state={state} updateSettings={updateSettings} navigateTo={setActiveTab} />;
+        default: return <Dashboard state={state} updateSettings={updateSettings} navigateTo={setActiveTab} isAdmin={isAdmin} />;
       }
     } catch (err) {
       console.error("Erro ao renderizar aba:", err);
