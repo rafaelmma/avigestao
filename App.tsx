@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect } from 'react';
 import type { AuthChangeEvent, Session } from '@supabase/supabase-js';
 import { AppState, Bird, Pair, Clutch, Medication, MedicationApplication, BreederSettings, MovementRecord, Transaction, MaintenanceTask, TournamentEvent, ContinuousTreatment } from './types';
 import { MOCK_BIRDS, MOCK_MEDS, INITIAL_SETTINGS } from './constants';
@@ -27,10 +27,10 @@ const App: React.FC = () => {
     return (
       <div className="min-h-screen flex items-center justify-center p-6 bg-red-50 text-red-900">
         <div className="max-w-2xl bg-white p-6 rounded-lg shadow">
-          <h2 className="text-xl font-bold mb-2">Configuração do Supabase ausente</h2>
-          <p className="mb-4">As variáveis de ambiente `VITE_SUPABASE_URL` e `VITE_SUPABASE_ANON_KEY` não foram definidas no build. A aplicação precisa delas para inicializar o Supabase.</p>
-          <p className="text-sm mb-4">No Vercel: Project → Settings → Environment Variables. Defina as chaves para o ambiente de Production/Preview e redeploy.</p>
-          <p className="text-sm">Para testar localmente, crie um arquivo .env com as variáveis e rode npm run build novamente.</p>
+          <h2 className="text-xl font-bold mb-2">ConfiguraÃ§Ã£o do Supabase ausente</h2>
+          <p className="mb-4">As variÃ¡veis de ambiente `VITE_SUPABASE_URL` e `VITE_SUPABASE_ANON_KEY` nÃ£o foram definidas no build. A aplicaÃ§Ã£o precisa delas para inicializar o Supabase.</p>
+          <p className="text-sm mb-4">No Vercel: Project â†’ Settings â†’ Environment Variables. Defina as chaves para o ambiente de Production/Preview e redeploy.</p>
+          <p className="text-sm">Para testar localmente, crie um arquivo .env com as variÃ¡veis e rode npm run build novamente.</p>
         </div>
       </div>
     );
@@ -57,20 +57,20 @@ const App: React.FC = () => {
     settings: INITIAL_SETTINGS
   }));
 
-  // --- MIGRAÇÃO DE DADOS AUTOMÁTICA ---
-  // Se o usuário é antigo e não tem trialEndDate, define automaticamente para ele ver a mudança.
+  // --- MIGRAÃ‡ÃƒO DE DADOS AUTOMÃTICA ---
+  // Se o usuÃ¡rio Ã© antigo e nÃ£o tem trialEndDate, define automaticamente para ele ver a mudanÃ§a.
   useEffect(() => {
     // Auto-activate a short trial for legacy users (only if not admin).
     if (isAdmin) return;
     if (
-      state.settings.plan === 'Básico' &&
+      state.settings.plan === 'BÃ¡sico' &&
       !state.settings.trialEndDate &&
       userId
     ) {
       const trialEnd = new Date();
       trialEnd.setDate(trialEnd.getDate() + 7);
 
-      // Keep plan as 'Básico' but set a trialEndDate so UI can show trial while
+      // Keep plan as 'BÃ¡sico' but set a trialEndDate so UI can show trial while
       // still allowing the user to upgrade immediately.
       setState(prev => ({
         ...prev,
@@ -79,7 +79,7 @@ const App: React.FC = () => {
           trialEndDate: trialEnd.toISOString()
         }
       }));
-      console.log('Migração V2.0: Trial ativado automaticamente para usuário existente.');
+      console.log('MigraÃ§Ã£o V2.0: Trial ativado automaticamente para usuÃ¡rio existente.');
     }
   }, [isAdmin, userId, state.settings.plan, state.settings.trialEndDate]);
 
@@ -95,11 +95,11 @@ const App: React.FC = () => {
           ...prev,
           settings: {
             ...prev.settings,
-            plan: 'Básico',
+            plan: 'BÃ¡sico',
             trialEndDate: undefined // Clear trial date
           }
         }));
-        console.log("Período de teste expirado. Plano alterado para Básico.");
+        console.log("PerÃ­odo de teste expirado. Plano alterado para BÃ¡sico.");
       }
     }
   }, []); // Run once on mount
@@ -197,7 +197,7 @@ const App: React.FC = () => {
         ...prev,
         settings: {
           ...prev.settings,
-          plan: "Básico",
+          plan: "BÃ¡sico",
           trialEndDate: undefined,
         },
       }));
@@ -250,13 +250,13 @@ const App: React.FC = () => {
     return () => clearInterval(interval);
   }, [isAuthenticated]);
   
-  // 🔁 Retorno do Stripe (success / canceled)
+  // ðŸ” Retorno do Stripe (success / canceled)
 useEffect(() => {
   const params = new URLSearchParams(window.location.search);
 
   if (params.get('canceled') === 'true') {
     setActiveTab('settings');
-    console.info('Pagamento cancelado pelo usuário');
+    console.info('Pagamento cancelado pelo usuÃ¡rio');
     window.history.replaceState({}, '', window.location.pathname);
   }
 
@@ -384,7 +384,7 @@ useEffect(() => {
           ...prev,
           settings: {
             ...prev.settings,
-            plan: 'Básico',
+            plan: 'BÃ¡sico',
             trialEndDate: undefined,
           },
         }));
@@ -402,7 +402,7 @@ useEffect(() => {
     try {
       await migrateLocalData(newSettings.userId);
     } catch (err) {
-      console.error('Erro na migração de dados locais:', err);
+      console.error('Erro na migraÃ§Ã£o de dados locais:', err);
     }
     try {
       const remoteData = await loadInitialData(newSettings.userId);
@@ -761,7 +761,7 @@ useEffect(() => {
         setState(prev => ({ ...prev, birds: prev.birds.filter(b => b.id !== bird.id) }));
       }
       console.error('Erro ao salvar ave:', err);
-      setError('Falha ao salvar ave. Verifique sua conexão e tente novamente.');
+      setError('Falha ao salvar ave. Verifique sua conexÃ£o e tente novamente.');
     }
   };
 
@@ -801,21 +801,69 @@ useEffect(() => {
   const addMovement = async (mov: MovementRecord) => {
     const uid = await getUserId();
     if (!uid) return;
-    await insertRow('movements', mapMovementToDb(mov, uid));
+    let added = false;
+    setState(prev => {
+      if (prev.movements.some(m => m.id === mov.id)) return prev;
+      added = true;
+      return { ...prev, movements: [...prev.movements, mov] };
+    });
+    try {
+      await insertRow('movements', mapMovementToDb(mov, uid));
+    } catch (err) {
+      if (added) {
+        setState(prev => ({ ...prev, movements: prev.movements.filter(m => m.id !== mov.id) }));
+      }
+      console.error('Erro ao salvar movimentacao:', err);
+      setError('Falha ao salvar movimentacao. Verifique sua conexao.');
+      return;
+    }
     const newStatusMap: Record<string, any> = { 'Óbito': 'Falecido', 'Fuga': 'Fugido', 'Venda': 'Vendido', 'Transporte': 'Transferido' };
     if (newStatusMap[mov.type]) updateBirdStatus(mov.birdId, newStatusMap[mov.type]);
   };
 
   const updateMovement = async (updatedMov: MovementRecord) => {
-    await updateRow('movements', updatedMov.id, mapMovementUpdateToDb(updatedMov));
+    setState(prev => ({
+      ...prev,
+      movements: prev.movements.map(m => m.id === updatedMov.id ? updatedMov : m),
+    }));
+    try {
+      await updateRow('movements', updatedMov.id, mapMovementUpdateToDb(updatedMov));
+    } catch (err) {
+      console.error('Erro ao atualizar movimentacao:', err);
+      setError('Falha ao atualizar movimentacao. Verifique sua conexao.');
+    }
   };
 
   const deleteMovement = async (id: string) => {
-    await deleteRow('movements', id);
+    const item = state.movements.find(m => m.id === id);
+    if (item) {
+      setState(prev => ({
+        ...prev,
+        movements: prev.movements.filter(m => m.id !== id),
+        deletedMovements: [item, ...(prev.deletedMovements || [])],
+      }));
+    }
+    try {
+      await deleteRow('movements', id);
+    } catch (err) {
+      console.error('Erro ao remover movimentacao:', err);
+      setError('Falha ao remover movimentacao. Verifique sua conexao.');
+    }
   };
   const restoreMovement = (id: string) => {
     const item = state.deletedMovements?.find(m => m.id === id);
-    if (item) setState(prev => ({ ...prev, deletedMovements: (prev.deletedMovements || []).filter(m => m.id !== id), movements: [item, ...prev.movements] }));
+    if (!item) return;
+    setState(prev => ({ ...prev, deletedMovements: (prev.deletedMovements || []).filter(m => m.id !== id), movements: [item, ...prev.movements] }));
+    (async () => {
+      const uid = await getUserId();
+      if (!uid) return;
+      try {
+        await insertRow('movements', mapMovementToDb(item, uid));
+      } catch (err) {
+        console.error('Erro ao restaurar movimentacao:', err);
+        setError('Falha ao restaurar movimentacao. Verifique sua conexao.');
+      }
+    })();
   };
   const permanentlyDeleteMovement = (id: string) => {
     setState(prev => ({ ...prev, deletedMovements: (prev.deletedMovements || []).filter(m => m.id !== id) }));
@@ -1260,22 +1308,22 @@ useEffect(() => {
 }
 
 
-  // Verifica expiração do plano trial para o usuário ver
+  // Verifica expiraÃ§Ã£o do plano trial para o usuÃ¡rio ver
   
   const renderContent = () => {
     const currentTab = activeTab || 'dashboard';
     
-    // Se for Financeiro e o plano for Básico (e não for um trial válido), bloqueia
-    // Nota: A lógica de App.tsx já rebaixa o plano se o trial expirou, então só checar 'Básico' basta.
-    if (currentTab === 'finance' && state.settings.plan === 'Básico' && !isAdmin) {
+    // Se for Financeiro e o plano for BÃ¡sico (e nÃ£o for um trial vÃ¡lido), bloqueia
+    // Nota: A lÃ³gica de App.tsx jÃ¡ rebaixa o plano se o trial expirou, entÃ£o sÃ³ checar 'BÃ¡sico' basta.
+    if (currentTab === 'finance' && state.settings.plan === 'BÃ¡sico' && !isAdmin) {
       return (
         <div className="h-[70vh] flex flex-col items-center justify-center text-center p-10 animate-in fade-in duration-500">
            <div className="w-24 h-24 bg-amber-100 text-amber-600 rounded-[32px] flex items-center justify-center mb-8 shadow-inner">
               <DollarSign size={48} />
            </div>
-           <h2 className="text-3xl font-black text-slate-800 tracking-tight leading-tight">Módulo Profissional</h2>
+           <h2 className="text-3xl font-black text-slate-800 tracking-tight leading-tight">MÃ³dulo Profissional</h2>
            <p className="text-slate-500 font-medium mt-4 max-w-md mx-auto leading-relaxed">
-             O controle completo de entradas, saídas e lucros é exclusivo do plano Profissional. Organize sua criação como uma empresa.
+             O controle completo de entradas, saÃ­das e lucros Ã© exclusivo do plano Profissional. Organize sua criaÃ§Ã£o como uma empresa.
            </p>
            <button 
              onClick={() => setActiveTab('settings')}
@@ -1380,7 +1428,7 @@ useEffect(() => {
       console.error("Erro ao renderizar aba:", err);
       return (
         <div className="p-8 text-center text-rose-500">
-          <p>Erro ao carregar esta seção. Tente recarregar a página.</p>
+          <p>Erro ao carregar esta seÃ§Ã£o. Tente recarregar a pÃ¡gina.</p>
         </div>
       );
     }
@@ -1392,8 +1440,8 @@ useEffect(() => {
         activeTab={activeTab} 
         setActiveTab={setActiveTab} 
         logoUrl={state.settings.logoUrl}
-        breederName={state.settings.breederName || 'Meu Criatório'}
-        plan={state.settings.plan || 'Básico'}
+        breederName={state.settings.breederName || 'Meu CriatÃ³rio'}
+        plan={state.settings.plan || 'BÃ¡sico'}
         trialEndDate={state.settings.trialEndDate} // Pass trial date
         onLogout={handleLogout}
         isAdmin={isAdmin}
@@ -1407,7 +1455,7 @@ useEffect(() => {
               <div className="w-8 h-8 rounded-lg bg-slate-100 p-1">
                  <img src={state.settings.logoUrl} className="w-full h-full object-contain" alt="Logo" />
               </div>
-              <span className="font-black text-slate-800">AviGestão</span>
+              <span className="font-black text-slate-800">AviGestÃ£o</span>
            </div>
            <button 
              onClick={() => setIsMobileMenuOpen(true)}
@@ -1438,3 +1486,5 @@ useEffect(() => {
 };
 
 export default App;
+
+
