@@ -1,4 +1,4 @@
-import React, { useRef, useState } from 'react';
+import React, { useRef, useState, useEffect } from 'react';
 import { BreederSettings } from '../types';
 import {
   User,
@@ -6,8 +6,10 @@ import {
   Upload,
   Lock,
   Loader2,
+  ExternalLink
 } from 'lucide-react';
 import TipCarousel from '../components/TipCarousel';
+import { supabase } from '../supabaseClient';
 
 interface SettingsManagerProps {
   settings: BreederSettings;
@@ -36,6 +38,47 @@ const SettingsManager: React.FC<SettingsManagerProps> = ({ settings, updateSetti
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [paymentStep, setPaymentStep] = useState<'method' | 'processing'>('method');
 
+  const [hasStripeCustomer, setHasStripeCustomer] = useState(false);
+
+  useEffect(() => {
+    // Detecta se já existe um customerId salvo no browser
+    try {
+      setHasStripeCustomer(!!localStorage.getItem('avigestao_stripe_customer'));
+    } catch (e) {
+      setHasStripeCustomer(false);
+    }
+  }, []);
+
+  /* ============================
+     STRIPE – CUSTOMER PORTAL
+  ============================ */
+  const openBillingPortal = async () => {
+    try {
+      const session = await supabase.auth.getSession();
+      const res = await fetch('/api/stripe-portal', {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${session.data.session?.access_token}`,
+        },
+      });
+
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        alert(err?.error || 'Erro ao abrir o portal');
+        return;
+      }
+
+      const { url } = await res.json();
+      if (url) window.location.href = url;
+    } catch (err) {
+      console.error(err);
+      alert('Erro ao abrir o portal de assinatura');
+    }
+  };
+
+  /* ============================
+     STRIPE – CHECKOUT
+  ============================ */
   const startCheckout = async () => {
     try {
       setPaymentStep('processing');
@@ -43,14 +86,15 @@ const SettingsManager: React.FC<SettingsManagerProps> = ({ settings, updateSetti
       const priceId = PRICE_ID_MAP[selectedPlanId];
       if (!priceId) throw new Error('Plano inválido');
 
+      const session = await supabase.auth.getSession();
+
       const res = await fetch('/api/create-checkout', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          priceId,
-          // ⚠️ TEMPORÁRIO (sem Supabase Auth)
-          userId: settings.breederName || 'usuario_demo',
-        }),
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${session.data.session?.access_token}`,
+        },
+        body: JSON.stringify({ priceId }),
       });
 
       if (!res.ok) {
@@ -58,7 +102,12 @@ const SettingsManager: React.FC<SettingsManagerProps> = ({ settings, updateSetti
         throw new Error(err.error || 'Erro no checkout');
       }
 
-      const { url } = await res.json();
+      const { url, customerId } = await res.json();
+
+      if (customerId) {
+        localStorage.setItem('avigestao_stripe_customer', customerId);
+      }
+
       window.location.href = url;
     } catch (err) {
       console.error(err);
@@ -112,8 +161,8 @@ const SettingsManager: React.FC<SettingsManagerProps> = ({ settings, updateSetti
 
       <TipCarousel category="settings" />
 
-      {/* GARANTIA DE RENDER */}
-      {activeTab === 'perfil' ? (
+      {/* PERFIL */}
+      {activeTab === 'perfil' && (
         <div className="bg-white p-8 rounded-3xl border space-y-6">
           <h3 className="font-black flex items-center gap-2">
             <User /> Dados do Criatório
@@ -122,10 +171,7 @@ const SettingsManager: React.FC<SettingsManagerProps> = ({ settings, updateSetti
           <div className="flex gap-6">
             <div className="w-24 h-24 border rounded-xl flex items-center justify-center">
               {settings.logoUrl ? (
-                <img
-                  src={settings.logoUrl}
-                  className="w-full h-full object-contain"
-                />
+                <img src={settings.logoUrl} className="w-full h-full object-contain" />
               ) : (
                 <ImageIcon className="text-slate-300" />
               )}
@@ -153,58 +199,69 @@ const SettingsManager: React.FC<SettingsManagerProps> = ({ settings, updateSetti
               </div>
             )}
           </div>
-
-          <div className="grid grid-cols-2 gap-4">
-            <input
-              value={settings.breederName}
-              onChange={e =>
-                updateSettings({ ...settings, breederName: e.target.value })
-              }
-              placeholder="Nome do criatório"
-              className="input"
-            />
-            <input
-              value={settings.sispassNumber}
-              onChange={e =>
-                updateSettings({ ...settings, sispassNumber: e.target.value })
-              }
-              placeholder="SISPASS"
-              className="input"
-            />
-          </div>
         </div>
-      ) : activeTab === 'plano' ? (
+      )}
+
+      {/* PLANO */}
+      {activeTab === 'plano' && (
         <div className="bg-slate-900 text-white p-10 rounded-3xl space-y-8">
           <h3 className="text-2xl font-black">Plano Profissional</h3>
 
-          <div className="grid grid-cols-2 gap-4">
-            {PLANS.map(plan => (
+          <div className="bg-white text-slate-900 p-6 rounded-2xl">
+            <p className="text-xs uppercase font-black text-slate-500">Plano atual</p>
+            <h3 className="text-2xl font-black">{settings.plan}</h3>
+
+            {settings.plan === 'Básico' && (
+              <p className="text-xs text-amber-600 font-black">Você está usando o plano gratuito</p>
+            )}
+
+            {settings.trialEndDate && (
+              <p className="text-xs text-emerald-600 font-black">Trial ativo até {new Date(settings.trialEndDate).toLocaleDateString()}</p>
+            )}
+
+            {settings.plan === 'Profissional' && (
               <button
-                key={plan.id}
-                onClick={() => setSelectedPlanId(plan.id)}
-                className={`p-4 rounded-xl border ${
-                  selectedPlanId === plan.id
-                    ? 'bg-amber-500 border-amber-500'
-                    : 'border-white/20'
-                }`}
+                onClick={openBillingPortal}
+                className="mt-4 px-6 py-3 bg-slate-900 text-white rounded-xl font-black"
               >
-                <p className="text-xs uppercase font-black">{plan.label}</p>
-                <p className="text-lg font-black">R$ {plan.price}</p>
-                <p className="text-xs opacity-70">{plan.period}</p>
+                Gerenciar assinatura
               </button>
-            ))}
+            )}
           </div>
 
-          <button
-            onClick={() => setShowPaymentModal(true)}
-            className="w-full py-4 bg-amber-500 font-black uppercase rounded-xl"
-          >
-            Assinar Agora
-          </button>
-        </div>
-      ) : null}
+          {/* Plano selection / checkout */}
+          {settings.plan !== 'Profissional' && (
+            <>
+              <div className="grid grid-cols-2 gap-4">
+                {PLANS.map(plan => (
+                  <button
+                    key={plan.id}
+                    onClick={() => setSelectedPlanId(plan.id)}
+                    className={`p-4 rounded-xl border ${
+                      selectedPlanId === plan.id
+                        ? 'bg-amber-500 border-amber-500'
+                        : 'border-white/20'
+                    }`}
+                  >
+                    <p className="text-xs uppercase font-black">{plan.label}</p>
+                    <p className="text-lg font-black">R$ {plan.price}</p>
+                    <p className="text-xs opacity-70">{plan.period}</p>
+                  </button>
+                ))}
+              </div>
 
-      {/* MODAL */}
+              <button
+                onClick={() => setShowPaymentModal(true)}
+                className="w-full py-4 bg-amber-500 font-black uppercase rounded-xl"
+              >
+                Assinar Agora
+              </button>
+            </>
+          )}
+        </div>
+      )}
+
+      {/* MODAL PAGAMENTO */}
       {showPaymentModal && (
         <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50">
           <div className="bg-white rounded-3xl p-8 w-full max-w-md">

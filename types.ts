@@ -173,6 +173,7 @@ export interface DigitalCertificateData {
 
 export interface BreederSettings {
   breederName: string;
+  userId?: string;
   cpfCnpj: string;
   sispassNumber: string;
   registrationDate: string;

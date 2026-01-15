@@ -15,6 +15,11 @@ import TournamentCalendar from './pages/TournamentCalendar';
 import HelpCenter from './pages/HelpCenter';
 import Auth from './pages/Auth';
 import { DollarSign, Zap, AlertTriangle, Menu } from 'lucide-react';
+import { supabase } from './supabaseClient';
+import { subscribeTable } from './realtime';
+import { migrateLocalData } from './services/migrateLocalData';
+import { loadInitialData } from './services/dataService';
+import { insertRow, updateRow, deleteRow } from './services/writeService';
 
 const App: React.FC = () => {
   const [activeTab, setActiveTab] = useState('dashboard');
@@ -23,66 +28,19 @@ const App: React.FC = () => {
   const [authLoading, setAuthLoading] = useState(true);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false); 
   
-  const [state, setState] = useState<AppState>(() => {
-    try {
-      const saved = localStorage.getItem('avigestao_state');
-      if (saved) {
-        const parsed = JSON.parse(saved);
-        if (parsed && typeof parsed === 'object') {
-          const safeSettings = parsed.settings ? { ...INITIAL_SETTINGS, ...parsed.settings } : INITIAL_SETTINGS;
-          
-          return {
-            birds: Array.isArray(parsed.birds) ? parsed.birds : MOCK_BIRDS,
-            deletedBirds: Array.isArray(parsed.deletedBirds) ? parsed.deletedBirds : [],
-            
-            pairs: Array.isArray(parsed.pairs) ? parsed.pairs : [],
-            deletedPairs: Array.isArray(parsed.deletedPairs) ? parsed.deletedPairs : [],
-
-            clutches: Array.isArray(parsed.clutches) ? parsed.clutches : [],
-            
-            medications: Array.isArray(parsed.medications) ? parsed.medications : MOCK_MEDS,
-            deletedMedications: Array.isArray(parsed.deletedMedications) ? parsed.deletedMedications : [],
-
-            applications: Array.isArray(parsed.applications) ? parsed.applications : [],
-            deletedApplications: Array.isArray(parsed.deletedApplications) ? parsed.deletedApplications : [],
-            
-            treatments: Array.isArray(parsed.treatments) ? parsed.treatments : [],
-            deletedTreatments: Array.isArray(parsed.deletedTreatments) ? parsed.deletedTreatments : [],
-
-            movements: Array.isArray(parsed.movements) ? parsed.movements : [],
-            deletedMovements: Array.isArray(parsed.deletedMovements) ? parsed.deletedMovements : [],
-
-            transactions: Array.isArray(parsed.transactions) ? parsed.transactions : [],
-            deletedTransactions: Array.isArray(parsed.deletedTransactions) ? parsed.deletedTransactions : [],
-
-            tasks: Array.isArray(parsed.tasks) ? parsed.tasks : [],
-            deletedTasks: Array.isArray(parsed.deletedTasks) ? parsed.deletedTasks : [],
-
-            tournaments: Array.isArray(parsed.tournaments) ? parsed.tournaments : [],
-            deletedTournaments: Array.isArray(parsed.deletedTournaments) ? parsed.deletedTournaments : [],
-
-            settings: safeSettings
-          };
-        }
-      }
-    } catch (e) {
-      console.warn("Erro ao carregar estado salvo, usando padrão.", e);
-    }
-    
-    return {
-      birds: MOCK_BIRDS, deletedBirds: [],
-      pairs: [], deletedPairs: [],
-      clutches: [],
-      medications: MOCK_MEDS, deletedMedications: [],
-      applications: [], deletedApplications: [],
-      treatments: [], deletedTreatments: [],
-      movements: [], deletedMovements: [],
-      transactions: [], deletedTransactions: [],
-      tasks: [], deletedTasks: [],
-      tournaments: [], deletedTournaments: [],
-      settings: INITIAL_SETTINGS
-    };
-  });
+  const [state, setState] = useState<AppState>(() => ({
+    birds: MOCK_BIRDS, deletedBirds: [],
+    pairs: [], deletedPairs: [],
+    clutches: [],
+    medications: MOCK_MEDS, deletedMedications: [],
+    applications: [], deletedApplications: [],
+    treatments: [], deletedTreatments: [],
+    movements: [], deletedMovements: [],
+    transactions: [], deletedTransactions: [],
+    tasks: [], deletedTasks: [],
+    tournaments: [], deletedTournaments: [],
+    settings: INITIAL_SETTINGS
+  }));
 
   // --- MIGRAÇÃO DE DADOS AUTOMÁTICA ---
   // Se o usuário é antigo e não tem trialEndDate, define automaticamente para ele ver a mudança.
@@ -129,17 +87,30 @@ const App: React.FC = () => {
   }, []); // Run once on mount
 
   useEffect(() => {
-    const authSession = localStorage.getItem('avigestao_auth');
-    if (authSession === 'true') {
-      setIsAuthenticated(true);
-    }
-    setAuthLoading(false);
+    supabase.auth.getSession().then(({ data }) => {
+      if (data.session) {
+        setIsAuthenticated(true);
+        localStorage.setItem('avigestao_user_id', data.session.user.id);
+      }
+      setAuthLoading(false);
+    });
+
+    const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (session) {
+        setIsAuthenticated(true);
+        localStorage.setItem('avigestao_user_id', session.user.id);
+      } else {
+        setIsAuthenticated(false);
+        localStorage.removeItem('avigestao_user_id');
+      }
+    });
+
+    return () => {
+      listener.subscription.unsubscribe();
+    };
   }, []);
   
-  // 🔄 Sincroniza status da assinatura Stripe (global)
-useEffect(() => {
-  if (!isAuthenticated) return;
-
+  // Sync subscription status (callable from effects)
   const syncSubscriptionStatus = async () => {
     try {
       const userId = localStorage.getItem("avigestao_user_id");
@@ -162,9 +133,7 @@ useEffect(() => {
           settings: {
             ...prev.settings,
             plan: "Profissional",
-            trialEndDate: data.isTrial
-              ? data.current_period_end
-              : undefined,
+            trialEndDate: data.isTrial ? data.current_period_end : undefined,
           },
         }));
         return;
@@ -184,8 +153,21 @@ useEffect(() => {
     }
   };
 
-  syncSubscriptionStatus();
-}, [isAuthenticated]);
+  useEffect(() => {
+    if (!isAuthenticated) return;
+    syncSubscriptionStatus();
+  }, [isAuthenticated]);
+
+  // Poll subscription status every 30s as a fallback when Realtime on `subscriptions` is not available
+  useEffect(() => {
+    if (!isAuthenticated) return;
+
+    const interval = setInterval(() => {
+      syncSubscriptionStatus();
+    }, 30000);
+
+    return () => clearInterval(interval);
+  }, [isAuthenticated]);
   
   // 🔁 Retorno do Stripe (success / canceled)
 useEffect(() => {
@@ -204,11 +186,49 @@ useEffect(() => {
   }
 }, []);
 
+useEffect(() => {
+  if (!isAuthenticated) return;
+
+  const userId = localStorage.getItem('avigestao_user_id');
+  if (!userId) return;
+
+  const subs: any[] = [];
+
+  const tables = ['birds', 'movements', 'transactions', 'tasks', 'tournaments', 'medications'];
+
+  tables.forEach(table => {
+    const ch = subscribeTable(table, userId, (payload: any) => {
+      setState(prev => {
+        const data = payload.new;
+
+        switch (payload.eventType) {
+          case 'INSERT':
+            return { ...prev, [table]: [...(prev as any)[table], data] };
+          case 'UPDATE':
+            return { ...prev, [table]: (prev as any)[table].map((r: any) => r.id === data.id ? data : r) };
+          case 'DELETE':
+            return { ...prev, [table]: (prev as any)[table].filter((r: any) => r.id !== payload.old.id) };
+          default:
+            return prev;
+        }
+      });
+    });
+
+    subs.push(ch);
+  });
+
+  return () => subs.forEach(s => supabase.removeChannel(s));
+}, [isAuthenticated]);
+
 
   useEffect(() => {
     try {
-      localStorage.setItem('avigestao_state', JSON.stringify(state));
-      
+      // Persist only lightweight UI theme cache to localStorage.
+      localStorage.setItem("avigestao_theme", JSON.stringify({
+        primaryColor: state.settings.primaryColor,
+        accentColor: state.settings.accentColor,
+      }));
+
       const root = document.documentElement;
       if (state.settings) {
         const pColor = state.settings.primaryColor || '#10B981';
@@ -223,11 +243,94 @@ useEffect(() => {
     }
   }, [state]);
 
-  const handleLogin = (newSettings?: Partial<BreederSettings>) => {
-  localStorage.setItem('avigestao_auth', 'true');
+  // Bootstrap data from Supabase after authentication
+  useEffect(() => {
+    if (!isAuthenticated) return;
 
+    const userId = localStorage.getItem('avigestao_user_id');
+    if (!userId) return;
+
+    const bootstrap = async () => {
+      try {
+        const data = await loadInitialData(userId);
+        setState(prev => ({
+          ...prev,
+          birds: data.birds || [],
+          movements: data.movements || [],
+          transactions: data.transactions || [],
+          tasks: data.tasks || [],
+          tournaments: data.tournaments || [],
+          medications: data.medications || [],
+          settings: data.settings || prev.settings,
+        }));
+      } catch (err) {
+        console.error("Erro ao carregar dados iniciais:", err);
+        setError("Falha ao carregar dados do servidor.");
+      }
+    };
+
+    bootstrap();
+  }, [isAuthenticated]);
+
+  // Realtime listener for subscription status to auto-update plan
+  useEffect(() => {
+    if (!isAuthenticated) return;
+
+    const userId = localStorage.getItem('avigestao_user_id');
+    if (!userId) return;
+
+    const channel = subscribeTable('subscriptions', userId, (payload: any) => {
+      const sub = payload.new;
+
+      if (!sub) return;
+
+      if (sub.status === 'active' || sub.status === 'trialing') {
+        setState(prev => ({
+          ...prev,
+          settings: {
+            ...prev.settings,
+            plan: 'Profissional',
+            trialEndDate: sub.current_period_end,
+          },
+        }));
+      } else {
+        setState(prev => ({
+          ...prev,
+          settings: {
+            ...prev.settings,
+            plan: 'Básico',
+            trialEndDate: undefined,
+          },
+        }));
+      }
+    });
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [isAuthenticated]);
+
+  const handleLogin = async (newSettings?: Partial<BreederSettings>) => {
   if (newSettings?.userId) {
     localStorage.setItem('avigestao_user_id', newSettings.userId);
+    try {
+      await migrateLocalData(newSettings.userId);
+    } catch (err) {
+      console.error('Erro na migração de dados locais:', err);
+    }
+    try {
+      const remoteData = await loadInitialData(newSettings.userId);
+      setState(prev => ({
+        ...prev,
+        birds: remoteData.birds || [],
+        movements: remoteData.movements || [],
+        transactions: remoteData.transactions || [],
+        tasks: remoteData.tasks || [],
+        tournaments: remoteData.tournaments || [],
+      }));
+    } catch (err) {
+      console.error('Erro ao carregar dados remotos:', err);
+    }
   }
 
   setIsAuthenticated(true);
@@ -240,22 +343,31 @@ useEffect(() => {
   }
 };
 
-  const handleLogout = () => {
-    localStorage.removeItem('avigestao_auth');
+  const handleLogout = async () => {
+    try {
+      await supabase.auth.signOut();
+    } catch (err) {
+      console.error('Logout error', err);
+    }
+    localStorage.removeItem('avigestao_user_id');
     setIsAuthenticated(false);
   };
 
   const updateSettings = (settings: BreederSettings) => setState(prev => ({ ...prev, settings }));
 
   // --- BIRDS ---
-  const addBird = (bird: Bird) => setState(prev => ({ ...prev, birds: [...prev.birds, bird] }));
-  const updateBird = (updatedBird: Bird) => setState(prev => ({
-    ...prev,
-    birds: prev.birds.map(b => b.id === updatedBird.id ? updatedBird : b)
-  }));
-  const deleteBird = (id: string) => {
-    const item = state.birds.find(b => b.id === id);
-    if (item) setState(prev => ({ ...prev, birds: prev.birds.filter(b => b.id !== id), deletedBirds: [item, ...(prev.deletedBirds || [])] }));
+  const addBird = async (bird: Bird) => {
+    const userId = localStorage.getItem('avigestao_user_id');
+    if (!userId) return;
+    await insertRow('birds', { ...bird, user_id: userId });
+  };
+
+  const updateBird = async (updatedBird: Bird) => {
+    await updateRow('birds', updatedBird.id, updatedBird);
+  };
+
+  const deleteBird = async (id: string) => {
+    await deleteRow('birds', id);
   };
   const restoreBird = (id: string) => {
     const item = state.deletedBirds?.find(b => b.id === id);
@@ -270,18 +382,20 @@ useEffect(() => {
   }));
 
   // --- MOVEMENTS ---
-  const addMovement = (mov: MovementRecord) => {
-    setState(prev => ({ ...prev, movements: [mov, ...prev.movements] }));
+  const addMovement = async (mov: MovementRecord) => {
+    const userId = localStorage.getItem('avigestao_user_id');
+    if (!userId) return;
+    await insertRow('movements', { ...mov, user_id: userId });
     const newStatusMap: Record<string, any> = { 'Óbito': 'Falecido', 'Fuga': 'Fugido', 'Venda': 'Vendido', 'Transporte': 'Transferido' };
     if (newStatusMap[mov.type]) updateBirdStatus(mov.birdId, newStatusMap[mov.type]);
   };
-  const updateMovement = (updatedMov: MovementRecord) => setState(prev => ({
-    ...prev,
-    movements: prev.movements.map(m => m.id === updatedMov.id ? updatedMov : m)
-  }));
-  const deleteMovement = (id: string) => {
-    const item = state.movements.find(m => m.id === id);
-    if (item) setState(prev => ({ ...prev, movements: prev.movements.filter(m => m.id !== id), deletedMovements: [item, ...(prev.deletedMovements || [])] }));
+
+  const updateMovement = async (updatedMov: MovementRecord) => {
+    await updateRow('movements', updatedMov.id, updatedMov);
+  };
+
+  const deleteMovement = async (id: string) => {
+    await deleteRow('movements', id);
   };
   const restoreMovement = (id: string) => {
     const item = state.deletedMovements?.find(m => m.id === id);
@@ -362,34 +476,52 @@ useEffect(() => {
   };
 
   // --- FINANCE ---
-  const addTransaction = (t: Transaction) => setState(prev => ({ ...prev, transactions: [...prev.transactions, t] }));
-  const deleteTransaction = (id: string) => {
-    const item = state.transactions.find(t => t.id === id);
-    if (item) setState(prev => ({ ...prev, transactions: prev.transactions.filter(t => t.id !== id), deletedTransactions: [item, ...(prev.deletedTransactions || [])] }));
+  const addTransaction = async (t: Transaction) => {
+    const userId = localStorage.getItem('avigestao_user_id');
+    if (!userId) return;
+    await insertRow('transactions', { ...t, user_id: userId });
   };
+
+  const deleteTransaction = async (id: string) => {
+    await deleteRow('transactions', id);
+  };
+
   const restoreTransaction = (id: string) => {
     const item = state.deletedTransactions?.find(t => t.id === id);
     if (item) setState(prev => ({ ...prev, deletedTransactions: (prev.deletedTransactions || []).filter(t => t.id !== id), transactions: [...prev.transactions, item] }));
   };
+
   const permanentlyDeleteTransaction = (id: string) => {
     setState(prev => ({ ...prev, deletedTransactions: (prev.deletedTransactions || []).filter(t => t.id !== id) }));
   };
 
   // --- TASKS ---
-  const addTask = (t: MaintenanceTask) => setState(prev => ({ ...prev, tasks: [...prev.tasks, t] }));
-  const updateTask = (updatedTask: MaintenanceTask) => setState(prev => ({
-    ...prev,
-    tasks: prev.tasks.map(t => t.id === updatedTask.id ? updatedTask : t)
-  }));
-  const toggleTask = (id: string) => setState(prev => ({ ...prev, tasks: prev.tasks.map(t => t.id === id ? { ...t, isCompleted: !t.isCompleted } : t) }));
-  const deleteTask = (id: string) => {
-    const item = state.tasks.find(t => t.id === id);
-    if (item) setState(prev => ({ ...prev, tasks: prev.tasks.filter(t => t.id !== id), deletedTasks: [item, ...(prev.deletedTasks || [])] }));
+  const addTask = async (t: MaintenanceTask) => {
+    const userId = localStorage.getItem('avigestao_user_id');
+    if (!userId) return;
+    await insertRow('tasks', { ...t, user_id: userId });
   };
+
+  const updateTask = async (updatedTask: MaintenanceTask) => {
+    await updateRow('tasks', updatedTask.id, updatedTask);
+  };
+
+  const toggleTask = async (id: string) => {
+    const task = state.tasks.find(t => t.id === id);
+    if (!task) return;
+    const updated = { ...task, isCompleted: !task.isCompleted };
+    await updateRow('tasks', id, updated);
+  };
+
+  const deleteTask = async (id: string) => {
+    await deleteRow('tasks', id);
+  };
+
   const restoreTask = (id: string) => {
     const item = state.deletedTasks?.find(t => t.id === id);
     if (item) setState(prev => ({ ...prev, deletedTasks: (prev.deletedTasks || []).filter(t => t.id !== id), tasks: [...prev.tasks, item] }));
   };
+
   const permanentlyDeleteTask = (id: string) => {
     setState(prev => ({ ...prev, deletedTasks: (prev.deletedTasks || []).filter(t => t.id !== id) }));
   };

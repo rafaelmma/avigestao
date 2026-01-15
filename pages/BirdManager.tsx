@@ -1,5 +1,7 @@
 
 import React, { useState, useMemo, useRef, useEffect } from 'react';
+import { getBirds, addBird as svcAddBird, deleteBird as svcDeleteBird } from '../services/birds';
+import { supabase } from '../lib/supabase';
 import { Bird, AppState, Sex, TrainingStatus, BirdClassification, BirdDocument } from '../types';
 import { 
   Plus, 
@@ -192,6 +194,23 @@ const BirdManager: React.FC<BirdManagerProps> = ({ state, addBird, updateBird, d
     });
   }, [state.birds, state.deletedBirds, searchTerm, currentList, filterSpecies, filterSex, filterTraining]);
 
+  // Load birds from Supabase on mount and merge into local state
+  useEffect(() => {
+    let mounted = true;
+    getBirds().then((res: any) => {
+      if (!mounted) return;
+      if (res?.data) {
+        res.data.forEach((b: any) => {
+          // avoid duplicates
+          if (!state.birds.find(x => x.id === b.id)) {
+            addBird(b as Bird);
+          }
+        });
+      }
+    }).catch(err => console.error('Erro ao carregar aves:', err));
+    return () => { mounted = false; };
+  }, []);
+
   // Listas para a Central de Sexagem
   const pendingSexingBirds = state.birds.filter(b => b.sex === 'Indeterminado' && (!b.sexing?.sentDate));
   const waitingResultBirds = state.birds.filter(b => b.sexing?.sentDate && !b.sexing?.resultDate);
@@ -201,21 +220,44 @@ const BirdManager: React.FC<BirdManagerProps> = ({ state, addBird, updateBird, d
 
   const handleSaveBird = (e: React.FormEvent) => {
     e.preventDefault();
-    if (newBird.name && newBird.ringNumber) {
-      const birdToSave: Bird = {
-        ...newBird as Bird,
-        id: Math.random().toString(36).substr(2, 9),
-        createdAt: new Date().toISOString(),
-        manualAncestors: {},
-        documents: []
-      };
+    (async () => {
+      if (newBird.name && newBird.ringNumber) {
+        const birdToSave: Bird = {
+          ...newBird as Bird,
+          // id and createdAt will be set by the DB (but keep fallback)
+          id: Math.random().toString(36).substr(2, 9),
+          createdAt: new Date().toISOString(),
+          manualAncestors: {},
+          documents: []
+        };
 
-      // Process Genealogy
-      processGenealogyForSave(birdToSave);
+        // Process Genealogy
+        processGenealogyForSave(birdToSave);
 
-      addBird(birdToSave);
-      setShowModal(false);
-    }
+        try {
+          const user = await supabase.auth.getUser();
+          const userId = user.data.user?.id ?? null;
+
+          const payload = { ...birdToSave, user_id: userId } as any;
+
+          const res = await svcAddBird(payload);
+          if (res?.data) {
+            // Supabase returns inserted rows array
+            const inserted = Array.isArray(res.data) ? res.data[0] : res.data;
+            if (inserted) addBird(inserted as Bird);
+          } else {
+            // fallback to local add
+            addBird(birdToSave);
+          }
+        } catch (err) {
+          console.error('Erro ao salvar ave:', err);
+          // fallback to local add to avoid blocking UX
+          addBird(birdToSave);
+        }
+
+        setShowModal(false);
+      }
+    })();
   };
 
   const processGenealogyForSave = (targetBird: Bird | Partial<Bird>) => {
@@ -426,7 +468,14 @@ const BirdManager: React.FC<BirdManagerProps> = ({ state, addBird, updateBird, d
 
   // Função isolada e direta para DELETAR (Mover para Lixeira)
   const handleDeleteClick = (id: string) => {
-    deleteBird(id);
+    (async () => {
+      try {
+        await svcDeleteBird(id);
+      } catch (err) {
+        console.error('Erro ao deletar no Supabase:', err);
+      }
+      deleteBird(id);
+    })();
   };
 
   const handleRestoreClick = (e: React.MouseEvent, id: string) => {

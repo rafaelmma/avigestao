@@ -5,65 +5,43 @@ const supabase = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY!
 );
 
-export default async function handler(req: Request): Promise<Response> {
+export default async function handler(req: any, res: any) {
   if (req.method !== "POST") {
-    return new Response("Method Not Allowed", { status: 405 });
+    return res.status(405).json({ error: "Method not allowed" });
+  }
+  // Expect a Bearer token from the client (supabase access token)
+  const authHeader = req.headers?.authorization || req.headers?.Authorization;
+  const token = authHeader && typeof authHeader === 'string' ? authHeader.split(' ')[1] : null;
+
+  if (!token) {
+    return res.status(401).json({ error: 'Missing Authorization token' });
   }
 
-  try {
-    const { user_id } = await req.json();
-
-    if (!user_id) {
-      return new Response(
-        JSON.stringify({ error: "user_id is required" }),
-        { status: 400 }
-      );
-    }
-
-    const { data, error } = await supabase
-      .from("subscriptions")
-      .select("status, current_period_end")
-      .eq("user_id", user_id)
-      .single();
-
-    if (error || !data) {
-      return new Response(
-        JSON.stringify({
-          status: "none",
-          isActive: false,
-          isCanceled: true,
-          isTrial: false,
-        }),
-        { status: 200 }
-      );
-    }
-
-    const now = new Date();
-    const periodEnd = data.current_period_end
-      ? new Date(data.current_period_end)
-      : null;
-
-    const isActive =
-      data.status === "active" ||
-      (data.status === "trialing" &&
-        periodEnd !== null &&
-        periodEnd > now);
-
-    return new Response(
-      JSON.stringify({
-        status: data.status,
-        current_period_end: data.current_period_end,
-        isActive,
-        isCanceled: data.status === "canceled",
-        isTrial: data.status === "trialing",
-      }),
-      {
-        status: 200,
-        headers: { "Content-Type": "application/json" },
-      }
-    );
-  } catch (err) {
-    console.error("Subscription status error:", err);
-    return new Response("Internal Server Error", { status: 500 });
+  const { data: userData, error: userError } = await supabase.auth.getUser(token);
+  if (userError || !userData?.user) {
+    return res.status(401).json({ error: 'Invalid token or user not found' });
   }
+
+  const user_id = userData.user.id;
+
+  const { data, error } = await supabase
+    .from("subscriptions")
+    .select("status, current_period_end")
+    .eq("user_id", user_id)
+    .order('created_at', { ascending: false })
+    .limit(1)
+    .single();
+
+  if (error || !data) {
+    return res.status(200).json({ isActive: false });
+  }
+
+  const isActive = data.status === "active" || data.status === "trialing";
+
+  return res.status(200).json({
+    isActive,
+    status: data.status,
+    current_period_end: data.current_period_end,
+    isTrial: data.status === "trialing",
+  });
 }

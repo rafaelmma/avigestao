@@ -81,8 +81,10 @@ export default async function handler(req: VercelReq, res: VercelRes) {
     if (event.type === "checkout.session.completed") {
       const session = event.data.object as Stripe.Checkout.Session;
 
-      // preferir metadata.userId (você já manda isso no checkout)
-      const userId = (session.metadata?.userId || null) as string | null;
+      // Prefer metadata.userId (checkout sends userId), fallback to user_id for legacy
+      const userId = (session.metadata?.userId || session.metadata?.user_id || null) as
+        | string
+        | null;
 
       if (session.mode === "subscription" && session.subscription) {
         const subscription = await stripe.subscriptions.retrieve(
@@ -92,9 +94,7 @@ export default async function handler(req: VercelReq, res: VercelRes) {
         // Tipos podem variar conforme lib -> usar any para evitar TS quebrando
         const currentPeriodEnd = (subscription as any)?.current_period_end ?? null;
 
-        const userId = session.metadata?.user_id ?? null;
-		
-		await supabase.from("subscriptions").upsert({
+        await supabase.from("subscriptions").upsert({
           user_id: userId,
           user_email: session.customer_email ?? null,
           stripe_customer_id: session.customer ?? null,
@@ -104,6 +104,21 @@ export default async function handler(req: VercelReq, res: VercelRes) {
             ? new Date(currentPeriodEnd * 1000)
             : null,
         });
+      }
+    }
+
+    // Track billing metric for checkout that creates a subscription (no amount yet)
+    if (event.type === 'checkout.session.completed') {
+      const session = event.data.object as Stripe.Checkout.Session;
+      try {
+        await supabase.from('billing_metrics').insert({
+          event_type: 'checkout.session.completed',
+          user_id: session.metadata?.userId || session.metadata?.user_id || null,
+          subscription_id: session.subscription ?? null,
+          raw_event: event,
+        });
+      } catch (e) {
+        console.error('Failed to write billing metric for checkout.session.completed', e);
       }
     }
 
@@ -139,6 +154,63 @@ export default async function handler(req: VercelReq, res: VercelRes) {
           .from("subscriptions")
           .update({ status: "past_due" })
           .eq("stripe_subscription_id", subId);
+      }
+      // insert billing metric for failed payment
+      try {
+        const customerId = (invoice as any)?.customer ?? null;
+        // try to resolve user_id by customer or subscription
+        let userId = null;
+        if (customerId) {
+          const { data: subRow } = await supabase.from('subscriptions').select('user_id').eq('stripe_customer_id', customerId).maybeSingle();
+          userId = subRow?.user_id ?? null;
+        }
+        if (!userId && subId) {
+          const { data: subRow } = await supabase.from('subscriptions').select('user_id').eq('stripe_subscription_id', subId).maybeSingle();
+          userId = subRow?.user_id ?? null;
+        }
+
+        await supabase.from('billing_metrics').insert({
+          event_type: 'invoice.payment_failed',
+          user_id: userId,
+          subscription_id: subId,
+          amount: (invoice.amount_due ?? null) ? Number((invoice.amount_due as number) / 100) : null,
+          currency: invoice.currency ?? null,
+          raw_event: event,
+        });
+      } catch (e) {
+        console.error('Failed to write billing metric for invoice.payment_failed', e);
+      }
+    }
+
+    // ===============================
+    // invoice.payment_succeeded
+    // ===============================
+    if (event.type === 'invoice.payment_succeeded' || event.type === 'invoice.paid') {
+      const invoice = event.data.object as Stripe.Invoice;
+      const subId = (invoice as any)?.subscription ?? null;
+      const customerId = (invoice as any)?.customer ?? null;
+
+      try {
+        let userId = null;
+        if (customerId) {
+          const { data: subRow } = await supabase.from('subscriptions').select('user_id').eq('stripe_customer_id', customerId).maybeSingle();
+          userId = subRow?.user_id ?? null;
+        }
+        if (!userId && subId) {
+          const { data: subRow } = await supabase.from('subscriptions').select('user_id').eq('stripe_subscription_id', subId).maybeSingle();
+          userId = subRow?.user_id ?? null;
+        }
+
+        await supabase.from('billing_metrics').insert({
+          event_type: 'invoice.payment_succeeded',
+          user_id: userId,
+          subscription_id: subId,
+          amount: (invoice.amount_paid ?? null) ? Number((invoice.amount_paid as number) / 100) : null,
+          currency: invoice.currency ?? null,
+          raw_event: event,
+        });
+      } catch (e) {
+        console.error('Failed to write billing metric for invoice.payment_succeeded', e);
       }
     }
 

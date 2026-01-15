@@ -3,6 +3,7 @@ import React, { useState } from 'react';
 import { Mail, Lock, User, ArrowRight, CheckCircle2, Zap, ShieldCheck, Star } from 'lucide-react';
 import { BreederSettings } from '../types';
 import { APP_LOGO } from '../constants';
+import { supabase } from '../supabaseClient';
 
 interface AuthProps {
   onLogin: (settings?: Partial<BreederSettings>) => void;
@@ -17,30 +18,45 @@ const Auth: React.FC<AuthProps> = ({ onLogin }) => {
   const [password, setPassword] = useState('');
   const [name, setName] = useState(''); // Only for register
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
 
-    // Simula delay de rede
-    setTimeout(() => {
-      setIsLoading(false);
-      
+    try {
       if (isLogin) {
-        // Simulação de Login
-        onLogin();
-      } else {
-        // Simulação de Cadastro
-        // Calcula a data de fim do teste (Hoje + 7 dias)
-        const trialDate = new Date();
-        trialDate.setDate(trialDate.getDate() + 7);
-
-        onLogin({
-          breederName: name,
-          plan: 'Profissional', // Inicia como PRO
-          trialEndDate: trialDate.toISOString() // Define validade do teste
+        const { data, error } = await supabase.auth.signInWithPassword({
+          email,
+          password,
         });
+
+        setIsLoading(false);
+
+        if (error) return alert(error.message);
+
+        if (data?.user?.id) {
+          localStorage.setItem('avigestao_user_id', data.user.id);
+          onLogin({
+            userId: data.user.id,
+            breederName: email.split('@')[0],
+          });
+        }
+      } else {
+        // Register flow: create user then notify
+        const { data, error } = await supabase.auth.signUp({
+          email,
+          password,
+        });
+
+        setIsLoading(false);
+
+        if (error) return alert(error.message);
+
+        alert('Conta criada! Verifique seu e-mail.');
       }
-    }, 1500);
+    } catch (err: any) {
+      setIsLoading(false);
+      alert(err?.message || 'Erro no login');
+    }
   };
 
   return (
