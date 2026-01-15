@@ -128,12 +128,6 @@ const PedigreeTree: React.FC<PedigreeTreeProps> = ({ bird, allBirds, settings })
           </h1>
           <p className="text-xs font-bold uppercase tracking-widest text-slate-500">Árvore Genealógica</p>
         </div>
-
-        <div className="text-right min-w-[140px]">
-          <p className="text-[10px] font-bold uppercase text-slate-400">Ave</p>
-          <p className="text-sm font-black text-slate-800 truncate">{bird.name || '—'}</p>
-          <p className="text-[10px] text-slate-500 font-mono">{bird.ringNumber || '—'}</p>
-        </div>
       </div>
 
       <div className="rounded-2xl border-2 p-3" style={{ borderColor: accent }}>
@@ -148,6 +142,11 @@ const PedigreeTree: React.FC<PedigreeTreeProps> = ({ bird, allBirds, settings })
               </p>
               <p className="font-black text-slate-800 text-xs truncate print:text-sm">{bird.name}</p>
               <p className="text-[9px] text-slate-500 font-mono mt-0.5">{bird.ringNumber}</p>
+            </div>
+            <div className="mt-3 flex items-center justify-center">
+              <div className="h-10 w-10 rounded-full border-2 flex items-center justify-center text-lg font-black" style={{ borderColor: accent, color: accent }}>
+                {bird.sex === 'Fêmea' ? '♀' : '♂'}
+              </div>
             </div>
           </div>
 

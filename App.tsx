@@ -19,7 +19,7 @@ import { DollarSign, Zap, AlertTriangle, Menu } from 'lucide-react';
 import { supabase, SUPABASE_MISSING } from './supabaseClient';
 import { subscribeTable } from './realtime';
 import { migrateLocalData } from './services/migrateLocalData';
-import { loadInitialData } from './services/dataService';
+import { loadInitialData, mapApplicationFromDb, mapBirdFromDb, mapClutchFromDb, mapMedicationFromDb, mapMovementFromDb, mapPairFromDb, mapTaskFromDb, mapTournamentFromDb, mapTransactionFromDb, mapTreatmentFromDb } from './services/dataService';
 import { insertRow, updateRow, deleteRow } from './services/writeService';
 
 const App: React.FC = () => {
@@ -211,6 +211,34 @@ const App: React.FC = () => {
     syncSubscriptionStatus();
   }, [isAuthenticated]);
 
+  const mapRowByTable = (table: string, row: any) => {
+    if (!row) return row;
+    switch (table) {
+      case 'birds':
+        return mapBirdFromDb(row);
+      case 'movements':
+        return mapMovementFromDb(row);
+      case 'transactions':
+        return mapTransactionFromDb(row);
+      case 'tasks':
+        return mapTaskFromDb(row);
+      case 'tournaments':
+        return mapTournamentFromDb(row);
+      case 'medications':
+        return mapMedicationFromDb(row);
+      case 'pairs':
+        return mapPairFromDb(row);
+      case 'clutches':
+        return mapClutchFromDb(row);
+      case 'applications':
+        return mapApplicationFromDb(row);
+      case 'treatments':
+        return mapTreatmentFromDb(row);
+      default:
+        return row;
+    }
+  };
+
   // Poll subscription status every 30s as a fallback when Realtime on `subscriptions` is not available
   useEffect(() => {
     if (!isAuthenticated) return;
@@ -246,21 +274,22 @@ useEffect(() => {
 
   const subs: any[] = [];
 
-  const tables = ['birds', 'movements', 'transactions', 'tasks', 'tournaments', 'medications'];
+  const tables = ['birds', 'movements', 'transactions', 'tasks', 'tournaments', 'medications', 'pairs', 'clutches', 'applications', 'treatments'];
 
   tables.forEach(table => {
     const ch = subscribeTable(table, userId, (payload: any) => {
       setState(prev => {
         const data = payload.new;
+        const mapped = mapRowByTable(table, data);
 
         switch (payload.eventType) {
           case 'INSERT': {
             const list = (prev as any)[table] || [];
-            if (list.some((r: any) => r.id === data.id)) return prev;
-            return { ...prev, [table]: [...list, data] };
+            if (list.some((r: any) => r.id === mapped.id)) return prev;
+            return { ...prev, [table]: [...list, mapped] };
           }
           case 'UPDATE':
-            return { ...prev, [table]: (prev as any)[table].map((r: any) => r.id === data.id ? data : r) };
+            return { ...prev, [table]: (prev as any)[table].map((r: any) => r.id === mapped.id ? mapped : r) };
           case 'DELETE':
             return { ...prev, [table]: (prev as any)[table].filter((r: any) => r.id !== payload.old.id) };
           default:
@@ -315,6 +344,10 @@ useEffect(() => {
           tasks: data.tasks || [],
           tournaments: data.tournaments || [],
           medications: data.medications && data.medications.length > 0 ? data.medications : prev.medications,
+          pairs: data.pairs || [],
+          clutches: data.clutches || [],
+          applications: data.applications || [],
+          treatments: data.treatments || [],
           settings: data.settings || prev.settings,
         }));
       } catch (err) {
@@ -380,6 +413,12 @@ useEffect(() => {
         transactions: remoteData.transactions || [],
         tasks: remoteData.tasks || [],
         tournaments: remoteData.tournaments || [],
+        medications: remoteData.medications && remoteData.medications.length > 0 ? remoteData.medications : prev.medications,
+        pairs: remoteData.pairs || [],
+        clutches: remoteData.clutches || [],
+        applications: remoteData.applications || [],
+        treatments: remoteData.treatments || [],
+        settings: remoteData.settings || prev.settings,
       }));
     } catch (err) {
       console.error('Erro ao carregar dados remotos:', err);
@@ -406,7 +445,20 @@ useEffect(() => {
     setIsAuthenticated(false);
   };
 
-  const updateSettings = (settings: BreederSettings) => setState(prev => ({ ...prev, settings }));
+  const updateSettings = (settings: BreederSettings) => {
+    setState(prev => ({ ...prev, settings }));
+
+    (async () => {
+      const uid = await getUserId();
+      if (!uid) return;
+      const dbRow = mapSettingsToDb(settings, uid);
+      const { error } = await supabase.from('settings').upsert(dbRow, { onConflict: 'user_id' });
+      if (error) {
+        console.error('Erro ao salvar configuracoes:', error);
+        setError('Falha ao salvar configuracoes. Verifique sua conexao.');
+      }
+    })();
+  };
 
   const getUserId = async () => {
     if (userId) return userId;
@@ -425,9 +477,22 @@ useEffect(() => {
     sex: bird.sex,
     status: bird.status,
     created_at: bird.createdAt || new Date().toISOString(),
-    ...(bird.fatherId ? { father_id: bird.fatherId } : {}),
-    ...(bird.motherId ? { mother_id: bird.motherId } : {}),
-    ...(bird.manualAncestors ? { manual_ancestors: bird.manualAncestors } : {}),
+    color_mutation: bird.colorMutation || '',
+    birth_date: bird.birthDate || null,
+    location: bird.location || '',
+    photo_url: bird.photoUrl || null,
+    classification: bird.classification || null,
+    song_training_status: bird.songTrainingStatus || null,
+    song_type: bird.songType || '',
+    song_source: bird.songSource || null,
+    training_start_date: bird.trainingStartDate || null,
+    training_notes: bird.trainingNotes || null,
+    is_repeater: !!bird.isRepeater,
+    sexing: bird.sexing || null,
+    documents: bird.documents || [],
+    father_id: bird.fatherId || null,
+    mother_id: bird.motherId || null,
+    manual_ancestors: bird.manualAncestors || null,
   });
 
   const mapBirdUpdateToDb = (bird: Bird) => ({
@@ -436,6 +501,19 @@ useEffect(() => {
     species: bird.species,
     sex: bird.sex,
     status: bird.status,
+    color_mutation: bird.colorMutation || '',
+    birth_date: bird.birthDate || null,
+    location: bird.location || '',
+    photo_url: bird.photoUrl || null,
+    classification: bird.classification || null,
+    song_training_status: bird.songTrainingStatus || null,
+    song_type: bird.songType || '',
+    song_source: bird.songSource || null,
+    training_start_date: bird.trainingStartDate || null,
+    training_notes: bird.trainingNotes || null,
+    is_repeater: !!bird.isRepeater,
+    sexing: bird.sexing || null,
+    documents: bird.documents || [],
     father_id: bird.fatherId || null,
     mother_id: bird.motherId || null,
     manual_ancestors: bird.manualAncestors || null,
@@ -497,6 +575,159 @@ useEffect(() => {
     is_completed: t.isCompleted,
   });
 
+  const mapPairToDb = (pair: Pair, uid: string) => ({
+    id: pair.id,
+    user_id: uid,
+    male_id: pair.maleId,
+    female_id: pair.femaleId,
+    start_date: pair.startDate,
+    end_date: pair.endDate || null,
+    status: pair.status,
+    name: pair.name,
+  });
+
+  const mapPairUpdateToDb = (pair: Pair) => ({
+    male_id: pair.maleId,
+    female_id: pair.femaleId,
+    start_date: pair.startDate,
+    end_date: pair.endDate || null,
+    status: pair.status,
+    name: pair.name,
+  });
+
+  const mapClutchToDb = (clutch: Clutch, uid: string) => ({
+    id: clutch.id,
+    user_id: uid,
+    pair_id: clutch.pairId,
+    lay_date: clutch.layDate,
+    egg_count: clutch.eggCount,
+    fertile_count: clutch.fertileCount,
+    hatched_count: clutch.hatchedCount,
+    notes: clutch.notes,
+  });
+
+  const mapClutchUpdateToDb = (clutch: Clutch) => ({
+    pair_id: clutch.pairId,
+    lay_date: clutch.layDate,
+    egg_count: clutch.eggCount,
+    fertile_count: clutch.fertileCount,
+    hatched_count: clutch.hatchedCount,
+    notes: clutch.notes,
+  });
+
+  const mapMedicationToDb = (med: Medication, uid: string) => ({
+    id: med.id,
+    user_id: uid,
+    name: med.name,
+    type: med.type,
+    batch: med.batch,
+    expiry_date: med.expiryDate,
+    stock: med.stock,
+  });
+
+  const mapMedicationUpdateToDb = (med: Medication) => ({
+    name: med.name,
+    type: med.type,
+    batch: med.batch,
+    expiry_date: med.expiryDate,
+    stock: med.stock,
+  });
+
+  const mapApplicationToDb = (app: MedicationApplication, uid: string) => ({
+    id: app.id,
+    user_id: uid,
+    bird_id: app.birdId,
+    medication_id: app.medicationId,
+    date: app.date,
+    dosage: app.dosage,
+    notes: app.notes,
+    treatment_id: app.treatmentId || null,
+  });
+
+  const mapApplicationUpdateToDb = (app: MedicationApplication) => ({
+    bird_id: app.birdId,
+    medication_id: app.medicationId,
+    date: app.date,
+    dosage: app.dosage,
+    notes: app.notes,
+    treatment_id: app.treatmentId || null,
+  });
+
+  const mapTreatmentToDb = (t: ContinuousTreatment, uid: string) => ({
+    id: t.id,
+    user_id: uid,
+    bird_id: t.birdId,
+    medication_id: t.medicationId,
+    start_date: t.startDate,
+    end_date: t.endDate || null,
+    frequency: t.frequency,
+    dosage: t.dosage,
+    status: t.status,
+    last_application_date: t.lastApplicationDate || null,
+    notes: t.notes || '',
+  });
+
+  const mapTreatmentUpdateToDb = (t: ContinuousTreatment) => ({
+    bird_id: t.birdId,
+    medication_id: t.medicationId,
+    start_date: t.startDate,
+    end_date: t.endDate || null,
+    frequency: t.frequency,
+    dosage: t.dosage,
+    status: t.status,
+    last_application_date: t.lastApplicationDate || null,
+    notes: t.notes || '',
+  });
+
+  const mapTournamentToDb = (t: TournamentEvent, uid: string) => ({
+    id: t.id,
+    user_id: uid,
+    title: t.title,
+    date: t.date,
+    location: t.location,
+    type: t.type,
+    category: t.category,
+    notes: t.notes || null,
+    organizer: t.organizer || null,
+    result: t.result || null,
+    trophy: t.trophy ?? null,
+    score: t.score ?? null,
+    participating_birds: t.participatingBirds || null,
+    preparation_checklist: t.preparationChecklist || null,
+  });
+
+  const mapTournamentUpdateToDb = (t: TournamentEvent) => ({
+    title: t.title,
+    date: t.date,
+    location: t.location,
+    type: t.type,
+    category: t.category,
+    notes: t.notes || null,
+    organizer: t.organizer || null,
+    result: t.result || null,
+    trophy: t.trophy ?? null,
+    score: t.score ?? null,
+    participating_birds: t.participatingBirds || null,
+    preparation_checklist: t.preparationChecklist || null,
+  });
+
+  const mapSettingsToDb = (settings: BreederSettings, uid: string) => ({
+    user_id: uid,
+    breeder_name: settings.breederName,
+    cpf_cnpj: settings.cpfCnpj,
+    sispass_number: settings.sispassNumber,
+    registration_date: settings.registrationDate,
+    renewal_date: settings.renewalDate,
+    last_renewal_date: settings.lastRenewalDate || null,
+    logo_url: settings.logoUrl || null,
+    primary_color: settings.primaryColor,
+    accent_color: settings.accentColor,
+    plan: settings.plan,
+    trial_end_date: settings.trialEndDate || null,
+    dashboard_layout: settings.dashboardLayout || null,
+    certificate: settings.certificate || null,
+  });
+
   // --- BIRDS ---
   const addBird = async (bird: Bird) => {
     const uid = await getUserId();
@@ -552,10 +783,19 @@ useEffect(() => {
   const permanentlyDeleteBird = (id: string) => {
     setState(prev => ({ ...prev, deletedBirds: (prev.deletedBirds || []).filter(b => b.id !== id) }));
   };
-  const updateBirdStatus = (id: string, status: any) => setState(prev => ({
-    ...prev,
-    birds: prev.birds.map(b => b.id === id ? { ...b, status } : b)
-  }));
+  const updateBirdStatus = (id: string, status: any) => {
+    setState(prev => ({
+      ...prev,
+      birds: prev.birds.map(b => b.id === id ? { ...b, status } : b)
+    }));
+    (async () => {
+      try {
+        await updateRow('birds', id, { status });
+      } catch (err) {
+        console.error('Erro ao atualizar status da ave:', err);
+      }
+    })();
+  };
 
   // --- MOVEMENTS ---
   const addMovement = async (mov: MovementRecord) => {
@@ -582,71 +822,307 @@ useEffect(() => {
   };
 
   // --- PAIRS / BREEDING ---
-  const addPair = (pair: Pair) => setState(prev => ({ ...prev, pairs: [...prev.pairs, pair] }));
-  const addClutch = (clutch: Clutch) => setState(prev => ({ ...prev, clutches: [...prev.clutches, clutch] }));
-  const updateClutch = (updated: Clutch) => setState(prev => ({ ...prev, clutches: prev.clutches.map(c => c.id === updated.id ? updated : c) }));
+  const addPair = (pair: Pair) => {
+    (async () => {
+      const uid = await getUserId();
+      if (!uid) return;
+      let added = false;
+      setState(prev => {
+        if (prev.pairs.some(p => p.id === pair.id)) return prev;
+        added = true;
+        return { ...prev, pairs: [...prev.pairs, pair] };
+      });
+      try {
+        await insertRow('pairs', mapPairToDb(pair, uid));
+      } catch (err) {
+        if (added) {
+          setState(prev => ({ ...prev, pairs: prev.pairs.filter(p => p.id !== pair.id) }));
+        }
+        console.error('Erro ao salvar casal:', err);
+        setError('Falha ao salvar casal. Verifique sua conexao.');
+      }
+    })();
+  };
+
+  const addClutch = (clutch: Clutch) => {
+    (async () => {
+      const uid = await getUserId();
+      if (!uid) return;
+      let added = false;
+      setState(prev => {
+        if (prev.clutches.some(c => c.id === clutch.id)) return prev;
+        added = true;
+        return { ...prev, clutches: [...prev.clutches, clutch] };
+      });
+      try {
+        await insertRow('clutches', mapClutchToDb(clutch, uid));
+      } catch (err) {
+        if (added) {
+          setState(prev => ({ ...prev, clutches: prev.clutches.filter(c => c.id !== clutch.id) }));
+        }
+        console.error('Erro ao salvar ninhada:', err);
+        setError('Falha ao salvar ninhada. Verifique sua conexao.');
+      }
+    })();
+  };
+
+  const updateClutch = (updated: Clutch) => {
+    setState(prev => ({ ...prev, clutches: prev.clutches.map(c => c.id === updated.id ? updated : c) }));
+    (async () => {
+      try {
+        await updateRow('clutches', updated.id, mapClutchUpdateToDb(updated));
+      } catch (err) {
+        console.error('Erro ao atualizar ninhada:', err);
+        setError('Falha ao atualizar ninhada. Verifique sua conexao.');
+      }
+    })();
+  };
+
   const deletePair = (id: string) => {
     const item = state.pairs.find(p => p.id === id);
-    if (item) setState(prev => ({ ...prev, pairs: prev.pairs.filter(p => p.id !== id), deletedPairs: [item, ...(prev.deletedPairs || [])] }));
+    if (!item) return;
+    setState(prev => ({ ...prev, pairs: prev.pairs.filter(p => p.id !== id), deletedPairs: [item, ...(prev.deletedPairs || [])] }));
+    (async () => {
+      try {
+        await deleteRow('pairs', id);
+      } catch (err) {
+        console.error('Erro ao remover casal:', err);
+        setError('Falha ao remover casal. Verifique sua conexao.');
+      }
+    })();
   };
+
   const restorePair = (id: string) => {
     const item = state.deletedPairs?.find(p => p.id === id);
-    if (item) setState(prev => ({ ...prev, deletedPairs: (prev.deletedPairs || []).filter(p => p.id !== id), pairs: [...prev.pairs, item] }));
+    if (!item) return;
+    setState(prev => ({ ...prev, deletedPairs: (prev.deletedPairs || []).filter(p => p.id !== id), pairs: [...prev.pairs, item] }));
+    (async () => {
+      const uid = await getUserId();
+      if (!uid) return;
+      try {
+        await insertRow('pairs', mapPairToDb(item, uid));
+      } catch (err) {
+        console.error('Erro ao restaurar casal:', err);
+        setError('Falha ao restaurar casal. Verifique sua conexao.');
+      }
+    })();
   };
+
   const permanentlyDeletePair = (id: string) => {
     setState(prev => ({ ...prev, deletedPairs: (prev.deletedPairs || []).filter(p => p.id !== id) }));
   };
 
   // --- MEDICATIONS & TREATMENTS ---
-  const addMed = (med: Medication) => setState(prev => ({ ...prev, medications: [...prev.medications, med] }));
-  const updateMed = (updatedMed: Medication) => setState(prev => ({
-    ...prev,
-    medications: prev.medications.map(m => m.id === updatedMed.id ? updatedMed : m)
-  }));
+  const addMed = (med: Medication) => {
+    (async () => {
+      const uid = await getUserId();
+      if (!uid) return;
+      let added = false;
+      setState(prev => {
+        if (prev.medications.some(m => m.id === med.id)) return prev;
+        added = true;
+        return { ...prev, medications: [...prev.medications, med] };
+      });
+      try {
+        await insertRow('medications', mapMedicationToDb(med, uid));
+      } catch (err) {
+        if (added) {
+          setState(prev => ({ ...prev, medications: prev.medications.filter(m => m.id !== med.id) }));
+        }
+        console.error('Erro ao salvar medicamento:', err);
+        setError('Falha ao salvar medicamento. Verifique sua conexao.');
+      }
+    })();
+  };
+
+  const updateMed = (updatedMed: Medication) => {
+    setState(prev => ({
+      ...prev,
+      medications: prev.medications.map(m => m.id === updatedMed.id ? updatedMed : m)
+    }));
+    (async () => {
+      try {
+        await updateRow('medications', updatedMed.id, mapMedicationUpdateToDb(updatedMed));
+      } catch (err) {
+        console.error('Erro ao atualizar medicamento:', err);
+        setError('Falha ao atualizar medicamento. Verifique sua conexao.');
+      }
+    })();
+  };
   
-  const applyMed = (app: MedicationApplication) => setState(prev => ({ ...prev, applications: [...prev.applications, app] }));
-  const updateApplication = (updatedApp: MedicationApplication) => setState(prev => ({
-    ...prev,
-    applications: prev.applications.map(a => a.id === updatedApp.id ? updatedApp : a)
-  }));
+  const applyMed = (app: MedicationApplication) => {
+    (async () => {
+      const uid = await getUserId();
+      if (!uid) return;
+      let added = false;
+      setState(prev => {
+        if (prev.applications.some(a => a.id === app.id)) return prev;
+        added = true;
+        return { ...prev, applications: [...prev.applications, app] };
+      });
+      try {
+        await insertRow('applications', mapApplicationToDb(app, uid));
+      } catch (err) {
+        if (added) {
+          setState(prev => ({ ...prev, applications: prev.applications.filter(a => a.id !== app.id) }));
+        }
+        console.error('Erro ao salvar aplicacao:', err);
+        setError('Falha ao salvar aplicacao. Verifique sua conexao.');
+      }
+    })();
+  };
+
+  const updateApplication = (updatedApp: MedicationApplication) => {
+    setState(prev => ({
+      ...prev,
+      applications: prev.applications.map(a => a.id === updatedApp.id ? updatedApp : a)
+    }));
+    (async () => {
+      try {
+        await updateRow('applications', updatedApp.id, mapApplicationUpdateToDb(updatedApp));
+      } catch (err) {
+        console.error('Erro ao atualizar aplicacao:', err);
+        setError('Falha ao atualizar aplicacao. Verifique sua conexao.');
+      }
+    })();
+  };
+
   const deleteApplication = (id: string) => {
     const item = state.applications.find(a => a.id === id);
-    if (item) setState(prev => ({ ...prev, applications: prev.applications.filter(a => a.id !== id), deletedApplications: [item, ...(prev.deletedApplications || [])] }));
+    if (!item) return;
+    setState(prev => ({ ...prev, applications: prev.applications.filter(a => a.id !== id), deletedApplications: [item, ...(prev.deletedApplications || [])] }));
+    (async () => {
+      try {
+        await deleteRow('applications', id);
+      } catch (err) {
+        console.error('Erro ao remover aplicacao:', err);
+        setError('Falha ao remover aplicacao. Verifique sua conexao.');
+      }
+    })();
   };
+
   const restoreApplication = (id: string) => {
     const item = state.deletedApplications?.find(a => a.id === id);
-    if (item) setState(prev => ({ ...prev, deletedApplications: (prev.deletedApplications || []).filter(a => a.id !== id), applications: [...prev.applications, item] }));
+    if (!item) return;
+    setState(prev => ({ ...prev, deletedApplications: (prev.deletedApplications || []).filter(a => a.id !== id), applications: [...prev.applications, item] }));
+    (async () => {
+      const uid = await getUserId();
+      if (!uid) return;
+      try {
+        await insertRow('applications', mapApplicationToDb(item, uid));
+      } catch (err) {
+        console.error('Erro ao restaurar aplicacao:', err);
+        setError('Falha ao restaurar aplicacao. Verifique sua conexao.');
+      }
+    })();
   };
+
   const permanentlyDeleteApplication = (id: string) => {
     setState(prev => ({ ...prev, deletedApplications: (prev.deletedApplications || []).filter(a => a.id !== id) }));
   };
 
   const deleteMed = (id: string) => {
     const item = state.medications.find(m => m.id === id);
-    if (item) setState(prev => ({ ...prev, medications: prev.medications.filter(m => m.id !== id), deletedMedications: [item, ...(prev.deletedMedications || [])] }));
+    if (!item) return;
+    setState(prev => ({ ...prev, medications: prev.medications.filter(m => m.id !== id), deletedMedications: [item, ...(prev.deletedMedications || [])] }));
+    (async () => {
+      try {
+        await deleteRow('medications', id);
+      } catch (err) {
+        console.error('Erro ao remover medicamento:', err);
+        setError('Falha ao remover medicamento. Verifique sua conexao.');
+      }
+    })();
   };
+
   const restoreMed = (id: string) => {
     const item = state.deletedMedications?.find(m => m.id === id);
-    if (item) setState(prev => ({ ...prev, deletedMedications: (prev.deletedMedications || []).filter(m => m.id !== id), medications: [...prev.medications, item] }));
+    if (!item) return;
+    setState(prev => ({ ...prev, deletedMedications: (prev.deletedMedications || []).filter(m => m.id !== id), medications: [...prev.medications, item] }));
+    (async () => {
+      const uid = await getUserId();
+      if (!uid) return;
+      try {
+        await insertRow('medications', mapMedicationToDb(item, uid));
+      } catch (err) {
+        console.error('Erro ao restaurar medicamento:', err);
+        setError('Falha ao restaurar medicamento. Verifique sua conexao.');
+      }
+    })();
   };
+
   const permanentlyDeleteMed = (id: string) => {
     setState(prev => ({ ...prev, deletedMedications: (prev.deletedMedications || []).filter(m => m.id !== id) }));
   };
 
   // New Treatment Functions
-  const addTreatment = (t: ContinuousTreatment) => setState(prev => ({ ...prev, treatments: [...prev.treatments, t] }));
-  const updateTreatment = (updated: ContinuousTreatment) => setState(prev => ({
-    ...prev,
-    treatments: prev.treatments.map(t => t.id === updated.id ? updated : t)
-  }));
+  const addTreatment = (t: ContinuousTreatment) => {
+    (async () => {
+      const uid = await getUserId();
+      if (!uid) return;
+      let added = false;
+      setState(prev => {
+        if (prev.treatments.some(item => item.id === t.id)) return prev;
+        added = true;
+        return { ...prev, treatments: [...prev.treatments, t] };
+      });
+      try {
+        await insertRow('treatments', mapTreatmentToDb(t, uid));
+      } catch (err) {
+        if (added) {
+          setState(prev => ({ ...prev, treatments: prev.treatments.filter(item => item.id !== t.id) }));
+        }
+        console.error('Erro ao salvar tratamento:', err);
+        setError('Falha ao salvar tratamento. Verifique sua conexao.');
+      }
+    })();
+  };
+
+  const updateTreatment = (updated: ContinuousTreatment) => {
+    setState(prev => ({
+      ...prev,
+      treatments: prev.treatments.map(t => t.id === updated.id ? updated : t)
+    }));
+    (async () => {
+      try {
+        await updateRow('treatments', updated.id, mapTreatmentUpdateToDb(updated));
+      } catch (err) {
+        console.error('Erro ao atualizar tratamento:', err);
+        setError('Falha ao atualizar tratamento. Verifique sua conexao.');
+      }
+    })();
+  };
+
   const deleteTreatment = (id: string) => {
     const item = state.treatments.find(t => t.id === id);
-    if (item) setState(prev => ({ ...prev, treatments: prev.treatments.filter(t => t.id !== id), deletedTreatments: [item, ...(prev.deletedTreatments || [])] }));
+    if (!item) return;
+    setState(prev => ({ ...prev, treatments: prev.treatments.filter(t => t.id !== id), deletedTreatments: [item, ...(prev.deletedTreatments || [])] }));
+    (async () => {
+      try {
+        await deleteRow('treatments', id);
+      } catch (err) {
+        console.error('Erro ao remover tratamento:', err);
+        setError('Falha ao remover tratamento. Verifique sua conexao.');
+      }
+    })();
   };
+
   const restoreTreatment = (id: string) => {
     const item = state.deletedTreatments?.find(t => t.id === id);
-    if (item) setState(prev => ({ ...prev, deletedTreatments: (prev.deletedTreatments || []).filter(t => t.id !== id), treatments: [...prev.treatments, item] }));
+    if (!item) return;
+    setState(prev => ({ ...prev, deletedTreatments: (prev.deletedTreatments || []).filter(t => t.id !== id), treatments: [...prev.treatments, item] }));
+    (async () => {
+      const uid = await getUserId();
+      if (!uid) return;
+      try {
+        await insertRow('treatments', mapTreatmentToDb(item, uid));
+      } catch (err) {
+        console.error('Erro ao restaurar tratamento:', err);
+        setError('Falha ao restaurar tratamento. Verifique sua conexao.');
+      }
+    })();
   };
+
   const permanentlyDeleteTreatment = (id: string) => {
     setState(prev => ({ ...prev, deletedTreatments: (prev.deletedTreatments || []).filter(t => t.id !== id) }));
   };
@@ -686,7 +1162,7 @@ useEffect(() => {
     const task = state.tasks.find(t => t.id === id);
     if (!task) return;
     const updated = { ...task, isCompleted: !task.isCompleted };
-    await updateRow('tasks', id, updated);
+    await updateRow('tasks', id, mapTaskUpdateToDb(updated));
   };
 
   const deleteTask = async (id: string) => {
@@ -703,16 +1179,70 @@ useEffect(() => {
   };
 
   // --- EVENTS ---
-  const addEvent = (e: TournamentEvent) => setState(prev => ({ ...prev, tournaments: [...prev.tournaments, e] }));
-  const updateEvent = (updated: TournamentEvent) => setState(prev => ({ ...prev, tournaments: prev.tournaments.map(e => e.id === updated.id ? updated : e) }));
+  const addEvent = (e: TournamentEvent) => {
+    (async () => {
+      const uid = await getUserId();
+      if (!uid) return;
+      let added = false;
+      setState(prev => {
+        if (prev.tournaments.some(item => item.id === e.id)) return prev;
+        added = true;
+        return { ...prev, tournaments: [...prev.tournaments, e] };
+      });
+      try {
+        await insertRow('tournaments', mapTournamentToDb(e, uid));
+      } catch (err) {
+        if (added) {
+          setState(prev => ({ ...prev, tournaments: prev.tournaments.filter(item => item.id !== e.id) }));
+        }
+        console.error('Erro ao salvar evento:', err);
+        setError('Falha ao salvar evento. Verifique sua conexao.');
+      }
+    })();
+  };
+
+  const updateEvent = (updated: TournamentEvent) => {
+    setState(prev => ({ ...prev, tournaments: prev.tournaments.map(e => e.id === updated.id ? updated : e) }));
+    (async () => {
+      try {
+        await updateRow('tournaments', updated.id, mapTournamentUpdateToDb(updated));
+      } catch (err) {
+        console.error('Erro ao atualizar evento:', err);
+        setError('Falha ao atualizar evento. Verifique sua conexao.');
+      }
+    })();
+  };
+
   const deleteEvent = (id: string) => {
     const item = state.tournaments.find(e => e.id === id);
-    if (item) setState(prev => ({ ...prev, tournaments: prev.tournaments.filter(e => e.id !== id), deletedTournaments: [item, ...(prev.deletedTournaments || [])] }));
+    if (!item) return;
+    setState(prev => ({ ...prev, tournaments: prev.tournaments.filter(e => e.id !== id), deletedTournaments: [item, ...(prev.deletedTournaments || [])] }));
+    (async () => {
+      try {
+        await deleteRow('tournaments', id);
+      } catch (err) {
+        console.error('Erro ao remover evento:', err);
+        setError('Falha ao remover evento. Verifique sua conexao.');
+      }
+    })();
   };
+
   const restoreEvent = (id: string) => {
     const item = state.deletedTournaments?.find(e => e.id === id);
-    if (item) setState(prev => ({ ...prev, deletedTournaments: (prev.deletedTournaments || []).filter(e => e.id !== id), tournaments: [...prev.tournaments, item] }));
+    if (!item) return;
+    setState(prev => ({ ...prev, deletedTournaments: (prev.deletedTournaments || []).filter(e => e.id !== id), tournaments: [...prev.tournaments, item] }));
+    (async () => {
+      const uid = await getUserId();
+      if (!uid) return;
+      try {
+        await insertRow('tournaments', mapTournamentToDb(item, uid));
+      } catch (err) {
+        console.error('Erro ao restaurar evento:', err);
+        setError('Falha ao restaurar evento. Verifique sua conexao.');
+      }
+    })();
   };
+
   const permanentlyDeleteEvent = (id: string) => {
     setState(prev => ({ ...prev, deletedTournaments: (prev.deletedTournaments || []).filter(e => e.id !== id) }));
   };

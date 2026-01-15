@@ -321,26 +321,30 @@ const BirdManager: React.FC<BirdManagerProps> = ({ state, addBird, updateBird, d
   
   const handleAddDocument = (e: React.FormEvent) => {
     e.preventDefault();
-    if (newDocForm.title && newDocForm.date && editingBird.id) {
-        const newDoc: BirdDocument = {
-            id: Math.random().toString(36).substr(2, 9),
-            title: newDocForm.title,
-            date: newDocForm.date,
-            type: newDocForm.type as any || 'Outro',
-            url: newDocForm.url,
-            notes: newDocForm.notes
-        };
+    if (!newDocForm.title) {
+      alert('O titulo do documento e obrigatorio.');
+      return;
+    }
+    if (newDocForm.date && editingBird.id) {
+      const newDoc: BirdDocument = {
+        id: Math.random().toString(36).substr(2, 9),
+        title: newDocForm.title,
+        date: newDocForm.date,
+        type: newDocForm.type as any || 'Outro',
+        url: newDocForm.url,
+        notes: newDocForm.notes
+      };
 
-        const updatedDocuments = [...(editingBird.documents || []), newDoc];
-        const updatedBird = { ...editingBird, documents: updatedDocuments };
-        
-        // Atualiza estado local e global
-        setEditingBird(updatedBird);
-        updateBird(updatedBird as Bird);
-        if (selectedBird) setSelectedBird(updatedBird as Bird);
+      const updatedDocuments = [...(editingBird.documents || []), newDoc];
+      const updatedBird = { ...editingBird, documents: updatedDocuments };
+      
+      // Atualiza estado local e global
+      setEditingBird(updatedBird);
+      updateBird(updatedBird as Bird);
+      if (selectedBird) setSelectedBird(updatedBird as Bird);
 
-        // Reset Form
-        setNewDocForm({ type: 'Outro', date: new Date().toISOString().split('T')[0] });
+      // Reset Form
+      setNewDocForm({ type: 'Outro', date: new Date().toISOString().split('T')[0] });
     }
   };
 
