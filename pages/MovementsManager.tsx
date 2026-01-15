@@ -42,6 +42,17 @@ const MovementsManager: React.FC<MovementsManagerProps> = ({ state, addMovement,
   });
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  const makeId = () => {
+    if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
+      return crypto.randomUUID();
+    }
+    return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
+      const r = (Math.random() * 16) | 0;
+      const v = c === 'x' ? r : (r & 0x3) | 0x8;
+      return v.toString(16);
+    });
+  };
+
   const listToUse = currentList === 'active' ? state.movements : (state.deletedMovements || []);
 
   const filteredMovements = listToUse.filter(m => {
@@ -85,7 +96,7 @@ const MovementsManager: React.FC<MovementsManagerProps> = ({ state, addMovement,
       } else {
         addMovement({
           ...newMov as MovementRecord,
-          id: Math.random().toString(36).substr(2, 9)
+          id: makeId()
         });
       }
       setShowModal(false);
