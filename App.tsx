@@ -63,14 +63,14 @@ const App: React.FC = () => {
     // Auto-activate a short trial for legacy users (only if not admin).
     if (isAdmin) return;
     if (
-      state.settings.plan === 'BÃ¡sico' &&
+      state.settings.plan === 'Básico' &&
       !state.settings.trialEndDate &&
       userId
     ) {
       const trialEnd = new Date();
       trialEnd.setDate(trialEnd.getDate() + 7);
 
-      // Keep plan as 'BÃ¡sico' but set a trialEndDate so UI can show trial while
+      // Keep plan as 'Básico' but set a trialEndDate so UI can show trial while
       // still allowing the user to upgrade immediately.
       setState(prev => ({
         ...prev,
@@ -95,11 +95,11 @@ const App: React.FC = () => {
           ...prev,
           settings: {
             ...prev.settings,
-            plan: 'BÃ¡sico',
+            plan: 'Básico',
             trialEndDate: undefined // Clear trial date
           }
         }));
-        console.log("PerÃ­odo de teste expirado. Plano alterado para BÃ¡sico.");
+        console.log("PerÃ­odo de teste expirado. Plano alterado para Básico.");
       }
     }
   }, []); // Run once on mount
@@ -197,7 +197,7 @@ const App: React.FC = () => {
         ...prev,
         settings: {
           ...prev.settings,
-          plan: "BÃ¡sico",
+          plan: "Básico",
           trialEndDate: undefined,
         },
       }));
@@ -384,7 +384,7 @@ useEffect(() => {
           ...prev,
           settings: {
             ...prev.settings,
-            plan: 'BÃ¡sico',
+            plan: 'Básico',
             trialEndDate: undefined,
           },
         }));
@@ -1313,9 +1313,9 @@ useEffect(() => {
   const renderContent = () => {
     const currentTab = activeTab || 'dashboard';
     
-    // Se for Financeiro e o plano for BÃ¡sico (e nÃ£o for um trial vÃ¡lido), bloqueia
-    // Nota: A lÃ³gica de App.tsx jÃ¡ rebaixa o plano se o trial expirou, entÃ£o sÃ³ checar 'BÃ¡sico' basta.
-    if (currentTab === 'finance' && state.settings.plan === 'BÃ¡sico' && !isAdmin) {
+    // Se for Financeiro e o plano for Básico (e nÃ£o for um trial vÃ¡lido), bloqueia
+    // Nota: A lÃ³gica de App.tsx jÃ¡ rebaixa o plano se o trial expirou, entÃ£o sÃ³ checar 'Básico' basta.
+    if (currentTab === 'finance' && state.settings.plan === 'Básico' && !isAdmin) {
       return (
         <div className="h-[70vh] flex flex-col items-center justify-center text-center p-10 animate-in fade-in duration-500">
            <div className="w-24 h-24 bg-amber-100 text-amber-600 rounded-[32px] flex items-center justify-center mb-8 shadow-inner">
@@ -1441,7 +1441,7 @@ useEffect(() => {
         setActiveTab={setActiveTab} 
         logoUrl={state.settings.logoUrl}
         breederName={state.settings.breederName || 'Meu CriatÃ³rio'}
-        plan={state.settings.plan || 'BÃ¡sico'}
+        plan={state.settings.plan || 'Básico'}
         trialEndDate={state.settings.trialEndDate} // Pass trial date
         onLogout={handleLogout}
         isAdmin={isAdmin}
@@ -1486,5 +1486,7 @@ useEffect(() => {
 };
 
 export default App;
+
+
 
 
