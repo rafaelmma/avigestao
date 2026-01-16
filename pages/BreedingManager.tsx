@@ -178,6 +178,13 @@ const BreedingManager: React.FC<BreedingManagerProps> = ({ state, addPair, updat
     setShowHatchlingModal(true);
   };
 
+  const handleRegisterHatchlings = (pairId: string, count: number, layDate: string) => {
+    if (count <= 0) return;
+    const ok = window.confirm(`Confirmar registro de ${count} filhote(s) desta ninhada?`);
+    if (!ok) return;
+    prepareHatchlingRegistration(pairId, count, layDate);
+  };
+
   const confirmHatchlingRegistration = () => {
     if (!hatchlingParentPairId) return;
 
@@ -424,16 +431,27 @@ const BreedingManager: React.FC<BreedingManagerProps> = ({ state, addPair, updat
                                 <Calendar size={14} className="text-slate-300" />
                                 <span className="text-xs font-bold text-slate-700">{new Date(clutch.layDate).toLocaleDateString('pt-BR')}</span>
                              </div>
-                             <div className="flex gap-3">
-                               <span className="text-[10px] font-black text-brand uppercase">{clutch.eggCount} ovos</span>
-                               {clutch.hatchedCount > 0 ? (
-                                 <span className="text-[10px] font-black text-emerald-500 uppercase flex items-center gap-1">
-                                   <Baby size={10} /> {clutch.hatchedCount}
-                                 </span>
-                               ) : (
-                                 <span className="text-[10px] font-black text-amber-500 uppercase flex items-center gap-1">
-                                   <Timer size={10} /> Incubando
-                                 </span>
+                             <div className="flex flex-col items-end gap-2">
+                               <div className="flex gap-3">
+                                 <span className="text-[10px] font-black text-brand uppercase">{clutch.eggCount} ovos</span>
+                                 {clutch.hatchedCount > 0 ? (
+                                   <span className="text-[10px] font-black text-emerald-500 uppercase flex items-center gap-1">
+                                     <Baby size={10} /> {clutch.hatchedCount}
+                                   </span>
+                                 ) : (
+                                   <span className="text-[10px] font-black text-amber-500 uppercase flex items-center gap-1">
+                                     <Timer size={10} /> Incubando
+                                   </span>
+                                 )}
+                               </div>
+                               {clutch.hatchedCount > 0 && (
+                                 <button
+                                   type="button"
+                                   onClick={() => handleRegisterHatchlings(pair.id, clutch.hatchedCount, clutch.layDate)}
+                                   className="px-2 py-1 bg-emerald-50 text-emerald-600 rounded-lg text-[9px] font-black uppercase tracking-widest"
+                                 >
+                                   Confirmar nascimento
+                                 </button>
                                )}
                              </div>
                              {/* Botão de Edição da Ninhada */}

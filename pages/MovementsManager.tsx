@@ -43,6 +43,29 @@ const MovementsManager: React.FC<MovementsManagerProps> = ({ state, addMovement,
   });
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  const openAttachment = (url: string) => {
+    if (!url) return;
+    if (url.startsWith('data:')) {
+      const parts = url.split(',');
+      if (parts.length < 2) return;
+      const meta = parts[0];
+      const data = parts[1];
+      const match = /data:(.*?);base64/.exec(meta);
+      const mime = match ? match[1] : 'application/octet-stream';
+      const byteChars = atob(data);
+      const byteNumbers = new Array(byteChars.length);
+      for (let i = 0; i < byteChars.length; i++) {
+        byteNumbers[i] = byteChars.charCodeAt(i);
+      }
+      const blob = new Blob([new Uint8Array(byteNumbers)], { type: mime });
+      const blobUrl = URL.createObjectURL(blob);
+      window.open(blobUrl, '_blank', 'noopener,noreferrer');
+      setTimeout(() => URL.revokeObjectURL(blobUrl), 10000);
+      return;
+    }
+    window.open(url, '_blank', 'noopener,noreferrer');
+  };
+
   const makeId = () => {
     if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
       return crypto.randomUUID();
@@ -237,14 +260,13 @@ const MovementsManager: React.FC<MovementsManagerProps> = ({ state, addMovement,
                     <td className="px-6 py-4">
                       {m.gtrUrl ? (
                         <div className="flex flex-col gap-2">
-                          <a 
-                            href={m.gtrUrl}
-                            target="_blank"
-                            rel="noopener noreferrer"
+                          <button 
+                            type="button"
+                            onClick={() => openAttachment(m.gtrUrl)}
                             className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-100 text-slate-600 rounded-lg text-[10px] font-bold hover:bg-slate-200 transition-colors"
                           >
                             <FileText size={14} /> Abrir GTR
-                          </a>
+                          </button>
                           <a
                             href={m.gtrUrl}
                             download={`gtr-${m.id}.pdf`}
