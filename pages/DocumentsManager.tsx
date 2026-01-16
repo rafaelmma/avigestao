@@ -1,5 +1,5 @@
 ﻿
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { BreederSettings, CertificateType } from '../types';
 import { FileBadge, ShieldCheck, ExternalLink, CreditCard, Cloud, FileKey, Usb, AlertTriangle, CheckCircle2, CalendarClock, Save, X, Calendar } from 'lucide-react';
 
@@ -26,8 +26,19 @@ const DocumentsManager: React.FC<DocumentsManagerProps> = ({ settings, updateSet
     return Math.ceil(diff / (1000 * 60 * 60 * 24));
   };
   const [editSispassNumber, setEditSispassNumber] = useState(false);
+  const sispassFileInputRef = useRef<HTMLInputElement>(null);
 
-  const calculateProgress = (startDateStr?: string, endDateStr?: string) => {
+  const handleSispassFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        updateSettings({ ...settings, sispassDocumentUrl: reader.result as string });
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+const calculateProgress = (startDateStr?: string, endDateStr?: string) => {
     if (!startDateStr || !endDateStr) return 0;
     const start = new Date(startDateStr).getTime();
     const end = new Date(endDateStr).getTime();
@@ -212,36 +223,72 @@ const DocumentsManager: React.FC<DocumentsManagerProps> = ({ settings, updateSet
                 </div>
               )}
 
-              <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100 grid grid-cols-2 gap-4">
-                                  <div>
-                    <label className="text-[9px] font-black text-blue-600 uppercase tracking-widest block mb-1">Numero de Registro SISPASS</label>
-                    <input 
-                      className="w-full bg-white border border-blue-200 rounded-xl px-3 py-2 font-mono font-bold text-slate-800 outline-none text-sm focus:border-blue-400"                       placeholder="Ex: 1234567-8 (numero do registro)"                       value={sispassNumberValue}
-                      onChange={(e) => updateSettings({...settings, sispassNumber: e.target.value})}
-                      disabled={isSispassConfigured && !editSispassNumber}
-                      onBlur={() => { if (isSispassConfigured) setEditSispassNumber(false); }}                     />                     <p className="text-[10px] text-slate-400 mt-1">                       Digite o numero do registro da sua licenca no SISPASS.                     </p>
-                    {isSispassConfigured && !editSispassNumber && (
-                      <button
-                        type="button"
-                        onClick={() => setEditSispassNumber(true)}
-                        className="mt-2 text-[9px] font-black uppercase tracking-widest text-blue-600"
-                      >
-                        Editar número
-                      </button>
-                    )}
-                 </div>
-                 <div>
-                    <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest block mb-1">Renovação</label>
-                    <input 
-                      type="date"
-                      className="w-full bg-transparent font-bold text-slate-700 outline-none text-xs"
-                      value={renewalDateValue}
-                      onChange={(e) => updateSettings({...settings, renewalDate: e.target.value})}
-                    />
-                 </div>
-              </div>
-
-              <div className="pt-2 flex flex-col gap-2">
+              <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100 space-y-4">
+  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+    <div>
+      <label className="text-[9px] font-black text-blue-600 uppercase tracking-widest block mb-1">Numero de Registro SISPASS</label>
+      <input
+        className="w-full bg-white border border-blue-200 rounded-xl px-3 py-2 font-mono font-bold text-slate-800 outline-none text-sm focus:border-blue-400"
+        placeholder="Ex: 1234567-8 (numero do registro)"
+        value={sispassNumberValue}
+        onChange={(e) => updateSettings({ ...settings, sispassNumber: e.target.value })}
+        disabled={isSispassConfigured && !editSispassNumber}
+        onBlur={() => { if (isSispassConfigured) setEditSispassNumber(false); }}
+      />
+      <p className="text-[10px] text-slate-400 mt-1">Digite o numero do registro da sua licenca no SISPASS.</p>
+      {isSispassConfigured && !editSispassNumber && (
+        <button
+          type="button"
+          onClick={() => setEditSispassNumber(true)}
+          className="mt-2 text-[9px] font-black uppercase tracking-widest text-blue-600"
+        >
+          Editar numero
+        </button>
+      )}
+    </div>
+    <div>
+      <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest block mb-1">Renovacao</label>
+      <input
+        type="date"
+        className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 font-bold text-slate-700 outline-none text-xs"
+        value={renewalDateValue}
+        onChange={(e) => updateSettings({ ...settings, renewalDate: e.target.value })}
+      />
+    </div>
+  </div>
+  <div className="bg-white border border-blue-100 rounded-2xl p-4 flex flex-col gap-3">
+    <div className="flex items-center justify-between">
+      <div>
+        <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Anexo SISPASS (registro de aves)</p>
+        <p className="text-[10px] text-slate-400 mt-1">Envie o PDF ou imagem com a relacao dos passaros.</p>
+      </div>
+      <button
+        type="button"
+        onClick={() => sispassFileInputRef.current?.click()}
+        className="px-4 py-2 bg-blue-50 text-blue-700 border border-blue-100 rounded-xl text-[10px] font-black uppercase tracking-widest"
+      >
+        {settings.sispassDocumentUrl ? 'Substituir' : 'Anexar'}
+      </button>
+    </div>
+    {settings.sispassDocumentUrl && (
+      <a
+        href={settings.sispassDocumentUrl}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="text-[10px] font-black uppercase tracking-widest text-blue-600"
+      >
+        Visualizar anexo
+      </a>
+    )}
+    <input
+      type="file"
+      accept="application/pdf,image/*"
+      ref={sispassFileInputRef}
+      className="hidden"
+      onChange={handleSispassFileUpload}
+    />
+  </div>
+</div><div className="pt-2 flex flex-col gap-2">
                  <button 
                    onClick={() => handleOpenRenewal('sispass')}
                    className="w-full py-3 bg-brand text-white shadow-lg shadow-brand/20 hover:bg-emerald-600 rounded-xl text-xs font-black uppercase tracking-widest flex items-center justify-center gap-2 transition-all"
@@ -406,6 +453,7 @@ const DocumentsManager: React.FC<DocumentsManagerProps> = ({ settings, updateSet
 };
 
 export default DocumentsManager;
+
 
 
 

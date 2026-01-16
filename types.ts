@@ -118,6 +118,7 @@ export interface Pair {
   endDate?: string;
   status: 'Ativo' | 'Inativo';
   name: string;
+  lastHatchDate?: string;
 }
 
 export interface Clutch {
@@ -176,7 +177,8 @@ export interface BreederSettings {
   userId?: string;
   cpfCnpj: string;
   sispassNumber: string;
-  registrationDate: string;
+  sispassDocumentUrl?: string;
+registrationDate: string;
   renewalDate: string;      // Vencimento LicenÃ§a SISPASS
   lastRenewalDate?: string; // Ãšltima RenovaÃ§Ã£o SISPASS
   logoUrl?: string;
@@ -221,5 +223,6 @@ export interface AppState {
 
   settings: BreederSettings;
 }
+
 
 

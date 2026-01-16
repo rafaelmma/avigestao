@@ -10,6 +10,7 @@ import {
   FileText, 
   Search, 
   Upload,
+  Download,
   ArrowRightLeft,
   Info,
   ExternalLink,
@@ -235,14 +236,23 @@ const MovementsManager: React.FC<MovementsManagerProps> = ({ state, addMovement,
                     </td>
                     <td className="px-6 py-4">
                       {m.gtrUrl ? (
-                        <a 
-                          href={m.gtrUrl}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-100 text-slate-600 rounded-lg text-[10px] font-bold hover:bg-slate-200 transition-colors"
-                        >
-                          <FileText size={14} /> Abrir GTR
-                        </a>
+                        <div className="flex flex-col gap-2">
+                          <a 
+                            href={m.gtrUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-100 text-slate-600 rounded-lg text-[10px] font-bold hover:bg-slate-200 transition-colors"
+                          >
+                            <FileText size={14} /> Abrir GTR
+                          </a>
+                          <a
+                            href={m.gtrUrl}
+                            download={`gtr-${m.id}.pdf`}
+                            className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-50 text-emerald-700 rounded-lg text-[10px] font-bold hover:bg-emerald-100 transition-colors"
+                          >
+                            <Download size={14} /> Baixar
+                          </a>
+                        </div>
                       ) : (
                         <span className="text-[10px] text-slate-300 font-medium">Sem anexo</span>
                       )}

@@ -125,6 +125,7 @@ export const mapPairFromDb = (row: any): Pair => ({
   endDate: row.end_date ?? row.endDate ?? undefined,
   status: row.status ?? 'Ativo',
   name: row.name ?? '',
+  lastHatchDate: row.last_hatch_date ?? row.lastHatchDate ?? undefined,
 });
 
 export const mapClutchFromDb = (row: any): Clutch => ({
@@ -165,6 +166,7 @@ export const mapSettingsFromDb = (row: any): BreederSettings => ({
   userId: row.user_id ?? row.userId ?? undefined,
   cpfCnpj: row.cpf_cnpj ?? row.cpfCnpj ?? '',
   sispassNumber: row.sispass_number ?? row.sispassNumber ?? '',
+  sispassDocumentUrl: row.sispass_document_url ?? row.sispassDocumentUrl ?? undefined,
   registrationDate: row.registration_date ?? row.registrationDate ?? '',
   renewalDate: row.renewal_date ?? row.renewalDate ?? '',
   lastRenewalDate: row.last_renewal_date ?? row.lastRenewalDate ?? undefined,

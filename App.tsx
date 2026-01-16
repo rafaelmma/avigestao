@@ -584,6 +584,7 @@ useEffect(() => {
     end_date: pair.endDate || null,
     status: pair.status,
     name: pair.name,
+    last_hatch_date: pair.lastHatchDate || null,
   });
 
   const mapPairUpdateToDb = (pair: Pair) => ({
@@ -593,6 +594,7 @@ useEffect(() => {
     end_date: pair.endDate || null,
     status: pair.status,
     name: pair.name,
+    last_hatch_date: pair.lastHatchDate || null,
   });
 
   const mapClutchToDb = (clutch: Clutch, uid: string) => ({
@@ -716,6 +718,7 @@ useEffect(() => {
     breeder_name: settings.breederName,
     cpf_cnpj: settings.cpfCnpj,
     sispass_number: settings.sispassNumber,
+    sispass_document_url: settings.sispassDocumentUrl || null,
     registration_date: settings.registrationDate,
     renewal_date: settings.renewalDate,
     last_renewal_date: settings.lastRenewalDate || null,
@@ -888,6 +891,21 @@ useEffect(() => {
         }
         console.error('Erro ao salvar casal:', err);
         setError('Falha ao salvar casal. Verifique sua conexao.');
+      }
+    })();
+  };
+
+  const updatePair = (updated: Pair) => {
+    setState(prev => ({
+      ...prev,
+      pairs: prev.pairs.map(p => p.id === updated.id ? updated : p),
+    }));
+    (async () => {
+      try {
+        await updateRow('pairs', updated.id, mapPairUpdateToDb(updated));
+      } catch (err) {
+        console.error('Erro ao atualizar casal:', err);
+        setError('Falha ao atualizar casal. Verifique sua conexao.');
       }
     })();
   };
@@ -1361,6 +1379,7 @@ useEffect(() => {
           return <BreedingManager 
             state={state} 
             addPair={addPair} 
+            updatePair={updatePair}
             addBird={addBird}
             addClutch={addClutch}
             updateClutch={updateClutch}

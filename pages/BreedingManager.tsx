@@ -26,6 +26,7 @@ import { SPECIES_INCUBATION_DAYS, DEFAULT_BIRD_ILLUSTRATION } from '../constants
 interface BreedingManagerProps {
   state: AppState;
   addPair: (pair: Pair) => void;
+  updatePair: (pair: Pair) => void;
   addBird: (bird: Bird) => void;
   addClutch: (clutch: Clutch) => void;
   updateClutch: (clutch: Clutch) => void;
@@ -40,7 +41,7 @@ interface PendingHatchling {
   sex: 'Indeterminado' | 'Macho' | 'Fêmea';
 }
 
-const BreedingManager: React.FC<BreedingManagerProps> = ({ state, addPair, addBird, addClutch, updateClutch, deletePair, restorePair, permanentlyDeletePair }) => {
+const BreedingManager: React.FC<BreedingManagerProps> = ({ state, addPair, updatePair, addBird, addClutch, updateClutch, deletePair, restorePair, permanentlyDeletePair }) => {
   const [showPairModal, setShowPairModal] = useState(false);
   const [showClutchModal, setShowClutchModal] = useState(false);
   const [showHatchlingModal, setShowHatchlingModal] = useState(false);
@@ -211,6 +212,8 @@ const BreedingManager: React.FC<BreedingManagerProps> = ({ state, addPair, addBi
       addBird(newBird);
     });
 
+    updatePair({ ...pair, lastHatchDate: hatchlingBirthDate });
+
     setNotification({ 
       message: `${hatchlingsToRegister.length} filhotes foram adicionados ao plantel!`, 
       type: 'success' 
@@ -375,6 +378,11 @@ const BreedingManager: React.FC<BreedingManagerProps> = ({ state, addPair, addBi
                     <div>
                       <h3 className="font-black text-slate-800 leading-tight">{pair.name}</h3>
                       <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Unido em: {new Date(pair.startDate).toLocaleDateString('pt-BR')}</p>
+                      {pair.lastHatchDate && (
+                        <p className="text-[10px] text-emerald-600 font-black uppercase tracking-wider">
+                          Ultima ninhada: {new Date(pair.lastHatchDate).toLocaleDateString('pt-BR')}
+                        </p>
+                      )}
                     </div>
                   </div>
                   

@@ -137,8 +137,8 @@ const Dashboard: React.FC<DashboardProps> = ({ state, updateSettings, navigateTo
             <StatCard 
               icon={<Users size={20} className="text-emerald-600" />} 
               label="Plantel" 
-              value={activeBirds} 
-              subValue={`${totalBirds} registros totais`} 
+              value={totalBirds} 
+              subValue={`${activeBirds} ativos`} 
               onClick={() => navigateTo('birds')}
             />
             <StatCard 
