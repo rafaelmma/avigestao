@@ -777,7 +777,20 @@ useEffect(() => {
   };
 
   const deleteBird = async (id: string) => {
-    await deleteRow('birds', id);
+    const item = state.birds.find(b => b.id === id);
+    if (item) {
+      setState(prev => ({
+        ...prev,
+        birds: prev.birds.filter(b => b.id !== id),
+        deletedBirds: [item, ...(prev.deletedBirds || [])],
+      }));
+    }
+    try {
+      await deleteRow('birds', id);
+    } catch (err) {
+      console.error('Erro ao remover ave:', err);
+      setError('Falha ao remover ave. Verifique sua conexao.');
+    }
   };
   const restoreBird = (id: string) => {
     const item = state.deletedBirds?.find(b => b.id === id);

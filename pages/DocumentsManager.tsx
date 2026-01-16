@@ -38,6 +38,13 @@ const DocumentsManager: React.FC<DocumentsManagerProps> = ({ settings, updateSet
       reader.readAsDataURL(file);
     }
   };
+
+  const openAttachment = (url: string) => {
+    const win = window.open(url, '_blank', 'noopener,noreferrer');
+    if (!win) {
+      window.location.href = url;
+    }
+  };
 const calculateProgress = (startDateStr?: string, endDateStr?: string) => {
     if (!startDateStr || !endDateStr) return 0;
     const start = new Date(startDateStr).getTime();
@@ -270,15 +277,25 @@ const calculateProgress = (startDateStr?: string, endDateStr?: string) => {
         {settings.sispassDocumentUrl ? 'Substituir' : 'Anexar'}
       </button>
     </div>
-    {settings.sispassDocumentUrl && (
-      <a
-        href={settings.sispassDocumentUrl}
-        target="_blank"
-        rel="noopener noreferrer"
-        className="text-[10px] font-black uppercase tracking-widest text-blue-600"
-      >
-        Visualizar anexo
-      </a>
+    {settings.sispassDocumentUrl ? (
+      <div className="flex items-center gap-3">
+        <button
+          type="button"
+          onClick={() => openAttachment(settings.sispassDocumentUrl as string)}
+          className="text-[10px] font-black uppercase tracking-widest text-blue-600"
+        >
+          Visualizar anexo
+        </button>
+        <a
+          href={settings.sispassDocumentUrl}
+          download="sispass-registro"
+          className="text-[10px] font-black uppercase tracking-widest text-emerald-600"
+        >
+          Baixar
+        </a>
+      </div>
+    ) : (
+      <p className="text-[10px] text-slate-300 font-bold uppercase tracking-widest">Sem anexo</p>
     )}
     <input
       type="file"

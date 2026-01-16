@@ -32,6 +32,7 @@ import {
   FolderOpen,
   FileText,
   Image as ImageIcon,
+  ExternalLink,
   Download,
   Paperclip,
   Camera,
@@ -789,7 +790,19 @@ const BirdManager: React.FC<BirdManagerProps> = ({ state, addBird, updateBird, d
                   )}
                 </div>
                 <div className="p-5 flex-1">
-                  <h3 className="font-bold text-slate-800 text-sm truncate pr-6">{bird.name}</h3>
+                  <div className="flex items-center gap-2">
+                    <h3 className="font-bold text-slate-800 text-sm truncate pr-2">{bird.name}</h3>
+                    <span className={`px-2 py-0.5 rounded-full text-[9px] font-black uppercase ${
+                      bird.status === 'Ativo' ? 'bg-emerald-50 text-emerald-600' :
+                      bird.status === 'Transferido' ? 'bg-blue-50 text-blue-600' :
+                      bird.status === 'Vendido' ? 'bg-amber-50 text-amber-600' :
+                      bird.status === 'Falecido' ? 'bg-slate-100 text-slate-500' :
+                      bird.status === 'Fugido' ? 'bg-rose-50 text-rose-600' :
+                      'bg-slate-100 text-slate-500'
+                    }`}>
+                      {bird.status}
+                    </span>
+                  </div>
                   <div className="flex flex-col gap-0.5 mt-0.5">
                     <p className="text-[10px] text-slate-400 font-bold uppercase">{bird.ringNumber}</p>
                     <p className="text-[10px] text-slate-600 font-bold flex items-center gap-1.5">
@@ -1151,9 +1164,23 @@ const BirdManager: React.FC<BirdManagerProps> = ({ state, addBird, updateBird, d
                                                 </div>
                                                 <div className="flex items-center gap-2">
                                                     {doc.url && (
-                                                        <a href={doc.url} download={doc.title} className="p-2 text-slate-400 hover:text-brand bg-slate-50 rounded-lg transition-colors">
-                                                            <Download size={16} />
-                                                        </a>
+                                                        <>
+                                                            <a
+                                                                href={doc.url}
+                                                                target="_blank"
+                                                                rel="noopener noreferrer"
+                                                                className="p-2 text-slate-400 hover:text-blue-600 bg-slate-50 rounded-lg transition-colors"
+                                                            >
+                                                                <ExternalLink size={16} />
+                                                            </a>
+                                                            <a
+                                                                href={doc.url}
+                                                                download={doc.title}
+                                                                className="p-2 text-slate-400 hover:text-emerald-600 bg-slate-50 rounded-lg transition-colors"
+                                                            >
+                                                                <Download size={16} />
+                                                            </a>
+                                                        </>
                                                     )}
                                                     <button 
                                                         type="button" 
@@ -1249,7 +1276,7 @@ const BirdManager: React.FC<BirdManagerProps> = ({ state, addBird, updateBird, d
                             {selectedBird.documents && selectedBird.documents.length > 0 ? (
                                <div className="flex gap-4 overflow-x-auto pb-2">
                                   {selectedBird.documents.slice(0, 3).map(doc => (
-                                     <div key={doc.id} className="min-w-[140px] p-3 rounded-xl border border-slate-100 bg-slate-50 flex flex-col items-center text-center gap-2">
+                                     <div key={doc.id} className="min-w-[160px] p-3 rounded-xl border border-slate-100 bg-slate-50 flex flex-col items-center text-center gap-2">
                                         <div className={`p-2 rounded-lg ${doc.type === 'Exame' ? 'bg-blue-100 text-blue-500' : 'bg-slate-200 text-slate-500'}`}>
                                            {doc.type === 'Exame' ? <TestTube size={16} /> : <FileText size={16} />}
                                         </div>
@@ -1257,6 +1284,25 @@ const BirdManager: React.FC<BirdManagerProps> = ({ state, addBird, updateBird, d
                                            <p className="text-[10px] font-bold text-slate-700 truncate w-full max-w-[120px]">{doc.title}</p>
                                            <p className="text-[8px] font-bold text-slate-400">{new Date(doc.date).toLocaleDateString('pt-BR')}</p>
                                         </div>
+                                        {doc.url && (
+                                          <div className="flex items-center gap-2">
+                                            <a
+                                              href={doc.url}
+                                              target="_blank"
+                                              rel="noopener noreferrer"
+                                              className="px-2 py-1 bg-white border border-slate-200 rounded-lg text-[9px] font-black uppercase text-blue-600"
+                                            >
+                                              Abrir
+                                            </a>
+                                            <a
+                                              href={doc.url}
+                                              download={doc.title}
+                                              className="px-2 py-1 bg-white border border-slate-200 rounded-lg text-[9px] font-black uppercase text-emerald-600"
+                                            >
+                                              Baixar
+                                            </a>
+                                          </div>
+                                        )}
                                      </div>
                                   ))}
                                </div>
@@ -1522,6 +1568,25 @@ const BirdManager: React.FC<BirdManagerProps> = ({ state, addBird, updateBird, d
                       )}
                    </div>
                    <input type="file" ref={resultInputRef} className="hidden" onChange={handleResultFileUpload} />
+                   {resultForm.attachmentUrl && (
+                     <div className="mt-3 flex items-center gap-3">
+                       <a
+                         href={resultForm.attachmentUrl}
+                         target="_blank"
+                         rel="noopener noreferrer"
+                         className="px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-[10px] font-black uppercase text-blue-600"
+                       >
+                         Abrir
+                       </a>
+                       <a
+                         href={resultForm.attachmentUrl}
+                         download={`laudo-${resultForm.birdId || 'ave'}`}
+                         className="px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-[10px] font-black uppercase text-emerald-600"
+                       >
+                         Baixar
+                       </a>
+                     </div>
+                   )}
                 </div>
 
                 <button onClick={handleSaveResult} className="w-full py-4 bg-brand text-white font-black text-xs uppercase tracking-widest rounded-2xl shadow-xl hover:opacity-90 transition-all flex items-center justify-center gap-2">
