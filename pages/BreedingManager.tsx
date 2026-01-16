@@ -402,24 +402,19 @@ const BreedingManager: React.FC<BreedingManagerProps> = ({ state, addPair, updat
                   )}
                 </div>
 
-                <div className="p-8 flex items-center justify-around relative">
-                   <div className="text-center space-y-2">
-                     <p className="text-[9px] uppercase font-black text-slate-300 tracking-widest">Macho</p>
-                     <div className="px-4 py-2 bg-blue-50 text-blue-700 rounded-xl font-black text-xs border border-blue-100 shadow-sm">{getBirdName(pair.maleId)}</div>
-                     <span className="inline-flex px-2 py-0.5 rounded-full text-[9px] font-black uppercase bg-blue-50 text-blue-600 border border-blue-100">
-                       {getBirdName(pair.maleId)}
+                <div className="p-6 flex items-center justify-around relative gap-3">
+                   <span className="inline-flex px-3 py-1 rounded-full text-[8px] font-black uppercase bg-blue-50 text-blue-600 border border-blue-100 max-w-[120px] truncate">
+                     {getBirdName(pair.maleId)}
+                   </span>
+                   <div className="flex flex-col items-center gap-1">
+                     <Heart size={20} className="text-slate-200" fill="currentColor" />
+                     <span className="px-2 py-0.5 rounded-full text-[8px] font-black uppercase bg-slate-50 text-slate-500 border border-slate-100 max-w-[120px] truncate">
+                       {getPairSpecies(pair.id)}
                      </span>
                    </div>
-                   <div className="text-slate-100">
-                     <Heart size={28} fill="currentColor" />
-                   </div>
-                   <div className="text-center space-y-2">
-                     <p className="text-[9px] uppercase font-black text-slate-300 tracking-widest">Fêmea</p>
-                     <div className="px-4 py-2 bg-rose-50 text-rose-700 rounded-xl font-black text-xs border border-rose-100 shadow-sm">{getBirdName(pair.femaleId)}</div>
-                     <span className="inline-flex px-2 py-0.5 rounded-full text-[9px] font-black uppercase bg-rose-50 text-rose-600 border border-rose-100">
-                       {getBirdName(pair.femaleId)}
-                     </span>
-                   </div>
+                   <span className="inline-flex px-3 py-1 rounded-full text-[8px] font-black uppercase bg-rose-50 text-rose-600 border border-rose-100 max-w-[120px] truncate">
+                     {getBirdName(pair.femaleId)}
+                   </span>
                 </div>
 
                 {currentList === 'active' ? (
