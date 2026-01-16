@@ -1,8 +1,8 @@
 ﻿
 export type BirdStatus = 'Ativo' | 'Falecido' | 'Vendido' | 'Transferido' | 'Fugido';
-export type Sex = 'Macho' | 'FÃªmea' | 'Indeterminado';
-export type BirdClassification = 'Galador' | 'PÃ¡ssaro de Canto' | 'Ambos' | 'NÃ£o Definido';
-export type TrainingStatus = 'NÃ£o Iniciado' | 'Em Encarte' | 'Fixado' | 'Pardo (Aprendizado)';
+export type Sex = 'Macho' | 'Fêmea' | 'Indeterminado';
+export type BirdClassification = 'Galador' | 'Pássaro de Canto' | 'Ambos' | 'Não Definido';
+export type TrainingStatus = 'Não Iniciado' | 'Em Encarte' | 'Fixado' | 'Pardo (Aprendizado)';
 export type SubscriptionPlan = 'Básico' | 'Profissional';
 
 export interface SexingData {

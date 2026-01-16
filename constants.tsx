@@ -133,19 +133,44 @@ export const DEFAULT_BIRD_ILLUSTRATION = `data:image/svg+xml;utf8,${encodeURICom
 </svg>
 `)}`;
 
+const buildSpeciesIllustration = (body: string, wing: string, beak: string) =>
+  `data:image/svg+xml;utf8,${encodeURIComponent(`
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" fill="none">
+  <circle cx="256" cy="256" r="240" fill="#F8FAFC"/>
+  <path d="M80 380 C150 400, 350 320, 440 340" stroke="#94A3B8" stroke-width="12" stroke-linecap="round"/>
+  <path d="M160 385 Q160 410 150 430 M150 385 Q150 410 140 430" stroke="#94A3B8" stroke-width="4" stroke-linecap="round"/>
+  <path d="M180 350 
+           C160 350, 120 380, 100 420 
+           L140 390
+           C140 390, 150 250, 260 200
+           C320 170, 380 200, 380 260
+           C380 320, 300 360, 180 350" 
+           fill="${body}"/>
+  <path d="M220 280 
+           C280 260, 320 300, 300 340
+           C280 360, 240 340, 220 280" 
+           fill="${wing}"/>
+  <path d="M375 220 L410 230 L375 245 Z" fill="${beak}"/>
+  <circle cx="340" cy="230" r="12" fill="#475569"/>
+  <circle cx="344" cy="226" r="4" fill="#FFFFFF"/>
+  <path d="M240 350 L240 380" stroke="#64748B" stroke-width="6" stroke-linecap="round"/>
+  <path d="M270 345 L270 375" stroke="#64748B" stroke-width="6" stroke-linecap="round"/>
+</svg>
+`)}`;
+
 export const SPECIES_IMAGES: Record<string, string> = {
-  'Canário Belga': DEFAULT_BIRD_ILLUSTRATION,
-  'Curió': DEFAULT_BIRD_ILLUSTRATION,
-  'Coleiro': DEFAULT_BIRD_ILLUSTRATION,
-  'Tiziu': DEFAULT_BIRD_ILLUSTRATION,
-  'Sabiá Laranjeira': DEFAULT_BIRD_ILLUSTRATION,
-  'Caboclinho': DEFAULT_BIRD_ILLUSTRATION,
-  'Trinca-Ferro': DEFAULT_BIRD_ILLUSTRATION,
-  'Bicudo': DEFAULT_BIRD_ILLUSTRATION,
-  'Azulão': DEFAULT_BIRD_ILLUSTRATION,
-  'Pintassilgo': DEFAULT_BIRD_ILLUSTRATION,
-  'Agapornis': DEFAULT_BIRD_ILLUSTRATION,
-  'Calopsita': DEFAULT_BIRD_ILLUSTRATION
+  'Canário Belga': buildSpeciesIllustration('#FDE68A', '#FBBF24', '#9A3412'),
+  'Curió': buildSpeciesIllustration('#A3A3A3', '#71717A', '#3F3F46'),
+  'Coleiro': buildSpeciesIllustration('#FDE68A', '#FCD34D', '#78350F'),
+  'Tiziu': buildSpeciesIllustration('#1F2937', '#111827', '#6B7280'),
+  'Sabiá Laranjeira': buildSpeciesIllustration('#FDBA74', '#F97316', '#7C2D12'),
+  'Caboclinho': buildSpeciesIllustration('#CBD5E1', '#94A3B8', '#475569'),
+  'Trinca-Ferro': buildSpeciesIllustration('#9CA3AF', '#6B7280', '#374151'),
+  'Bicudo': buildSpeciesIllustration('#E5E7EB', '#9CA3AF', '#374151'),
+  'Azulão': buildSpeciesIllustration('#93C5FD', '#60A5FA', '#1E3A8A'),
+  'Pintassilgo': buildSpeciesIllustration('#FDE68A', '#FBBF24', '#DC2626'),
+  'Agapornis': buildSpeciesIllustration('#86EFAC', '#22C55E', '#F97316'),
+  'Calopsita': buildSpeciesIllustration('#E5E7EB', '#FBBF24', '#D97706')
 };
 
 export const BRAZILIAN_SPECIES = Object.keys(SPECIES_IMAGES);
