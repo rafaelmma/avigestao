@@ -406,6 +406,9 @@ const BreedingManager: React.FC<BreedingManagerProps> = ({ state, addPair, updat
                    <div className="text-center space-y-2">
                      <p className="text-[9px] uppercase font-black text-slate-300 tracking-widest">Macho</p>
                      <div className="px-4 py-2 bg-blue-50 text-blue-700 rounded-xl font-black text-xs border border-blue-100 shadow-sm">{getBirdName(pair.maleId)}</div>
+                     <span className="inline-flex px-2 py-0.5 rounded-full text-[9px] font-black uppercase bg-blue-50 text-blue-600 border border-blue-100">
+                       {getBirdName(pair.maleId)}
+                     </span>
                    </div>
                    <div className="text-slate-100">
                      <Heart size={28} fill="currentColor" />
@@ -413,6 +416,9 @@ const BreedingManager: React.FC<BreedingManagerProps> = ({ state, addPair, updat
                    <div className="text-center space-y-2">
                      <p className="text-[9px] uppercase font-black text-slate-300 tracking-widest">Fêmea</p>
                      <div className="px-4 py-2 bg-rose-50 text-rose-700 rounded-xl font-black text-xs border border-rose-100 shadow-sm">{getBirdName(pair.femaleId)}</div>
+                     <span className="inline-flex px-2 py-0.5 rounded-full text-[9px] font-black uppercase bg-rose-50 text-rose-600 border border-rose-100">
+                       {getBirdName(pair.femaleId)}
+                     </span>
                    </div>
                 </div>
 
@@ -507,6 +513,9 @@ const BreedingManager: React.FC<BreedingManagerProps> = ({ state, addPair, updat
                   const diff = Math.ceil((c.hatchDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
                   const isLate = diff < 0;
                   const isToday = diff === 0;
+                  const pair = state.pairs.find(p => p.id === c.pairId);
+                  const maleName = pair ? getBirdName(pair.maleId) : 'N/A';
+                  const femaleName = pair ? getBirdName(pair.femaleId) : 'N/A';
 
                   return (
                     <div key={c.id} className={`p-6 rounded-[32px] border shadow-sm transition-all ${
@@ -528,6 +537,15 @@ const BreedingManager: React.FC<BreedingManagerProps> = ({ state, addPair, updat
                          <div>
                             <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Casal</p>
                             <p className="text-sm font-black text-slate-700">{getPairName(c.pairId)}</p>
+                            <div className="mt-2 flex items-center gap-2">
+                              <span className="px-2 py-0.5 rounded-full text-[9px] font-black uppercase bg-blue-50 text-blue-600 border border-blue-100">
+                                {maleName}
+                              </span>
+                              <span className="text-[10px] text-slate-300 font-black">×</span>
+                              <span className="px-2 py-0.5 rounded-full text-[9px] font-black uppercase bg-rose-50 text-rose-600 border border-rose-100">
+                                {femaleName}
+                              </span>
+                            </div>
                          </div>
                          
                          {/* Indicador de Espécie e Tempo */}
@@ -554,7 +572,7 @@ const BreedingManager: React.FC<BreedingManagerProps> = ({ state, addPair, updat
                               }}
                               className="px-3 py-1 bg-[#0F172A] text-white text-[9px] font-black rounded-lg uppercase hover:opacity-80 transition-all"
                             >
-                               {c.hatchedCount > 0 ? 'Registrar Filhotes' : 'Registrar Nascimento'}
+                               {c.hatchedCount > 0 ? 'Registrar Filhotes (Data Real)' : 'Registrar Nascimento'}
                             </button>
                          </div>
                       </div>
@@ -757,6 +775,17 @@ const BreedingManager: React.FC<BreedingManagerProps> = ({ state, addPair, updat
                       A espécie e os pais já foram preenchidos automaticamente com base no casal selecionado.
                     </p>
                   </div>
+               </div>
+
+               <div className="bg-white border border-slate-100 rounded-2xl p-4 flex flex-col gap-3">
+                  <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Data real do nascimento</label>
+                  <input
+                    type="date"
+                    className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl font-bold text-slate-700 outline-none focus:border-brand"
+                    value={hatchlingBirthDate}
+                    onChange={(e) => setHatchlingBirthDate(e.target.value)}
+                  />
+                  <p className="text-[10px] text-slate-400">Se nasceu antes da previsao, ajuste a data aqui.</p>
                </div>
 
                <div className="space-y-4">
