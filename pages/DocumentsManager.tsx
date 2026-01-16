@@ -214,14 +214,12 @@ const DocumentsManager: React.FC<DocumentsManagerProps> = ({ settings, updateSet
 
               <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100 grid grid-cols-2 gap-4">
                                   <div>
-                    <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest block mb-1">Nº Registro</label>
+                    <label className="text-[9px] font-black text-blue-600 uppercase tracking-widest block mb-1">Numero de Registro SISPASS</label>
                     <input 
-                      className="w-full bg-transparent font-mono font-bold text-slate-700 outline-none text-sm"
-                      value={sispassNumberValue}
+                      className="w-full bg-white border border-blue-200 rounded-xl px-3 py-2 font-mono font-bold text-slate-800 outline-none text-sm focus:border-blue-400"                       placeholder="Ex: 1234567-8 (numero do registro)"                       value={sispassNumberValue}
                       onChange={(e) => updateSettings({...settings, sispassNumber: e.target.value})}
                       disabled={isSispassConfigured && !editSispassNumber}
-                      onBlur={() => { if (isSispassConfigured) setEditSispassNumber(false); }}
-                    />
+                      onBlur={() => { if (isSispassConfigured) setEditSispassNumber(false); }}                     />                     <p className="text-[10px] text-slate-400 mt-1">                       Digite o numero do registro da sua licenca no SISPASS.                     </p>
                     {isSispassConfigured && !editSispassNumber && (
                       <button
                         type="button"
@@ -408,6 +406,11 @@ const DocumentsManager: React.FC<DocumentsManagerProps> = ({ settings, updateSet
 };
 
 export default DocumentsManager;
+
+
+
+
+
 
 
 
