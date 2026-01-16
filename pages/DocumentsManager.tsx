@@ -40,6 +40,25 @@ const DocumentsManager: React.FC<DocumentsManagerProps> = ({ settings, updateSet
   };
 
   const openAttachment = (url: string) => {
+    if (!url) return;
+    if (url.startsWith('data:')) {
+      const parts = url.split(',');
+      if (parts.length < 2) return;
+      const meta = parts[0];
+      const data = parts[1];
+      const match = /data:(.*?);base64/.exec(meta);
+      const mime = match ? match[1] : 'application/octet-stream';
+      const byteChars = atob(data);
+      const byteNumbers = new Array(byteChars.length);
+      for (let i = 0; i < byteChars.length; i++) {
+        byteNumbers[i] = byteChars.charCodeAt(i);
+      }
+      const blob = new Blob([new Uint8Array(byteNumbers)], { type: mime });
+      const blobUrl = URL.createObjectURL(blob);
+      window.open(blobUrl, '_blank', 'noopener,noreferrer');
+      setTimeout(() => URL.revokeObjectURL(blobUrl), 10000);
+      return;
+    }
     const win = window.open(url, '_blank', 'noopener,noreferrer');
     if (!win) {
       window.location.href = url;

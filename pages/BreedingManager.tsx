@@ -180,8 +180,6 @@ const BreedingManager: React.FC<BreedingManagerProps> = ({ state, addPair, updat
 
   const handleRegisterHatchlings = (pairId: string, count: number, layDate: string) => {
     if (count <= 0) return;
-    const ok = window.confirm(`Confirmar registro de ${count} filhote(s) desta ninhada?`);
-    if (!ok) return;
     prepareHatchlingRegistration(pairId, count, layDate);
   };
 
@@ -445,13 +443,9 @@ const BreedingManager: React.FC<BreedingManagerProps> = ({ state, addPair, updat
                                  )}
                                </div>
                                {clutch.hatchedCount > 0 && (
-                                 <button
-                                   type="button"
-                                   onClick={() => handleRegisterHatchlings(pair.id, clutch.hatchedCount, clutch.layDate)}
-                                   className="px-2 py-1 bg-emerald-50 text-emerald-600 rounded-lg text-[9px] font-black uppercase tracking-widest"
-                                 >
-                                   Confirmar nascimento
-                                 </button>
+                                 <span className="px-2 py-1 bg-emerald-50 text-emerald-600 rounded-lg text-[9px] font-black uppercase tracking-widest">
+                                   Nascidos: {clutch.hatchedCount}
+                                 </span>
                                )}
                              </div>
                              {/* Botão de Edição da Ninhada */}
@@ -551,10 +545,16 @@ const BreedingManager: React.FC<BreedingManagerProps> = ({ state, addPair, updat
                                <Baby size={12} /> {c.fertileCount} Ovos Galados
                             </div>
                             <button 
-                              onClick={() => openClutchModal(c.pairId, c as Clutch)}
+                              onClick={() => {
+                                if (c.hatchedCount > 0) {
+                                  handleRegisterHatchlings(c.pairId, c.hatchedCount, c.layDate);
+                                } else {
+                                  openClutchModal(c.pairId, c as Clutch);
+                                }
+                              }}
                               className="px-3 py-1 bg-[#0F172A] text-white text-[9px] font-black rounded-lg uppercase hover:opacity-80 transition-all"
                             >
-                               Registrar Nascimento
+                               {c.hatchedCount > 0 ? 'Registrar Filhotes' : 'Registrar Nascimento'}
                             </button>
                          </div>
                       </div>
