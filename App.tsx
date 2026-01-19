@@ -1302,12 +1302,53 @@ useEffect(() => {
   };
 
   const deleteTask = async (id: string) => {
-    await deleteRow('tasks', id);
+    const item = state.tasks.find(t => t.id === id);
+    if (!item) return;
+    let removed = false;
+    setState(prev => {
+      if (!prev.tasks.some(t => t.id === id)) return prev;
+      removed = true;
+      return {
+        ...prev,
+        tasks: prev.tasks.filter(t => t.id !== id),
+        deletedTasks: [item, ...(prev.deletedTasks || [])],
+      };
+    });
+
+    try {
+      await deleteRow('tasks', id);
+    } catch (err) {
+      if (removed) {
+        setState(prev => ({
+          ...prev,
+          tasks: [...prev.tasks, item],
+          deletedTasks: (prev.deletedTasks || []).filter(t => t.id !== id),
+        }));
+      }
+      console.error('Erro ao remover tarefa:', err);
+      setError('Falha ao remover tarefa. Verifique sua conexao.');
+    }
   };
 
   const restoreTask = (id: string) => {
     const item = state.deletedTasks?.find(t => t.id === id);
-    if (item) setState(prev => ({ ...prev, deletedTasks: (prev.deletedTasks || []).filter(t => t.id !== id), tasks: [...prev.tasks, item] }));
+    if (!item) return;
+    setState(prev => ({
+      ...prev,
+      deletedTasks: (prev.deletedTasks || []).filter(t => t.id !== id),
+      tasks: [...prev.tasks, item],
+    }));
+
+    (async () => {
+      const uid = await getUserId();
+      if (!uid) return;
+      try {
+        await insertRow('tasks', mapTaskToDb(item, uid));
+      } catch (err) {
+        console.error('Erro ao restaurar tarefa:', err);
+        setError('Falha ao restaurar tarefa. Verifique sua conexao.');
+      }
+    })();
   };
 
   const permanentlyDeleteTask = (id: string) => {

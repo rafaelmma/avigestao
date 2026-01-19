@@ -413,7 +413,7 @@ const TaskManager: React.FC<TaskManagerProps> = ({ state, addTask, updateTask, t
           <div className="flex items-center justify-between mb-4">
              <h3 className="font-black text-slate-400 text-lg flex items-center gap-3">
                <CheckSquare size={20} />
-               Hist?rico de Manejo
+               Histórico de Manejo
              </h3>
              <div className="flex items-center gap-3">
                {currentList === 'active' && completedTasks.length > 0 ? (
@@ -421,7 +421,7 @@ const TaskManager: React.FC<TaskManagerProps> = ({ state, addTask, updateTask, t
                    onClick={handleClearHistory}
                    className="px-3 py-1 text-[10px] font-black uppercase rounded-lg border border-rose-100 text-rose-400 hover:text-rose-600 hover:border-rose-200 transition-all"
                  >
-                   Limpar hist?rico
+                   Limpar histórico
                  </button>
                ) : null}
                <span className="px-3 py-1 bg-slate-100 text-slate-400 text-[10px] font-black rounded-lg uppercase">{completedTasks.length}</span>
