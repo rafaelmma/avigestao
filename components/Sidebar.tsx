@@ -11,6 +11,7 @@ import {
   DollarSign,
   CalendarCheck,
   Trophy,
+  Dna,
   Zap,
   HelpCircle,
   LogOut,
@@ -38,6 +39,7 @@ const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab, logoUrl, bre
   const menuItems = [
     { id: 'dashboard', label: 'Dashboard', icon: <LayoutDashboard size={20} /> },
     { id: 'birds', label: 'Plantel', icon: <BirdIcon size={20} /> },
+    { id: 'sexing', label: 'Central Sexagem', icon: <Dna size={20} /> },
     { id: 'breeding', label: 'Acasalamentos', icon: <Heart size={20} /> },
     { id: 'movements', label: 'Movimentações', icon: <ArrowRightLeft size={20} /> },
     { id: 'documents', label: 'Licenças & Docs', icon: <FileBadge size={20} /> }, 

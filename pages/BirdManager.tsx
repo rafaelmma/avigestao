@@ -50,13 +50,29 @@ interface BirdManagerProps {
   restoreBird?: (id: string) => void;
   permanentlyDeleteBird?: (id: string) => void;
   isAdmin?: boolean;
+  initialList?: 'plantel' | 'lixeira' | 'sexagem';
+  showListTabs?: boolean;
+  includeSexingTab?: boolean;
+  titleOverride?: string;
 }
 
-const BirdManager: React.FC<BirdManagerProps> = ({ state, addBird, updateBird, deleteBird, restoreBird, permanentlyDeleteBird, isAdmin }) => {
+const BirdManager: React.FC<BirdManagerProps> = ({
+  state,
+  addBird,
+  updateBird,
+  deleteBird,
+  restoreBird,
+  permanentlyDeleteBird,
+  isAdmin,
+  initialList = 'plantel',
+  showListTabs = true,
+  includeSexingTab = true,
+  titleOverride
+}) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [showModal, setShowModal] = useState(false);
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
-  const [currentList, setCurrentList] = useState<'plantel' | 'lixeira' | 'sexagem'>('plantel');
+  const [currentList, setCurrentList] = useState<'plantel' | 'lixeira' | 'sexagem'>(initialList);
   
   // States da Central de Sexagem
   const [selectedForSexing, setSelectedForSexing] = useState<string[]>([]);
@@ -115,6 +131,10 @@ const BirdManager: React.FC<BirdManagerProps> = ({ state, addBird, updateBird, d
       ? getDefaultBirdImage(species, sex)
       : (bird?.photoUrl || getDefaultBirdImage(species, sex));
   };
+
+  useEffect(() => {
+    setCurrentList(initialList);
+  }, [initialList]);
 
   const getLibraryImagesForSpecies = (species?: string) => {
     if (!species) return [];
@@ -673,12 +693,14 @@ const BirdManager: React.FC<BirdManagerProps> = ({ state, addBird, updateBird, d
     );
   };
 
+  const headerTitle = titleOverride || (currentList === 'sexagem' ? 'Central Sexagem' : 'Plantel');
+
   return (
     <div className="space-y-6 animate-in fade-in duration-500">
       <header className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h2 className="text-3xl font-black text-[#0F172A] tracking-tight">Plantel</h2>
-          {state.settings.plan === 'Básico' && !isAdmin && (
+          <h2 className="text-3xl font-black text-[#0F172A] tracking-tight">{headerTitle}</h2>
+          {currentList === 'plantel' && state.settings.plan === 'Básico' && !isAdmin && (
             <div className="flex items-center gap-2 mt-1">
               <div className="w-24 h-1.5 bg-slate-100 rounded-full overflow-hidden">
                 <div 
@@ -692,6 +714,7 @@ const BirdManager: React.FC<BirdManagerProps> = ({ state, addBird, updateBird, d
             </div>
           )}
         </div>
+        {showListTabs && (
         <div className="flex gap-2 bg-white p-1 rounded-xl shadow-sm border border-slate-100 overflow-x-auto">
            <button 
              onClick={() => setCurrentList('plantel')}
@@ -699,15 +722,17 @@ const BirdManager: React.FC<BirdManagerProps> = ({ state, addBird, updateBird, d
            >
              Aves Ativas
            </button>
-           <button 
-             onClick={() => setCurrentList('sexagem')}
-             className={`px-4 py-2 text-xs font-black uppercase rounded-lg transition-all flex items-center gap-2 whitespace-nowrap ${currentList === 'sexagem' ? 'bg-blue-600 text-white shadow' : 'text-slate-400 hover:text-slate-600'}`}
-           >
-             <Dna size={14} /> Central Sexagem
-             {waitingResultBirds.length > 0 && (
-               <span className="bg-white/20 px-1.5 rounded text-[9px]">{waitingResultBirds.length}</span>
-             )}
-           </button>
+           {includeSexingTab && (
+             <button 
+               onClick={() => setCurrentList('sexagem')}
+               className={`px-4 py-2 text-xs font-black uppercase rounded-lg transition-all flex items-center gap-2 whitespace-nowrap ${currentList === 'sexagem' ? 'bg-blue-600 text-white shadow' : 'text-slate-400 hover:text-slate-600'}`}
+             >
+               <Dna size={14} /> Central Sexagem
+               {waitingResultBirds.length > 0 && (
+                 <span className="bg-white/20 px-1.5 rounded text-[9px]">{waitingResultBirds.length}</span>
+               )}
+             </button>
+           )}
            <button 
              onClick={() => setCurrentList('lixeira')}
              className={`px-4 py-2 text-xs font-black uppercase rounded-lg transition-all flex items-center gap-2 whitespace-nowrap ${currentList === 'lixeira' ? 'bg-rose-500 text-white shadow' : 'text-slate-400 hover:text-slate-600'}`}
@@ -715,6 +740,7 @@ const BirdManager: React.FC<BirdManagerProps> = ({ state, addBird, updateBird, d
              <Trash2 size={14} /> Lixeira
            </button>
         </div>
+        )}
       </header>
 
       {/* --- MODO CENTRAL DE SEXAGEM --- */}

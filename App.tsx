@@ -1378,6 +1378,20 @@ useEffect(() => {
             restoreBird={restoreBird}
             permanentlyDeleteBird={permanentlyDeleteBird}
             isAdmin={isAdmin}
+            includeSexingTab={false}
+          />;
+        case 'sexing':
+          return <BirdManager
+            state={state}
+            addBird={addBird}
+            updateBird={updateBird}
+            deleteBird={deleteBird}
+            restoreBird={restoreBird}
+            permanentlyDeleteBird={permanentlyDeleteBird}
+            isAdmin={isAdmin}
+            initialList="sexagem"
+            showListTabs={false}
+            titleOverride="Central Sexagem"
           />;
         case 'movements': 
           return <MovementsManager 
