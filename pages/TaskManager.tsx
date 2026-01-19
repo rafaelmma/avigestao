@@ -188,7 +188,7 @@ const TaskManager: React.FC<TaskManagerProps> = ({ state, addTask, updateTask, t
 
   const handleClearHistory = () => {
     if (completedTasks.length === 0) return;
-    if (!window.confirm('Remover todas as tarefas do histÃ³rico?')) return;
+    if (!window.confirm('Remover todas as tarefas do histórico?')) return;
     completedTasks.forEach(task => deleteTask(task.id));
   };
 
@@ -422,7 +422,7 @@ const TaskManager: React.FC<TaskManagerProps> = ({ state, addTask, updateTask, t
                    onClick={handleClearHistory}
                    className="px-3 py-1 text-[10px] font-black uppercase rounded-lg border border-rose-100 text-rose-400 hover:text-rose-600 hover:border-rose-200 transition-all"
                  >
-                   Limpar histÃ³rico
+                   Limpar histórico
                  </button>
                ) : null}
                <span className="px-3 py-1 bg-slate-100 text-slate-400 text-[10px] font-black rounded-lg uppercase">{completedTasks.length}</span>
@@ -583,6 +583,7 @@ const TaskManager: React.FC<TaskManagerProps> = ({ state, addTask, updateTask, t
 };
 
 export default TaskManager;
+
 
 
 

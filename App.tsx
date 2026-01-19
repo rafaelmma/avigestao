@@ -823,6 +823,15 @@ useEffect(() => {
     preparation_checklist: t.preparationChecklist || null,
   });
 
+  const mapTournamentToDbMinimal = (t: TournamentEvent, uid: string) => ({
+    id: t.id,
+    user_id: uid,
+    title: t.title,
+    date: t.date,
+    location: t.location,
+    type: t.type,
+  });
+
   const mapTournamentUpdateToDb = (t: TournamentEvent) => ({
     title: t.title,
     date: t.date,
@@ -837,6 +846,21 @@ useEffect(() => {
     participating_birds: t.participatingBirds || null,
     preparation_checklist: t.preparationChecklist || null,
   });
+
+  const mapTournamentUpdateToDbMinimal = (t: TournamentEvent) => ({
+    title: t.title,
+    date: t.date,
+    location: t.location,
+    type: t.type,
+  });
+
+  const isSchemaCacheMissingColumn = (err: any) => {
+    const text = [err?.message, err?.details, err?.hint]
+      .filter(Boolean)
+      .join(' ')
+      .toLowerCase();
+    return text.includes('schema cache') || (text.includes('could not find') && text.includes('column'));
+  };
 
   const mapSettingsToDb = (settings: BreederSettings, uid: string) => ({
     user_id: uid,
@@ -1593,6 +1617,15 @@ useEffect(() => {
       try {
         await insertRow('tournaments', mapTournamentToDb(e, uid));
       } catch (err) {
+        if (isSchemaCacheMissingColumn(err)) {
+          try {
+            await insertRow('tournaments', mapTournamentToDbMinimal(e, uid));
+            console.warn('Torneio salvo com campos basicos por falta de colunas no banco.');
+            return;
+          } catch (fallbackErr) {
+            err = fallbackErr;
+          }
+        }
         if (added) {
           setState(prev => ({ ...prev, tournaments: prev.tournaments.filter(item => item.id !== e.id) }));
         }
@@ -1608,6 +1641,15 @@ useEffect(() => {
       try {
         await updateRow('tournaments', updated.id, mapTournamentUpdateToDb(updated));
       } catch (err) {
+        if (isSchemaCacheMissingColumn(err)) {
+          try {
+            await updateRow('tournaments', updated.id, mapTournamentUpdateToDbMinimal(updated));
+            console.warn('Evento atualizado com campos basicos por falta de colunas no banco.');
+            return;
+          } catch (fallbackErr) {
+            err = fallbackErr;
+          }
+        }
         console.error('Erro ao atualizar evento:', err);
         setError('Falha ao atualizar evento. Verifique sua conexao.');
       }
