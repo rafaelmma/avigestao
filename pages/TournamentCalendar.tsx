@@ -88,10 +88,10 @@ const TournamentCalendar: React.FC<TournamentCalendarProps> = ({ state, addEvent
     setShowModal(true);
   };
 
-  const handleOpenEdit = (event: TournamentEvent) => {
+  const handleOpenEdit = (event: TournamentEvent, tab: 'dados' | 'participantes' | 'preparacao' = 'dados') => {
     if (currentList === 'trash') return; 
     setIsEditing(true);
-    setActiveTab('dados');
+    setActiveTab(tab);
     setNewChecklistItem('');
     
     // Garantir que checklist exista mesmo em eventos antigos
@@ -101,6 +101,10 @@ const TournamentCalendar: React.FC<TournamentCalendarProps> = ({ state, addEvent
 
     setNewEvent({ ...event, preparationChecklist: checklist, participatingBirds: event.participatingBirds || [] });
     setShowModal(true);
+  };
+
+  const handleOpenChecklist = (event: TournamentEvent) => {
+    handleOpenEdit(event, 'preparacao');
   };
 
   const handleDeleteFromModal = () => {
@@ -316,15 +320,23 @@ const TournamentCalendar: React.FC<TournamentCalendarProps> = ({ state, addEvent
                      {currentList === 'active' ? (
                        <>
                          <div onClick={(e) => e.stopPropagation()}>
-                             <button 
-                              type="button"
-                              onClick={(e) => handleDeleteDirect(e, event.id)}
-                              className="p-3 text-slate-300 hover:text-rose-500 hover:bg-rose-50 rounded-2xl transition-all cursor-pointer"
-                              title="Excluir"
-                             >
-                               <Trash2 size={20} />
-                             </button>
+                         <button 
+                          type="button"
+                          onClick={(e) => handleDeleteDirect(e, event.id)}
+                          className="p-3 text-slate-300 hover:text-rose-500 hover:bg-rose-50 rounded-2xl transition-all cursor-pointer"
+                          title="Excluir"
+                         >
+                           <Trash2 size={20} />
+                         </button>
                          </div>
+                        <button 
+                         type="button"
+                         onClick={() => handleOpenChecklist(event)}
+                         className="p-3 text-slate-300 hover:text-emerald-600 hover:bg-emerald-50 rounded-2xl transition-all"
+                         title="Checklist"
+                        >
+                          <ListChecks size={20} />
+                        </button>
                          <button 
                           type="button"
                           onClick={() => handleOpenEdit(event)}
@@ -409,19 +421,31 @@ const TournamentCalendar: React.FC<TournamentCalendarProps> = ({ state, addEvent
                   <div className="flex items-center gap-1 pl-2 border-l border-slate-50">
                     <div onClick={(e) => e.stopPropagation()}>
                         {currentList === 'active' ? (
-                          <button 
-                            type="button"
-                            onClick={(e) => handleDeleteDirect(e, event.id)}
-                            className="p-2 text-slate-200 hover:text-rose-500 hover:bg-rose-50 rounded-xl transition-all cursor-pointer"
-                          >
-                            <Trash2 size={16} />
-                          </button>
+                          <div className="flex items-center gap-1">
+                            <button 
+                              type="button"
+                              onClick={() => handleOpenChecklist(event)}
+                              className="p-2 text-slate-200 hover:text-emerald-600 hover:bg-emerald-50 rounded-xl transition-all"
+                              title="Checklist"
+                            >
+                              <ListChecks size={16} />
+                            </button>
+                            <button 
+                              type="button"
+                              onClick={(e) => handleDeleteDirect(e, event.id)}
+                              className="p-2 text-slate-200 hover:text-rose-500 hover:bg-rose-50 rounded-xl transition-all cursor-pointer"
+                              title="Excluir"
+                            >
+                              <Trash2 size={16} />
+                            </button>
+                          </div>
                         ) : (
                           <div className="flex gap-1">
                              <button 
                                 type="button"
                                 onClick={(e) => handleRestoreClick(e, event.id)}
                                 className="p-2 text-emerald-500 hover:bg-emerald-50 rounded-xl"
+                                title="Restaurar"
                              >
                                 <RefreshCcw size={14} />
                              </button>
@@ -429,6 +453,7 @@ const TournamentCalendar: React.FC<TournamentCalendarProps> = ({ state, addEvent
                                 type="button"
                                 onClick={(e) => handlePermanentDelete(e, event.id)}
                                 className="p-2 text-rose-500 hover:bg-rose-50 rounded-xl"
+                                title="Apagar"
                              >
                                 <X size={14} />
                              </button>

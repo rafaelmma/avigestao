@@ -806,7 +806,15 @@ useEffect(() => {
     notes: t.notes || '',
   });
 
-  const mapTournamentToDb = (t: TournamentEvent, uid: string) => ({
+  const tournamentUuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+  const getValidTournamentBirdIds = (ids?: string[]) => {
+    if (!Array.isArray(ids)) return [];
+    return ids.filter(id => tournamentUuidRegex.test(id));
+  };
+
+  const mapTournamentToDb = (t: TournamentEvent, uid: string) => {
+    const participatingBirds = getValidTournamentBirdIds(t.participatingBirds);
+    return {
     id: t.id,
     user_id: uid,
     title: t.title,
@@ -819,9 +827,10 @@ useEffect(() => {
     result: t.result || null,
     trophy: t.trophy ?? null,
     score: t.score ?? null,
-    participating_birds: t.participatingBirds || null,
+    participating_birds: participatingBirds.length > 0 ? participatingBirds : null,
     preparation_checklist: t.preparationChecklist || null,
-  });
+    };
+  };
 
   const mapTournamentToDbMinimal = (t: TournamentEvent, uid: string) => ({
     id: t.id,
@@ -831,7 +840,9 @@ useEffect(() => {
     location: t.location,
   });
 
-  const mapTournamentUpdateToDb = (t: TournamentEvent) => ({
+  const mapTournamentUpdateToDb = (t: TournamentEvent) => {
+    const participatingBirds = getValidTournamentBirdIds(t.participatingBirds);
+    return {
     title: t.title,
     date: t.date,
     location: t.location,
@@ -842,9 +853,10 @@ useEffect(() => {
     result: t.result || null,
     trophy: t.trophy ?? null,
     score: t.score ?? null,
-    participating_birds: t.participatingBirds || null,
+    participating_birds: participatingBirds.length > 0 ? participatingBirds : null,
     preparation_checklist: t.preparationChecklist || null,
-  });
+    };
+  };
 
   const mapTournamentUpdateToDbMinimal = (t: TournamentEvent) => ({
     title: t.title,
