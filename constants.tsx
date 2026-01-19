@@ -1,11 +1,12 @@
 
-import { Bird, Medication, BreederSettings } from './types';
+import { Bird, Medication, BreederSettings, Sex } from './types';
 
 export const MAX_FREE_BIRDS = 5;
 
 // Dias médios de incubação por espécie
 export const SPECIES_INCUBATION_DAYS: Record<string, number> = {
   'Canário Belga': 13, // 13-14 dias
+  'Canário da Terra': 13, // 12-13 dias
   'Curió': 13,         // 12-13 dias
   'Coleiro': 13,       // 12-13 dias
   'Tiziu': 12,         // 11-12 dias
@@ -133,44 +134,34 @@ export const DEFAULT_BIRD_ILLUSTRATION = `data:image/svg+xml;utf8,${encodeURICom
 </svg>
 `)}`;
 
-const buildSpeciesIllustration = (body: string, wing: string, beak: string) =>
-  `data:image/svg+xml;utf8,${encodeURIComponent(`
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" fill="none">
-  <circle cx="256" cy="256" r="240" fill="#F8FAFC"/>
-  <path d="M80 380 C150 400, 350 320, 440 340" stroke="#94A3B8" stroke-width="12" stroke-linecap="round"/>
-  <path d="M160 385 Q160 410 150 430 M150 385 Q150 410 140 430" stroke="#94A3B8" stroke-width="4" stroke-linecap="round"/>
-  <path d="M180 350 
-           C160 350, 120 380, 100 420 
-           L140 390
-           C140 390, 150 250, 260 200
-           C320 170, 380 200, 380 260
-           C380 320, 300 360, 180 350" 
-           fill="${body}"/>
-  <path d="M220 280 
-           C280 260, 320 300, 300 340
-           C280 360, 240 340, 220 280" 
-           fill="${wing}"/>
-  <path d="M375 220 L410 230 L375 245 Z" fill="${beak}"/>
-  <circle cx="340" cy="230" r="12" fill="#475569"/>
-  <circle cx="344" cy="226" r="4" fill="#FFFFFF"/>
-  <path d="M240 350 L240 380" stroke="#64748B" stroke-width="6" stroke-linecap="round"/>
-  <path d="M270 345 L270 375" stroke="#64748B" stroke-width="6" stroke-linecap="round"/>
-</svg>
-`)}`;
+export const SPECIES_IMAGES: Record<string, { male: string; female: string }> = {
+  'Canário Belga': { male: '/birds/canario-belga-macho.jpg', female: '/birds/canario-belga-femea.jpg' },
+  'Canário da Terra': { male: '/birds/canario-da-terra-macho.jpg', female: '/birds/canario-da-terra-femea.jpg' },
+  'Curió': { male: '/birds/curio-macho.jpg', female: '/birds/curio-femea.jpg' },
+  'Coleiro': { male: '/birds/coleiro-macho.jpg', female: '/birds/coleiro-femea.jpg' },
+  'Tiziu': { male: '/birds/tiziu-macho.jpg', female: '/birds/tiziu-femea.jpg' },
+  'Sabiá Laranjeira': { male: '/birds/sabia-laranjeira-macho.jpg', female: '/birds/sabia-laranjeira-femea.jpg' },
+  'Caboclinho': { male: '/birds/caboclinho-macho.jpg', female: '/birds/caboclinho-femea.jpg' },
+  'Trinca-Ferro': { male: '/birds/trinca-ferro-macho.jpg', female: '/birds/trinca-ferro-femea.jpg' },
+  'Bicudo': { male: '/birds/bicudo-macho.jpg', female: '/birds/bicudo-femea.jpg' },
+  'Azulão': { male: '/birds/azulao-macho.jpg', female: '/birds/azulao-femea.jpg' },
+  'Pintassilgo': { male: '/birds/pintassilgo-macho.jpg', female: '/birds/pintassilgo-femea.jpg' },
+  'Agapornis': { male: '/birds/agapornis-macho.jpg', female: '/birds/agapornis-femea.jpg' },
+  'Calopsita': { male: '/birds/calopsita-macho.jpg', female: '/birds/calopsita-femea.jpg' },
+  'Periquito': { male: '/birds/periquito-macho.jpg', female: '/birds/periquito-femea.jpg' },
+  'Manon': { male: '/birds/manon-macho.jpg', female: '/birds/manon-femea.jpg' },
+  'Mandarin': { male: '/birds/mandarin-macho.jpg', female: '/birds/mandarin-femea.jpg' }
+};
 
-export const SPECIES_IMAGES: Record<string, string> = {
-  'Canário Belga': buildSpeciesIllustration('#FDE68A', '#FBBF24', '#9A3412'),
-  'Curió': buildSpeciesIllustration('#A3A3A3', '#71717A', '#3F3F46'),
-  'Coleiro': buildSpeciesIllustration('#FDE68A', '#FCD34D', '#78350F'),
-  'Tiziu': buildSpeciesIllustration('#1F2937', '#111827', '#6B7280'),
-  'Sabiá Laranjeira': buildSpeciesIllustration('#FDBA74', '#F97316', '#7C2D12'),
-  'Caboclinho': buildSpeciesIllustration('#CBD5E1', '#94A3B8', '#475569'),
-  'Trinca-Ferro': buildSpeciesIllustration('#9CA3AF', '#6B7280', '#374151'),
-  'Bicudo': buildSpeciesIllustration('#E5E7EB', '#9CA3AF', '#374151'),
-  'Azulão': buildSpeciesIllustration('#93C5FD', '#60A5FA', '#1E3A8A'),
-  'Pintassilgo': buildSpeciesIllustration('#FDE68A', '#FBBF24', '#DC2626'),
-  'Agapornis': buildSpeciesIllustration('#86EFAC', '#22C55E', '#F97316'),
-  'Calopsita': buildSpeciesIllustration('#E5E7EB', '#FBBF24', '#D97706')
+export const getDefaultBirdImage = (species: string, sex: Sex | string) => {
+  const entry = SPECIES_IMAGES[species];
+  if (!entry) return DEFAULT_BIRD_ILLUSTRATION;
+  return sex === 'Fêmea' ? entry.female : entry.male;
+};
+
+export const isDefaultBirdImage = (url?: string) => {
+  if (!url || url === DEFAULT_BIRD_ILLUSTRATION) return true;
+  return Object.values(SPECIES_IMAGES).some((entry) => entry.male === url || entry.female === url);
 };
 
 export const BRAZILIAN_SPECIES = Object.keys(SPECIES_IMAGES);
@@ -205,7 +196,7 @@ export const MOCK_BIRDS: Bird[] = [
     birthDate: '2022-10-10',
     status: 'Ativo',
     location: 'Gaiola 01',
-    photoUrl: DEFAULT_BIRD_ILLUSTRATION,
+    photoUrl: getDefaultBirdImage('Curió', 'Macho'),
     createdAt: new Date().toISOString(),
     classification: 'Pássaro de Canto',
     songTrainingStatus: 'Fixado',

@@ -1,5 +1,5 @@
 import { supabase } from "../lib/supabase";
-import { DEFAULT_BIRD_ILLUSTRATION, INITIAL_SETTINGS } from "../constants";
+import { INITIAL_SETTINGS, getDefaultBirdImage, isDefaultBirdImage } from "../constants";
 import { Bird, BreederSettings, Clutch, ContinuousTreatment, MaintenanceTask, Medication, MedicationApplication, MovementRecord, Pair, TournamentEvent, Transaction } from "../types";
 
 export async function loadInitialData(userId: string) {
@@ -34,31 +34,40 @@ export async function loadInitialData(userId: string) {
   };
 }
 
-export const mapBirdFromDb = (row: any): Bird => ({
-  id: row.id,
-  ringNumber: row.ring ?? row.ringNumber ?? '',
-  species: row.species ?? '',
-  name: row.name ?? '',
-  sex: row.sex ?? 'Indeterminado',
-  colorMutation: row.color_mutation ?? row.colorMutation ?? '',
-  birthDate: row.birth_date ?? row.birthDate ?? '',
-  status: row.status ?? 'Ativo',
-  location: row.location ?? '',
-  photoUrl: row.photo_url ?? row.photoUrl ?? DEFAULT_BIRD_ILLUSTRATION,
-  fatherId: row.father_id ?? row.fatherId ?? undefined,
-  motherId: row.mother_id ?? row.motherId ?? undefined,
-  manualAncestors: row.manual_ancestors ?? row.manualAncestors ?? undefined,
-  createdAt: row.created_at ?? row.createdAt ?? new Date().toISOString(),
-  classification: (row.classification ?? 'Nao Definido') as any,
-  songTrainingStatus: (row.song_training_status ?? row.songTrainingStatus ?? 'Nao Iniciado') as any,
-  songType: row.song_type ?? row.songType ?? '',
-  songSource: row.song_source ?? row.songSource ?? undefined,
-  trainingStartDate: row.training_start_date ?? row.trainingStartDate ?? undefined,
-  trainingNotes: row.training_notes ?? row.trainingNotes ?? undefined,
-  isRepeater: row.is_repeater ?? row.isRepeater ?? false,
-  sexing: row.sexing ?? undefined,
-  documents: row.documents ?? undefined,
-});
+export const mapBirdFromDb = (row: any): Bird => {
+  const species = row.species ?? '';
+  const sex = row.sex ?? 'Indeterminado';
+  const rawPhotoUrl = row.photo_url ?? row.photoUrl ?? undefined;
+  const photoUrl = isDefaultBirdImage(rawPhotoUrl)
+    ? getDefaultBirdImage(species, sex)
+    : rawPhotoUrl;
+
+  return {
+    id: row.id,
+    ringNumber: row.ring ?? row.ringNumber ?? '',
+    species,
+    name: row.name ?? '',
+    sex,
+    colorMutation: row.color_mutation ?? row.colorMutation ?? '',
+    birthDate: row.birth_date ?? row.birthDate ?? '',
+    status: row.status ?? 'Ativo',
+    location: row.location ?? '',
+    photoUrl,
+    fatherId: row.father_id ?? row.fatherId ?? undefined,
+    motherId: row.mother_id ?? row.motherId ?? undefined,
+    manualAncestors: row.manual_ancestors ?? row.manualAncestors ?? undefined,
+    createdAt: row.created_at ?? row.createdAt ?? new Date().toISOString(),
+    classification: (row.classification ?? 'Nao Definido') as any,
+    songTrainingStatus: (row.song_training_status ?? row.songTrainingStatus ?? 'Nao Iniciado') as any,
+    songType: row.song_type ?? row.songType ?? '',
+    songSource: row.song_source ?? row.songSource ?? undefined,
+    trainingStartDate: row.training_start_date ?? row.trainingStartDate ?? undefined,
+    trainingNotes: row.training_notes ?? row.trainingNotes ?? undefined,
+    isRepeater: row.is_repeater ?? row.isRepeater ?? false,
+    sexing: row.sexing ?? undefined,
+    documents: row.documents ?? undefined,
+  };
+};
 
 export const mapMovementFromDb = (row: any): MovementRecord => ({
   id: row.id,

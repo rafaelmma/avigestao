@@ -21,7 +21,7 @@ import {
   AlertTriangle
 } from 'lucide-react';
 import TipCarousel from '../components/TipCarousel';
-import { SPECIES_INCUBATION_DAYS, DEFAULT_BIRD_ILLUSTRATION } from '../constants';
+import { SPECIES_INCUBATION_DAYS, getDefaultBirdImage } from '../constants';
 
 interface BreedingManagerProps {
   state: AppState;
@@ -209,7 +209,7 @@ const BreedingManager: React.FC<BreedingManagerProps> = ({ state, addPair, updat
         songTrainingStatus: 'Não Iniciado',
         colorMutation: 'Clássico (Filhote)', // Padrão
         location: pair.name, // Herda localização do casal
-        photoUrl: DEFAULT_BIRD_ILLUSTRATION,
+        photoUrl: getDefaultBirdImage(species, hatchling.sex),
         createdAt: new Date().toISOString(),
         isRepeater: false,
         songType: ''

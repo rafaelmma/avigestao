@@ -38,7 +38,7 @@ import {
   Camera,
   Lock
 } from 'lucide-react';
-import { BRAZILIAN_SPECIES, DEFAULT_BIRD_ILLUSTRATION, MAX_FREE_BIRDS } from '../constants';
+import { BRAZILIAN_SPECIES, MAX_FREE_BIRDS, getDefaultBirdImage, isDefaultBirdImage } from '../constants';
 import PedigreeTree from '../components/PedigreeTree';
 import TipCarousel from '../components/TipCarousel';
 
@@ -99,7 +99,7 @@ const BirdManager: React.FC<BirdManagerProps> = ({ state, addBird, updateBird, d
     classification: 'Não Definido',
     songTrainingStatus: 'Não Iniciado',
     isRepeater: false,
-    photoUrl: DEFAULT_BIRD_ILLUSTRATION,
+    photoUrl: getDefaultBirdImage(BRAZILIAN_SPECIES[0], 'Indeterminado'),
     birthDate: new Date().toISOString().split('T')[0],
     sexing: {
       protocol: '',
@@ -107,6 +107,26 @@ const BirdManager: React.FC<BirdManagerProps> = ({ state, addBird, updateBird, d
       sentDate: ''
     }
   });
+
+  const resolveBirdPhoto = (bird?: Partial<Bird>) => {
+    const species = bird?.species || '';
+    const sex = bird?.sex || 'Indeterminado';
+    return isDefaultBirdImage(bird?.photoUrl)
+      ? getDefaultBirdImage(species, sex)
+      : (bird?.photoUrl || getDefaultBirdImage(species, sex));
+  };
+
+  const updateNewBirdWithDefaultPhoto = (updates: Partial<Bird>) => {
+    setNewBird((prev) => {
+      const next = { ...prev, ...updates };
+      if (!isDefaultBirdImage(prev.photoUrl)) {
+        return next;
+      }
+      const species = next.species || '';
+      const sex = next.sex || 'Indeterminado';
+      return { ...next, photoUrl: getDefaultBirdImage(species, sex) };
+    });
+  };
 
   // Genealogy Form State
   const [genealogyMode, setGenealogyMode] = useState<{ father: 'plantel' | 'manual', mother: 'plantel' | 'manual' }>({
@@ -217,8 +237,13 @@ const BirdManager: React.FC<BirdManagerProps> = ({ state, addBird, updateBird, d
           });
         };
 
+        const resolvedPhotoUrl = isDefaultBirdImage(newBird.photoUrl)
+          ? getDefaultBirdImage(newBird.species || '', newBird.sex || 'Indeterminado')
+          : newBird.photoUrl;
+
         const birdToSave: Bird = {
           ...newBird as Bird,
+          photoUrl: resolvedPhotoUrl,
           // id and createdAt will be set by the DB (but keep fallback)
           id: makeId(),
           createdAt: new Date().toISOString(),
@@ -500,7 +525,7 @@ const BirdManager: React.FC<BirdManagerProps> = ({ state, addBird, updateBird, d
       sex: 'Indeterminado', 
       status: 'Ativo', 
       species: BRAZILIAN_SPECIES[0],
-      photoUrl: DEFAULT_BIRD_ILLUSTRATION,
+      photoUrl: getDefaultBirdImage(BRAZILIAN_SPECIES[0], 'Indeterminado'),
       birthDate: new Date().toISOString().split('T')[0],
       sexing: { protocol: '', laboratory: '', sentDate: '' },
       songTrainingStatus: 'Não Iniciado',
@@ -797,7 +822,7 @@ const BirdManager: React.FC<BirdManagerProps> = ({ state, addBird, updateBird, d
               }}
             >
                 <div className="relative aspect-square bg-slate-50 flex items-center justify-center overflow-hidden">
-                  <img src={bird.photoUrl || DEFAULT_BIRD_ILLUSTRATION} className={`w-full h-full object-cover ${currentList === 'lixeira' ? 'grayscale opacity-50' : ''}`} />
+                  <img src={resolveBirdPhoto(bird)} className={`w-full h-full object-cover ${currentList === 'lixeira' ? 'grayscale opacity-50' : ''}`} />
                   <div className={`absolute top-3 left-3 px-2 py-0.5 rounded-lg text-[8px] font-black uppercase border shadow-sm ${
                       bird.sex === 'Macho' ? 'bg-blue-50 text-blue-600 border-blue-100' : 
                       bird.sex === 'Fêmea' ? 'bg-pink-50 text-pink-600 border-pink-100' : 
@@ -940,7 +965,7 @@ const BirdManager: React.FC<BirdManagerProps> = ({ state, addBird, updateBird, d
                               <div className="relative group cursor-pointer" onClick={handlePhotoClick}>
                                  <div className="w-32 h-32 rounded-full border-4 border-white shadow-lg overflow-hidden bg-slate-100">
                                     <img 
-                                       src={editingBird.photoUrl || DEFAULT_BIRD_ILLUSTRATION} 
+                                      src={resolveBirdPhoto(editingBird)} 
                                        className="w-full h-full object-cover" 
                                        alt="Foto da Ave" 
                                     />
@@ -1242,7 +1267,7 @@ const BirdManager: React.FC<BirdManagerProps> = ({ state, addBird, updateBird, d
                         <div className="bg-white p-6 rounded-[32px] shadow-sm border border-slate-100 relative group">
                           <div className="aspect-square rounded-2xl overflow-hidden bg-slate-50 flex items-center justify-center relative">
                              <img 
-                               src={selectedBird.photoUrl || DEFAULT_BIRD_ILLUSTRATION} 
+                              src={resolveBirdPhoto(selectedBird)} 
                                className="w-full h-full object-cover" 
                                alt="Foto da Ave" 
                              />
@@ -1425,7 +1450,7 @@ const BirdManager: React.FC<BirdManagerProps> = ({ state, addBird, updateBird, d
                           <div className="relative group cursor-pointer" onClick={handlePhotoClick}>
                               <div className="w-32 h-32 rounded-full border-4 border-white shadow-lg overflow-hidden bg-slate-100">
                                 <img 
-                                    src={newBird.photoUrl || DEFAULT_BIRD_ILLUSTRATION} 
+                                   src={resolveBirdPhoto(newBird)} 
                                     className="w-full h-full object-cover" 
                                     alt="Foto da Ave" 
                                 />
@@ -1463,13 +1488,13 @@ const BirdManager: React.FC<BirdManagerProps> = ({ state, addBird, updateBird, d
                           <div className="space-y-2">
                              <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest">Espécie</label>
                              <div className="space-y-2">
-                               <select className="w-full p-4 bg-white border border-slate-200 rounded-2xl font-bold text-slate-700 outline-none focus:border-brand appearance-none" value={BRAZILIAN_SPECIES.includes(newBird.species || '') ? newBird.species : 'custom'} onChange={e => { if (e.target.value === 'custom') { setNewBird({...newBird, species: ''}); } else { setNewBird({...newBird, species: e.target.value}); } }}> {BRAZILIAN_SPECIES.map(s => <option key={s} value={s}>{s}</option>)} <option value="custom">Outra (Digitar Nova)...</option> </select>
-                               {(!BRAZILIAN_SPECIES.includes(newBird.species || '')) && (<input type="text" placeholder="Digite o nome da nova espécie" className="w-full p-4 bg-slate-50 border border-brand/20 rounded-2xl font-bold text-brand outline-none focus:border-brand animate-in fade-in" value={newBird.species || ''} onChange={e => setNewBird({...newBird, species: e.target.value})} autoFocus />)}
+                              <select className="w-full p-4 bg-white border border-slate-200 rounded-2xl font-bold text-slate-700 outline-none focus:border-brand appearance-none" value={BRAZILIAN_SPECIES.includes(newBird.species || '') ? newBird.species : 'custom'} onChange={e => { if (e.target.value === 'custom') { updateNewBirdWithDefaultPhoto({ species: '' }); } else { updateNewBirdWithDefaultPhoto({ species: e.target.value }); } }}> {BRAZILIAN_SPECIES.map(s => <option key={s} value={s}>{s}</option>)} <option value="custom">Outra (Digitar Nova)...</option> </select>
+                               {(!BRAZILIAN_SPECIES.includes(newBird.species || '')) && (<input type="text" placeholder="Digite o nome da nova espécie" className="w-full p-4 bg-slate-50 border border-brand/20 rounded-2xl font-bold text-brand outline-none focus:border-brand animate-in fade-in" value={newBird.species || ''} onChange={e => updateNewBirdWithDefaultPhoto({ species: e.target.value })} autoFocus />)}
                              </div>
                           </div>
                           <div className="space-y-2">
                              <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest">Sexo</label>
-                             <select className="w-full p-4 bg-white border border-slate-200 rounded-2xl font-bold text-slate-700 outline-none focus:border-brand appearance-none" value={newBird.sex} onChange={e => setNewBird({...newBird, sex: e.target.value as any})}> <option value="Macho">Macho</option> <option value="Fêmea">Fêmea</option> <option value="Indeterminado">Indeterminado</option> </select>
+                             <select className="w-full p-4 bg-white border border-slate-200 rounded-2xl font-bold text-slate-700 outline-none focus:border-brand appearance-none" value={newBird.sex} onChange={e => updateNewBirdWithDefaultPhoto({ sex: e.target.value as Sex })}> <option value="Macho">Macho</option> <option value="Fêmea">Fêmea</option> <option value="Indeterminado">Indeterminado</option> </select>
                           </div>
                           <div className="space-y-2">
                              <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest">Data Nasc.</label>

@@ -1,0 +1,338 @@
+[
+    {
+        "species":  "CanÃ¡rio Belga",
+        "male":  {
+                     "sex":  "Macho",
+                     "filename":  "canario-belga-macho.jpg",
+                     "sourceUrl":  "https://commons.wikimedia.org/wiki/File%3ADomestic_canary_2.jpg",
+                     "author":  "\u003cdiv class=\"fn value\"\u003e\n\u003ca href=\"//commons.wikimedia.org/wiki/User:YavBav09\" title=\"User:YavBav09\"\u003eYavor Uzunov\u003c/a\u003e\u003c/div\u003e",
+                     "license":  "CC0",
+                     "licenseUrl":  "http://creativecommons.org/publicdomain/zero/1.0/deed.en",
+                     "title":  "File:Domestic canary 2.jpg"
+                 },
+        "female":  {
+                       "sex":  "FÃªmea",
+                       "filename":  "canario-belga-femea.jpg",
+                       "sourceUrl":  "https://commons.wikimedia.org/wiki/File%3ADomestic_canaries_(serinus).jpg",
+                       "author":  "\u003ca href=\"//commons.wikimedia.org/wiki/User:YavBav09\" title=\"User:YavBav09\"\u003eYavor Uzunov\u003c/a\u003e",
+                       "license":  "CC0",
+                       "licenseUrl":  "http://creativecommons.org/publicdomain/zero/1.0/deed.en",
+                       "title":  "File:Domestic canaries (serinus).jpg"
+                   }
+    },
+    {
+        "species":  "CanÃ¡rio da Terra",
+        "male":  {
+                     "sex":  "Macho",
+                     "filename":  "canario-da-terra-macho.jpg",
+                     "sourceUrl":  "https://www.wikiaves.com.br/_midia_detalhes.php?m=2011431",
+                     "author":  "Arthur Goulart",
+                     "license":  "WikiAves (direitos reservados)",
+                     "licenseUrl":  "",
+                     "title":  "CanÃ¡rio da Terra"
+                 },
+        "female":  {
+                       "sex":  "FÃªmea",
+                       "filename":  "canario-da-terra-femea.jpg",
+                       "sourceUrl":  "https://www.wikiaves.com.br/_midia_detalhes.php?m=3562217",
+                       "author":  "Maicon Molina",
+                       "license":  "WikiAves (direitos reservados)",
+                       "licenseUrl":  "",
+                       "title":  "CanÃ¡rio da Terra"
+                   }
+    },
+    {
+        "species":  "CuriÃ³",
+        "male":  {
+                     "sex":  "Macho",
+                     "filename":  "curio-macho.jpg",
+                     "sourceUrl":  "https://www.wikiaves.com.br/_midia_detalhes.php?m=1904857",
+                     "author":  "Aisse Gaertner",
+                     "license":  "WikiAves (direitos reservados)",
+                     "licenseUrl":  "",
+                     "title":  "CuriÃ³"
+                 },
+        "female":  {
+                       "sex":  "FÃªmea",
+                       "filename":  "curio-femea.jpg",
+                       "sourceUrl":  "https://www.wikiaves.com.br/_midia_detalhes.php?m=2447957",
+                       "author":  "Frederico Swarofsky",
+                       "license":  "WikiAves (direitos reservados)",
+                       "licenseUrl":  "",
+                       "title":  "CuriÃ³"
+                   }
+    },
+    {
+        "species":  "Coleiro",
+        "male":  {
+                     "sex":  "Macho",
+                     "filename":  "coleiro-macho.jpg",
+                     "sourceUrl":  "https://www.wikiaves.com.br/_midia_detalhes.php?m=1553887",
+                     "author":  "Luiz F. Pereira",
+                     "license":  "WikiAves (direitos reservados)",
+                     "licenseUrl":  "",
+                     "title":  "Coleiro"
+                 },
+        "female":  {
+                       "sex":  "FÃªmea",
+                       "filename":  "coleiro-femea.jpg",
+                       "sourceUrl":  "https://www.wikiaves.com.br/_midia_detalhes.php?m=4007611",
+                       "author":  "Gabriel Arroyo",
+                       "license":  "WikiAves (direitos reservados)",
+                       "licenseUrl":  "",
+                       "title":  "Coleiro"
+                   }
+    },
+    {
+        "species":  "Tiziu",
+        "male":  {
+                     "sex":  "Macho",
+                     "filename":  "tiziu-macho.jpg",
+                     "sourceUrl":  "https://www.wikiaves.com.br/_midia_detalhes.php?m=2053886",
+                     "author":  "Tiago Crateú",
+                     "license":  "WikiAves (direitos reservados)",
+                     "licenseUrl":  "",
+                     "title":  "Tiziu"
+                 },
+        "female":  {
+                       "sex":  "FÃªmea",
+                       "filename":  "tiziu-femea.jpg",
+                       "sourceUrl":  "https://www.wikiaves.com.br/_midia_detalhes.php?m=1932396",
+                       "author":  "Maria Jucá",
+                       "license":  "WikiAves (direitos reservados)",
+                       "licenseUrl":  "",
+                       "title":  "Tiziu"
+                   }
+    },
+    {
+        "species":  "SabiÃ¡ Laranjeira",
+        "male":  {
+                     "sex":  "Macho",
+                     "filename":  "sabia-laranjeira-macho.jpg",
+                     "sourceUrl":  "https://commons.wikimedia.org/wiki/File%3ARufous-bellied_thrush_(Turdus_rufiventris).JPG",
+                     "author":  "\u003cbdi\u003e\u003ca href=\"https://www.wikidata.org/wiki/Q54800218\" class=\"extiw\" title=\"d:Q54800218\"\u003e\u003cspan title=\"Scottish wildlife photographer\"\u003eCharles J. Sharp\u003c/span\u003e\u003c/a\u003e\u003c/bdi\u003e",
+                     "license":  "CC BY-SA 4.0",
+                     "licenseUrl":  "https://creativecommons.org/licenses/by-sa/4.0",
+                     "title":  "File:Rufous-bellied thrush (Turdus rufiventris).JPG"
+                 },
+        "female":  {
+                       "sex":  "FÃªmea",
+                       "filename":  "sabia-laranjeira-femea.jpg",
+                       "sourceUrl":  "https://commons.wikimedia.org/wiki/File%3ARufous-bellied_thrush_(Turdus_rufiventris)_Colonia.jpg",
+                       "author":  "\u003cbdi\u003e\u003ca href=\"https://www.wikidata.org/wiki/Q54800218\" class=\"extiw\" title=\"d:Q54800218\"\u003e\u003cspan title=\"Scottish wildlife photographer\"\u003eCharles J. Sharp\u003c/span\u003e\u003c/a\u003e\u003c/bdi\u003e",
+                       "license":  "CC BY-SA 4.0",
+                       "licenseUrl":  "https://creativecommons.org/licenses/by-sa/4.0",
+                       "title":  "File:Rufous-bellied thrush (Turdus rufiventris) Colonia.jpg"
+                   }
+    },
+    {
+        "species":  "Caboclinho",
+        "male":  {
+                     "sex":  "Macho",
+                     "filename":  "caboclinho-macho.jpg",
+                     "sourceUrl":  "https://www.wikiaves.com.br/_midia_detalhes.php?m=917021",
+                     "author":  "Dario Sanches",
+                     "license":  "WikiAves (direitos reservados)",
+                     "licenseUrl":  "",
+                     "title":  "Caboclinho"
+                 },
+        "female":  {
+                       "sex":  "FÃªmea",
+                       "filename":  "caboclinho-femea.jpg",
+                       "sourceUrl":  "https://www.wikiaves.com.br/_midia_detalhes.php?m=860380",
+                       "author":  "Stéphane Passera (Stef)",
+                       "license":  "WikiAves (direitos reservados)",
+                       "licenseUrl":  "",
+                       "title":  "Caboclinho"
+                   }
+    },
+    {
+        "species":  "Trinca-Ferro",
+        "male":  {
+                     "sex":  "Macho",
+                     "filename":  "trinca-ferro-macho.jpg",
+                     "sourceUrl":  "https://commons.wikimedia.org/wiki/File%3ASaltator_similis_-_Green-winged_Saltator%3B_Monteiro_Lobato%2C_S%C3%A3o_Paulo%2C_Brazil.jpg",
+                     "author":  "\u003ca href=\"//commons.wikimedia.org/wiki/User:Hector_Bottai\" title=\"User:Hector Bottai\"\u003eHector Bottai\u003c/a\u003e",
+                     "license":  "CC BY-SA 4.0",
+                     "licenseUrl":  "https://creativecommons.org/licenses/by-sa/4.0",
+                     "title":  "File:Saltator similis - Green-winged Saltator; Monteiro Lobato, São Paulo, Brazil.jpg"
+                 },
+        "female":  {
+                       "sex":  "FÃªmea",
+                       "filename":  "trinca-ferro-femea.jpg",
+                       "sourceUrl":  "https://commons.wikimedia.org/wiki/File%3APepitero_verdoso_(Saltator_similis)%2C_Uruguay%2C_2022.jpg",
+                       "author":  "\u003ca href=\"https://www.wikidata.org/wiki/Q90236211\" class=\"extiw\" title=\"d:Q90236211\"\u003e\u003cspan title=\"Uruguayan mammalogist\"\u003eEnrique González\u003c/span\u003e\u003c/a\u003e \u003cspan class=\"mw-valign-text-top\" typeof=\"mw:File/Frameless\"\u003e\u003ca href=\"//commons.wikimedia.org/wiki/File:Pepitero_verdoso_(Saltator_similis),_Uruguay,_2022.jpg#P170\" title=\"Edit this at Structured Data on Commons\"\u003e\u003cimg alt=\"Edit this at Structured Data on Commons\" src=\"https://upload.wikimedia.org/wikipedia/commons/thumb/8/8a/OOjs_UI_icon_edit-ltr-progressive.svg/20px-OOjs_UI_icon_edit-ltr-progressive.svg.png\" decoding=\"async\" width=\"10\" height=\"10\" class=\"mw-file-element\" data-file-width=\"20\" data-file-height=\"20\"\u003e\u003c/a\u003e\u003c/span\u003e",
+                       "license":  "CC BY-SA 4.0",
+                       "licenseUrl":  "https://creativecommons.org/licenses/by-sa/4.0",
+                       "title":  "File:Pepitero verdoso (Saltator similis), Uruguay, 2022.jpg"
+                   }
+    },
+    {
+        "species":  "Bicudo",
+        "male":  {
+                     "sex":  "Macho",
+                     "filename":  "bicudo-macho.jpg",
+                     "sourceUrl":  "https://www.wikiaves.com.br/_midia_detalhes.php?m=4999869",
+                     "author":  "Diego B.S Gomes",
+                     "license":  "WikiAves (direitos reservados)",
+                     "licenseUrl":  "",
+                     "title":  "Bicudo"
+                 },
+        "female":  {
+                       "sex":  "FÃªmea",
+                       "filename":  "bicudo-femea.jpg",
+                       "sourceUrl":  "https://www.wikiaves.com.br/_midia_detalhes.php?m=4042936",
+                       "author":  "Jonatas Rocha",
+                       "license":  "WikiAves (direitos reservados)",
+                       "licenseUrl":  "",
+                       "title":  "Bicudo"
+                   }
+    },
+    {
+        "species":  "AzulÃ£o",
+        "male":  {
+                     "sex":  "Macho",
+                     "filename":  "azulao-macho.jpg",
+                     "sourceUrl":  "https://www.wikiaves.com.br/_midia_detalhes.php?m=2617694",
+                     "author":  "Diego Murta",
+                     "license":  "WikiAves (direitos reservados)",
+                     "licenseUrl":  "",
+                     "title":  "AzulÃ£o"
+                 },
+        "female":  {
+                       "sex":  "FÃªmea",
+                       "filename":  "azulao-femea.jpg",
+                       "sourceUrl":  "https://www.wikiaves.com.br/_midia_detalhes.php?m=795649",
+                       "author":  "Thiago Tolêdo (IBFN)",
+                       "license":  "WikiAves (direitos reservados)",
+                       "licenseUrl":  "",
+                       "title":  "AzulÃ£o"
+                   }
+    },
+    {
+        "species":  "Pintassilgo",
+        "male":  {
+                     "sex":  "Macho",
+                     "filename":  "pintassilgo-macho.jpg",
+                     "sourceUrl":  "https://www.wikiaves.com.br/_midia_detalhes.php?m=4169367",
+                     "author":  "Maicon Molina",
+                     "license":  "WikiAves (direitos reservados)",
+                     "licenseUrl":  "",
+                     "title":  "Pintassilgo"
+                 },
+        "female":  {
+                       "sex":  "FÃªmea",
+                       "filename":  "pintassilgo-femea.jpg",
+                       "sourceUrl":  "https://www.wikiaves.com.br/_midia_detalhes.php?m=3023738",
+                       "author":  "Claudio Cesar",
+                       "license":  "WikiAves (direitos reservados)",
+                       "licenseUrl":  "",
+                       "title":  "Pintassilgo"
+                   }
+    },
+    {
+        "species":  "Agapornis",
+        "male":  {
+                     "sex":  "Macho",
+                     "filename":  "agapornis-macho.jpg",
+                     "sourceUrl":  "https://commons.wikimedia.org/wiki/File%3ARosy-faced_lovebird_(Agapornis_roseicollis_roseicollis).jpg",
+                     "author":  "\u003cbdi\u003e\u003ca href=\"https://www.wikidata.org/wiki/Q54800218\" class=\"extiw\" title=\"d:Q54800218\"\u003e\u003cspan title=\"Scottish wildlife photographer\"\u003eCharles J. Sharp\u003c/span\u003e\u003c/a\u003e\u003c/bdi\u003e",
+                     "license":  "CC BY-SA 4.0",
+                     "licenseUrl":  "https://creativecommons.org/licenses/by-sa/4.0",
+                     "title":  "File:Rosy-faced lovebird (Agapornis roseicollis roseicollis).jpg"
+                 },
+        "female":  {
+                       "sex":  "FÃªmea",
+                       "filename":  "agapornis-femea.jpg",
+                       "sourceUrl":  "https://commons.wikimedia.org/wiki/File%3ARosy-faced_lovebird_(Agapornis_roseicollis_roseicollis)_2.jpg",
+                       "author":  "\u003cbdi\u003e\u003ca href=\"https://www.wikidata.org/wiki/Q54800218\" class=\"extiw\" title=\"d:Q54800218\"\u003e\u003cspan title=\"Scottish wildlife photographer\"\u003eCharles J. Sharp\u003c/span\u003e\u003c/a\u003e\u003c/bdi\u003e",
+                       "license":  "CC BY-SA 4.0",
+                       "licenseUrl":  "https://creativecommons.org/licenses/by-sa/4.0",
+                       "title":  "File:Rosy-faced lovebird (Agapornis roseicollis roseicollis) 2.jpg"
+                   }
+    },
+    {
+        "species":  "Calopsita",
+        "male":  {
+                     "sex":  "Macho",
+                     "filename":  "calopsita-macho.jpg",
+                     "sourceUrl":  "https://commons.wikimedia.org/wiki/File%3ANymphicus_hollandicus_MHNT.ZOO.2010.11.148.28.jpg",
+                     "author":  "\u003cdiv class=\"fn value\"\u003e\n\u003ca href=\"//commons.wikimedia.org/wiki/User:Erc%C3%A9\" title=\"User:Ercé\"\u003eRoger Culos\u003c/a\u003e\u003c/div\u003e",
+                     "license":  "CC BY-SA 4.0",
+                     "licenseUrl":  "https://creativecommons.org/licenses/by-sa/4.0",
+                     "title":  "File:Nymphicus hollandicus MHNT.ZOO.2010.11.148.28.jpg"
+                 },
+        "female":  {
+                       "sex":  "FÃªmea",
+                       "filename":  "calopsita-femea.jpg",
+                       "sourceUrl":  "https://commons.wikimedia.org/wiki/File%3ANymphicus_hollandicus_-_Forst_01.jpg",
+                       "author":  "\u003ca href=\"//commons.wikimedia.org/wiki/User:Llez\" title=\"User:Llez\"\u003eH. Zell\u003c/a\u003e",
+                       "license":  "CC BY-SA 3.0",
+                       "licenseUrl":  "https://creativecommons.org/licenses/by-sa/3.0",
+                       "title":  "File:Nymphicus hollandicus - Forst 01.jpg"
+                   }
+    },
+    {
+        "species":  "Periquito",
+        "male":  {
+                     "sex":  "Macho",
+                     "filename":  "periquito-macho.jpg",
+                     "sourceUrl":  "https://commons.wikimedia.org/wiki/File%3ABudgerigar-_Mount_Hope.jpg",
+                     "author":  "\u003ca href=\"//commons.wikimedia.org/wiki/User:JJ_Harrison\" title=\"User:JJ Harrison\"\u003eJJ Harrison\u003c/a\u003e",
+                     "license":  "CC BY-SA 3.0",
+                     "licenseUrl":  "https://creativecommons.org/licenses/by-sa/3.0",
+                     "title":  "File:Budgerigar- Mount Hope.jpg"
+                 },
+        "female":  {
+                       "sex":  "FÃªmea",
+                       "filename":  "periquito-femea.jpg",
+                       "sourceUrl":  "https://commons.wikimedia.org/wiki/File%3AMelopsittacus_undulatus_-_Vogelpark_Steinen_02.jpg",
+                       "author":  "\u003ca href=\"//commons.wikimedia.org/wiki/User:Llez\" title=\"User:Llez\"\u003eH. Zell\u003c/a\u003e",
+                       "license":  "CC BY-SA 3.0",
+                       "licenseUrl":  "https://creativecommons.org/licenses/by-sa/3.0",
+                       "title":  "File:Melopsittacus undulatus - Vogelpark Steinen 02.jpg"
+                   }
+    },
+    {
+        "species":  "Manon",
+        "male":  {
+                     "sex":  "Macho",
+                     "filename":  "manon-macho.jpg",
+                     "sourceUrl":  "https://commons.wikimedia.org/wiki/File%3ASociety_Finch_light_brown.jpg",
+                     "author":  "\u003ca href=\"//commons.wikimedia.org/w/index.php?title=User:Smokey_Sally\u0026amp;action=edit\u0026amp;redlink=1\" class=\"new\" title=\"User:Smokey Sally (page does not exist)\"\u003eSmokey Sally\u003c/a\u003e",
+                     "license":  "CC BY-SA 4.0",
+                     "licenseUrl":  "https://creativecommons.org/licenses/by-sa/4.0",
+                     "title":  "File:Society Finch light brown.jpg"
+                 },
+        "female":  {
+                       "sex":  "FÃªmea",
+                       "filename":  "manon-femea.jpg",
+                       "sourceUrl":  "https://commons.wikimedia.org/wiki/File%3ALonchura_striata_qtl1.jpg",
+                       "author":  "\u003ca href=\"//commons.wikimedia.org/wiki/User:Quartl\" title=\"User:Quartl\"\u003eQuartl\u003c/a\u003e",
+                       "license":  "CC BY-SA 3.0",
+                       "licenseUrl":  "https://creativecommons.org/licenses/by-sa/3.0",
+                       "title":  "File:Lonchura striata qtl1.jpg"
+                   }
+    },
+    {
+        "species":  "Mandarin",
+        "male":  {
+                     "sex":  "Macho",
+                     "filename":  "mandarin-macho.jpg",
+                     "sourceUrl":  "https://commons.wikimedia.org/wiki/File%3ATaeniopygia_guttata_castanotis_MHNT.ZOO.2010.11.228.12.jpg",
+                     "author":  "\u003cdiv class=\"fn value\"\u003e\n\u003ca href=\"//commons.wikimedia.org/wiki/User:Erc%C3%A9\" title=\"User:Ercé\"\u003eRoger Culos\u003c/a\u003e\u003c/div\u003e",
+                     "license":  "CC BY-SA 4.0",
+                     "licenseUrl":  "https://creativecommons.org/licenses/by-sa/4.0",
+                     "title":  "File:Taeniopygia guttata castanotis MHNT.ZOO.2010.11.228.12.jpg"
+                 },
+        "female":  {
+                       "sex":  "FÃªmea",
+                       "filename":  "mandarin-femea.jpg",
+                       "sourceUrl":  "https://commons.wikimedia.org/wiki/File%3APinz%C3%B3n_cebra_(Taeniopygia_guttata)%2C_Tierpark_Hellabrunn%2C_M%C3%BAnich%2C_Alemania%2C_2012-06-17%2C_DD_04.JPG",
+                       "author":  "\u003cbdi\u003e\u003ca href=\"https://www.wikidata.org/wiki/Q28147777\" class=\"extiw\" title=\"d:Q28147777\"\u003e\u003cspan title=\"Spanish photographer\"\u003eDiego Delso\u003c/span\u003e\u003c/a\u003e\u003c/bdi\u003e",
+                       "license":  "CC BY-SA 3.0",
+                       "licenseUrl":  "https://creativecommons.org/licenses/by-sa/3.0",
+                       "title":  "File:Pinzón cebra (Taeniopygia guttata), Tierpark Hellabrunn, Múnich, Alemania, 2012-06-17, DD 04.JPG"
+                   }
+    }
+]

@@ -1,0 +1,578 @@
+<!DOCTYPE html>
+<html xml:lang="pt-br" lang="pt-br" class="">
+	<head>
+		<meta charset="utf-8" />
+		<title>Wiki Aves - A Enciclopédia das Aves do Brasil</title>
+		<meta name="description" content=" Compartilhe e encontre informações, fotos e sons das aves do Brasil">
+		<meta http-equiv="X-UA-Compatible" content="IE=edge">
+		<meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+		<link rel='manifest' href='/manifest.json'>		
+    <script src="https://ajax.googleapis.com/ajax/libs/webfont/1.6.16/webfont.js"></script><script>      WebFont.load({        google: {"families":["Poppins:300,400,500,600,700","Work Sans:300,400,500,600,700"]},        active: function() { sessionStorage.fonts = true; }      });</script><script async src="https://www.googletagmanager.com/gtag/js?id=G-PZCNV1Q1B8"></script><script>  window.dataLayer = window.dataLayer || [];  function gtag(){dataLayer.push(arguments);}  gtag('js', new Date());  gtag('config', 'G-PZCNV1Q1B8');</script><script type="text/javascript" src="/jswa/jquery.min.js"></script><link href="m5/dist/default//assets/vendors/base/vendors.bundle.css" rel="stylesheet" type="text/css" /><link href="m5/dist/default//assets/demo/default/base/style.bundle.css" rel="stylesheet" type="text/css" /><link href="css/wikiaves.styles.css?1716254880" rel="stylesheet" type="text/css" /><link rel="shortcut icon" href="/img/logo/favicon.ico" /><script data-cfasync="false" async src="https://tags.premiumads.com.br/dfp/174387df-d573-46fb-200a-08db4b02e2b3"></script>
+<link href="/jswa/wikiaves.player/mediaelement/css/skin-wikiaves-dark.css" rel="stylesheet" type="text/css" media="all">	</head>
+	<!-- end::Head -->
+	<!-- end::Body -->
+		<body class="m-page--boxed m--skin- m-content--skin-light2 m-header--fixed m-header--fixed-mobile m-aside-left--enabled m-aside-left--skin-dark m-aside-left--offcanvas m-footer--push m-aside--offcanvas-default"  >
+		<!-- begin:: Page -->
+		<div class="m-grid m-grid--hor m-grid--root m-page">
+			<!-- BEGIN: Header -->
+			<header class="m-grid__item m-header d-print-none" id="m_header" m-minimize="hide" data-minimize-offset="200" data-minimize-mobile-offset="200" >
+				<div class="m-container m-container--fluid m-container--full-height">
+					<div class="m-stack m-stack--ver m-stack--desktop">
+						<!-- BEGIN: Brand -->
+						<div class="m-stack__item m-brand  m-brand--skin-light ">
+							<div class="m-stack m-stack--ver m-stack--general">
+								<div class="m-stack__item m-stack__item--middle m-brand__logo hidden-md-down wa-bird">
+									<a href="../../index.php" class="m-brand__logo-wrapper">
+										<img src="/img/logo/logo_bird.svg" onerror="this.onerror=null; this.src='/img/logo/bird_default.png'">
+									</a>
+								</div>
+								<div class="m-stack__item m-stack__item--middle m-brand__logo wa-marca">
+									<a href="../../index.php" class="m-brand__logo-wrapper">
+										<img src="/img/logo/logo_wikiaves.svg" onerror="this.onerror=null; this.src='/img/logo/logo_default.png'">
+									</a>
+								</div>
+								<div class="m-stack__item m-stack__item--middle m-brand__tools">
+									<!-- BEGIN: Topbar Toggler -->
+									<a id="m_aside_header_topbar_mobile_toggle" href="javascript:;" class="m-brand__icon m--visible-tablet-and-mobile-inline-block">
+										<i class="flaticon-search d-print-none"></i>
+									</a>
+									<!-- BEGIN: Topbar Toggler -->
+									<!-- BEGIN: Responsive Header Menu Toggler -->
+									<a id="m_aside_header_menu_mobile_toggle" href="javascript:;" class="m-brand__icon m-brand__toggler m--visible-tablet-and-mobile-inline-block">
+										<span></span>
+									</a>
+									<!-- END -->									
+								</div>
+							</div>
+						</div>
+						<!-- END: Brand -->
+						<div class="m-stack__item m-stack__item--fluid m-header-head d-print-none" id="m_header_nav">
+							<!-- BEGIN: Horizontal Menu -->
+							<button class="m-aside-header-menu-mobile-close  m-aside-header-menu-mobile-close--skin-light " id="m_aside_header_menu_mobile_close_btn">
+								<i class="la la-close"></i>
+							</button>
+							<div id="m_header_topbar" class="m-topbar  m-stack m-stack--ver m-stack--general">
+								<div class="m-stack__item d-lg-none m-typeahead">
+									<form id="wa-form-mobile-search" name="form-mobile-search" action="/direcionarbusca.php" method="post">
+										<input id="wa-buscamobile_hidden" name="buscatopo_hidden" type="hidden">
+										<input class="wa-mobile-search wa-buscataxon" id="wa-buscamobile" name="buscatopo" type="search" placeholder="Buscar..." autocomplete="off">
+									</form>
+								</div>
+              						
+								
+							</div>
+							<!-- END: Topbar -->
+						
+							<div class="m-stack__item m-stack__item--middle m-dropdown d-none d-lg-block  d-print-none" id="wa_quicksearch" data-search-type="default" aria-expanded="true">
+								<!--begin::Search Form -->
+								<form id="wa-form-header-search" name="form-header-search" action="/direcionarbusca.php" method="post">
+									<div class="typeahead__container">
+										<div class="typeahead__field m-typeahead">
+											<input id="wa-buscatopo_hidden" name="buscatopo_hidden" type="hidden">
+											<input class="wa-header-search m-input wa-buscataxon form-control m-input--pill" id="wa-buscatopo" name="buscatopo" type="search" placeholder="Buscar..." autocomplete="off">												
+											<div class="m-input-icon m-input-icon--left">
+												<span class="m-input-icon__icon m-input-icon__icon--left">
+													<span><i class="la la-search"></i></span>
+												</span>
+											</div>
+										</div>
+									</div>
+								</form>
+							</div>
+<script>
+jQuery(document).ready(function() {
+	
+	$('.wa-lang').click(function (e) {
+		var novaLang = $(this).attr('wa-lang');
+		$.getJSON( "/setLang.php?lang="+novaLang, function( data ) {
+			var url = window.location.href;
+			if(novaLang != 'en' && url.indexOf('://en.') > -1) {
+				url = url.replace('://en.', '://www.');
+				window.location.href = url;  return false;
+			}
+			if(novaLang != 'es' && url.indexOf('://es.') > -1) {
+				url = url.replace('://es.', '://www.');
+				window.location.href = url; return false;
+			}			
+			location.reload();
+		});			
+	});
+
+	$('#wa-buscatopo').on('typeahead:select', function (e, datum) { 
+		$('#wa-buscatopo_hidden').val(datum.wid);
+		$('#wa-form-header-search').submit();
+	});
+
+	$('#wa-buscamobile').on('typeahead:select', function (e, datum) { 
+		$('#wa-buscamobile_hidden').val(datum.wid);
+		$('#wa-form-mobile-search').submit();
+	});
+	
+	$('#wa-buscatopo, #wa-buscamobile').on('keypress', function(e) {
+		if (e.which == 13) {
+			var q = $(this).val();
+			window.location.href = "/direcionarbusca.php?q="+q;
+		}
+	});
+
+});
+</script>
+							<div id="m_header_menu" class="m-header-menu m-aside-header-menu-mobile m-aside-header-menu-mobile--offcanvas  m-header-menu--skin-light m-header-menu--submenu-skin-light m-aside-header-menu-mobile--skin-light m-aside-header-menu-mobile--submenu-skin-light "  >
+								<a href="../../index.php" class="wa-logo-mobile hidden-lg-up">
+									<img alt="" src="/img/logo/logo_bird.svg" onerror="this.onerror=null; this.src='/img/logo/bird_default.png'">
+								</a>
+								
+								<ul class="m-menu__nav  m-menu__nav--submenu-arrow ">
+								  											<li class="m-menu__item m-menu__item--submenu m-menu__item--rel" data-menu-submenu-toggle="hover" aria-haspopup="true">
+											<a href="#" class="m-menu__link m-menu__toggle"><span class="m-menu__link-text">Espécies</span><i class="m-menu__ver-arrow la la-angle-right"></i></a>
+											<div class="m-menu__submenu m-menu__submenu--classic m-menu__submenu--left">
+												<span class="m-menu__arrow m-menu__arrow--adjust" style="left: 52.5px;"></span>
+												<ul class="m-menu__subnav">
+													<li class="m-menu__item">
+														<a class="m-menu__link" href="/wiki/aves"><span class="m-menu__link-text">Aves do Brasil</span></a>
+													</li>
+													<li class="m-menu__item">
+														<a class="m-menu__link" href="/especies_buscaocorrencia.php"><span class="m-menu__link-text">Mapa de Registros</span></a>
+													</li>
+													<li class="m-menu__item">
+														<a class="m-menu__link" href="/especies_local.php"><span class="m-menu__link-text">Espécies por Localidade</span></a>
+													</li>
+													<li class="m-menu__item">
+														<a class="m-menu__link" href="/especies.php?t=sf"><span class="m-menu__link-text">Espécies sem foto</span></a>
+													</li>
+													<li class="m-menu__item">
+														<a class="m-menu__link" href="/especies.php?t=ss"><span class="m-menu__link-text">Espécies sem som</span></a>
+													</li>
+													<li class="m-menu__item">
+														<a class="m-menu__link" href="/especies.php?t=t"><span class="m-menu__link-text">Todas as Espécies</span></a>
+													</li>
+												</ul>
+											</div>
+										</li>
+										<li class="m-menu__item m-menu__item--submenu m-menu__item--rel" data-menu-submenu-toggle="hover" aria-haspopup="true">
+											<a href="#" class="m-menu__link m-menu__toggle"><span class="m-menu__link-text">Registros</span><i class="m-menu__ver-arrow la la-angle-right"></i></a>
+											<div class="m-menu__submenu m-menu__submenu--classic m-menu__submenu--left">
+												 <span class="m-menu__arrow m-menu__arrow--adjust" style="left: 54.5px;"></span>
+														<ul class="m-menu__subnav">
+															<li class="m-menu__item">
+																<a rel="nofollow" class="m-menu__link" href="/midias.php"><span class="m-menu__link-text">Últimos Recebidos</span></a>
+															</li>
+															<li class="m-menu__item">
+																<a rel="nofollow" class="m-menu__link" href="/midias.php?t=mc"><span class="m-menu__link-text">Mais Comentados</span></a>
+															</li>
+															<li class="m-menu__item">
+																<a rel="nofollow" class="m-menu__link" href="/midias.php?t=mv"><span class="m-menu__link-text">Mais Visualizados</span></a>
+															</li>
+															<li class="m-menu__item">
+																<a rel="nofollow" class="m-menu__link" href="/midias.php?t=mp"><span class="m-menu__link-text">Mais Populares</span></a>
+															</li>
+															<li class="m-menu__item">
+																<a rel="nofollow" class="m-menu__link" href="/midias.php?t=i"><span class="m-menu__link-text">Não-identificados</span></a>
+															</li>
+															<li class="m-menu__item">
+																<a rel="nofollow" class="m-menu__link" href="/midias.php?t=idq&o=psp"><span class="m-menu__link-text">Com ID Questionada</span></a>
+															</li>
+																														<li class="m-menu__item">
+																<a rel="nofollow" class="m-menu__link" href="/buscasimples.php"><span class="m-menu__link-text">Busca por Espécie</span></a>
+															</li>
+															<li class="m-menu__item">
+																<a rel="nofollow" class="m-menu__link" href="/buscaavancada.php"><span class="m-menu__link-text">Busca Avançada</span></a>
+															</li>
+														</ul>												 
+											</div>
+										</li>
+										<li class="m-menu__item m-menu__item--submenu m-menu__item--rel m-menu__item--open-dropdown" data-menu-submenu-toggle="hover" aria-haspopup="true">
+											<a href="#" class="m-menu__link m-menu__toggle">
+											<span class="m-menu__link-text">Informações</span>
+											<i class="m-menu__ver-arrow la la-angle-right"></i>
+											</a>
+											<div class="m-menu__submenu  m-menu__submenu--fixed m-menu__submenu--right" style="width:540px">
+												 <span class="m-menu__arrow m-menu__arrow--adjust" style="left: 68px;"></span>
+												 <div class="m-menu__subnav">
+														<ul class="m-menu__content">
+															 <li class="m-menu__item">
+																	<h3 class="m-menu__heading m-menu__toggle">
+																		 <span class="m-menu__link-text">
+																		 Usuários e Locais
+																		 </span>
+																		 <i class="m-menu__ver-arrow la la-angle-right"></i>
+																	</h3>
+																	<ul class="m-menu__inner">
+																	  																		<li class="m-menu__item" data-redirect="true" aria-haspopup="true">
+																			<a class="m-menu__link" href="/editarperfil.php?tipo=normal"><span class="m-menu__link-text m--font-danger">Cadastrar/Criar Perfil</span></a>
+																		</li>
+																																				<li class="m-menu__item" data-redirect="true" aria-haspopup="true">
+																			<a class="m-menu__link" href="/buscarusuario.php"><span class="m-menu__link-text">Buscar Usuários</span></a>
+																		</li>
+																		<li class="m-menu__item" data-redirect="true" aria-haspopup="true">
+																			<a class="m-menu__link" href="/buscar_area.php"><span class="m-menu__link-text">Áreas de Observação</a>
+																		</li>
+																		<li class="m-menu__item" data-redirect="true" aria-haspopup="true">
+																			<a class="m-menu__link" href="/estatisticas_estado.php"><span class="m-menu__link-text">Estatísticas</span></a>
+																		</li>														
+																	</ul>
+															 </li>
+															 <li class="m-menu__item">
+																	<h3 class="m-menu__heading m-menu__toggle">
+																		 <span class="m-menu__link-text">
+																		 Institucional
+																		 </span>
+																		 <i class="m-menu__ver-arrow la la-angle-right"></i>
+																	</h3>
+																	<ul class="m-menu__inner">
+																		<li class="m-menu__item" data-redirect="true" aria-haspopup="true">
+																			<a class="m-menu__link" href="/contato.php"><span class="m-menu__link-text">Contato</span></a>
+																		</li>
+																		<li class="m-menu__item" data-redirect="true" aria-haspopup="true">
+																			<a class="m-menu__link" href="/wiki/wikiaves:comunicados"><span class="m-menu__link-text">Comunicados</span></a>
+																		</li>
+																		<li class="m-menu__item" data-redirect="true" aria-haspopup="true">
+																			<a class="m-menu__link" href="https://www.wikiaves.com.br/wiki/wikiaves:regras"><span class="m-menu__link-text">Regras do WikiAves</span></a>
+																		</li>
+																		<li class="m-menu__item" data-redirect="true" aria-haspopup="true">
+																			<a class="m-menu__link" href="/wiki/wikiaves:contribuidor"><span class="m-menu__link-text">Como contribuir?</span></a>
+																		</li>
+																		<li class="m-menu__item" data-redirect="true" aria-haspopup="true">
+																			<a class="m-menu__link" href="/wiki/wikiaves:denuncie"><span class="m-menu__link-text">Denuncie o Tráfico!</span></a>
+																		</li>			
+																		<li class="m-menu__item" data-redirect="true" aria-haspopup="true">
+																			<a class="m-menu__link" href="/wiki/indice"><span class="m-menu__link-text">mais...</span></a>
+																		</li>																		
+																	</ul>
+															 </li>
+															 <!-- <li class="m-menu__item">
+																	<h3 class="m-menu__heading m-menu__toggle">
+																		 <span class="m-menu__link-text">
+																		 Reporting Apps
+																		 </span>
+																		 <i class="m-menu__ver-arrow la la-angle-right"></i>
+																	</h3>
+																	<ul class="m-menu__inner">
+																		 <li class="m-menu__item " data-redirect="true" aria-haspopup="true">
+																				<a href="../../header/actions.html" class="m-menu__link ">
+																				<span class="m-menu__link-text">
+																				Report Adjusments
+																				</span>
+																				</a>
+																		 </li>
+																		 <li class="m-menu__item " data-redirect="true" aria-haspopup="true">
+																				<a href="../../header/actions.html" class="m-menu__link ">
+																				<span class="m-menu__link-text">
+																				Sources &amp; Mediums
+																				</span>
+																				</a>
+																		 </li>
+																		 <li class="m-menu__item " data-redirect="true" aria-haspopup="true">
+																				<a href="../../header/actions.html" class="m-menu__link ">
+																				<span class="m-menu__link-text">
+																				Reporting Settings
+																				</span>
+																				</a>
+																		 </li>
+																		 <li class="m-menu__item " data-redirect="true" aria-haspopup="true">
+																				<a href="../../header/actions.html" class="m-menu__link ">
+																				<span class="m-menu__link-text">
+																				Conversions
+																				</span>
+																				</a>
+																		 </li>
+																		 <li class="m-menu__item " data-redirect="true" aria-haspopup="true">
+																				<a href="../../header/actions.html" class="m-menu__link ">
+																				<span class="m-menu__link-text">
+																				Report Flows
+																				</span>
+																				</a>
+																		 </li>
+																		 <li class="m-menu__item " data-redirect="true" aria-haspopup="true">
+																				<a href="../../header/actions.html" class="m-menu__link ">
+																				<span class="m-menu__link-text">
+																				Audit &amp; Logs
+																				</span>
+																				</a>
+																		 </li>
+																	</ul>
+															 </li> -->
+														</ul>
+												 </div>
+											</div>
+										</li>
+										<li class="m-menu__item m-menu__item--rel">
+											<a href="/forum/" class="m-menu__link">
+											<span class="m-menu__link-text">Fórum</span>
+											</a>									 
+										</li>
+									 
+																			
+										
+										<li class="m-menu__item m-menu__item--submenu m-menu__item--rel wa-menu-login" >
+										  											<a rel="nofollow" id="wa-btn-login" href="/midias.php?waction=login&tm=f&t=s&s=11681" rel="nofollow" class="btn btn-secondary m-btn m-btn--icon m-btn--pill">Login</a>
+																					</li>
+										
+										<li class="m-menu__item m-menu__item--submenu m-menu__item--rel d-lg-none wa-menu-login">
+												<ul class="wa-lang-perfil m-nav m-nav--inline">
+													<li class="m-nav__item"><a rel="nofollow" class="m-menu__link wa-lang" href="#" wa-lang="pt-br" title="Versão em Português" rel="nofollow"><span class="m-menu__link-text"><img src="/img/lang/pt-br.svg" class="wa-flag" onerror="this.onerror=null; this.src='/img/lang/pt-br.png'"></span></a></li>
+													<li class="m-nav__item"><a rel="nofollow" class="m-menu__link wa-lang" href="#" wa-lang="en" title="English Version" rel="nofollow"><span class="m-menu__link-text"><img src="/img/lang/en.svg" class="wa-flag" onerror="this.onerror=null; this.src='/img/lang/en.png'"></span></a></li>
+													<li class="m-nav__item"><a rel="nofollow" class="m-menu__link wa-lang" href="#" wa-lang="es" title="Versión en Español" rel="nofollow"><span class="m-menu__link-text"><img src="/img/lang/es.svg" class="wa-flag" onerror="this.onerror=null; this.src='/img/lang/es.png'"></span></a></li>													
+												</ul>										
+										</li>
+										
+										<li class="m-menu__item m-menu__item--submenu m-menu__item--rel d-none d-lg-block" data-menu-submenu-toggle="hover" aria-haspopup="true">
+											<a href="#" class="m-menu__link m-menu__toggle"><span class="m-menu__link-text"><img src="/img/lang/pt-br.svg" class="wa-flag" onerror="this.onerror=null; this.src='/img/lang/pt-br.png'"></span><i class="m-menu__ver-arrow la la-angle-right"></i></a>
+											<div class="m-menu__submenu m-menu__submenu--classic m-menu__submenu--right wa-lang-menu">
+												<span class="m-menu__arrow m-menu__arrow--adjust"></span>
+												<ul class="m-menu__subnav">
+													<li class="m-menu__item">
+														<a rel="nofollow" class="m-menu__link wa-lang" href="#" wa-lang="pt-br" title="Versão em Português" rel="nofollow"><span class="m-menu__link-text"><img src="/img/lang/pt-br.svg" class="wa-flag" onerror="this.onerror=null; this.src='/img/lang/pt-br.png'">&nbsp;Português</span></a>
+													</li>
+													<li class="m-menu__item">
+														<a rel="nofollow" class="m-menu__link wa-lang" href="#" wa-lang="en" title="English Version" rel="nofollow"><span class="m-menu__link-text"><img src="/img/lang/en.svg" class="wa-flag" onerror="this.onerror=null; this.src='/img/lang/en.png'">&nbsp;English</span></a>
+													</li>
+													<li class="m-menu__item">
+														<a rel="nofollow" class="m-menu__link wa-lang" href="#" wa-lang="es" title="V" rel="nofollow"><span class="m-menu__link-text"><img src="/img/lang/es.svg" class="wa-flag" onerror="this.onerror=null; this.src='/img/lang/en.png'">&nbsp;Español</span></a>
+													</li>															
+												</ul>												 
+											</div>
+									  	</li>
+																			
+								</ul>
+							</div>							
+							<!-- END: Horizontal Menu -->
+						</div>
+					</div>
+				</div>
+			</header>
+			
+			<!-- begin::Body -->
+			<div class="m-grid__item m-grid__item--fluid m-grid m-grid--ver-desktop m-grid--desktop m-body">
+				<div class="m-grid__item m-grid__item--fluid m-wrapper">			
+<script type="text/javascript">
+  function atualizarLista(param)
+  {
+    document.location.href = 'midias.php?tm=f&t=s&s=11681&'+param;
+  }
+	function alternarFoto()
+	{
+		    document.location.href = 'midias.php?t=s&s=11681&o=mp';		
+	}
+	function alternarSom()
+	{
+		    document.location.href = 'midias.php?tm=s&t=s&s=11681&o=mp';
+	}	
+</script>
+	<!-- BEGIN: Subheader -->
+	<div class="m-subheader ">
+		<div class="d-flex align-items-center">
+			<div class="mr-auto">
+				<h3 class="m-subheader__title m-subheader__title--separator wa-registros-titulo">
+        Fotos de bicudo (<i>Sporophila maximiliani</i>)				</h3>
+				<ul class="m-subheader__breadcrumbs m-nav m-nav--inline">
+					<li class="m-nav__item">
+						<a href="" class="m-nav__link">
+							<span class="m-nav__link-text">
+							  <span id="wa-registros-total">#</span> registros encontrados							</span>
+						</a>
+					</li>
+				</ul>
+			</div>
+			<div>
+				<div class="m-dropdown m-dropdown--inline m-dropdown--arrow m-dropdown--align-right m-dropdown--align-push" data-dropdown-toggle="hover" aria-expanded="true">
+					<a href="#" class="m-portlet__nav-link btn btn-lg btn-secondary  m-btn m-btn--outline-2x m-btn--air m-btn--icon m-btn--icon-only m-btn--pill  m-dropdown__toggle">
+						<i class="la la-plus m--hide"></i>
+						<i class="la la-ellipsis-h"></i>
+					</a>
+					<div class="m-dropdown__wrapper">
+						<span class="m-dropdown__arrow m-dropdown__arrow--right m-dropdown__arrow--adjust"></span>
+						<div class="m-dropdown__inner">
+							<div class="m-dropdown__body">
+								<div class="m-dropdown__content">
+										<ul class="m-nav">
+											<li class="m-nav__section m-nav__section--first">
+												<span class="m-nav__section-text">Tipos de Registro</span>
+											</li>
+											<li class="m-nav__item">
+												<a href="#" onclick="alternarFoto();" class="m-nav__link">
+													<i class="m-nav__link-icon la la-check"></i>
+													<span class="m-nav__link-text">Somente fotos</span>
+												</a>
+											</li>
+											<li class="m-nav__item">
+												<a href="#" onclick="alternarSom();" class="m-nav__link">
+													<i class="m-nav__link-icon "></i>
+													<span class="m-nav__link-text">Somente sons</span>
+												</a>
+											</li>
+																						<li class="m-nav__section">
+												<span class="m-nav__section-text">Ordenar por:</span>
+											</li>
+											<li class="m-nav__item wa-ordem-midias">
+												<a href="#" onclick="atualizarLista('o=dp');" class="m-nav__link">
+													<i class="m-nav__link-icon "></i>
+													<span class="m-nav__link-text" value='dp'>Mais Recentes</span>
+												</a>
+											</li>
+											<li class="m-nav__item wa-ordem-midias">
+												<a href="#" onclick="atualizarLista('o=dr');" class="m-nav__link">
+													<i class="m-nav__link-icon "></i>
+													<span class="m-nav__link-text" value='dr'>Data do registro</span>
+												</a>
+											</li>																									 
+											<li class="m-nav__item wa-ordem-midias">
+												<a href="#" onclick="atualizarLista('o=mp');" class="m-nav__link">
+													<i class="m-nav__link-icon la la-check"></i>
+													<span class="m-nav__link-text" value='mp'>Mais Populares</span>
+												</a>
+											</li>	
+											<li class="m-nav__item wa-ordem-midias">
+												<a href="#" onclick="atualizarLista('o=mc');" class="m-nav__link">
+													<i class="m-nav__link-icon "></i>
+													<span class="m-nav__link-text" value='mc'>Mais Comentadas</span>
+												</a>
+											</li>	
+											<li class="m-nav__item wa-ordem-midias">
+												<a href="#" onclick="atualizarLista('o=psp');" class="m-nav__link">
+													<i class="m-nav__link-icon "></i>
+													<span class="m-nav__link-text" value='psp'>Peso da ID: Espécie</span>
+												</a>
+											</li>
+																				
+										</ul>
+								</div>
+							</div>
+						</div>
+					</div>
+				</div>
+			</div>
+		</div>
+	</div>
+	<!-- END: Subheader -->
+	<div class="m-content">
+
+					<!--begin::CONTENT -->
+					<!-- /.modal large -->
+					<div class="modal modal-scroll" id="wa-detalhes" tabindex="-1" role="dialog" aria-hidden="true">
+							<button type="button" class="close m-btn btn" data-dismiss="modal" aria-label="Close"><i class="la la-close"></i></button>
+							<div class="modal-dialog wa-modal fadeInUp">
+									<div class="modal-content wa-detalhes-content">
+											<div class="modal-body"></div>
+									</div>
+							</div>
+					</div>
+					<!-- /.modal -->									
+												
+					<div class="wa-nav-spinner wa-spinner">
+						<div id="spinner1" class="m-spinner m-spinner--danger  m-spinner--sm"></div>
+						<div id="spinner2" class="m-spinner m-spinner--warning m-spinner--sm"></div>
+						<div id="spinner3" class="m-spinner m-spinner--success m-spinner--sm"></div>
+						<div id="spinner4" class="m-spinner m-spinner--primary m-spinner--sm"></div>
+					</div>
+
+					<div id="wa-record-grid" class="wa-record-grid"></div>
+        
+        	<div class="wa-loading-records wa-spinner">
+						<div id="spinner1" class="m-spinner m-spinner--danger  m-spinner--sm"></div>
+						<div id="spinner2" class="m-spinner m-spinner--warning m-spinner--sm"></div>
+						<div id="spinner3" class="m-spinner m-spinner--success m-spinner--sm"></div>
+						<div id="spinner4" class="m-spinner m-spinner--primary m-spinner--sm"></div>
+					</div>
+									
+				<!--end::CONTENT-->
+	</div>
+<script>
+function startLoadingRecords() {
+  parametros = "tm=f&t=s&s=11681&o=mp&o=mp";
+	LoadItems();
+};
+</script>
+     			</div>
+			<!-- end:: Body -->
+		</div>
+		<!-- begin::Footer -->
+
+    		
+		<footer class="m-grid__item m-footer d-print-none">
+		
+				<div class="m-container m-container--fluid m-page__container">
+					<div class="m-stack m-stack--flex-tablet-and-mobile m-stack--ver m-stack--desktop">
+						<div class="m-content row">
+							<div class="col-md-2 col-lg-3">
+								<div class="m-stack__item m-stack__item--left m-stack__item--middle m-stack__item--last">					
+									<!--<div class="m-stack__item m-stack__item--left m-stack__item--middle m-stack__item--last"><a href="http://www.birdingtop500.com/"><img src="http://www.birdingtop500.com/button.php?u=wikiaves" alt="Fatbirder's Top 1000 Birding Websites" border="0"></a></div>-->
+									<div class="m-stack__item m-stack__item--left m-stack__item--middle m-stack__item--first"><span class="m-footer__copyright">Copyright &copy; 2008 - 2026  WikiAves.com</span></div>
+								</div>
+							</div>
+							<div class="col-md-10 col-lg-9">
+								<div class="m-stack__item m-stack__item--right m-stack__item--middle m-stack__item--first">
+									<ul class="m-footer__nav m-nav m-nav--inline m--pull-right">
+										<li class="m-nav__item">
+											<a href="/wiki/aves" class="m-nav__link">
+												<span class="m-nav__link-text">AVES DO BRASIL</span>
+											</a>
+										</li>
+										<li class="m-nav__item">
+											<a href="/wiki/indice"  class="m-nav__link">
+												<span class="m-nav__link-text">INFORMAÇÕES</span>
+											</a>
+										</li>
+										<li class="m-nav__item">
+											<a href="/wiki/wikiaves:regras" class="m-nav__link">
+												<span class="m-nav__link-text">REGRAS</span>
+											</a>
+										</li>
+										<li class="m-nav__item">
+											<a href="/forum" class="m-nav__link">
+												<span class="m-nav__link-text">FÓRUM</span>
+											</a>
+										</li>
+										<li class="m-nav__item">
+											<a href="/wiki/wikiaves:contribuidor" class="m-nav__link">
+												<span class="m-nav__link-text">CONTRIBUA</span>
+											</a>
+										</li>
+										<li class="m-nav__item wa-fatbirder d-print-none">
+											<a class="m-nav__link" href="https://www.birdingtop500.com/"><img src="https://www.birdingtop500.com/button.php?u=wikiaves" style="max-height: 60px" alt="Fatbirder's Top 1000 Birding Websites" border="0"></a>
+										</li>
+									</ul>
+								</div>
+							</div>
+						</div>
+					</div>
+				</div>		
+			</footer>
+					<!-- end::Footer -->
+		<!-- end:: Page -->
+		<!-- begin::Scroll Top -->
+		<div class="m-scroll-top m-scroll-top--skin-top d-print-none" data-toggle="m-scroll-top" data-scroll-offset="500" data-scroll-speed="300">
+			<i class="la la-arrow-up"></i>
+		</div>
+		
+		<!-- end::Scroll Top -->
+		<!--begin::Base Scripts -->
+		<script src="m5/dist/default/assets/vendors/base/vendors.bundle.js" type="text/javascript"></script>
+		<script src="m5/dist/default/assets/demo/default/base/scripts.bundle.js" type="text/javascript"></script>
+		<!--end::Base Scripts -->
+		<!--begin::Page Snippets -->
+		<script src="jswa/midias.js?1749092213" type="text/javascript"></script><script type="text/javascript" src="/jswa/wikiaves.midia.js?1722197719"></script><script async src="https://static.addtoany.com/menu/page.js"></script>		<!--end::Page Snippets -->
+
+<script>
+(adsbygoogle = window.adsbygoogle || []).push({});
+</script>
+		
+<script type="text/javascript">
+var gaJsHost = (("https:" == document.location.protocol) ? "https://ssl." : "http://www.");
+document.write(unescape("%3Cscript src='" + gaJsHost + "google-analytics.com/ga.js' type='text/javascript'%3E%3C/script%3E"));
+</script>
+<script type="text/javascript">
+
+try {
+var pageTracker = _gat._getTracker("UA-9262261-1");
+pageTracker._trackPageview();
+} catch(err) {}</script>		
+	<script defer src="https://static.cloudflareinsights.com/beacon.min.js/vcd15cbe7772f49c399c6a5babf22c1241717689176015" integrity="sha512-ZpsOmlRQV6y907TI0dKBHq9Md29nnaEIPlkf84rnaERnq6zvWvPUqr2ft8M1aS28oN72PdrCzSjY4U6VaAw1EQ==" data-cf-beacon='{"version":"2024.11.0","token":"ee0951c745094838af6d00f2c9a9ca76","r":1,"server_timing":{"name":{"cfCacheStatus":true,"cfEdge":true,"cfExtPri":true,"cfL4":true,"cfOrigin":true,"cfSpeedBrain":true},"location_startswith":null}}' crossorigin="anonymous"></script>
+</body>
+	<!-- end::Body -->
+</html>
+
+
+
+
+
