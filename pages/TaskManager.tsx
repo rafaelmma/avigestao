@@ -115,7 +115,62 @@ const TaskManager: React.FC<TaskManagerProps> = ({ state, addTask, updateTask, t
       setShowModal(false);
     }
   };
+  const getNextDueDate = (task: MaintenanceTask) => {
+    const baseDate = task.dueDate ? new Date(task.dueDate) : new Date();
+    const frequency = task.frequency || 'Diária';
 
+    if (frequency === 'Semanal') {
+      const next = new Date(baseDate);
+      next.setDate(next.getDate() + 7);
+      return next;
+    }
+
+    if (frequency === 'Mensal') {
+      const year = baseDate.getFullYear();
+      const month = baseDate.getMonth() + 1;
+      const day = baseDate.getDate();
+      const candidate = new Date(year, month, day);
+      if (candidate.getMonth() !== month) {
+        return new Date(year, month + 1, 0);
+      }
+      return candidate;
+    }
+
+    const next = new Date(baseDate);
+    next.setDate(next.getDate() + 1);
+    return next;
+  };
+
+  const getRepeatLabel = (frequency?: MaintenanceTask['frequency']) => {
+    switch (frequency) {
+      case 'Mensal':
+        return 'mensal';
+      case 'Semanal':
+        return 'semanal';
+      case 'Diária':
+        return 'diária';
+      case 'Única':
+      default:
+        return 'diária';
+    }
+  };
+
+  const handleRepeatTask = (task: MaintenanceTask) => {
+    const nextDate = getNextDueDate(task);
+
+    const repeatedTask: MaintenanceTask = {
+      ...task,
+      id: Math.random().toString(36).substr(2, 9),
+      dueDate: nextDate.toISOString().split('T')[0],
+      isCompleted: false
+    };
+
+    if (!task.isCompleted) {
+      toggleTask(task.id);
+    }
+
+    addTask(repeatedTask);
+  };
   // Funções de Lixeira
   const handleDeleteClick = (id: string) => {
     deleteTask(id);
@@ -296,21 +351,37 @@ const TaskManager: React.FC<TaskManagerProps> = ({ state, addTask, updateTask, t
                   </div>
                   
                   {currentList === 'active' ? (
-                    <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                      <button 
-                        onClick={() => handleOpenEdit(t)} 
-                        className="p-2 text-slate-300 hover:text-brand transition-all"
-                        title="Editar"
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={() => toggleTask(t.id)}
+                        className="px-3 py-2 text-[10px] font-black uppercase tracking-widest rounded-xl bg-emerald-500 text-white hover:bg-emerald-600 transition-all"
+                        title="Concluir tarefa"
                       >
-                        <Edit size={16} />
+                        Concluir
                       </button>
-                      <button 
-                        onClick={() => handleDeleteClick(t.id)} 
-                        className="p-2 text-slate-300 hover:text-rose-500 transition-all"
-                        title="Mover para Lixeira"
+                      <button
+                        onClick={() => handleRepeatTask(t)}
+                        className="px-3 py-2 text-[10px] font-black uppercase tracking-widest rounded-xl bg-blue-50 text-blue-600 border border-blue-100 hover:bg-blue-100 transition-all"
+                        title={`Repetir tarefa ${getRepeatLabel(t.frequency)}`}
                       >
-                        <Trash2 size={16} />
+                        Repetir {getRepeatLabel(t.frequency)}
                       </button>
+                      <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <button 
+                          onClick={() => handleOpenEdit(t)} 
+                          className="p-2 text-slate-300 hover:text-brand transition-all"
+                          title="Editar"
+                        >
+                          <Edit size={16} />
+                        </button>
+                        <button 
+                          onClick={() => handleDeleteClick(t.id)} 
+                          className="p-2 text-slate-300 hover:text-rose-500 transition-all"
+                          title="Mover para Lixeira"
+                        >
+                          <Trash2 size={16} />
+                        </button>
+                      </div>
                     </div>
                   ) : (
                     <div className="flex gap-2">

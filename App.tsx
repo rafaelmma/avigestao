@@ -568,20 +568,14 @@ useEffect(() => {
     title: t.title,
     due_date: t.dueDate,
     is_completed: t.isCompleted,
-    ...(t.priority ? { priority: t.priority } : {}),
     ...(t.birdId ? { bird_id: t.birdId } : {}),
-    ...(t.frequency ? { frequency: t.frequency } : {}),
-    ...(typeof t.remindMe === 'boolean' ? { remind_me: t.remindMe } : {}),
   });
 
   const mapTaskUpdateToDb = (t: MaintenanceTask) => ({
     title: t.title,
     due_date: t.dueDate,
     is_completed: t.isCompleted,
-    ...(t.priority ? { priority: t.priority } : {}),
     ...(t.birdId ? { bird_id: t.birdId } : {}),
-    ...(t.frequency ? { frequency: t.frequency } : {}),
-    ...(typeof t.remindMe === 'boolean' ? { remind_me: t.remindMe } : {}),
   });
 
   const mapPairToDb = (pair: Pair, uid: string) => ({
