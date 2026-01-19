@@ -36,7 +36,8 @@ import {
   Download,
   Paperclip,
   Camera,
-  Lock
+  Lock,
+  Syringe
 } from 'lucide-react';
 import { BRAZILIAN_SPECIES, MAX_FREE_BIRDS, SPECIES_IMAGES, getDefaultBirdImage, isDefaultBirdImage } from '../constants';
 import PedigreeTree from '../components/PedigreeTree';
@@ -349,6 +350,12 @@ const BirdManager: React.FC<BirdManagerProps> = ({
 
   const males = state.birds.filter(b => b.sex === 'Macho');
   const females = state.birds.filter(b => b.sex === 'Fêmea');
+  const getMedicationName = (id: string) => state.medications.find(m => m.id === id)?.name || 'Medicamento';
+  const getMedicationHistoryForBird = (birdId: string) =>
+    state.applications
+      .filter(app => app.birdId === birdId)
+      .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+  const selectedBirdMedHistory = selectedBird ? getMedicationHistoryForBird(selectedBird.id) : [];
 
   const handleSaveBird = (e: React.FormEvent) => {
     e.preventDefault();
@@ -1474,6 +1481,39 @@ const BirdManager: React.FC<BirdManagerProps> = ({
                                </div>
                             ) : (
                                <p className="text-xs text-slate-400 italic">Nenhum documento anexado.</p>
+                            )}
+                         </div>
+
+                         <div className="bg-white p-8 rounded-[32px] border border-slate-100 shadow-sm">
+                            <div className="flex justify-between items-center mb-6">
+                               <h3 className="text-sm font-black text-slate-700 uppercase tracking-widest flex items-center gap-2">
+                                 <Syringe size={16} className="text-emerald-500" /> Histórico de Medicações
+                               </h3>
+                               <span className="text-[10px] font-black text-slate-400 bg-slate-50 px-2 py-1 rounded-lg uppercase">
+                                 {selectedBirdMedHistory.length}
+                               </span>
+                            </div>
+
+                            {selectedBirdMedHistory.length > 0 ? (
+                               <div className="space-y-3">
+                                  {selectedBirdMedHistory.slice(0, 5).map(app => (
+                                     <div key={app.id} className="flex items-center justify-between gap-4 p-4 bg-slate-50 border border-slate-100 rounded-2xl">
+                                        <div className="min-w-0">
+                                           <p className="text-xs font-bold text-slate-800 truncate">{getMedicationName(app.medicationId)}</p>
+                                           <p className="text-[10px] text-slate-400 font-bold uppercase mt-1">
+                                             {new Date(app.date).toLocaleDateString('pt-BR')} • {app.dosage}
+                                           </p>
+                                           {app.notes && <p className="text-[10px] text-slate-500 mt-1 truncate">{app.notes}</p>}
+                                        </div>
+                                        <span className="text-[9px] font-black text-emerald-500 uppercase">Aplicação</span>
+                                     </div>
+                                  ))}
+                                  {selectedBirdMedHistory.length > 5 && (
+                                     <p className="text-[10px] text-slate-400 font-bold">+{selectedBirdMedHistory.length - 5} aplicações</p>
+                                  )}
+                               </div>
+                            ) : (
+                               <p className="text-xs text-slate-400 italic">Nenhuma aplicação registrada para esta ave.</p>
                             )}
                          </div>
 

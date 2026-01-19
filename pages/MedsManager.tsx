@@ -106,6 +106,7 @@ const MedsManager: React.FC<MedsManagerProps> = ({
     m.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
     m.type.toLowerCase().includes(searchTerm.toLowerCase())
   );
+  const expiredMeds = state.medications.filter(m => isExpired(m.expiryDate));
 
   const filteredHistory = historyListToUse.filter(app => {
     const bird = state.birds.find(b => b.id === app.birdId);
@@ -295,6 +296,48 @@ const MedsManager: React.FC<MedsManagerProps> = ({
       {/* --- ABA DE ESTOQUE --- */}
       {activeTab === 'inventory' && (
         <div className="space-y-6 animate-in fade-in slide-in-from-left-4 duration-300">
+          {currentList === 'active' && expiredMeds.length > 0 && (
+            <div className="bg-rose-50 border-l-4 border-rose-500 p-4 rounded-r-xl">
+              <div className="flex items-start justify-between gap-4">
+                <div>
+                  <p className="text-rose-700 font-bold text-sm">Medicamentos vencidos</p>
+                  <p className="text-rose-600 text-xs">Revise a validade ou desative para evitar uso indevido.</p>
+                </div>
+                <span className="px-2 py-1 bg-rose-100 text-rose-600 text-[10px] font-black rounded-lg uppercase">
+                  {expiredMeds.length}
+                </span>
+              </div>
+              <div className="mt-3 space-y-2">
+                {expiredMeds.slice(0, 3).map(med => (
+                  <div key={med.id} className="flex items-center justify-between gap-3 bg-white/80 border border-rose-100 rounded-xl px-3 py-2">
+                    <div className="min-w-0">
+                      <p className="text-xs font-bold text-rose-700 truncate">{med.name}</p>
+                      <p className="text-[10px] text-rose-500">Venceu em {new Date(med.expiryDate).toLocaleDateString('pt-BR')}</p>
+                    </div>
+                    <div className="flex gap-2">
+                      <button
+                        type="button"
+                        onClick={() => setEditingMed(med)}
+                        className="px-2 py-1 text-[10px] font-black uppercase rounded-lg border border-emerald-100 text-emerald-600 hover:text-emerald-700 hover:border-emerald-200 transition-all"
+                      >
+                        Renovar
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleDeleteClick(med.id)}
+                        className="px-2 py-1 text-[10px] font-black uppercase rounded-lg border border-rose-100 text-rose-500 hover:text-rose-700 hover:border-rose-200 transition-all"
+                      >
+                        Desativar
+                      </button>
+                    </div>
+                  </div>
+                ))}
+                {expiredMeds.length > 3 && (
+                  <p className="text-[10px] text-rose-500 font-bold">+{expiredMeds.length - 3} medicamentos vencidos</p>
+                )}
+              </div>
+            </div>
+          )}
           <div className="flex flex-col md:flex-row justify-between gap-4">
              <div className="flex gap-2 bg-white p-1 rounded-xl w-fit border border-slate-100">
                 <button 

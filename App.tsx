@@ -790,51 +790,65 @@ useEffect(() => {
     stock: med.stock,
   });
 
-  const mapApplicationToDb = (app: MedicationApplication, uid: string) => ({
-    id: app.id,
-    user_id: uid,
-    bird_id: app.birdId,
-    medication_id: app.medicationId,
-    date: app.date,
-    dosage: app.dosage,
-    notes: app.notes,
-    treatment_id: app.treatmentId || null,
-  });
+  const mapApplicationToDb = (app: MedicationApplication, uid: string) => {
+    const safeTreatmentId = app.treatmentId && uuidRegex.test(app.treatmentId) ? app.treatmentId : null;
+    return {
+      id: app.id,
+      user_id: uid,
+      bird_id: app.birdId,
+      medication_id: app.medicationId,
+      date: app.date,
+      dosage: app.dosage,
+      notes: app.notes,
+      treatment_id: safeTreatmentId,
+    };
+  };
 
-  const mapApplicationUpdateToDb = (app: MedicationApplication) => ({
-    bird_id: app.birdId,
-    medication_id: app.medicationId,
-    date: app.date,
-    dosage: app.dosage,
-    notes: app.notes,
-    treatment_id: app.treatmentId || null,
-  });
+  const mapApplicationUpdateToDb = (app: MedicationApplication) => {
+    const safeTreatmentId = app.treatmentId && uuidRegex.test(app.treatmentId) ? app.treatmentId : null;
+    return {
+      bird_id: app.birdId,
+      medication_id: app.medicationId,
+      date: app.date,
+      dosage: app.dosage,
+      notes: app.notes,
+      treatment_id: safeTreatmentId,
+    };
+  };
 
-  const mapTreatmentToDb = (t: ContinuousTreatment, uid: string) => ({
-    id: t.id,
-    user_id: uid,
-    bird_id: t.birdId,
-    medication_id: t.medicationId,
-    start_date: t.startDate,
-    end_date: t.endDate || null,
-    frequency: t.frequency,
-    dosage: t.dosage,
-    status: t.status,
-    last_application_date: t.lastApplicationDate || null,
-    notes: t.notes || '',
-  });
+  const mapTreatmentToDb = (t: ContinuousTreatment, uid: string) => {
+    const safeBirdId = t.birdId && uuidRegex.test(t.birdId) ? t.birdId : null;
+    const safeMedicationId = t.medicationId && uuidRegex.test(t.medicationId) ? t.medicationId : null;
+    return {
+      id: t.id,
+      user_id: uid,
+      bird_id: safeBirdId,
+      medication_id: safeMedicationId,
+      start_date: t.startDate,
+      end_date: t.endDate || null,
+      frequency: t.frequency,
+      dosage: t.dosage,
+      status: t.status,
+      last_application_date: t.lastApplicationDate || null,
+      notes: t.notes || '',
+    };
+  };
 
-  const mapTreatmentUpdateToDb = (t: ContinuousTreatment) => ({
-    bird_id: t.birdId,
-    medication_id: t.medicationId,
-    start_date: t.startDate,
-    end_date: t.endDate || null,
-    frequency: t.frequency,
-    dosage: t.dosage,
-    status: t.status,
-    last_application_date: t.lastApplicationDate || null,
-    notes: t.notes || '',
-  });
+  const mapTreatmentUpdateToDb = (t: ContinuousTreatment) => {
+    const safeBirdId = t.birdId && uuidRegex.test(t.birdId) ? t.birdId : null;
+    const safeMedicationId = t.medicationId && uuidRegex.test(t.medicationId) ? t.medicationId : null;
+    return {
+      bird_id: safeBirdId,
+      medication_id: safeMedicationId,
+      start_date: t.startDate,
+      end_date: t.endDate || null,
+      frequency: t.frequency,
+      dosage: t.dosage,
+      status: t.status,
+      last_application_date: t.lastApplicationDate || null,
+      notes: t.notes || '',
+    };
+  };
 
   const getValidTournamentBirdIds = (ids?: string[]) => {
     if (!Array.isArray(ids)) return [];
@@ -1437,17 +1451,47 @@ useEffect(() => {
     (async () => {
       const uid = await getUserId();
       if (!uid) return;
+      const safeTreatmentId = uuidRegex.test(t.id) ? t.id : createUuid();
+      let safeMedicationId = t.medicationId;
+      const sourceMedication = !uuidRegex.test(t.medicationId)
+        ? state.medications.find(m => m.id === t.medicationId)
+        : undefined;
+      if (sourceMedication) {
+        if (uuidRegex.test(sourceMedication.id)) {
+          safeMedicationId = sourceMedication.id;
+        } else {
+          const safeMedId = createUuid();
+          const safeMed = { ...sourceMedication, id: safeMedId };
+          safeMedicationId = safeMedId;
+          setState(prev => ({
+            ...prev,
+            medications: prev.medications.map(m => m.id === sourceMedication.id ? safeMed : m),
+            applications: prev.applications.map(a => a.medicationId === sourceMedication.id ? { ...a, medicationId: safeMedId } : a),
+            treatments: prev.treatments.map(tr => tr.medicationId === sourceMedication.id ? { ...tr, medicationId: safeMedId } : tr),
+          }));
+          try {
+            await insertRow('medications', mapMedicationToDb(safeMed, uid));
+          } catch (err) {
+            console.error('Erro ao salvar medicamento:', err);
+            setError('Falha ao salvar medicamento. Verifique sua conexao.');
+          }
+        }
+      }
+      const safeBirdId = t.birdId && uuidRegex.test(t.birdId) ? t.birdId : 'ALL';
+      const safeTreatment: ContinuousTreatment = t.id === safeTreatmentId && t.medicationId === safeMedicationId && t.birdId === safeBirdId
+        ? t
+        : { ...t, id: safeTreatmentId, medicationId: safeMedicationId, birdId: safeBirdId };
       let added = false;
       setState(prev => {
-        if (prev.treatments.some(item => item.id === t.id)) return prev;
+        if (prev.treatments.some(item => item.id === safeTreatment.id)) return prev;
         added = true;
-        return { ...prev, treatments: [...prev.treatments, t] };
+        return { ...prev, treatments: [...prev.treatments, safeTreatment] };
       });
       try {
-        await insertRow('treatments', mapTreatmentToDb(t, uid));
+        await insertRow('treatments', mapTreatmentToDb(safeTreatment, uid));
       } catch (err) {
         if (added) {
-          setState(prev => ({ ...prev, treatments: prev.treatments.filter(item => item.id !== t.id) }));
+          setState(prev => ({ ...prev, treatments: prev.treatments.filter(item => item.id !== safeTreatment.id) }));
         }
         console.error('Erro ao salvar tratamento:', err);
         setError('Falha ao salvar tratamento. Verifique sua conexao.');
@@ -1456,13 +1500,67 @@ useEffect(() => {
   };
 
   const updateTreatment = (updated: ContinuousTreatment) => {
+    if (!uuidRegex.test(updated.id)) {
+      const safeTreatmentId = createUuid();
+      const safeTreatment = { ...updated, id: safeTreatmentId };
+      setState(prev => ({
+        ...prev,
+        treatments: prev.treatments.map(t => t.id === updated.id ? safeTreatment : t),
+        applications: prev.applications.map(a => a.treatmentId === updated.id ? { ...a, treatmentId: safeTreatmentId } : a),
+      }));
+      (async () => {
+        const uid = await getUserId();
+        if (!uid) return;
+        try {
+          await insertRow('treatments', mapTreatmentToDb(safeTreatment, uid));
+        } catch (err) {
+          console.error('Erro ao salvar tratamento:', err);
+          setError('Falha ao salvar tratamento. Verifique sua conexao.');
+        }
+      })();
+      return;
+    }
+
+    let safeMedicationId = updated.medicationId;
+    const sourceMedication = !uuidRegex.test(updated.medicationId)
+      ? state.medications.find(m => m.id === updated.medicationId)
+      : undefined;
+    if (sourceMedication) {
+      if (uuidRegex.test(sourceMedication.id)) {
+        safeMedicationId = sourceMedication.id;
+      } else {
+        const safeMedId = createUuid();
+        const safeMed = { ...sourceMedication, id: safeMedId };
+        safeMedicationId = safeMedId;
+        setState(prev => ({
+          ...prev,
+          medications: prev.medications.map(m => m.id === sourceMedication.id ? safeMed : m),
+          applications: prev.applications.map(a => a.medicationId === sourceMedication.id ? { ...a, medicationId: safeMedId } : a),
+          treatments: prev.treatments.map(tr => tr.medicationId === sourceMedication.id ? { ...tr, medicationId: safeMedId } : tr),
+        }));
+        (async () => {
+          const uid = await getUserId();
+          if (!uid) return;
+          try {
+            await insertRow('medications', mapMedicationToDb(safeMed, uid));
+          } catch (err) {
+            console.error('Erro ao salvar medicamento:', err);
+            setError('Falha ao salvar medicamento. Verifique sua conexao.');
+          }
+        })();
+      }
+    }
+    const safeBirdId = updated.birdId && uuidRegex.test(updated.birdId) ? updated.birdId : 'ALL';
+    const safeTreatment = updated.medicationId === safeMedicationId && updated.birdId === safeBirdId
+      ? updated
+      : { ...updated, medicationId: safeMedicationId, birdId: safeBirdId };
     setState(prev => ({
       ...prev,
-      treatments: prev.treatments.map(t => t.id === updated.id ? updated : t)
+      treatments: prev.treatments.map(t => t.id === updated.id ? safeTreatment : t)
     }));
     (async () => {
       try {
-        await updateRow('treatments', updated.id, mapTreatmentUpdateToDb(updated));
+        await updateRow('treatments', safeTreatment.id, mapTreatmentUpdateToDb(safeTreatment));
       } catch (err) {
         console.error('Erro ao atualizar tratamento:', err);
         setError('Falha ao atualizar tratamento. Verifique sua conexao.');

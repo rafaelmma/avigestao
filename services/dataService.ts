@@ -165,19 +165,22 @@ export const mapApplicationFromDb = (row: any): MedicationApplication => ({
   deletedAt: row.deleted_at ?? row.deletedAt ?? undefined,
 });
 
-export const mapTreatmentFromDb = (row: any): ContinuousTreatment => ({
-  id: row.id,
-  birdId: row.bird_id ?? row.birdId ?? '',
-  medicationId: row.medication_id ?? row.medicationId ?? '',
-  startDate: row.start_date ?? row.startDate ?? '',
-  endDate: row.end_date ?? row.endDate ?? undefined,
-  frequency: (row.frequency ?? 'Diario') as any,
-  dosage: row.dosage ?? '',
-  status: (row.status ?? 'Ativo') as any,
-  lastApplicationDate: row.last_application_date ?? row.lastApplicationDate ?? undefined,
-  notes: row.notes ?? undefined,
-  deletedAt: row.deleted_at ?? row.deletedAt ?? undefined,
-});
+export const mapTreatmentFromDb = (row: any): ContinuousTreatment => {
+  const rawBirdId = row.bird_id ?? row.birdId ?? null;
+  return {
+    id: row.id,
+    birdId: rawBirdId ? rawBirdId : 'ALL',
+    medicationId: row.medication_id ?? row.medicationId ?? '',
+    startDate: row.start_date ?? row.startDate ?? '',
+    endDate: row.end_date ?? row.endDate ?? undefined,
+    frequency: (row.frequency ?? 'Diario') as any,
+    dosage: row.dosage ?? '',
+    status: (row.status ?? 'Ativo') as any,
+    lastApplicationDate: row.last_application_date ?? row.lastApplicationDate ?? undefined,
+    notes: row.notes ?? undefined,
+    deletedAt: row.deleted_at ?? row.deletedAt ?? undefined,
+  };
+};
 
 export const mapSettingsFromDb = (row: any): BreederSettings => ({
   breederName: row.breeder_name ?? row.breederName ?? INITIAL_SETTINGS.breederName,
