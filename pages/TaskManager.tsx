@@ -148,10 +148,10 @@ const TaskManager: React.FC<TaskManagerProps> = ({ state, addTask, updateTask, t
       case 'Semanal':
         return 'semanal';
       case 'Diária':
-        return 'diÃ¡ria';
+        return 'diária';
       case 'Única':
       default:
-        return 'diÃ¡ria';
+        return 'diária';
     }
   };
 
@@ -199,7 +199,7 @@ const TaskManager: React.FC<TaskManagerProps> = ({ state, addTask, updateTask, t
       <header className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <h2 className="text-3xl font-black text-[#0F172A] tracking-tight">Agenda de Manejo</h2>
-          <p className="text-slate-400 font-medium text-sm mt-1">Organize as tarefas diÃ¡rias e semanais do criatÃ³rio.</p>
+          <p className="text-slate-400 font-medium text-sm mt-1">Organize as tarefas diárias e semanais do criatório.</p>
         </div>
         <div className="flex gap-2">
            <div className="flex bg-white p-1 rounded-xl shadow-sm border border-slate-100 mr-2">
@@ -414,7 +414,7 @@ const TaskManager: React.FC<TaskManagerProps> = ({ state, addTask, updateTask, t
           <div className="flex items-center justify-between mb-4">
              <h3 className="font-black text-slate-400 text-lg flex items-center gap-3">
                <CheckSquare size={20} />
-               HistÃ³rico de Manejo
+               Histórico de Manejo
              </h3>
              <div className="flex items-center gap-3">
                {currentList === 'active' && completedTasks.length > 0 ? (
@@ -583,6 +583,7 @@ const TaskManager: React.FC<TaskManagerProps> = ({ state, addTask, updateTask, t
 };
 
 export default TaskManager;
+
 
 
 
