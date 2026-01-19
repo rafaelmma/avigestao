@@ -97,42 +97,22 @@ export const APP_LOGO = `data:image/svg+xml;utf8,${encodeURIComponent(`
 </svg>
 `)}`;
 
-export const DEFAULT_BIRD_ILLUSTRATION = `data:image/svg+xml;utf8,${encodeURIComponent(`
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" fill="none">
-  <!-- Círculo de Fundo Suave -->
-  <circle cx="256" cy="256" r="240" fill="#F8FAFC"/>
-  
-  <!-- Galho -->
-  <path d="M80 380 C150 400, 350 320, 440 340" stroke="#94A3B8" stroke-width="12" stroke-linecap="round"/>
-  <path d="M160 385 Q160 410 150 430 M150 385 Q150 410 140 430" stroke="#94A3B8" stroke-width="4" stroke-linecap="round"/>
-
-  <!-- Pássaro Silhueta Estilizada -->
-  <path d="M180 350 
-           C160 350, 120 380, 100 420 
-           L140 390
-           C140 390, 150 250, 260 200
-           C320 170, 380 200, 380 260
-           C380 320, 300 360, 180 350" 
-           fill="#CBD5E1"/>
-
-  <!-- Asa -->
-  <path d="M220 280 
-           C280 260, 320 300, 300 340
-           C280 360, 240 340, 220 280" 
-           fill="#94A3B8"/>
-  
-  <!-- Bico -->
-  <path d="M375 220 L410 230 L375 245 Z" fill="#64748B"/>
-  
-  <!-- Olho -->
-  <circle cx="340" cy="230" r="12" fill="#475569"/>
-  <circle cx="344" cy="226" r="4" fill="white"/>
-
-  <!-- Patas -->
-  <path d="M240 350 L240 380" stroke="#64748B" stroke-width="6" stroke-linecap="round"/>
-  <path d="M270 345 L270 375" stroke="#64748B" stroke-width="6" stroke-linecap="round"/>
+const buildDefaultBirdIcon = (accent: string, bg: string) => `data:image/svg+xml;utf8,${encodeURIComponent(`
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256">
+  <circle cx="128" cy="128" r="120" fill="${bg}"/>
+  <path d="M78 154 C70 142 72 124 86 112 C104 96 132 96 154 110 C170 122 182 142 184 160 C170 166 154 164 140 156 C124 146 110 146 96 152 C88 156 82 158 78 154 Z" fill="${accent}"/>
+  <circle cx="158" cy="94" r="18" fill="${accent}"/>
+  <path d="M174 90 L204 98 L174 106 Z" fill="${accent}"/>
+  <circle cx="164" cy="92" r="4" fill="${bg}"/>
+  <path d="M96 156 L60 170 L90 136 Z" fill="${accent}"/>
 </svg>
 `)}`;
+
+export const DEFAULT_BIRD_ICONS = {
+  male: buildDefaultBirdIcon('#2563EB', '#DBEAFE'),
+  female: buildDefaultBirdIcon('#EC4899', '#FCE7F3'),
+  indeterminate: buildDefaultBirdIcon('#475569', '#E2E8F0')
+};
 
 export const SPECIES_IMAGES: Record<string, { male: string; female: string }> = {
   'Canário Belga': { male: '/birds/canario-belga-macho.jpg', female: '/birds/canario-belga-femea.jpg' },
@@ -154,14 +134,14 @@ export const SPECIES_IMAGES: Record<string, { male: string; female: string }> = 
 };
 
 export const getDefaultBirdImage = (species: string, sex: Sex | string) => {
-  const entry = SPECIES_IMAGES[species];
-  if (!entry) return DEFAULT_BIRD_ILLUSTRATION;
-  return sex === 'Fêmea' ? entry.female : entry.male;
+  if (sex === 'Fêmea') return DEFAULT_BIRD_ICONS.female;
+  if (sex === 'Macho') return DEFAULT_BIRD_ICONS.male;
+  return DEFAULT_BIRD_ICONS.indeterminate;
 };
 
 export const isDefaultBirdImage = (url?: string) => {
-  if (!url || url === DEFAULT_BIRD_ILLUSTRATION) return true;
-  return Object.values(SPECIES_IMAGES).some((entry) => entry.male === url || entry.female === url);
+  if (!url) return true;
+  return url === DEFAULT_BIRD_ICONS.male || url === DEFAULT_BIRD_ICONS.female || url === DEFAULT_BIRD_ICONS.indeterminate;
 };
 
 export const BRAZILIAN_SPECIES = Object.keys(SPECIES_IMAGES);
