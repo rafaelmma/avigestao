@@ -74,9 +74,9 @@ export interface MaintenanceTask {
   title: string;
   dueDate: string;
   isCompleted: boolean;
-  priority: 'Baixa' | 'MÃ©dia' | 'Alta';
+  priority: 'Baixa' | 'Média' | 'Alta';
   birdId?: string;
-  frequency?: 'Ãšnica' | 'DiÃ¡ria' | 'Semanal' | 'Mensal'; // Adicionado
+  frequency?: 'Única' | 'Diária' | 'Semanal' | 'Mensal'; // Adicionado
   remindMe?: boolean; // Adicionado: Flag para destacar aviso
 }
 

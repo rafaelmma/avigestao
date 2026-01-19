@@ -1231,7 +1231,18 @@ useEffect(() => {
   const addTask = async (t: MaintenanceTask) => {
     const uid = await getUserId();
     if (!uid) return;
-    await insertRow('tasks', mapTaskToDb(t, uid));
+    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+    const safeTaskId = uuidRegex.test(t.id)
+      ? t.id
+      : (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function'
+          ? crypto.randomUUID()
+          : 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
+              const r = (Math.random() * 16) | 0;
+              const v = c === 'x' ? r : (r & 0x3) | 0x8;
+              return v.toString(16);
+            }));
+    const safeTask = t.id === safeTaskId ? t : { ...t, id: safeTaskId };
+    await insertRow('tasks', mapTaskToDb(safeTask, uid));
   };
 
   const updateTask = async (updatedTask: MaintenanceTask) => {
