@@ -829,7 +829,6 @@ useEffect(() => {
     title: t.title,
     date: t.date,
     location: t.location,
-    type: t.type,
   });
 
   const mapTournamentUpdateToDb = (t: TournamentEvent) => ({
@@ -851,7 +850,6 @@ useEffect(() => {
     title: t.title,
     date: t.date,
     location: t.location,
-    type: t.type,
   });
 
   const isSchemaCacheMissingColumn = (err: any) => {
