@@ -60,6 +60,15 @@ const App: React.FC = () => {
 
   const TRASH_RETENTION_DAYS = 30;
   const TRASH_RETENTION_MS = TRASH_RETENTION_DAYS * 24 * 60 * 60 * 1000;
+  const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+  const createUuid = () =>
+    (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function'
+      ? crypto.randomUUID()
+      : 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
+          const r = (Math.random() * 16) | 0;
+          const v = c === 'x' ? r : (r & 0x3) | 0x8;
+          return v.toString(16);
+        }));
 
   const splitDeletedItems = <T extends { id: string; deletedAt?: string }>(items: T[]) => {
     const active: T[] = [];
@@ -827,10 +836,9 @@ useEffect(() => {
     notes: t.notes || '',
   });
 
-  const tournamentUuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
   const getValidTournamentBirdIds = (ids?: string[]) => {
     if (!Array.isArray(ids)) return [];
-    return ids.filter(id => tournamentUuidRegex.test(id));
+    return ids.filter(id => uuidRegex.test(id));
   };
 
   const mapTournamentToDb = (t: TournamentEvent, uid: string) => {
@@ -1216,17 +1224,19 @@ useEffect(() => {
     (async () => {
       const uid = await getUserId();
       if (!uid) return;
+      const safeMedId = uuidRegex.test(med.id) ? med.id : createUuid();
+      const safeMed = med.id === safeMedId ? med : { ...med, id: safeMedId };
       let added = false;
       setState(prev => {
-        if (prev.medications.some(m => m.id === med.id)) return prev;
+        if (prev.medications.some(m => m.id === safeMed.id)) return prev;
         added = true;
-        return { ...prev, medications: [...prev.medications, med] };
+        return { ...prev, medications: [...prev.medications, safeMed] };
       });
       try {
-        await insertRow('medications', mapMedicationToDb(med, uid));
+        await insertRow('medications', mapMedicationToDb(safeMed, uid));
       } catch (err) {
         if (added) {
-          setState(prev => ({ ...prev, medications: prev.medications.filter(m => m.id !== med.id) }));
+          setState(prev => ({ ...prev, medications: prev.medications.filter(m => m.id !== safeMed.id) }));
         }
         console.error('Erro ao salvar medicamento:', err);
         setError('Falha ao salvar medicamento. Verifique sua conexao.');
@@ -1235,6 +1245,27 @@ useEffect(() => {
   };
 
   const updateMed = (updatedMed: Medication) => {
+    if (!uuidRegex.test(updatedMed.id)) {
+      const safeMedId = createUuid();
+      const safeMed = { ...updatedMed, id: safeMedId };
+      setState(prev => ({
+        ...prev,
+        medications: prev.medications.map(m => m.id === updatedMed.id ? safeMed : m),
+        applications: prev.applications.map(a => a.medicationId === updatedMed.id ? { ...a, medicationId: safeMedId } : a),
+        treatments: prev.treatments.map(t => t.medicationId === updatedMed.id ? { ...t, medicationId: safeMedId } : t),
+      }));
+      (async () => {
+        const uid = await getUserId();
+        if (!uid) return;
+        try {
+          await insertRow('medications', mapMedicationToDb(safeMed, uid));
+        } catch (err) {
+          console.error('Erro ao salvar medicamento:', err);
+          setError('Falha ao salvar medicamento. Verifique sua conexao.');
+        }
+      })();
+      return;
+    }
     setState(prev => ({
       ...prev,
       medications: prev.medications.map(m => m.id === updatedMed.id ? updatedMed : m)
@@ -1253,17 +1284,46 @@ useEffect(() => {
     (async () => {
       const uid = await getUserId();
       if (!uid) return;
+      const safeAppId = uuidRegex.test(app.id) ? app.id : createUuid();
+      let safeMedicationId = app.medicationId;
+      const sourceMedication = !uuidRegex.test(app.medicationId)
+        ? state.medications.find(m => m.id === app.medicationId)
+        : undefined;
+      if (sourceMedication) {
+        if (uuidRegex.test(sourceMedication.id)) {
+          safeMedicationId = sourceMedication.id;
+        } else {
+          const safeMedId = createUuid();
+          const safeMed = { ...sourceMedication, id: safeMedId };
+          safeMedicationId = safeMedId;
+          setState(prev => ({
+            ...prev,
+            medications: prev.medications.map(m => m.id === sourceMedication.id ? safeMed : m),
+            applications: prev.applications.map(a => a.medicationId === sourceMedication.id ? { ...a, medicationId: safeMedId } : a),
+            treatments: prev.treatments.map(t => t.medicationId === sourceMedication.id ? { ...t, medicationId: safeMedId } : t),
+          }));
+          try {
+            await insertRow('medications', mapMedicationToDb(safeMed, uid));
+          } catch (err) {
+            console.error('Erro ao salvar medicamento:', err);
+            setError('Falha ao salvar medicamento. Verifique sua conexao.');
+          }
+        }
+      }
+      const safeApp = app.id === safeAppId && app.medicationId === safeMedicationId
+        ? app
+        : { ...app, id: safeAppId, medicationId: safeMedicationId };
       let added = false;
       setState(prev => {
-        if (prev.applications.some(a => a.id === app.id)) return prev;
+        if (prev.applications.some(a => a.id === safeApp.id)) return prev;
         added = true;
-        return { ...prev, applications: [...prev.applications, app] };
+        return { ...prev, applications: [...prev.applications, safeApp] };
       });
       try {
-        await insertRow('applications', mapApplicationToDb(app, uid));
+        await insertRow('applications', mapApplicationToDb(safeApp, uid));
       } catch (err) {
         if (added) {
-          setState(prev => ({ ...prev, applications: prev.applications.filter(a => a.id !== app.id) }));
+          setState(prev => ({ ...prev, applications: prev.applications.filter(a => a.id !== safeApp.id) }));
         }
         console.error('Erro ao salvar aplicacao:', err);
         setError('Falha ao salvar aplicacao. Verifique sua conexao.');
