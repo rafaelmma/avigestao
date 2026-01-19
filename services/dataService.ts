@@ -1,4 +1,4 @@
-import { supabase } from "../lib/supabase";
+﻿import { supabase } from "../lib/supabase";
 import { INITIAL_SETTINGS, getDefaultBirdImage, isDefaultBirdImage } from "../constants";
 import { Bird, BreederSettings, Clutch, ContinuousTreatment, MaintenanceTask, Medication, MedicationApplication, MovementRecord, Pair, TournamentEvent, Transaction } from "../types";
 
@@ -57,8 +57,8 @@ export const mapBirdFromDb = (row: any): Bird => {
     motherId: row.mother_id ?? row.motherId ?? undefined,
     manualAncestors: row.manual_ancestors ?? row.manualAncestors ?? undefined,
     createdAt: row.created_at ?? row.createdAt ?? new Date().toISOString(),
-    classification: (row.classification ?? 'Nao Definido') as any,
-    songTrainingStatus: (row.song_training_status ?? row.songTrainingStatus ?? 'Nao Iniciado') as any,
+    classification: (row.classification ?? 'Não Definido') as any,
+    songTrainingStatus: (row.song_training_status ?? row.songTrainingStatus ?? 'Não Iniciado') as any,
     songType: row.song_type ?? row.songType ?? '',
     songSource: row.song_source ?? row.songSource ?? undefined,
     trainingStartDate: row.training_start_date ?? row.trainingStartDate ?? undefined,
@@ -66,6 +66,7 @@ export const mapBirdFromDb = (row: any): Bird => {
     isRepeater: row.is_repeater ?? row.isRepeater ?? false,
     sexing: row.sexing ?? undefined,
     documents: row.documents ?? undefined,
+    deletedAt: row.deleted_at ?? row.deletedAt ?? undefined,
   };
 };
 
@@ -78,6 +79,7 @@ export const mapMovementFromDb = (row: any): MovementRecord => ({
   gtrUrl: row.gtr_url ?? row.gtrUrl ?? undefined,
   destination: row.destination ?? undefined,
   buyerSispass: row.buyer_sispass ?? row.buyerSispass ?? undefined,
+  deletedAt: row.deleted_at ?? row.deletedAt ?? undefined,
 });
 
 export const mapTransactionFromDb = (row: any): Transaction => ({
@@ -88,6 +90,7 @@ export const mapTransactionFromDb = (row: any): Transaction => ({
   type: row.type ?? 'Despesa',
   category: row.category ?? 'Outros',
   subcategory: row.subcategory ?? undefined,
+  deletedAt: row.deleted_at ?? row.deletedAt ?? undefined,
 });
 
 export const mapTaskFromDb = (row: any): MaintenanceTask => ({
@@ -99,6 +102,7 @@ export const mapTaskFromDb = (row: any): MaintenanceTask => ({
   birdId: row.bird_id ?? row.birdId ?? undefined,
   frequency: row.frequency ?? undefined,
   remindMe: row.remind_me ?? row.remindMe ?? undefined,
+  deletedAt: row.deleted_at ?? row.deletedAt ?? undefined,
 });
 
 export const mapTournamentFromDb = (row: any): TournamentEvent => ({
@@ -115,6 +119,7 @@ export const mapTournamentFromDb = (row: any): TournamentEvent => ({
   score: row.score ?? undefined,
   participatingBirds: row.participating_birds ?? row.participatingBirds ?? undefined,
   preparationChecklist: row.preparation_checklist ?? row.preparationChecklist ?? undefined,
+  deletedAt: row.deleted_at ?? row.deletedAt ?? undefined,
 });
 
 export const mapMedicationFromDb = (row: any): Medication => ({
@@ -124,6 +129,7 @@ export const mapMedicationFromDb = (row: any): Medication => ({
   batch: row.batch ?? '',
   expiryDate: row.expiry_date ?? row.expiryDate ?? '',
   stock: row.stock ?? 0,
+  deletedAt: row.deleted_at ?? row.deletedAt ?? undefined,
 });
 
 export const mapPairFromDb = (row: any): Pair => ({
@@ -135,6 +141,7 @@ export const mapPairFromDb = (row: any): Pair => ({
   status: row.status ?? 'Ativo',
   name: row.name ?? '',
   lastHatchDate: row.last_hatch_date ?? row.lastHatchDate ?? undefined,
+  deletedAt: row.deleted_at ?? row.deletedAt ?? undefined,
 });
 
 export const mapClutchFromDb = (row: any): Clutch => ({
@@ -155,6 +162,7 @@ export const mapApplicationFromDb = (row: any): MedicationApplication => ({
   dosage: row.dosage ?? '',
   notes: row.notes ?? '',
   treatmentId: row.treatment_id ?? row.treatmentId ?? undefined,
+  deletedAt: row.deleted_at ?? row.deletedAt ?? undefined,
 });
 
 export const mapTreatmentFromDb = (row: any): ContinuousTreatment => ({
@@ -168,6 +176,7 @@ export const mapTreatmentFromDb = (row: any): ContinuousTreatment => ({
   status: (row.status ?? 'Ativo') as any,
   lastApplicationDate: row.last_application_date ?? row.lastApplicationDate ?? undefined,
   notes: row.notes ?? undefined,
+  deletedAt: row.deleted_at ?? row.deletedAt ?? undefined,
 });
 
 export const mapSettingsFromDb = (row: any): BreederSettings => ({
@@ -187,3 +196,4 @@ export const mapSettingsFromDb = (row: any): BreederSettings => ({
   dashboardLayout: row.dashboard_layout ?? row.dashboardLayout ?? undefined,
   certificate: row.certificate ?? undefined,
 });
+

@@ -1,4 +1,4 @@
-
+﻿
 import React, { useState } from 'react';
 import { AppState, MaintenanceTask, Bird } from '../types';
 import { 
@@ -38,7 +38,7 @@ const TaskManager: React.FC<TaskManagerProps> = ({ state, addTask, updateTask, t
   const [currentList, setCurrentList] = useState<'active' | 'trash'>('active');
   const [filterMode, setFilterMode] = useState<'all' | 'general' | 'specific' | 'late'>('all');
   
-  // State do Formulário
+  // State do FormulÃ¡rio
   const [newTask, setNewTask] = useState<Partial<MaintenanceTask>>({
     priority: 'Média',
     dueDate: new Date().toISOString().split('T')[0],
@@ -148,10 +148,10 @@ const TaskManager: React.FC<TaskManagerProps> = ({ state, addTask, updateTask, t
       case 'Semanal':
         return 'semanal';
       case 'Diária':
-        return 'diária';
+        return 'diÃ¡ria';
       case 'Única':
       default:
-        return 'diária';
+        return 'diÃ¡ria';
     }
   };
 
@@ -171,7 +171,7 @@ const TaskManager: React.FC<TaskManagerProps> = ({ state, addTask, updateTask, t
 
     addTask(repeatedTask);
   };
-  // Funções de Lixeira
+  // FunÃ§Ãµes de Lixeira
   const handleDeleteClick = (id: string) => {
     deleteTask(id);
   };
@@ -188,7 +188,7 @@ const TaskManager: React.FC<TaskManagerProps> = ({ state, addTask, updateTask, t
 
   const handleClearHistory = () => {
     if (completedTasks.length === 0) return;
-    if (!window.confirm('Remover todas as tarefas do histórico?')) return;
+    if (!window.confirm('Remover todas as tarefas do histÃ³rico?')) return;
     completedTasks.forEach(task => deleteTask(task.id));
   };
 
@@ -199,7 +199,7 @@ const TaskManager: React.FC<TaskManagerProps> = ({ state, addTask, updateTask, t
       <header className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <h2 className="text-3xl font-black text-[#0F172A] tracking-tight">Agenda de Manejo</h2>
-          <p className="text-slate-400 font-medium text-sm mt-1">Organize as tarefas diárias e semanais do criatório.</p>
+          <p className="text-slate-400 font-medium text-sm mt-1">Organize as tarefas diÃ¡rias e semanais do criatÃ³rio.</p>
         </div>
         <div className="flex gap-2">
            <div className="flex bg-white p-1 rounded-xl shadow-sm border border-slate-100 mr-2">
@@ -228,7 +228,7 @@ const TaskManager: React.FC<TaskManagerProps> = ({ state, addTask, updateTask, t
         </div>
       </header>
 
-      {/* Filtros Rápidos */}
+      {/* Filtros RÃ¡pidos */}
       {currentList === 'active' && (
         <div className="flex flex-wrap gap-2 pb-2">
            <button 
@@ -266,7 +266,8 @@ const TaskManager: React.FC<TaskManagerProps> = ({ state, addTask, updateTask, t
       {currentList === 'trash' && (
          <div className="bg-rose-50 border-l-4 border-rose-500 p-4 rounded-r-xl mb-4">
             <p className="text-rose-700 font-bold text-sm">Lixeira de Tarefas</p>
-            <p className="text-rose-600 text-xs">Tarefas excluídas. Restaure se necessário ou apague definitivamente.</p>
+            <p className="text-rose-600 text-xs">Tarefas excluÃ­das. Restaure se necessÃ¡rio ou apague definitivamente.</p>
+            <p className="text-rose-600 text-xs mt-1">Itens ficam disponiveis por ate 30 dias na lixeira antes de serem removidos automaticamente.</p>
          </div>
       )}
 
@@ -312,7 +313,7 @@ const TaskManager: React.FC<TaskManagerProps> = ({ state, addTask, updateTask, t
                         <p className={`text-sm font-bold ${overdue ? 'text-rose-700' : 'text-slate-700'}`}>
                           {t.title}
                         </p>
-                        {/* Aviso Visual "Não Chato" */}
+                        {/* Aviso Visual "NÃ£o Chato" */}
                         {t.remindMe && (
                           <Bell size={12} className={`${overdue ? 'text-rose-500 animate-pulse' : 'text-amber-400'} fill-current`} />
                         )}
@@ -408,12 +409,12 @@ const TaskManager: React.FC<TaskManagerProps> = ({ state, addTask, updateTask, t
           </div>
         </div>
 
-        {/* Concluídas */}
+        {/* ConcluÃ­das */}
         <div className="space-y-6">
           <div className="flex items-center justify-between mb-4">
              <h3 className="font-black text-slate-400 text-lg flex items-center gap-3">
                <CheckSquare size={20} />
-               Histórico de Manejo
+               HistÃ³rico de Manejo
              </h3>
              <div className="flex items-center gap-3">
                {currentList === 'active' && completedTasks.length > 0 ? (
@@ -421,7 +422,7 @@ const TaskManager: React.FC<TaskManagerProps> = ({ state, addTask, updateTask, t
                    onClick={handleClearHistory}
                    className="px-3 py-1 text-[10px] font-black uppercase rounded-lg border border-rose-100 text-rose-400 hover:text-rose-600 hover:border-rose-200 transition-all"
                  >
-                   Limpar histórico
+                   Limpar histÃ³rico
                  </button>
                ) : null}
                <span className="px-3 py-1 bg-slate-100 text-slate-400 text-[10px] font-black rounded-lg uppercase">{completedTasks.length}</span>
@@ -500,7 +501,7 @@ const TaskManager: React.FC<TaskManagerProps> = ({ state, addTask, updateTask, t
                    onClick={() => setTargetType('specific')}
                    className={`flex-1 py-3 rounded-xl text-xs font-black uppercase tracking-widest flex items-center justify-center gap-2 transition-all ${targetType === 'specific' ? 'bg-white text-brand shadow-sm' : 'text-slate-400 hover:text-slate-600'}`}
                  >
-                   <BirdIcon size={14} /> Ave Específica
+                   <BirdIcon size={14} /> Ave EspecÃ­fica
                  </button>
               </div>
 
@@ -509,7 +510,7 @@ const TaskManager: React.FC<TaskManagerProps> = ({ state, addTask, updateTask, t
                 <input required type="text" placeholder="Ex: Fornecer Farinhada Especial" className="w-full px-6 py-4 bg-slate-50 border border-slate-100 rounded-2xl outline-none focus:border-brand font-bold text-slate-700" value={newTask.title || ''} onChange={e => setNewTask({...newTask, title: e.target.value})} />
               </div>
 
-              {/* Seleção de Pássaro (Condicional) */}
+              {/* SeleÃ§Ã£o de PÃ¡ssaro (Condicional) */}
               {targetType === 'specific' && (
                 <div className="animate-in fade-in slide-in-from-top-2">
                   <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Selecione a Ave</label>
@@ -536,7 +537,7 @@ const TaskManager: React.FC<TaskManagerProps> = ({ state, addTask, updateTask, t
                   </select>
                 </div>
                 <div>
-                  <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Frequência</label>
+                  <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">FrequÃªncia</label>
                   <select className="w-full px-6 py-4 bg-slate-50 border border-slate-100 rounded-2xl outline-none font-bold text-slate-700" value={newTask.frequency} onChange={e => setNewTask({...newTask, frequency: e.target.value as any})}>
                     <option value="Única">Única vez</option>
                     <option value="Diária">Diária</option>
@@ -547,11 +548,11 @@ const TaskManager: React.FC<TaskManagerProps> = ({ state, addTask, updateTask, t
               </div>
 
               <div>
-                  <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Data / Início</label>
+                  <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Data / InÃ­cio</label>
                   <input type="date" className="w-full px-6 py-4 bg-slate-50 border border-slate-100 rounded-2xl outline-none font-bold text-slate-700" value={newTask.dueDate} onChange={e => setNewTask({...newTask, dueDate: e.target.value})} />
               </div>
 
-              {/* Botão de Lembrete */}
+              {/* BotÃ£o de Lembrete */}
               <div 
                 className={`p-4 rounded-2xl border flex items-center justify-between cursor-pointer transition-all ${newTask.remindMe ? 'bg-amber-50 border-amber-200' : 'bg-slate-50 border-slate-100'}`}
                 onClick={() => setNewTask({ ...newTask, remindMe: !newTask.remindMe })}
@@ -571,7 +572,7 @@ const TaskManager: React.FC<TaskManagerProps> = ({ state, addTask, updateTask, t
               </div>
 
               <button type="submit" className="w-full py-5 bg-[#0F172A] text-white font-black text-xs uppercase tracking-widest rounded-2xl shadow-xl hover:bg-slate-800 transition-all mt-2">
-                {isEditing ? 'Salvar Alterações' : 'Confirmar Agendamento'}
+                {isEditing ? 'Salvar AlteraÃ§Ãµes' : 'Confirmar Agendamento'}
               </button>
             </form>
           </div>
@@ -582,4 +583,5 @@ const TaskManager: React.FC<TaskManagerProps> = ({ state, addTask, updateTask, t
 };
 
 export default TaskManager;
+
 

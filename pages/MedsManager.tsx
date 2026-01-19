@@ -347,6 +347,7 @@ const MedsManager: React.FC<MedsManagerProps> = ({
              <div className="bg-rose-50 border-l-4 border-rose-500 p-4 rounded-r-xl">
                 <p className="text-rose-700 font-bold text-sm">Lixeira de Medicamentos</p>
                 <p className="text-rose-600 text-xs">Itens excluídos. A exclusão permanente é irreversível.</p>
+                <p className="text-rose-600 text-xs mt-1">Itens ficam disponiveis por ate 30 dias na lixeira antes de serem removidos automaticamente.</p>
              </div>
           )}
 
@@ -714,6 +715,7 @@ const MedsManager: React.FC<MedsManagerProps> = ({
            {currentList === 'trash' && (
              <div className="bg-rose-50 p-3 text-center border-b border-rose-100">
                 <p className="text-xs text-rose-600 font-bold">Modo Lixeira: Registros excluídos</p>
+                 <p className="text-[10px] text-rose-500 mt-1">Itens ficam disponiveis por ate 30 dias antes de serem removidos automaticamente.</p>
              </div>
            )}
 

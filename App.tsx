@@ -57,6 +57,93 @@ const App: React.FC = () => {
     settings: INITIAL_SETTINGS
   }));
 
+  const TRASH_RETENTION_DAYS = 30;
+  const TRASH_RETENTION_MS = TRASH_RETENTION_DAYS * 24 * 60 * 60 * 1000;
+
+  const splitDeletedItems = <T extends { id: string; deletedAt?: string }>(items: T[]) => {
+    const active: T[] = [];
+    const deleted: T[] = [];
+    const expired: T[] = [];
+    const now = Date.now();
+
+    items.forEach((item) => {
+      if (!item.deletedAt) {
+        active.push(item);
+        return;
+      }
+      const ts = Date.parse(item.deletedAt);
+      if (!Number.isNaN(ts) && now - ts > TRASH_RETENTION_MS) {
+        expired.push(item);
+        return;
+      }
+      deleted.push(item);
+    });
+
+    return { active, deleted, expired };
+  };
+
+  const buildStateFromData = (data: any, prev: AppState) => {
+    const birdsSplit = splitDeletedItems(data.birds || []);
+    const movementsSplit = splitDeletedItems(data.movements || []);
+    const transactionsSplit = splitDeletedItems(data.transactions || []);
+    const tasksSplit = splitDeletedItems(data.tasks || []);
+    const tournamentsSplit = splitDeletedItems(data.tournaments || []);
+    const medicationsSplit = splitDeletedItems(data.medications || []);
+    const pairsSplit = splitDeletedItems(data.pairs || []);
+    const applicationsSplit = splitDeletedItems(data.applications || []);
+    const treatmentsSplit = splitDeletedItems(data.treatments || []);
+    const hasMedications = Array.isArray(data.medications) && data.medications.length > 0;
+
+    const nextState: AppState = {
+      ...prev,
+      birds: birdsSplit.active,
+      deletedBirds: birdsSplit.deleted,
+      movements: movementsSplit.active,
+      deletedMovements: movementsSplit.deleted,
+      transactions: transactionsSplit.active,
+      deletedTransactions: transactionsSplit.deleted,
+      tasks: tasksSplit.active,
+      deletedTasks: tasksSplit.deleted,
+      tournaments: tournamentsSplit.active,
+      deletedTournaments: tournamentsSplit.deleted,
+      medications: hasMedications ? medicationsSplit.active : prev.medications,
+      deletedMedications: hasMedications ? medicationsSplit.deleted : (prev.deletedMedications || []),
+      pairs: pairsSplit.active,
+      deletedPairs: pairsSplit.deleted,
+      clutches: data.clutches || [],
+      applications: applicationsSplit.active,
+      deletedApplications: applicationsSplit.deleted,
+      treatments: treatmentsSplit.active,
+      deletedTreatments: treatmentsSplit.deleted,
+      settings: data.settings || prev.settings,
+    };
+
+    return {
+      nextState,
+      expiredByTable: {
+        birds: birdsSplit.expired,
+        movements: movementsSplit.expired,
+        transactions: transactionsSplit.expired,
+        tasks: tasksSplit.expired,
+        tournaments: tournamentsSplit.expired,
+        medications: medicationsSplit.expired,
+        pairs: pairsSplit.expired,
+        applications: applicationsSplit.expired,
+        treatments: treatmentsSplit.expired,
+      },
+    };
+  };
+
+  const runTrashCleanup = async (expiredByTable: Record<string, { id: string }[]>) => {
+    const entries = Object.entries(expiredByTable).filter(([, items]) => items.length > 0);
+    if (entries.length === 0) return;
+    try {
+      await Promise.all(entries.map(([table, items]) => Promise.all(items.map(item => deleteRow(table, item.id)))));
+    } catch (err) {
+      console.error('Erro ao limpar itens expirados da lixeira:', err);
+    }
+  };
+
   // --- MIGRAÃ‡ÃƒO DE DADOS AUTOMÃTICA ---
   // Se o usuÃ¡rio Ã© antigo e nÃ£o tem trialEndDate, define automaticamente para ele ver a mudanÃ§a.
   useEffect(() => {
@@ -275,23 +362,62 @@ useEffect(() => {
   const subs: any[] = [];
 
   const tables = ['birds', 'movements', 'transactions', 'tasks', 'tournaments', 'medications', 'pairs', 'clutches', 'applications', 'treatments'];
+  const deletedKeyMap: Record<string, keyof AppState> = {
+    birds: 'deletedBirds',
+    movements: 'deletedMovements',
+    transactions: 'deletedTransactions',
+    tasks: 'deletedTasks',
+    tournaments: 'deletedTournaments',
+    medications: 'deletedMedications',
+    pairs: 'deletedPairs',
+    applications: 'deletedApplications',
+    treatments: 'deletedTreatments',
+  };
 
   tables.forEach(table => {
     const ch = subscribeTable(table, userId, (payload: any) => {
       setState(prev => {
         const data = payload.new;
         const mapped = mapRowByTable(table, data);
+        const deletedKey = deletedKeyMap[table];
+        const list = (prev as any)[table] || [];
+        const deletedList = deletedKey ? ((prev as any)[deletedKey] || []) : [];
 
         switch (payload.eventType) {
           case 'INSERT': {
-            const list = (prev as any)[table] || [];
+            if (mapped?.deletedAt && deletedKey) {
+              if (deletedList.some((r: any) => r.id === mapped.id)) return prev;
+              return { ...prev, [deletedKey]: [...deletedList, mapped] };
+            }
             if (list.some((r: any) => r.id === mapped.id)) return prev;
             return { ...prev, [table]: [...list, mapped] };
           }
-          case 'UPDATE':
-            return { ...prev, [table]: (prev as any)[table].map((r: any) => r.id === mapped.id ? mapped : r) };
-          case 'DELETE':
-            return { ...prev, [table]: (prev as any)[table].filter((r: any) => r.id !== payload.old.id) };
+          case 'UPDATE': {
+            if (mapped?.deletedAt && deletedKey) {
+              const nextActive = list.filter((r: any) => r.id !== mapped.id);
+              const nextDeleted = deletedList.some((r: any) => r.id === mapped.id)
+                ? deletedList.map((r: any) => r.id === mapped.id ? mapped : r)
+                : [...deletedList, mapped];
+              return { ...prev, [table]: nextActive, [deletedKey]: nextDeleted };
+            }
+
+            const nextActive = list.some((r: any) => r.id === mapped.id)
+              ? list.map((r: any) => r.id === mapped.id ? mapped : r)
+              : [...list, mapped];
+            if (!deletedKey) {
+              return { ...prev, [table]: nextActive };
+            }
+            const nextDeleted = deletedList.filter((r: any) => r.id !== mapped.id);
+            return { ...prev, [table]: nextActive, [deletedKey]: nextDeleted };
+          }
+          case 'DELETE': {
+            const nextActive = list.filter((r: any) => r.id !== payload.old.id);
+            if (!deletedKey) {
+              return { ...prev, [table]: nextActive };
+            }
+            const nextDeleted = deletedList.filter((r: any) => r.id !== payload.old.id);
+            return { ...prev, [table]: nextActive, [deletedKey]: nextDeleted };
+          }
           default:
             return prev;
         }
@@ -336,20 +462,15 @@ useEffect(() => {
     const bootstrap = async () => {
       try {
         const data = await loadInitialData(userId);
-        setState(prev => ({
-          ...prev,
-          birds: data.birds || [],
-          movements: data.movements || [],
-          transactions: data.transactions || [],
-          tasks: data.tasks || [],
-          tournaments: data.tournaments || [],
-          medications: data.medications && data.medications.length > 0 ? data.medications : prev.medications,
-          pairs: data.pairs || [],
-          clutches: data.clutches || [],
-          applications: data.applications || [],
-          treatments: data.treatments || [],
-          settings: data.settings || prev.settings,
-        }));
+        let expiredByTable: Record<string, { id: string }[]> | null = null;
+        setState(prev => {
+          const built = buildStateFromData(data, prev);
+          expiredByTable = built.expiredByTable;
+          return built.nextState;
+        });
+        if (expiredByTable) {
+          void runTrashCleanup(expiredByTable);
+        }
       } catch (err) {
         console.error("Erro ao carregar dados iniciais:", err);
         setError("Falha ao carregar dados do servidor.");
@@ -409,20 +530,15 @@ useEffect(() => {
     try {
       const remoteData = await loadInitialData(newSettings.userId);
       baseSettings = remoteData.settings || null;
-      setState(prev => ({
-        ...prev,
-        birds: remoteData.birds || [],
-        movements: remoteData.movements || [],
-        transactions: remoteData.transactions || [],
-        tasks: remoteData.tasks || [],
-        tournaments: remoteData.tournaments || [],
-        medications: remoteData.medications && remoteData.medications.length > 0 ? remoteData.medications : prev.medications,
-        pairs: remoteData.pairs || [],
-        clutches: remoteData.clutches || [],
-        applications: remoteData.applications || [],
-        treatments: remoteData.treatments || [],
-        settings: remoteData.settings || prev.settings,
-      }));
+      let expiredByTable: Record<string, { id: string }[]> | null = null;
+      setState(prev => {
+        const built = buildStateFromData(remoteData, prev);
+        expiredByTable = built.expiredByTable;
+        return built.nextState;
+      });
+      if (expiredByTable) {
+        void runTrashCleanup(expiredByTable);
+      }
     } catch (err) {
       console.error('Erro ao carregar dados remotos:', err);
     }
@@ -787,15 +903,16 @@ useEffect(() => {
 
   const deleteBird = async (id: string) => {
     const item = state.birds.find(b => b.id === id);
-    if (item) {
-      setState(prev => ({
-        ...prev,
-        birds: prev.birds.filter(b => b.id !== id),
-        deletedBirds: [item, ...(prev.deletedBirds || [])],
-      }));
-    }
+    if (!item) return;
+    const deletedAt = new Date().toISOString();
+    const deletedItem = { ...item, deletedAt };
+    setState(prev => ({
+      ...prev,
+      birds: prev.birds.filter(b => b.id !== id),
+      deletedBirds: [deletedItem, ...(prev.deletedBirds || [])],
+    }));
     try {
-      await deleteRow('birds', id);
+      await updateRow('birds', id, { deleted_at: deletedAt });
     } catch (err) {
       console.error('Erro ao remover ave:', err);
       setError('Falha ao remover ave. Verifique sua conexao.');
@@ -803,10 +920,32 @@ useEffect(() => {
   };
   const restoreBird = (id: string) => {
     const item = state.deletedBirds?.find(b => b.id === id);
-    if (item) setState(prev => ({ ...prev, deletedBirds: (prev.deletedBirds || []).filter(b => b.id !== id), birds: [...prev.birds, item] }));
+    if (!item) return;
+    const restoredItem = { ...item, deletedAt: undefined };
+    setState(prev => ({
+      ...prev,
+      deletedBirds: (prev.deletedBirds || []).filter(b => b.id !== id),
+      birds: [...prev.birds, restoredItem],
+    }));
+    (async () => {
+      try {
+        await updateRow('birds', id, { deleted_at: null });
+      } catch (err) {
+        console.error('Erro ao restaurar ave:', err);
+        setError('Falha ao restaurar ave. Verifique sua conexao.');
+      }
+    })();
   };
   const permanentlyDeleteBird = (id: string) => {
     setState(prev => ({ ...prev, deletedBirds: (prev.deletedBirds || []).filter(b => b.id !== id) }));
+    (async () => {
+      try {
+        await deleteRow('birds', id);
+      } catch (err) {
+        console.error('Erro ao remover ave definitivamente:', err);
+        setError('Falha ao remover ave. Verifique sua conexao.');
+      }
+    })();
   };
   const updateBirdStatus = (id: string, status: any) => {
     setState(prev => ({
@@ -861,15 +1000,16 @@ useEffect(() => {
 
   const deleteMovement = async (id: string) => {
     const item = state.movements.find(m => m.id === id);
-    if (item) {
-      setState(prev => ({
-        ...prev,
-        movements: prev.movements.filter(m => m.id !== id),
-        deletedMovements: [item, ...(prev.deletedMovements || [])],
-      }));
-    }
+    if (!item) return;
+    const deletedAt = new Date().toISOString();
+    const deletedItem = { ...item, deletedAt };
+    setState(prev => ({
+      ...prev,
+      movements: prev.movements.filter(m => m.id !== id),
+      deletedMovements: [deletedItem, ...(prev.deletedMovements || [])],
+    }));
     try {
-      await deleteRow('movements', id);
+      await updateRow('movements', id, { deleted_at: deletedAt });
     } catch (err) {
       console.error('Erro ao remover movimentacao:', err);
       setError('Falha ao remover movimentacao. Verifique sua conexao.');
@@ -878,12 +1018,11 @@ useEffect(() => {
   const restoreMovement = (id: string) => {
     const item = state.deletedMovements?.find(m => m.id === id);
     if (!item) return;
-    setState(prev => ({ ...prev, deletedMovements: (prev.deletedMovements || []).filter(m => m.id !== id), movements: [item, ...prev.movements] }));
+    const restoredItem = { ...item, deletedAt: undefined };
+    setState(prev => ({ ...prev, deletedMovements: (prev.deletedMovements || []).filter(m => m.id !== id), movements: [restoredItem, ...prev.movements] }));
     (async () => {
-      const uid = await getUserId();
-      if (!uid) return;
       try {
-        await insertRow('movements', mapMovementToDb(item, uid));
+        await updateRow('movements', id, { deleted_at: null });
       } catch (err) {
         console.error('Erro ao restaurar movimentacao:', err);
         setError('Falha ao restaurar movimentacao. Verifique sua conexao.');
@@ -892,6 +1031,14 @@ useEffect(() => {
   };
   const permanentlyDeleteMovement = (id: string) => {
     setState(prev => ({ ...prev, deletedMovements: (prev.deletedMovements || []).filter(m => m.id !== id) }));
+    (async () => {
+      try {
+        await deleteRow('movements', id);
+      } catch (err) {
+        console.error('Erro ao remover movimentacao definitivamente:', err);
+        setError('Falha ao remover movimentacao. Verifique sua conexao.');
+      }
+    })();
   };
 
   // --- PAIRS / BREEDING ---
@@ -969,10 +1116,12 @@ useEffect(() => {
   const deletePair = (id: string) => {
     const item = state.pairs.find(p => p.id === id);
     if (!item) return;
-    setState(prev => ({ ...prev, pairs: prev.pairs.filter(p => p.id !== id), deletedPairs: [item, ...(prev.deletedPairs || [])] }));
+    const deletedAt = new Date().toISOString();
+    const deletedItem = { ...item, deletedAt };
+    setState(prev => ({ ...prev, pairs: prev.pairs.filter(p => p.id !== id), deletedPairs: [deletedItem, ...(prev.deletedPairs || [])] }));
     (async () => {
       try {
-        await deleteRow('pairs', id);
+        await updateRow('pairs', id, { deleted_at: deletedAt });
       } catch (err) {
         console.error('Erro ao remover casal:', err);
         setError('Falha ao remover casal. Verifique sua conexao.');
@@ -983,12 +1132,11 @@ useEffect(() => {
   const restorePair = (id: string) => {
     const item = state.deletedPairs?.find(p => p.id === id);
     if (!item) return;
-    setState(prev => ({ ...prev, deletedPairs: (prev.deletedPairs || []).filter(p => p.id !== id), pairs: [...prev.pairs, item] }));
+    const restoredItem = { ...item, deletedAt: undefined };
+    setState(prev => ({ ...prev, deletedPairs: (prev.deletedPairs || []).filter(p => p.id !== id), pairs: [...prev.pairs, restoredItem] }));
     (async () => {
-      const uid = await getUserId();
-      if (!uid) return;
       try {
-        await insertRow('pairs', mapPairToDb(item, uid));
+        await updateRow('pairs', id, { deleted_at: null });
       } catch (err) {
         console.error('Erro ao restaurar casal:', err);
         setError('Falha ao restaurar casal. Verifique sua conexao.');
@@ -998,6 +1146,14 @@ useEffect(() => {
 
   const permanentlyDeletePair = (id: string) => {
     setState(prev => ({ ...prev, deletedPairs: (prev.deletedPairs || []).filter(p => p.id !== id) }));
+    (async () => {
+      try {
+        await deleteRow('pairs', id);
+      } catch (err) {
+        console.error('Erro ao remover casal definitivamente:', err);
+        setError('Falha ao remover casal. Verifique sua conexao.');
+      }
+    })();
   };
 
   // --- MEDICATIONS & TREATMENTS ---
@@ -1078,10 +1234,12 @@ useEffect(() => {
   const deleteApplication = (id: string) => {
     const item = state.applications.find(a => a.id === id);
     if (!item) return;
-    setState(prev => ({ ...prev, applications: prev.applications.filter(a => a.id !== id), deletedApplications: [item, ...(prev.deletedApplications || [])] }));
+    const deletedAt = new Date().toISOString();
+    const deletedItem = { ...item, deletedAt };
+    setState(prev => ({ ...prev, applications: prev.applications.filter(a => a.id !== id), deletedApplications: [deletedItem, ...(prev.deletedApplications || [])] }));
     (async () => {
       try {
-        await deleteRow('applications', id);
+        await updateRow('applications', id, { deleted_at: deletedAt });
       } catch (err) {
         console.error('Erro ao remover aplicacao:', err);
         setError('Falha ao remover aplicacao. Verifique sua conexao.');
@@ -1092,12 +1250,11 @@ useEffect(() => {
   const restoreApplication = (id: string) => {
     const item = state.deletedApplications?.find(a => a.id === id);
     if (!item) return;
-    setState(prev => ({ ...prev, deletedApplications: (prev.deletedApplications || []).filter(a => a.id !== id), applications: [...prev.applications, item] }));
+    const restoredItem = { ...item, deletedAt: undefined };
+    setState(prev => ({ ...prev, deletedApplications: (prev.deletedApplications || []).filter(a => a.id !== id), applications: [...prev.applications, restoredItem] }));
     (async () => {
-      const uid = await getUserId();
-      if (!uid) return;
       try {
-        await insertRow('applications', mapApplicationToDb(item, uid));
+        await updateRow('applications', id, { deleted_at: null });
       } catch (err) {
         console.error('Erro ao restaurar aplicacao:', err);
         setError('Falha ao restaurar aplicacao. Verifique sua conexao.');
@@ -1107,15 +1264,25 @@ useEffect(() => {
 
   const permanentlyDeleteApplication = (id: string) => {
     setState(prev => ({ ...prev, deletedApplications: (prev.deletedApplications || []).filter(a => a.id !== id) }));
+    (async () => {
+      try {
+        await deleteRow('applications', id);
+      } catch (err) {
+        console.error('Erro ao remover aplicacao definitivamente:', err);
+        setError('Falha ao remover aplicacao. Verifique sua conexao.');
+      }
+    })();
   };
 
   const deleteMed = (id: string) => {
     const item = state.medications.find(m => m.id === id);
     if (!item) return;
-    setState(prev => ({ ...prev, medications: prev.medications.filter(m => m.id !== id), deletedMedications: [item, ...(prev.deletedMedications || [])] }));
+    const deletedAt = new Date().toISOString();
+    const deletedItem = { ...item, deletedAt };
+    setState(prev => ({ ...prev, medications: prev.medications.filter(m => m.id !== id), deletedMedications: [deletedItem, ...(prev.deletedMedications || [])] }));
     (async () => {
       try {
-        await deleteRow('medications', id);
+        await updateRow('medications', id, { deleted_at: deletedAt });
       } catch (err) {
         console.error('Erro ao remover medicamento:', err);
         setError('Falha ao remover medicamento. Verifique sua conexao.');
@@ -1126,12 +1293,11 @@ useEffect(() => {
   const restoreMed = (id: string) => {
     const item = state.deletedMedications?.find(m => m.id === id);
     if (!item) return;
-    setState(prev => ({ ...prev, deletedMedications: (prev.deletedMedications || []).filter(m => m.id !== id), medications: [...prev.medications, item] }));
+    const restoredItem = { ...item, deletedAt: undefined };
+    setState(prev => ({ ...prev, deletedMedications: (prev.deletedMedications || []).filter(m => m.id !== id), medications: [...prev.medications, restoredItem] }));
     (async () => {
-      const uid = await getUserId();
-      if (!uid) return;
       try {
-        await insertRow('medications', mapMedicationToDb(item, uid));
+        await updateRow('medications', id, { deleted_at: null });
       } catch (err) {
         console.error('Erro ao restaurar medicamento:', err);
         setError('Falha ao restaurar medicamento. Verifique sua conexao.');
@@ -1141,6 +1307,14 @@ useEffect(() => {
 
   const permanentlyDeleteMed = (id: string) => {
     setState(prev => ({ ...prev, deletedMedications: (prev.deletedMedications || []).filter(m => m.id !== id) }));
+    (async () => {
+      try {
+        await deleteRow('medications', id);
+      } catch (err) {
+        console.error('Erro ao remover medicamento definitivamente:', err);
+        setError('Falha ao remover medicamento. Verifique sua conexao.');
+      }
+    })();
   };
 
   // New Treatment Functions
@@ -1184,10 +1358,12 @@ useEffect(() => {
   const deleteTreatment = (id: string) => {
     const item = state.treatments.find(t => t.id === id);
     if (!item) return;
-    setState(prev => ({ ...prev, treatments: prev.treatments.filter(t => t.id !== id), deletedTreatments: [item, ...(prev.deletedTreatments || [])] }));
+    const deletedAt = new Date().toISOString();
+    const deletedItem = { ...item, deletedAt };
+    setState(prev => ({ ...prev, treatments: prev.treatments.filter(t => t.id !== id), deletedTreatments: [deletedItem, ...(prev.deletedTreatments || [])] }));
     (async () => {
       try {
-        await deleteRow('treatments', id);
+        await updateRow('treatments', id, { deleted_at: deletedAt });
       } catch (err) {
         console.error('Erro ao remover tratamento:', err);
         setError('Falha ao remover tratamento. Verifique sua conexao.');
@@ -1198,12 +1374,11 @@ useEffect(() => {
   const restoreTreatment = (id: string) => {
     const item = state.deletedTreatments?.find(t => t.id === id);
     if (!item) return;
-    setState(prev => ({ ...prev, deletedTreatments: (prev.deletedTreatments || []).filter(t => t.id !== id), treatments: [...prev.treatments, item] }));
+    const restoredItem = { ...item, deletedAt: undefined };
+    setState(prev => ({ ...prev, deletedTreatments: (prev.deletedTreatments || []).filter(t => t.id !== id), treatments: [...prev.treatments, restoredItem] }));
     (async () => {
-      const uid = await getUserId();
-      if (!uid) return;
       try {
-        await insertRow('treatments', mapTreatmentToDb(item, uid));
+        await updateRow('treatments', id, { deleted_at: null });
       } catch (err) {
         console.error('Erro ao restaurar tratamento:', err);
         setError('Falha ao restaurar tratamento. Verifique sua conexao.');
@@ -1213,6 +1388,14 @@ useEffect(() => {
 
   const permanentlyDeleteTreatment = (id: string) => {
     setState(prev => ({ ...prev, deletedTreatments: (prev.deletedTreatments || []).filter(t => t.id !== id) }));
+    (async () => {
+      try {
+        await deleteRow('treatments', id);
+      } catch (err) {
+        console.error('Erro ao remover tratamento definitivamente:', err);
+        setError('Falha ao remover tratamento. Verifique sua conexao.');
+      }
+    })();
   };
 
   // --- FINANCE ---
@@ -1223,16 +1406,48 @@ useEffect(() => {
   };
 
   const deleteTransaction = async (id: string) => {
-    await deleteRow('transactions', id);
+    const item = state.transactions.find(t => t.id === id);
+    if (!item) return;
+    const deletedAt = new Date().toISOString();
+    const deletedItem = { ...item, deletedAt };
+    setState(prev => ({
+      ...prev,
+      transactions: prev.transactions.filter(t => t.id !== id),
+      deletedTransactions: [deletedItem, ...(prev.deletedTransactions || [])],
+    }));
+    try {
+      await updateRow('transactions', id, { deleted_at: deletedAt });
+    } catch (err) {
+      console.error('Erro ao remover lancamento:', err);
+      setError('Falha ao remover lancamento. Verifique sua conexao.');
+    }
   };
 
   const restoreTransaction = (id: string) => {
     const item = state.deletedTransactions?.find(t => t.id === id);
-    if (item) setState(prev => ({ ...prev, deletedTransactions: (prev.deletedTransactions || []).filter(t => t.id !== id), transactions: [...prev.transactions, item] }));
+    if (!item) return;
+    const restoredItem = { ...item, deletedAt: undefined };
+    setState(prev => ({ ...prev, deletedTransactions: (prev.deletedTransactions || []).filter(t => t.id !== id), transactions: [...prev.transactions, restoredItem] }));
+    (async () => {
+      try {
+        await updateRow('transactions', id, { deleted_at: null });
+      } catch (err) {
+        console.error('Erro ao restaurar lancamento:', err);
+        setError('Falha ao restaurar lancamento. Verifique sua conexao.');
+      }
+    })();
   };
 
   const permanentlyDeleteTransaction = (id: string) => {
     setState(prev => ({ ...prev, deletedTransactions: (prev.deletedTransactions || []).filter(t => t.id !== id) }));
+    (async () => {
+      try {
+        await deleteRow('transactions', id);
+      } catch (err) {
+        console.error('Erro ao remover lancamento definitivamente:', err);
+        setError('Falha ao remover lancamento. Verifique sua conexao.');
+      }
+    })();
   };
 
   // --- TASKS ---
@@ -1304,6 +1519,8 @@ useEffect(() => {
   const deleteTask = async (id: string) => {
     const item = state.tasks.find(t => t.id === id);
     if (!item) return;
+    const deletedAt = new Date().toISOString();
+    const deletedItem = { ...item, deletedAt };
     let removed = false;
     setState(prev => {
       if (!prev.tasks.some(t => t.id === id)) return prev;
@@ -1311,12 +1528,12 @@ useEffect(() => {
       return {
         ...prev,
         tasks: prev.tasks.filter(t => t.id !== id),
-        deletedTasks: [item, ...(prev.deletedTasks || [])],
+        deletedTasks: [deletedItem, ...(prev.deletedTasks || [])],
       };
     });
 
     try {
-      await deleteRow('tasks', id);
+      await updateRow('tasks', id, { deleted_at: deletedAt });
     } catch (err) {
       if (removed) {
         setState(prev => ({
@@ -1333,17 +1550,16 @@ useEffect(() => {
   const restoreTask = (id: string) => {
     const item = state.deletedTasks?.find(t => t.id === id);
     if (!item) return;
+    const restoredItem = { ...item, deletedAt: undefined };
     setState(prev => ({
       ...prev,
       deletedTasks: (prev.deletedTasks || []).filter(t => t.id !== id),
-      tasks: [...prev.tasks, item],
+      tasks: [...prev.tasks, restoredItem],
     }));
 
     (async () => {
-      const uid = await getUserId();
-      if (!uid) return;
       try {
-        await insertRow('tasks', mapTaskToDb(item, uid));
+        await updateRow('tasks', id, { deleted_at: null });
       } catch (err) {
         console.error('Erro ao restaurar tarefa:', err);
         setError('Falha ao restaurar tarefa. Verifique sua conexao.');
@@ -1353,6 +1569,14 @@ useEffect(() => {
 
   const permanentlyDeleteTask = (id: string) => {
     setState(prev => ({ ...prev, deletedTasks: (prev.deletedTasks || []).filter(t => t.id !== id) }));
+    (async () => {
+      try {
+        await deleteRow('tasks', id);
+      } catch (err) {
+        console.error('Erro ao remover tarefa definitivamente:', err);
+        setError('Falha ao remover tarefa. Verifique sua conexao.');
+      }
+    })();
   };
 
   // --- EVENTS ---
@@ -1393,10 +1617,12 @@ useEffect(() => {
   const deleteEvent = (id: string) => {
     const item = state.tournaments.find(e => e.id === id);
     if (!item) return;
-    setState(prev => ({ ...prev, tournaments: prev.tournaments.filter(e => e.id !== id), deletedTournaments: [item, ...(prev.deletedTournaments || [])] }));
+    const deletedAt = new Date().toISOString();
+    const deletedItem = { ...item, deletedAt };
+    setState(prev => ({ ...prev, tournaments: prev.tournaments.filter(e => e.id !== id), deletedTournaments: [deletedItem, ...(prev.deletedTournaments || [])] }));
     (async () => {
       try {
-        await deleteRow('tournaments', id);
+        await updateRow('tournaments', id, { deleted_at: deletedAt });
       } catch (err) {
         console.error('Erro ao remover evento:', err);
         setError('Falha ao remover evento. Verifique sua conexao.');
@@ -1407,12 +1633,11 @@ useEffect(() => {
   const restoreEvent = (id: string) => {
     const item = state.deletedTournaments?.find(e => e.id === id);
     if (!item) return;
-    setState(prev => ({ ...prev, deletedTournaments: (prev.deletedTournaments || []).filter(e => e.id !== id), tournaments: [...prev.tournaments, item] }));
+    const restoredItem = { ...item, deletedAt: undefined };
+    setState(prev => ({ ...prev, deletedTournaments: (prev.deletedTournaments || []).filter(e => e.id !== id), tournaments: [...prev.tournaments, restoredItem] }));
     (async () => {
-      const uid = await getUserId();
-      if (!uid) return;
       try {
-        await insertRow('tournaments', mapTournamentToDb(item, uid));
+        await updateRow('tournaments', id, { deleted_at: null });
       } catch (err) {
         console.error('Erro ao restaurar evento:', err);
         setError('Falha ao restaurar evento. Verifique sua conexao.');
@@ -1422,6 +1647,14 @@ useEffect(() => {
 
   const permanentlyDeleteEvent = (id: string) => {
     setState(prev => ({ ...prev, deletedTournaments: (prev.deletedTournaments || []).filter(e => e.id !== id) }));
+    (async () => {
+      try {
+        await deleteRow('tournaments', id);
+      } catch (err) {
+        console.error('Erro ao remover evento definitivamente:', err);
+        setError('Falha ao remover evento. Verifique sua conexao.');
+      }
+    })();
   };
 
   if (authLoading) {

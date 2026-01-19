@@ -356,6 +356,7 @@ const BreedingManager: React.FC<BreedingManagerProps> = ({ state, addPair, updat
          <div className="bg-rose-50 border-l-4 border-rose-500 p-4 rounded-r-xl mb-4">
             <p className="text-rose-700 font-bold text-sm">Lixeira de Casais</p>
             <p className="text-rose-600 text-xs">Restaure casais desfeitos acidentalmente ou remova o histórico definitivamente.</p>
+            <p className="text-rose-600 text-xs mt-1">Itens ficam disponiveis por ate 30 dias na lixeira antes de serem removidos automaticamente.</p>
          </div>
       )}
 

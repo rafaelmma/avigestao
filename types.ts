@@ -47,16 +47,17 @@ export interface Bird {
   isRepeater: boolean;
   sexing?: SexingData; 
   documents?: BirdDocument[]; // Novo campo: RepositÃ³rio de documentos da ave
+  deletedAt?: string;
 }
 
 export type TransactionCategory = 
   | 'Venda de Aves' 
-  | 'ServiÃ§os' 
-  | 'AlimentaÃ§Ã£o' 
-  | 'SaÃºde' 
+  | 'Serviços' 
+  | 'Alimentação' 
+  | 'Saúde' 
   | 'Manejo e Insumos' 
   | 'Estrutura' 
-  | 'Taxas e LicenÃ§as' 
+  | 'Taxas e Licenças' 
   | 'Outros';
 
 export interface Transaction {
@@ -67,6 +68,7 @@ export interface Transaction {
   type: 'Receita' | 'Despesa';
   category: TransactionCategory;
   subcategory?: string; // Novo campo para subitens (ex: RaÃ§Ã£o, Medicamento)
+  deletedAt?: string;
 }
 
 export interface MaintenanceTask {
@@ -78,6 +80,7 @@ export interface MaintenanceTask {
   birdId?: string;
   frequency?: 'Única' | 'Diária' | 'Semanal' | 'Mensal'; // Adicionado
   remindMe?: boolean; // Adicionado: Flag para destacar aviso
+  deletedAt?: string;
 }
 
 export interface TournamentEvent {
@@ -85,7 +88,7 @@ export interface TournamentEvent {
   title: string;
   date: string;
   location: string;
-  type: 'Torneio' | 'Encontro' | 'ExposiÃ§Ã£o';
+  type: 'Torneio' | 'Encontro' | 'Exposição';
   category: 'Fibra' | 'Canto' | 'Morfologia' | 'Social';
   notes?: string;
   organizer?: string;
@@ -97,17 +100,19 @@ export interface TournamentEvent {
   
   participatingBirds?: string[]; // IDs dos pÃ¡ssaros
   preparationChecklist?: { item: string; checked: boolean }[]; // Checklist
+  deletedAt?: string;
 }
 
 export interface MovementRecord {
   id: string;
   birdId: string;
-  type: 'Ã“bito' | 'Fuga' | 'Transporte' | 'Venda';
+  type: 'Óbito' | 'Fuga' | 'Transporte' | 'Venda';
   date: string;
   notes: string;
   gtrUrl?: string;
   destination?: string;
   buyerSispass?: string;
+  deletedAt?: string;
 }
 
 export interface Pair {
@@ -119,6 +124,7 @@ export interface Pair {
   status: 'Ativo' | 'Inativo';
   name: string;
   lastHatchDate?: string;
+  deletedAt?: string;
 }
 
 export interface Clutch {
@@ -138,6 +144,7 @@ export interface Medication {
   batch: string;
   expiryDate: string;
   stock: number;
+  deletedAt?: string;
 }
 
 export interface MedicationApplication {
@@ -148,6 +155,7 @@ export interface MedicationApplication {
   dosage: string;
   notes: string;
   treatmentId?: string; // Link para tratamento contÃ­nuo
+  deletedAt?: string;
 }
 
 export interface ContinuousTreatment {
@@ -156,14 +164,15 @@ export interface ContinuousTreatment {
   medicationId: string;
   startDate: string;
   endDate?: string; // Opcional (se for contÃ­nuo indefinido)
-  frequency: 'DiÃ¡rio' | '12h em 12h' | 'Semanal' | 'Mensal';
+  frequency: 'Diário' | '12h em 12h' | 'Semanal' | 'Mensal';
   dosage: string;
-  status: 'Ativo' | 'Pausado' | 'ConcluÃ­do';
+  status: 'Ativo' | 'Pausado' | 'Concluído';
   lastApplicationDate?: string;
   notes?: string;
+  deletedAt?: string;
 }
 
-export type CertificateType = 'A1 (Arquivo)' | 'A3 (Token USB)' | 'A3 (CartÃ£o)' | 'Nuvem (BirdID/Vidaas)';
+export type CertificateType = 'A1 (Arquivo)' | 'A3 (Token USB)' | 'A3 (Cartão)' | 'Nuvem (BirdID/Vidaas)';
 
 export interface DigitalCertificateData {
   issuer: string;       // OrgÃ£o emissor (ex: Serasa, Certisign)
@@ -223,6 +232,9 @@ export interface AppState {
 
   settings: BreederSettings;
 }
+
+
+
 
 
 

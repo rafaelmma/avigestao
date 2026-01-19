@@ -944,6 +944,7 @@ const BirdManager: React.FC<BirdManagerProps> = ({
          <div className="bg-rose-50 border-l-4 border-rose-500 p-4 rounded-r-xl">
             <p className="text-rose-700 font-bold text-sm">Aves na Lixeira</p>
             <p className="text-rose-600 text-xs">Aqui você pode restaurar aves excluídas acidentalmente ou removê-las permanentemente.</p>
+            <p className="text-rose-600 text-xs mt-1">Itens ficam disponiveis por ate 30 dias na lixeira antes de serem removidos automaticamente.</p>
          </div>
       )}
       
