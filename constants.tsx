@@ -98,16 +98,26 @@ export const APP_LOGO = `data:image/svg+xml;utf8,${encodeURIComponent(`
 `)}`;
 
 const buildDefaultBirdIcon = (accent: string, bg: string) => `data:image/svg+xml;utf8,${encodeURIComponent(`
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256">
-  <circle cx="128" cy="128" r="120" fill="${bg}"/>
-  <path d="M36 176 C70 164 124 160 184 166 C206 168 222 172 236 178" stroke="${accent}" stroke-width="12" stroke-linecap="round" fill="none"/>
-  <path d="M74 168 C60 156 48 148 36 144" stroke="${accent}" stroke-width="8" stroke-linecap="round" fill="none"/>
-  <path d="M58 138 C52 128 40 122 30 122 C40 132 48 142 54 152" fill="${accent}"/>
-  <path d="M102 158 C96 144 84 138 72 136 C84 146 92 154 96 166" fill="${accent}"/>
-  <path d="M186 168 C176 154 160 144 142 140 C126 136 112 138 100 144 C90 150 86 162 90 172 C96 186 112 190 130 184 C146 178 158 168 172 166 C186 164 200 168 212 178 C210 160 202 148 190 138 C192 122 184 106 170 96 C156 86 136 84 120 90 C108 94 100 104 98 116 C92 120 88 126 86 132 C90 126 96 122 104 120 C118 116 136 118 150 126 C164 134 176 150 186 168 Z" fill="${accent}"/>
-  <circle cx="176" cy="92" r="14" fill="${accent}"/>
-  <path d="M186 90 L212 98 L186 106 Z" fill="${accent}"/>
-  <path d="M86 150 L58 162 L92 168 Z" fill="${accent}"/>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" fill="none">
+  <circle cx="256" cy="256" r="240" fill="${bg}"/>
+  <path d="M80 380 C150 400, 350 320, 440 340" stroke="${accent}" stroke-width="12" stroke-linecap="round"/>
+  <path d="M160 385 Q160 410 150 430 M150 385 Q150 410 140 430" stroke="${accent}" stroke-width="4" stroke-linecap="round"/>
+  <path d="M180 350 
+           C160 350, 120 380, 100 420 
+           L140 390
+           C140 390, 150 250, 260 200
+           C320 170, 380 200, 380 260
+           C380 320, 300 360, 180 350" 
+           fill="${accent}"/>
+  <path d="M220 280 
+           C280 260, 320 300, 300 340
+           C280 360, 240 340, 220 280" 
+           fill="${accent}"/>
+  <path d="M375 220 L410 230 L375 245 Z" fill="${accent}"/>
+  <circle cx="340" cy="230" r="12" fill="${accent}"/>
+  <circle cx="344" cy="226" r="4" fill="${bg}"/>
+  <path d="M240 350 L240 380" stroke="${accent}" stroke-width="6" stroke-linecap="round"/>
+  <path d="M270 345 L270 375" stroke="${accent}" stroke-width="6" stroke-linecap="round"/>
 </svg>
 `)}`;
 
