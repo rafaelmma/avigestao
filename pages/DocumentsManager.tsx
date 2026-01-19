@@ -1,7 +1,7 @@
 ﻿
 import React, { useState, useEffect, useRef } from 'react';
 import { BreederSettings, CertificateType } from '../types';
-import { FileBadge, ShieldCheck, ExternalLink, CreditCard, Cloud, FileKey, Usb, AlertTriangle, CheckCircle2, CalendarClock, Save, X, Calendar } from 'lucide-react';
+import { FileBadge, ShieldCheck, ExternalLink, CreditCard, Cloud, FileKey, Usb, AlertTriangle, CheckCircle2, CalendarClock, Save, X, Calendar, Info } from 'lucide-react';
 
 interface DocumentsManagerProps {
   settings: BreederSettings;
@@ -165,6 +165,15 @@ const calculateProgress = (startDateStr?: string, endDateStr?: string) => {
         <h2 className="text-3xl font-black text-[#0F172A] tracking-tight">Licenças & Documentos</h2>
         <p className="text-slate-500 font-medium">Controle de legalidade do criatório junto aos órgãos ambientais.</p>
       </header>
+      <div className="bg-slate-50 border border-slate-200 text-slate-600 p-4 rounded-2xl flex items-start gap-3">
+        <div className="p-2 bg-white rounded-xl border border-slate-200 text-slate-500">
+          <Info size={18} />
+        </div>
+        <div>
+          <p className="text-xs font-black uppercase tracking-widest">Importante</p>
+          <p className="text-xs text-slate-600">As licen‡as ficam vinculadas aos dados cadastrados em Configura‡äes (CPF/CNPJ, n£mero SISPASS e datas).</p>
+        </div>
+      </div>
 
             {/* Status Geral Banner */}
       <div className={`p-6 rounded-[24px] border flex items-start gap-4 ${

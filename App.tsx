@@ -397,15 +397,18 @@ useEffect(() => {
   }, [isAuthenticated, userId]);
 
   const handleLogin = async (newSettings?: Partial<BreederSettings>) => {
+  let baseSettings: BreederSettings | null = null;
+
   if (newSettings?.userId) {
     setUserId(newSettings.userId);
     try {
       await migrateLocalData(newSettings.userId);
     } catch (err) {
-      console.error('Erro na migraÃ§Ã£o de dados locais:', err);
+      console.error('Erro na migraÇõÇœo de dados locais:', err);
     }
     try {
       const remoteData = await loadInitialData(newSettings.userId);
+      baseSettings = remoteData.settings || null;
       setState(prev => ({
         ...prev,
         birds: remoteData.birds || [],
@@ -428,10 +431,8 @@ useEffect(() => {
   setIsAuthenticated(true);
 
   if (newSettings) {
-    updateSettings({
-      ...state.settings,
-      ...newSettings
-    });
+    const merged = { ...(baseSettings || state.settings), ...newSettings };
+    updateSettings(merged);
   }
 };
 
