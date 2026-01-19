@@ -1606,18 +1606,29 @@ useEffect(() => {
     (async () => {
       const uid = await getUserId();
       if (!uid) return;
+      const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+      const safeEventId = uuidRegex.test(e.id)
+        ? e.id
+        : (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function'
+            ? crypto.randomUUID()
+            : 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
+                const r = (Math.random() * 16) | 0;
+                const v = c === 'x' ? r : (r & 0x3) | 0x8;
+                return v.toString(16);
+              }));
+      const safeEvent = e.id === safeEventId ? e : { ...e, id: safeEventId };
       let added = false;
       setState(prev => {
-        if (prev.tournaments.some(item => item.id === e.id)) return prev;
+        if (prev.tournaments.some(item => item.id === safeEvent.id)) return prev;
         added = true;
-        return { ...prev, tournaments: [...prev.tournaments, e] };
+        return { ...prev, tournaments: [...prev.tournaments, safeEvent] };
       });
       try {
-        await insertRow('tournaments', mapTournamentToDb(e, uid));
+        await insertRow('tournaments', mapTournamentToDb(safeEvent, uid));
       } catch (err) {
         if (isSchemaCacheMissingColumn(err)) {
           try {
-            await insertRow('tournaments', mapTournamentToDbMinimal(e, uid));
+            await insertRow('tournaments', mapTournamentToDbMinimal(safeEvent, uid));
             console.warn('Torneio salvo com campos basicos por falta de colunas no banco.');
             return;
           } catch (fallbackErr) {
@@ -1625,7 +1636,7 @@ useEffect(() => {
           }
         }
         if (added) {
-          setState(prev => ({ ...prev, tournaments: prev.tournaments.filter(item => item.id !== e.id) }));
+          setState(prev => ({ ...prev, tournaments: prev.tournaments.filter(item => item.id !== safeEvent.id) }));
         }
         console.error('Erro ao salvar evento:', err);
         setError('Falha ao salvar evento. Verifique sua conexao.');
