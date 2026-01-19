@@ -1277,7 +1277,28 @@ useEffect(() => {
     const task = state.tasks.find(t => t.id === id);
     if (!task) return;
     const updated = { ...task, isCompleted: !task.isCompleted };
-    await updateRow('tasks', id, mapTaskUpdateToDb(updated));
+    let applied = false;
+    setState(prev => {
+      if (!prev.tasks.some(t => t.id === id)) return prev;
+      applied = true;
+      return {
+        ...prev,
+        tasks: prev.tasks.map(t => t.id === id ? updated : t)
+      };
+    });
+
+    try {
+      await updateRow('tasks', id, mapTaskUpdateToDb(updated));
+    } catch (err) {
+      if (applied) {
+        setState(prev => ({
+          ...prev,
+          tasks: prev.tasks.map(t => t.id === id ? task : t)
+        }));
+      }
+      console.error('Erro ao concluir tarefa:', err);
+      setError('Falha ao concluir tarefa. Verifique sua conexao.');
+    }
   };
 
   const deleteTask = async (id: string) => {

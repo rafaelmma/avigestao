@@ -186,6 +186,12 @@ const TaskManager: React.FC<TaskManagerProps> = ({ state, addTask, updateTask, t
     if (permanentlyDeleteTask) permanentlyDeleteTask(id);
   };
 
+  const handleClearHistory = () => {
+    if (completedTasks.length === 0) return;
+    if (!window.confirm('Remover todas as tarefas do histórico?')) return;
+    completedTasks.forEach(task => deleteTask(task.id));
+  };
+
   const getBirdById = (id?: string) => state.birds.find(b => b.id === id);
 
   return (
@@ -407,9 +413,19 @@ const TaskManager: React.FC<TaskManagerProps> = ({ state, addTask, updateTask, t
           <div className="flex items-center justify-between mb-4">
              <h3 className="font-black text-slate-400 text-lg flex items-center gap-3">
                <CheckSquare size={20} />
-               Histórico de Manejo
+               Hist?rico de Manejo
              </h3>
-             <span className="px-3 py-1 bg-slate-100 text-slate-400 text-[10px] font-black rounded-lg uppercase">{completedTasks.length}</span>
+             <div className="flex items-center gap-3">
+               {currentList === 'active' && completedTasks.length > 0 ? (
+                 <button
+                   onClick={handleClearHistory}
+                   className="px-3 py-1 text-[10px] font-black uppercase rounded-lg border border-rose-100 text-rose-400 hover:text-rose-600 hover:border-rose-200 transition-all"
+                 >
+                   Limpar hist?rico
+                 </button>
+               ) : null}
+               <span className="px-3 py-1 bg-slate-100 text-slate-400 text-[10px] font-black rounded-lg uppercase">{completedTasks.length}</span>
+             </div>
           </div>
 
           <div className="space-y-3">
@@ -566,3 +582,4 @@ const TaskManager: React.FC<TaskManagerProps> = ({ state, addTask, updateTask, t
 };
 
 export default TaskManager;
+
