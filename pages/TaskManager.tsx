@@ -266,8 +266,8 @@ const TaskManager: React.FC<TaskManagerProps> = ({ state, addTask, updateTask, t
       {currentList === 'trash' && (
          <div className="bg-rose-50 border-l-4 border-rose-500 p-4 rounded-r-xl mb-4">
             <p className="text-rose-700 font-bold text-sm">Lixeira de Tarefas</p>
-            <p className="text-rose-600 text-xs">Tarefas excluÃ­das. Restaure se necessÃ¡rio ou apague definitivamente.</p>
-            <p className="text-rose-600 text-xs mt-1">Itens ficam disponiveis por ate 30 dias na lixeira antes de serem removidos automaticamente.</p>
+            <p className="text-rose-600 text-xs">Tarefas excluídas. Restaure se necessário ou apague definitivamente.</p>
+            <p className="text-rose-600 text-xs mt-1">Itens ficam disponíveis por até 30 dias na lixeira antes de serem removidos automaticamente.</p>
          </div>
       )}
 
@@ -583,5 +583,6 @@ const TaskManager: React.FC<TaskManagerProps> = ({ state, addTask, updateTask, t
 };
 
 export default TaskManager;
+
 
 

@@ -171,7 +171,7 @@ const calculateProgress = (startDateStr?: string, endDateStr?: string) => {
         </div>
         <div>
           <p className="text-xs font-black uppercase tracking-widest">Importante</p>
-          <p className="text-xs text-slate-600">As licen‡as ficam vinculadas aos dados cadastrados em Configura‡äes (CPF/CNPJ, n£mero SISPASS e datas).</p>
+          <p className="text-xs text-slate-600">As licenças ficam vinculadas aos dados cadastrados em Configurações (CPF/CNPJ, número SISPASS e datas).</p>
         </div>
       </div>
 
@@ -498,6 +498,7 @@ const calculateProgress = (startDateStr?: string, endDateStr?: string) => {
 };
 
 export default DocumentsManager;
+
 
 
 
