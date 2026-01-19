@@ -746,6 +746,15 @@ const BirdManager: React.FC<BirdManagerProps> = ({
       {/* --- MODO CENTRAL DE SEXAGEM --- */}
       {currentList === 'sexagem' && (
         <div className="space-y-8 animate-in slide-in-from-right-4 duration-300">
+           <div className="bg-blue-50 border border-blue-100 text-blue-700 p-4 rounded-2xl flex items-start gap-3">
+              <div className="p-2 bg-blue-100 rounded-xl text-blue-600">
+                <CheckCircle2 size={18} />
+              </div>
+              <div>
+                <p className="text-xs font-black uppercase tracking-widest">Dica</p>
+                <p className="text-xs text-blue-700">Aves com sexo indeterminado aparecem aqui para gerar a remessa da sexagem.</p>
+              </div>
+           </div>
            {/* ... (Existing Sexing Logic remains unchanged) ... */}
            {/* Seção 1: Pendentes de Envio */}
            <div className="bg-white p-6 rounded-[32px] border border-slate-100 shadow-sm">
