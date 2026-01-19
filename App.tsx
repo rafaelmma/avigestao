@@ -568,12 +568,20 @@ useEffect(() => {
     title: t.title,
     due_date: t.dueDate,
     is_completed: t.isCompleted,
+    ...(t.priority ? { priority: t.priority } : {}),
+    ...(t.birdId ? { bird_id: t.birdId } : {}),
+    ...(t.frequency ? { frequency: t.frequency } : {}),
+    ...(typeof t.remindMe === 'boolean' ? { remind_me: t.remindMe } : {}),
   });
 
   const mapTaskUpdateToDb = (t: MaintenanceTask) => ({
     title: t.title,
     due_date: t.dueDate,
     is_completed: t.isCompleted,
+    ...(t.priority ? { priority: t.priority } : {}),
+    ...(t.birdId ? { bird_id: t.birdId } : {}),
+    ...(t.frequency ? { frequency: t.frequency } : {}),
+    ...(typeof t.remindMe === 'boolean' ? { remind_me: t.remindMe } : {}),
   });
 
   const mapPairToDb = (pair: Pair, uid: string) => ({
@@ -1242,7 +1250,23 @@ useEffect(() => {
               return v.toString(16);
             }));
     const safeTask = t.id === safeTaskId ? t : { ...t, id: safeTaskId };
-    await insertRow('tasks', mapTaskToDb(safeTask, uid));
+
+    let added = false;
+    setState(prev => {
+      if (prev.tasks.some(task => task.id === safeTask.id)) return prev;
+      added = true;
+      return { ...prev, tasks: [...prev.tasks, safeTask] };
+    });
+
+    try {
+      await insertRow('tasks', mapTaskToDb(safeTask, uid));
+    } catch (err) {
+      if (added) {
+        setState(prev => ({ ...prev, tasks: prev.tasks.filter(task => task.id !== safeTask.id) }));
+      }
+      console.error('Erro ao salvar tarefa:', err);
+      setError('Falha ao salvar tarefa. Verifique sua conexao.');
+    }
   };
 
   const updateTask = async (updatedTask: MaintenanceTask) => {
