@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect, useRef } from 'react';
 import type { AuthChangeEvent, Session } from '@supabase/supabase-js';
 import { AppState, Bird, Pair, Clutch, Medication, MedicationApplication, BreederSettings, MovementRecord, Transaction, MaintenanceTask, TournamentEvent, ContinuousTreatment } from './types';
 import { MOCK_BIRDS, MOCK_MEDS, INITIAL_SETTINGS } from './constants';
@@ -56,6 +56,7 @@ const App: React.FC = () => {
     tournaments: [], deletedTournaments: [],
     settings: INITIAL_SETTINGS
   }));
+  const tournamentSchemaMode = useRef<'full' | 'minimal'>('full');
 
   const TRASH_RETENTION_DAYS = 30;
   const TRASH_RETENTION_MS = TRASH_RETENTION_DAYS * 24 * 60 * 60 * 1000;
@@ -297,6 +298,26 @@ const App: React.FC = () => {
     if (!isAuthenticated) return;
     syncSubscriptionStatus();
   }, [isAuthenticated]);
+
+  useEffect(() => {
+    if (!isAuthenticated || !userId) return;
+    if (tournamentSchemaMode.current === 'minimal') return;
+    let cancelled = false;
+
+    (async () => {
+      const { error } = await supabase
+        .from('tournaments')
+        .select('preparation_checklist')
+        .limit(1);
+      if (!cancelled && error && isSchemaCacheMissingColumn(error)) {
+        tournamentSchemaMode.current = 'minimal';
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [isAuthenticated, userId]);
 
   const mapRowByTable = (table: string, row: any) => {
     if (!row) return row;
@@ -1636,10 +1657,15 @@ useEffect(() => {
         return { ...prev, tournaments: [...prev.tournaments, safeEvent] };
       });
       try {
+        if (tournamentSchemaMode.current === 'minimal') {
+          await insertRow('tournaments', mapTournamentToDbMinimal(safeEvent, uid));
+          return;
+        }
         await insertRow('tournaments', mapTournamentToDb(safeEvent, uid));
       } catch (err) {
         if (isSchemaCacheMissingColumn(err)) {
           try {
+            tournamentSchemaMode.current = 'minimal';
             await insertRow('tournaments', mapTournamentToDbMinimal(safeEvent, uid));
             console.warn('Torneio salvo com campos basicos por falta de colunas no banco.');
             return;
@@ -1660,10 +1686,15 @@ useEffect(() => {
     setState(prev => ({ ...prev, tournaments: prev.tournaments.map(e => e.id === updated.id ? updated : e) }));
     (async () => {
       try {
+        if (tournamentSchemaMode.current === 'minimal') {
+          await updateRow('tournaments', updated.id, mapTournamentUpdateToDbMinimal(updated));
+          return;
+        }
         await updateRow('tournaments', updated.id, mapTournamentUpdateToDb(updated));
       } catch (err) {
         if (isSchemaCacheMissingColumn(err)) {
           try {
+            tournamentSchemaMode.current = 'minimal';
             await updateRow('tournaments', updated.id, mapTournamentUpdateToDbMinimal(updated));
             console.warn('Evento atualizado com campos basicos por falta de colunas no banco.');
             return;
@@ -1926,6 +1957,10 @@ useEffect(() => {
 };
 
 export default App;
+
+
+
+
 
 
 
