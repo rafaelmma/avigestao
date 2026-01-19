@@ -36,7 +36,6 @@ const Auth: React.FC<AuthProps> = ({ onLogin }) => {
         if (data?.user?.id) {
           onLogin({
             userId: data.user.id,
-            breederName: email.split('@')[0],
           });
         }
       } else {
