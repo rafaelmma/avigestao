@@ -193,6 +193,26 @@ const App: React.FC = () => {
       ]);
     };
 
+    const ensureTrial = async (settings: BreederSettings): Promise<BreederSettings> => {
+      if (isAdmin) return settings;
+      if (settings.plan === 'Profissional' || settings.trialEndDate) return settings;
+      const trialDate = new Date();
+      trialDate.setDate(trialDate.getDate() + 7);
+      const trialIso = trialDate.toISOString().split('T')[0];
+      const updated = { ...settings, trialEndDate: trialIso, plan: settings.plan || 'Básico' };
+
+      try {
+        if (supabase) {
+          await supabase
+            .from('settings')
+            .upsert({ user_id: userId, plan: updated.plan, trial_end_date: trialIso } as any, { onConflict: 'user_id' });
+        }
+      } catch (e) {
+        console.warn('Falha ao registrar trial default', e);
+      }
+      return updated;
+    };
+
     try {
       const data = await withTimeout(loadInitialData(userId), HYDRATE_TIMEOUT_MS);
       // Checa status da assinatura no backend e força plano PRO se estiver ativo
@@ -217,6 +237,9 @@ const App: React.FC = () => {
           console.warn('Não foi possível verificar status da assinatura', e);
         }
       }
+
+      // Se não tem plano PRO nem trial, aplica trial de 7 dias e persiste
+      data.settings = await ensureTrial(data.settings || defaultState.settings);
 
       const normalizedSettings: BreederSettings = {
         ...defaultState.settings,
