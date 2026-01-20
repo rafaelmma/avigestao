@@ -71,6 +71,8 @@ const SettingsManager: React.FC<SettingsManagerProps> = ({ settings, updateSetti
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [paymentStep, setPaymentStep] = useState<'method' | 'processing'>('method');
   const [hasStripeCustomer, setHasStripeCustomer] = useState(false);
+  const [bannerMessage, setBannerMessage] = useState<string | null>(null);
+  const [savedAt, setSavedAt] = useState<string | null>(null);
 
   const isTrial = !!settings.trialEndDate && !isAdmin;
   const canUseLogo = !!isAdmin || settings.plan === 'Profissional' || !!settings.trialEndDate;
@@ -92,6 +94,13 @@ const SettingsManager: React.FC<SettingsManagerProps> = ({ settings, updateSetti
       setHasStripeCustomer(false);
     }
   }, []);
+
+  useEffect(() => {
+    const critical: string[] = [];
+    if (daysSispass !== null && daysSispass <= 30) critical.push(`SISPASS vence em ${daysSispass} dias`);
+    if (daysCert !== null && daysCert <= 30) critical.push(`Certificado vence em ${daysCert} dias`);
+    setBannerMessage(critical.length ? critical.join(' • ') : null);
+  }, [daysSispass, daysCert]);
 
   const openBillingPortal = async () => {
     try {
@@ -158,10 +167,27 @@ const SettingsManager: React.FC<SettingsManagerProps> = ({ settings, updateSetti
 
   const handleSaveClick = () => {
     updateSettings({ ...settings });
+    setSavedAt(new Date().toLocaleTimeString());
   };
 
   return (
     <div className="space-y-8 max-w-6xl pb-14 animate-in fade-in">
+      {bannerMessage && (
+        <div className="flex items-center justify-between p-4 rounded-2xl border border-amber-200 bg-amber-50 text-amber-800 text-sm font-bold shadow-sm">
+          <div className="flex items-center gap-2">
+            <AlertTriangle size={18} className="text-amber-500" />
+            <span>{bannerMessage}</span>
+          </div>
+          <a
+            href="#"
+            onClick={() => setActiveTab('perfil')}
+            className="text-[11px] uppercase tracking-widest font-black text-amber-700"
+          >
+            Atualizar datas
+          </a>
+        </div>
+      )}
+
       <header className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
         <div>
           <h2 className="text-3xl font-black text-slate-900">Configuracoes</h2>
@@ -407,6 +433,24 @@ const SettingsManager: React.FC<SettingsManagerProps> = ({ settings, updateSetti
               </div>
               <p className="text-[11px] text-slate-500">Mantenha as datas atualizadas para ver alertas no dashboard.</p>
             </div>
+
+            <div className="bg-white p-6 rounded-3xl border border-slate-100 shadow-sm space-y-4">
+              <h4 className="font-black text-slate-800 flex items-center gap-2">
+                <ShieldCheck size={16} className="text-slate-600" /> Certificado digital
+              </h4>
+              <div className="text-sm text-slate-700 space-y-1">
+                <p><span className="font-bold">Emissor:</span> {settings.certificate?.issuer || 'Pendente'}</p>
+                <p><span className="font-bold">Validade:</span> {settings.certificate?.expiryDate ? new Date(settings.certificate.expiryDate).toLocaleDateString() : 'Pendente'}</p>
+              </div>
+              <a
+                href="https://ccd.serpro.gov.br/testeaqui/"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-2 text-xs font-black uppercase tracking-widest text-slate-500 hover:text-slate-700"
+              >
+                <ExternalLink size={12} /> Testar certificado (Serpro)
+              </a>
+            </div>
           </div>
         </div>
       )}
@@ -469,10 +513,16 @@ const SettingsManager: React.FC<SettingsManagerProps> = ({ settings, updateSetti
       <div className="sticky bottom-4 flex justify-end">
         <button
           onClick={handleSaveClick}
-          className="inline-flex items-center gap-2 px-5 py-3 rounded-2xl bg-emerald-600 text-white font-black shadow-lg shadow-emerald-300/30 hover:bg-emerald-700 transition-all"
+          className="inline-flex items-center gap-2 px-5 py-3 rounded-2xl text-white font-black shadow-lg shadow-emerald-300/30 hover:opacity-90 transition-all"
+          style={{ backgroundColor: settings.primaryColor }}
         >
           <Save size={16} /> Salvar alteracoes
         </button>
+        {savedAt && (
+          <span className="ml-3 text-xs font-bold text-emerald-700 bg-emerald-50 border border-emerald-100 px-3 py-2 rounded-xl">
+            Salvo as {savedAt}
+          </span>
+        )}
       </div>
 
       {showPaymentModal && (
