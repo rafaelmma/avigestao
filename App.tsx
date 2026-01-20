@@ -34,18 +34,6 @@ import { migrateLocalData } from './services/migrateLocalData';
 const STORAGE_KEY = 'avigestao_state';
 const HYDRATE_TIMEOUT_MS = 12000;
 
-const loadCachedState = (): AppState => {
-  if (typeof localStorage === 'undefined') return defaultState;
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (!raw) return defaultState;
-    const parsed = JSON.parse(raw);
-    return { ...defaultState, ...parsed, settings: { ...defaultState.settings, ...(parsed.settings || {}) } };
-  } catch {
-    return defaultState;
-  }
-};
-
 const defaultState: AppState = {
   birds: MOCK_BIRDS,
   deletedBirds: [],
@@ -144,24 +132,26 @@ const App: React.FC = () => {
     if (!newSession) {
       setIsAdmin(false);
       setState(defaultState);
+      setHasHydratedOnce(false);
       setIsLoading(false);
       return;
     }
 
-    // mostra dados em cache enquanto carrega remoto
-    setState(loadCachedState());
+    // Limpa tela e espera dados reais do Supabase
+    setState(defaultState);
+    setHasHydratedOnce(false);
     setIsLoading(true);
     setAuthError(null);
     const token = newSession.access_token;
 
     try {
       await Promise.all([checkAdmin(token), hydrateUserData(newSession)]);
-      setHasHydratedOnce(true);
     } catch (err: any) {
       console.error('Erro ao hidratar sessão:', err);
       setAuthError(err?.message || 'Não foi possível carregar seus dados');
       setState(defaultState);
     } finally {
+      setHasHydratedOnce(true);
       setIsLoading(false);
     }
   };
