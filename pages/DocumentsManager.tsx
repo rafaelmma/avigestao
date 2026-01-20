@@ -428,11 +428,11 @@ const calculateProgress = (startDateStr?: string, endDateStr?: string) => {
                 >
                    <CalendarClock size={16} /> {certificateActionLabel}</button>
                  <a
-                   href="https://webpki.lacunasoftware.com/#/tests"
+                   href="https://ccd.serpro.gov.br/testeaqui/"
                    target="_blank"
                    rel="noopener noreferrer"
                    className="w-full py-3 bg-slate-50 text-slate-500 rounded-xl text-xs font-black uppercase tracking-widest border border-slate-200 hover:bg-slate-100 transition-all flex items-center justify-center gap-2"
-                   title="Abre o teste público do Web PKI para listar o certificado do token"
+                   title="Abrir teste do Serpro para validar leitura do certificado A3/A1"
                  >
                    <ShieldCheck size={16} /> Testar Leitura {settings.certificate?.type?.split(' ')[0]}
                  </a>
