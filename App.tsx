@@ -26,6 +26,10 @@ import TaskManager from './pages/TaskManager';
 import TournamentCalendar from './pages/TournamentCalendar';
 import HelpCenter from './pages/HelpCenter';
 import DocumentsManager from './pages/DocumentsManager';
+import Auth from './pages/Auth';
+import { supabase, SUPABASE_MISSING } from './lib/supabase';
+import { loadInitialData } from './services/dataService';
+import { migrateLocalData } from './services/migrateLocalData';
 
 const STORAGE_KEY = 'avigestao_state';
 
@@ -60,70 +64,133 @@ const normalizeTrialEndDate = (value?: string) => {
   return parsed.getTime() >= Date.now() ? parsed.toISOString().split('T')[0] : undefined;
 };
 
-const mergeState = (saved: Partial<AppState> | null): AppState => {
-  if (!saved) return defaultState;
-  return {
-    ...defaultState,
-    ...saved,
-    birds: saved.birds ?? defaultState.birds,
-    deletedBirds: saved.deletedBirds ?? defaultState.deletedBirds,
-    pairs: saved.pairs ?? defaultState.pairs,
-    deletedPairs: saved.deletedPairs ?? defaultState.deletedPairs,
-    clutches: saved.clutches ?? defaultState.clutches,
-    medications: saved.medications ?? defaultState.medications,
-    deletedMedications: saved.deletedMedications ?? defaultState.deletedMedications,
-    medicationCatalog: saved.medicationCatalog ?? defaultState.medicationCatalog,
-    applications: saved.applications ?? defaultState.applications,
-    deletedApplications: saved.deletedApplications ?? defaultState.deletedApplications,
-    treatments: saved.treatments ?? defaultState.treatments,
-    deletedTreatments: saved.deletedTreatments ?? defaultState.deletedTreatments,
-    movements: saved.movements ?? defaultState.movements,
-    deletedMovements: saved.deletedMovements ?? defaultState.deletedMovements,
-    transactions: saved.transactions ?? defaultState.transactions,
-    deletedTransactions: saved.deletedTransactions ?? defaultState.deletedTransactions,
-    tasks: saved.tasks ?? defaultState.tasks,
-    deletedTasks: saved.deletedTasks ?? defaultState.deletedTasks,
-    tournaments: saved.tournaments ?? defaultState.tournaments,
-    deletedTournaments: saved.deletedTournaments ?? defaultState.deletedTournaments,
-    settings: {
-      ...defaultState.settings,
-      ...(saved.settings || {}),
-      trialEndDate: normalizeTrialEndDate(saved.settings?.trialEndDate)
-    }
-  };
-};
-
-const loadState = (): AppState => {
-  if (typeof localStorage === 'undefined') return defaultState;
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (!raw) return defaultState;
-    const parsed = JSON.parse(raw);
-    return mergeState(parsed);
-  } catch (err) {
-    console.warn('Failed to parse saved state, using defaults', err);
-    return defaultState;
-  }
-};
-
 const App: React.FC = () => {
   const [activeTab, setActiveTab] = useState<string>('dashboard');
-  const [state, setState] = useState<AppState>(() => loadState());
+  const [state, setState] = useState<AppState>(() => defaultState);
+  const [session, setSession] = useState<any>(null);
+  const [isAdmin, setIsAdmin] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+  const [authError, setAuthError] = useState<string | null>(null);
 
-  // Persist and sync theme colors
-  useEffect(() => {
+  const supabaseUnavailable = SUPABASE_MISSING || !supabase;
+
+  const persistState = (value: AppState) => {
     try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(value));
     } catch {
-      // ignore storage failures (private mode, etc)
+      /* ignore storage failures */
     }
+  };
 
+  // Persist state + theme colors
+  useEffect(() => {
+    persistState(state);
     const root = document.documentElement;
     root.style.setProperty('--primary', state.settings.primaryColor);
     root.style.setProperty('--primary-hover', state.settings.primaryColor + 'ee');
     root.style.setProperty('--primary-soft', state.settings.primaryColor + '15');
     root.style.setProperty('--accent', state.settings.accentColor);
   }, [state]);
+
+  // Bootstrap session
+  useEffect(() => {
+    if (supabaseUnavailable) {
+      setIsLoading(false);
+      return;
+    }
+
+    let mounted = true;
+    const init = async () => {
+      try {
+        const { data, error } = await supabase.auth.getSession();
+        if (!mounted) return;
+        if (error) setAuthError(error.message);
+        await handleSession(data?.session || null);
+      } catch (err: any) {
+        if (!mounted) return;
+        setAuthError(err?.message || 'Erro ao iniciar sessão');
+        setIsLoading(false);
+      }
+    };
+
+    init();
+    const { data: listener } = supabase.auth.onAuthStateChange(async (_event, newSession) => {
+      if (!mounted) return;
+      await handleSession(newSession);
+    });
+
+    return () => {
+      mounted = false;
+      listener?.subscription?.unsubscribe();
+    };
+  }, [supabaseUnavailable]);
+
+  const handleSession = async (newSession: any) => {
+    setSession(newSession);
+    if (!newSession) {
+      setIsAdmin(false);
+      setState(defaultState);
+      setIsLoading(false);
+      return;
+    }
+
+    setIsLoading(true);
+    setAuthError(null);
+    const token = newSession.access_token;
+
+    await Promise.all([checkAdmin(token), hydrateUserData(newSession)]);
+    setIsLoading(false);
+  };
+
+  const checkAdmin = async (token: string) => {
+    try {
+      const res = await fetch('/api/admin/check', {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      if (!res.ok) {
+        setIsAdmin(false);
+        return;
+      }
+      const json = await res.json();
+      setIsAdmin(!!json?.isAdmin);
+    } catch {
+      setIsAdmin(false);
+    }
+  };
+
+  const hydrateUserData = async (currentSession: any) => {
+    if (supabaseUnavailable || !currentSession?.user?.id) {
+      setState(defaultState);
+      return;
+    }
+
+    const userId = currentSession.user.id as string;
+
+    try {
+      await migrateLocalData(userId);
+    } catch (err) {
+      console.warn('Falha ao migrar dados locais', err);
+    }
+
+    try {
+      const data = await loadInitialData(userId);
+      const normalizedSettings: BreederSettings = {
+        ...defaultState.settings,
+        ...(data.settings || {}),
+        userId,
+        trialEndDate: normalizeTrialEndDate(data.settings?.trialEndDate)
+      };
+      setState({
+        ...defaultState,
+        ...data,
+        settings: normalizedSettings
+      });
+    } catch (err: any) {
+      console.error('Erro ao carregar dados:', err);
+      setAuthError(err?.message || 'Erro ao carregar dados');
+      setState(defaultState);
+    }
+  };
 
   const navigateTo = (tab: string) => setActiveTab(tab);
 
@@ -412,20 +479,32 @@ const App: React.FC = () => {
   const updateSettings = (settings: BreederSettings) =>
     setState(prev => ({ ...prev, settings: { ...prev.settings, ...settings } }));
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
+    setIsLoading(true);
+    try {
+      if (!supabaseUnavailable) {
+        await supabase.auth.signOut();
+      }
+    } catch (err) {
+      console.warn('Erro ao deslogar supabase', err);
+    }
     try {
       localStorage.removeItem(STORAGE_KEY);
+      localStorage.removeItem('avigestao_migrated');
     } catch {
-      // ignore storage cleanup issues
+      /* ignore */
     }
+    setIsAdmin(false);
+    setSession(null);
     setState(defaultState);
     setActiveTab('dashboard');
+    setIsLoading(false);
   };
 
   const renderContent = () => {
     switch (activeTab) {
       case 'dashboard':
-        return <Dashboard state={state} updateSettings={updateSettings} navigateTo={navigateTo} />;
+        return <Dashboard state={state} updateSettings={updateSettings} navigateTo={navigateTo} isAdmin={isAdmin} />;
       case 'birds':
         return (
           <BirdManager
@@ -435,6 +514,7 @@ const App: React.FC = () => {
             deleteBird={deleteBird}
             restoreBird={restoreBird}
             permanentlyDeleteBird={permanentlyDeleteBird}
+            isAdmin={isAdmin}
           />
         );
       case 'sexing':
@@ -450,6 +530,7 @@ const App: React.FC = () => {
             includeSexingTab
             showListTabs
             titleOverride="Central de Sexagem"
+            isAdmin={isAdmin}
           />
         );
       case 'breeding':
@@ -485,6 +566,7 @@ const App: React.FC = () => {
             deleteApplication={deleteApplication}
             restoreApplication={restoreApplication}
             permanentlyDeleteApplication={permanentlyDeleteApplication}
+            isAdmin={isAdmin}
           />
         );
       case 'movements':
@@ -534,16 +616,26 @@ const App: React.FC = () => {
       case 'documents':
         return <DocumentsManager settings={state.settings} updateSettings={updateSettings} />;
       case 'settings':
-        return <SettingsManager settings={state.settings} updateSettings={updateSettings} />;
+        return <SettingsManager settings={state.settings} updateSettings={updateSettings} isAdmin={isAdmin} />;
       case 'help':
         return <HelpCenter />;
       default:
-        return <Dashboard state={state} updateSettings={updateSettings} navigateTo={navigateTo} />;
+        return <Dashboard state={state} updateSettings={updateSettings} navigateTo={navigateTo} isAdmin={isAdmin} />;
     }
   };
 
+  if (!session && !supabaseUnavailable) {
+    return <Auth onLogin={() => { /* sessão será tratada via supabase listener */ }} />;
+  }
+
   return (
     <div className="min-h-screen flex bg-slate-50 text-slate-900 font-sans selection:bg-[var(--primary-soft)] selection:text-[var(--primary)]">
+      {isLoading && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-white/70 backdrop-blur-sm text-slate-600 text-sm font-bold">
+          Carregando dados...
+        </div>
+      )}
+
       <Sidebar
         activeTab={activeTab}
         setActiveTab={setActiveTab}
@@ -551,10 +643,16 @@ const App: React.FC = () => {
         breederName={state.settings.breederName}
         plan={state.settings.plan}
         trialEndDate={state.settings.trialEndDate}
+        isAdmin={isAdmin}
         onLogout={handleLogout}
       />
 
       <main className="flex-1 ml-64 p-8 max-w-7xl mx-auto w-full">
+        {authError && (
+          <div className="mb-4 rounded-2xl border border-rose-200 bg-rose-50 text-rose-700 px-4 py-3 text-sm font-bold">
+            {authError}
+          </div>
+        )}
         {renderContent()}
       </main>
 
