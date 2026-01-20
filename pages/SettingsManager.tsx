@@ -190,8 +190,8 @@ const SettingsManager: React.FC<SettingsManagerProps> = ({ settings, updateSetti
 
       <header className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
         <div>
-          <h2 className="text-3xl font-black text-slate-900">Configuracoes</h2>
-          <p className="text-slate-500">Ajuste dados do criatorio, licencas, certificado e aparencia.</p>
+          <h2 className="text-3xl font-black text-slate-900">Configurações</h2>
+          <p className="text-slate-500">Ajuste dados do criatório, licenças, certificado e aparência.</p>
         </div>
         <div className="flex flex-wrap gap-3 items-center">
           {isAdmin && (
@@ -227,7 +227,7 @@ const SettingsManager: React.FC<SettingsManagerProps> = ({ settings, updateSetti
           <div className="space-y-6">
             <div className="bg-white p-8 rounded-3xl border border-slate-100 shadow-sm space-y-6">
               <h3 className="font-black flex items-center gap-2 text-slate-800">
-                <User size={18} /> Identidade do criatorio
+                <User size={18} /> Identidade do criatório
               </h3>
 
               <div className="bg-slate-50 border border-slate-100 rounded-2xl p-6 flex flex-col sm:flex-row gap-6 items-center sm:items-start">
@@ -239,7 +239,7 @@ const SettingsManager: React.FC<SettingsManagerProps> = ({ settings, updateSetti
                   )}
                 </div>
                 <div className="flex-1">
-                  <p className="font-black text-slate-800">Logomarca do criatorio</p>
+                  <p className="font-black text-slate-800">Logomarca do criatório</p>
                   <p className="text-xs text-slate-500 mt-1">Exibida no menu lateral e em documentos.</p>
                   {canUseLogo ? (
                     <>
@@ -267,7 +267,7 @@ const SettingsManager: React.FC<SettingsManagerProps> = ({ settings, updateSetti
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <label className="space-y-2">
-                  <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Nome do criatorio</span>
+                  <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Nome do criatório</span>
                   <input
                     className="w-full p-3 rounded-2xl bg-slate-50 border border-slate-100 text-sm font-bold"
                     value={settings.breederName}
