@@ -412,14 +412,6 @@ const SettingsManager: React.FC<SettingsManagerProps> = ({ settings, updateSetti
                   </div>
                 ))}
               </div>
-              <a
-                href="https://ccd.serpro.gov.br/testeaqui/"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center gap-2 text-xs font-black uppercase tracking-widest text-slate-500 hover:text-slate-700"
-              >
-                <ExternalLink size={12} /> Testar certificado (Serpro)
-              </a>
             </div>
 
             <div className="bg-white p-6 rounded-3xl border border-slate-100 shadow-sm space-y-3">
