@@ -15,9 +15,10 @@ import {
   Transaction,
 } from "../types";
 
-const TIMEOUT_MS = 6000;
+const TIMEOUT_MS = 10000;
 const MED_CAT_CACHE_KEY = "avigestao_med_catalog_v1";
 const MED_CAT_CACHE_TTL = 1000 * 60 * 60 * 24; // 24h
+const MED_CAT_PREFETCH_DELAY = 5000; // 5s depois do load inicial
 
 const withTimeout = async <T>(promise: Promise<T>): Promise<T> => {
   const controller = new AbortController();
@@ -51,7 +52,7 @@ const safeSingleSettings = async (query: any): Promise<BreederSettings | null> =
   }
 };
 
-const getCachedMedicationCatalog = (): MedicationCatalogItem[] | null => {
+export const getCachedMedicationCatalog = (): MedicationCatalogItem[] | null => {
   if (typeof localStorage === "undefined") return null;
   try {
     const raw = localStorage.getItem(MED_CAT_CACHE_KEY);
@@ -65,7 +66,7 @@ const getCachedMedicationCatalog = (): MedicationCatalogItem[] | null => {
   }
 };
 
-const cacheMedicationCatalog = (items: MedicationCatalogItem[]) => {
+export const cacheMedicationCatalog = (items: MedicationCatalogItem[]) => {
   if (typeof localStorage === "undefined") return;
   try {
     localStorage.setItem(MED_CAT_CACHE_KEY, JSON.stringify({ data: items, cachedAt: Date.now() }));
@@ -79,17 +80,7 @@ export async function loadInitialData(userId: string) {
     supabase.from("settings").select("*").eq("user_id", userId).maybeSingle()
   );
 
-  const medCatalogCached = getCachedMedicationCatalog();
-  const medicationCatalogPromise = medCatalogCached
-    ? Promise.resolve(medCatalogCached)
-    : safeSelect(
-        supabase.from("medication_catalog").select("*"),
-        mapMedicationCatalogFromDb
-      ).then((items) => {
-        cacheMedicationCatalog(items);
-        return items;
-      });
-
+  // Carregamento crítico (sem catálogo) para renderizar rápido
   const [
     birds,
     movements,
@@ -101,7 +92,6 @@ export async function loadInitialData(userId: string) {
     clutches,
     applications,
     treatments,
-    medicationCatalog,
     settings,
   ] = await Promise.all([
     safeSelect(supabase.from("birds").select("*").eq("user_id", userId), mapBirdFromDb),
@@ -114,9 +104,21 @@ export async function loadInitialData(userId: string) {
     safeSelect(supabase.from("clutches").select("*").eq("user_id", userId), mapClutchFromDb),
     safeSelect(supabase.from("applications").select("*").eq("user_id", userId), mapApplicationFromDb),
     safeSelect(supabase.from("treatments").select("*").eq("user_id", userId), mapTreatmentFromDb),
-    medicationCatalogPromise,
     settingsPromise,
   ]);
+
+  // Catálogo de medicamentos carregado em segundo plano com cache
+  let medicationCatalog = getCachedMedicationCatalog() || [];
+  if (medicationCatalog.length === 0) {
+    // dispara após render inicial
+    setTimeout(async () => {
+      const items = await safeSelect(
+        supabase.from("medication_catalog").select("*"),
+        mapMedicationCatalogFromDb
+      );
+      cacheMedicationCatalog(items);
+    }, MED_CAT_PREFETCH_DELAY);
+  }
 
   return {
     birds,
