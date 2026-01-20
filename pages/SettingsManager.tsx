@@ -474,12 +474,25 @@ const SettingsManager: React.FC<SettingsManagerProps> = ({ settings, updateSetti
             )}
 
             {settings.plan === 'Profissional' && !isTrial && !isAdmin && (
-              <button
-                onClick={openBillingPortal}
-                className="mt-4 px-6 py-3 bg-slate-900 text-white rounded-xl font-black"
-              >
-                Gerenciar assinatura
-              </button>
+              <div className="mt-4 bg-slate-50 border border-slate-200 rounded-xl p-4 space-y-3">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-xs font-black uppercase text-slate-500">Assinatura ativa</p>
+                    <p className="text-sm font-bold text-slate-800">
+                      Gerencie cobranÇões, upgrade/downgrade ou cancele a renovaÇõÇœo automÇîtica.
+                    </p>
+                  </div>
+                  <button
+                    onClick={openBillingPortal}
+                    className="px-4 py-2 bg-slate-900 text-white rounded-xl text-xs font-black uppercase tracking-widest hover:bg-slate-800 transition-all"
+                  >
+                    Abrir portal
+                  </button>
+                </div>
+                <p className="text-[11px] text-slate-500">
+                  No portal você pode trocar período (mensal/anual), atualizar cartão e cancelar a recorrência.
+                </p>
+              </div>
             )}
           </div>
 

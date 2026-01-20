@@ -100,7 +100,7 @@ const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab, logoUrl, bre
             <div className="overflow-hidden">
               <h1
                 title={breederName || 'AviGestão'}
-                className="font-black text-slate-900 text-[15px] leading-tight break-words line-clamp-2 max-w-[220px]"
+                className="font-black text-slate-900 text-sm leading-tight break-words line-clamp-2 max-w-[190px]"
               >
                 {breederName || 'AviGestão'}
               </h1>
