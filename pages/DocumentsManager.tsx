@@ -422,14 +422,20 @@ const calculateProgress = (startDateStr?: string, endDateStr?: string) => {
               </div>
 
               <div className="pt-2 flex flex-col gap-2">
-                 <button 
-                   onClick={() => handleOpenRenewal('certificate')}
-                   className="w-full py-3 bg-emerald-600 text-white shadow-lg shadow-emerald-200 hover:bg-emerald-700 rounded-xl text-xs font-black uppercase tracking-widest flex items-center justify-center gap-2 transition-all"
-                 >
+                <button 
+                  onClick={() => handleOpenRenewal('certificate')}
+                  className="w-full py-3 bg-emerald-600 text-white shadow-lg shadow-emerald-200 hover:bg-emerald-700 rounded-xl text-xs font-black uppercase tracking-widest flex items-center justify-center gap-2 transition-all"
+                >
                    <CalendarClock size={16} /> {certificateActionLabel}</button>
-                 <button className="w-full py-3 bg-slate-50 text-slate-500 rounded-xl text-xs font-black uppercase tracking-widest border border-slate-200 hover:bg-slate-100 transition-all flex items-center justify-center gap-2">
+                 <a
+                   href="https://webpki.lacunasoftware.com/#/tests"
+                   target="_blank"
+                   rel="noopener noreferrer"
+                   className="w-full py-3 bg-slate-50 text-slate-500 rounded-xl text-xs font-black uppercase tracking-widest border border-slate-200 hover:bg-slate-100 transition-all flex items-center justify-center gap-2"
+                   title="Abre o teste público do Web PKI para listar o certificado do token"
+                 >
                    <ShieldCheck size={16} /> Testar Leitura {settings.certificate?.type?.split(' ')[0]}
-                 </button>
+                 </a>
               </div>
            </div>
         </div>
