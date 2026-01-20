@@ -195,6 +195,29 @@ const App: React.FC = () => {
 
     try {
       const data = await withTimeout(loadInitialData(userId), HYDRATE_TIMEOUT_MS);
+      // Checa status da assinatura no backend e força plano PRO se estiver ativo
+      if (supabase) {
+        try {
+          const token = currentSession.access_token;
+          const res = await fetch('/api/subscription-status', {
+            method: 'POST',
+            headers: { Authorization: `Bearer ${token}` }
+          });
+          if (res.ok) {
+            const sub = await res.json();
+            if (sub?.isActive || sub?.isTrial) {
+              data.settings = {
+                ...(data.settings || {}),
+                plan: 'Profissional',
+                trialEndDate: null
+              } as BreederSettings;
+            }
+          }
+        } catch (e) {
+          console.warn('Não foi possível verificar status da assinatura', e);
+        }
+      }
+
       const normalizedSettings: BreederSettings = {
         ...defaultState.settings,
         ...(data.settings || {}),
