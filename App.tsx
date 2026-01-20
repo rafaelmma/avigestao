@@ -183,26 +183,23 @@ const App: React.FC = () => {
     }
   }, [isAdmin, userId, state.settings.plan, state.settings.trialEndDate]);
 
-  // Check for Trial Expiration on Mount
+  // Check for Trial Expiration on Mount/Change
   useEffect(() => {
-    if (state.settings.plan === 'Profissional' && state.settings.trialEndDate) {
-      const now = new Date();
-      const trialEnd = new Date(state.settings.trialEndDate);
-      
-      if (now > trialEnd) {
-        // Trial Expired - Downgrade to Basic
-        setState(prev => ({
-          ...prev,
-          settings: {
-            ...prev.settings,
-            plan: 'Básico',
-            trialEndDate: undefined // Clear trial date
-          }
-        }));
-        console.log("PerÃ­odo de teste expirado. Plano alterado para Básico.");
-      }
+    if (!state.settings.trialEndDate) return;
+    const now = new Date();
+    const trialEnd = new Date(state.settings.trialEndDate);
+    if (now > trialEnd) {
+      setState(prev => ({
+        ...prev,
+        settings: {
+          ...prev.settings,
+          plan: 'Básico',
+          trialEndDate: undefined
+        }
+      }));
+      console.log("Período de teste expirado. Plano alterado para Básico.");
     }
-  }, []); // Run once on mount
+  }, [state.settings.trialEndDate]);
 
   useEffect(() => {
     supabase.auth.getSession().then(async ({ data }: { data: { session: Session | null } }) => {

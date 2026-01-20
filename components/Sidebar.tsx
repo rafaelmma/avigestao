@@ -58,7 +58,7 @@ const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab, logoUrl, bre
   const planLabel = isAdmin ? 'ADMIN' : hasTrial ? 'PRO (Teste)' : `Plano ${plan}`;
 
   let trialDaysLeft = 0;
-  if (hasTrial) {
+  if (hasTrial && trialEndDate) {
     const diffTime = new Date(trialEndDate).getTime() - new Date().getTime();
     trialDaysLeft = Math.ceil(diffTime / (1000 * 60 * 60 * 24)); 
   }
