@@ -32,6 +32,7 @@ import { loadInitialData } from './services/dataService';
 import { migrateLocalData } from './services/migrateLocalData';
 
 const STORAGE_KEY = 'avigestao_state';
+const HYDRATE_TIMEOUT_MS = 12000;
 
 const defaultState: AppState = {
   birds: MOCK_BIRDS,
@@ -179,8 +180,15 @@ const App: React.FC = () => {
       console.warn('Falha ao migrar dados locais', err);
     }
 
+    const withTimeout = async <T,>(promise: Promise<T>, ms: number): Promise<T> => {
+      return Promise.race([
+        promise,
+        new Promise<never>((_, reject) => setTimeout(() => reject(new Error('Tempo esgotado ao carregar dados')), ms))
+      ]);
+    };
+
     try {
-      const data = await loadInitialData(userId);
+      const data = await withTimeout(loadInitialData(userId), HYDRATE_TIMEOUT_MS);
       const normalizedSettings: BreederSettings = {
         ...defaultState.settings,
         ...(data.settings || {}),
