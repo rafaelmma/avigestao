@@ -34,6 +34,18 @@ import { migrateLocalData } from './services/migrateLocalData';
 const STORAGE_KEY = 'avigestao_state';
 const HYDRATE_TIMEOUT_MS = 12000;
 
+const loadCachedState = (): AppState => {
+  if (typeof localStorage === 'undefined') return defaultState;
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) return defaultState;
+    const parsed = JSON.parse(raw);
+    return { ...defaultState, ...parsed, settings: { ...defaultState.settings, ...(parsed.settings || {}) } };
+  } catch {
+    return defaultState;
+  }
+};
+
 const defaultState: AppState = {
   birds: MOCK_BIRDS,
   deletedBirds: [],
@@ -72,6 +84,7 @@ const App: React.FC = () => {
   const [isAdmin, setIsAdmin] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [authError, setAuthError] = useState<string | null>(null);
+  const [hasHydratedOnce, setHasHydratedOnce] = useState(false);
 
   const supabaseUnavailable = SUPABASE_MISSING || !supabase;
 
@@ -135,12 +148,15 @@ const App: React.FC = () => {
       return;
     }
 
+    // mostra dados em cache enquanto carrega remoto
+    setState(loadCachedState());
     setIsLoading(true);
     setAuthError(null);
     const token = newSession.access_token;
 
     try {
       await Promise.all([checkAdmin(token), hydrateUserData(newSession)]);
+      setHasHydratedOnce(true);
     } catch (err: any) {
       console.error('Erro ao hidratar sessão:', err);
       setAuthError(err?.message || 'Não foi possível carregar seus dados');
@@ -645,7 +661,7 @@ const App: React.FC = () => {
 
   return (
     <div className="min-h-screen flex bg-slate-50 text-slate-900 font-sans selection:bg-[var(--primary-soft)] selection:text-[var(--primary)]">
-      {isLoading && (
+      {isLoading && !hasHydratedOnce && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-white/70 backdrop-blur-sm text-slate-600 text-sm font-bold">
           Carregando dados...
         </div>
