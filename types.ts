@@ -147,6 +147,17 @@ export interface Medication {
   deletedAt?: string;
 }
 
+export interface MedicationCatalogItem {
+  id: string;
+  name: string;
+  category?: string;
+  indication?: string;
+  prescription?: string;
+  application?: string;
+  manufacturer?: string;
+  source?: string;
+}
+
 export interface MedicationApplication {
   id: string;
   birdId: string;
@@ -211,6 +222,7 @@ export interface AppState {
   
   medications: Medication[];
   deletedMedications?: Medication[]; // Lixeira Meds
+  medicationCatalog: MedicationCatalogItem[];
 
   applications: MedicationApplication[];
   deletedApplications?: MedicationApplication[]; // Lixeira AplicaÃ§Ãµes

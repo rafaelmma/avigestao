@@ -1,6 +1,6 @@
 ﻿import { supabase } from "../lib/supabase";
 import { INITIAL_SETTINGS, getDefaultBirdImage, isDefaultBirdImage } from "../constants";
-import { Bird, BreederSettings, Clutch, ContinuousTreatment, MaintenanceTask, Medication, MedicationApplication, MovementRecord, Pair, TournamentEvent, Transaction } from "../types";
+import { Bird, BreederSettings, Clutch, ContinuousTreatment, MaintenanceTask, Medication, MedicationApplication, MedicationCatalogItem, MovementRecord, Pair, TournamentEvent, Transaction } from "../types";
 
 export async function loadInitialData(userId: string) {
   const queries = await Promise.all([
@@ -14,10 +14,11 @@ export async function loadInitialData(userId: string) {
     supabase.from("clutches").select("*").eq("user_id", userId),
     supabase.from("applications").select("*").eq("user_id", userId),
     supabase.from("treatments").select("*").eq("user_id", userId),
+    supabase.from("medication_catalog").select("*"),
     supabase.from("settings").select("*").eq("user_id", userId).maybeSingle(),
   ]);
 
-  const [birds, movements, transactions, tasks, tournaments, medications, pairs, clutches, applications, treatments, settings] = queries;
+  const [birds, movements, transactions, tasks, tournaments, medications, pairs, clutches, applications, treatments, medicationCatalog, settings] = queries;
 
   return {
     birds: (birds.data ?? []).map(mapBirdFromDb),
@@ -30,6 +31,7 @@ export async function loadInitialData(userId: string) {
     clutches: (clutches.data ?? []).map(mapClutchFromDb),
     applications: (applications.data ?? []).map(mapApplicationFromDb),
     treatments: (treatments.data ?? []).map(mapTreatmentFromDb),
+    medicationCatalog: (medicationCatalog.data ?? []).map(mapMedicationCatalogFromDb),
     settings: settings.data ? mapSettingsFromDb(settings.data) : INITIAL_SETTINGS,
   };
 }
@@ -130,6 +132,17 @@ export const mapMedicationFromDb = (row: any): Medication => ({
   expiryDate: row.expiry_date ?? row.expiryDate ?? '',
   stock: row.stock ?? 0,
   deletedAt: row.deleted_at ?? row.deletedAt ?? undefined,
+});
+
+export const mapMedicationCatalogFromDb = (row: any): MedicationCatalogItem => ({
+  id: row.id,
+  name: row.name ?? '',
+  category: row.category ?? undefined,
+  indication: row.indication ?? undefined,
+  prescription: row.prescription ?? undefined,
+  application: row.application ?? undefined,
+  manufacturer: row.manufacturer ?? undefined,
+  source: row.source ?? undefined,
 });
 
 export const mapPairFromDb = (row: any): Pair => ({

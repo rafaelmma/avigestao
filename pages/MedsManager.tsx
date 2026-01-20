@@ -67,6 +67,7 @@ const MedsManager: React.FC<MedsManagerProps> = ({
   const [showAddMed, setShowAddMed] = useState(false);
   const [showApplyMed, setShowApplyMed] = useState(false);
   const [showAddTreatment, setShowAddTreatment] = useState(false);
+  const [selectedCatalogId, setSelectedCatalogId] = useState('');
   
   // States de Edição
   const [editingMed, setEditingMed] = useState<Medication | null>(null);
@@ -101,6 +102,10 @@ const MedsManager: React.FC<MedsManagerProps> = ({
   const listToUse = currentList === 'active' ? state.medications : (state.deletedMedications || []);
   const treatmentsList = currentList === 'active' ? (state.treatments || []) : (state.deletedTreatments || []);
   const historyListToUse = currentList === 'active' ? state.applications : (state.deletedApplications || []);
+  const catalogItems = state.medicationCatalog || [];
+  const selectedCatalog = selectedCatalogId
+    ? catalogItems.find(item => item.id === selectedCatalogId)
+    : undefined;
 
   const filteredMeds = listToUse.filter(m => 
     m.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -126,6 +131,7 @@ const MedsManager: React.FC<MedsManagerProps> = ({
       });
       setShowAddMed(false);
       setNewMed({});
+      setSelectedCatalogId('');
     }
   };
 
@@ -211,6 +217,28 @@ const MedsManager: React.FC<MedsManagerProps> = ({
             birdId: 'ALL'
         });
     }
+  };
+
+  const handleOpenAddMed = () => {
+    setNewMed({});
+    setSelectedCatalogId('');
+    setShowAddMed(true);
+  };
+
+  const handleCloseAddMed = () => {
+    setShowAddMed(false);
+    setSelectedCatalogId('');
+  };
+
+  const handleCatalogSelect = (value: string) => {
+    setSelectedCatalogId(value);
+    const item = catalogItems.find(entry => entry.id === value);
+    if (!item) return;
+    setNewMed(prev => ({
+      ...prev,
+      name: item.name || prev.name || '',
+      type: item.category || prev.type || ''
+    }));
   };
 
   const handleQuickDose = (treatment: ContinuousTreatment) => {
@@ -375,7 +403,7 @@ const MedsManager: React.FC<MedsManagerProps> = ({
                       <span className="hidden md:inline">Aplicar</span>
                     </button>
                     <button 
-                      onClick={() => setShowAddMed(true)}
+                      onClick={handleOpenAddMed}
                       className="px-4 py-3 bg-brand hover:opacity-90 text-white rounded-xl shadow-lg transition-all font-bold text-xs flex items-center gap-2"
                     >
                       <Plus size={16} />
@@ -484,7 +512,7 @@ const MedsManager: React.FC<MedsManagerProps> = ({
 
             {currentList === 'active' && (
               <button 
-                onClick={() => setShowAddMed(true)}
+                onClick={handleOpenAddMed}
                 className="group h-full min-h-[180px] bg-slate-50 border-2 border-dashed border-slate-200 rounded-[24px] flex flex-col items-center justify-center gap-3 hover:border-brand hover:bg-brand/5 transition-all cursor-pointer"
               >
                 <div className="w-12 h-12 rounded-full bg-white flex items-center justify-center text-slate-300 group-hover:text-brand group-hover:scale-110 transition-all shadow-sm">
@@ -853,9 +881,45 @@ const MedsManager: React.FC<MedsManagerProps> = ({
           <div className="bg-white rounded-[40px] w-full max-w-md shadow-2xl overflow-hidden">
             <div className="p-8 border-b border-slate-100 flex justify-between items-center">
               <h3 className="text-xl font-black text-slate-800">Novo Medicamento</h3>
-              <button onClick={() => setShowAddMed(false)} className="text-slate-400 hover:text-slate-600"><X size={24} /></button>
+              <button onClick={handleCloseAddMed} className="text-slate-400 hover:text-slate-600"><X size={24} /></button>
             </div>
             <form onSubmit={handleSaveMed} className="p-8 space-y-5">
+              {catalogItems.length > 0 && (
+                <div>
+                  <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Catalogo base (opcional)</label>
+                  <select
+                    className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-brand font-bold text-slate-700"
+                    value={selectedCatalogId}
+                    onChange={e => handleCatalogSelect(e.target.value)}
+                  >
+                    <option value="">Selecionar do catalogo...</option>
+                    {catalogItems.map(item => (
+                      <option key={item.id} value={item.id}>{item.name}</option>
+                    ))}
+                  </select>
+                  {selectedCatalog && (
+                    <div className="mt-3 rounded-2xl border border-slate-100 bg-slate-50 p-4 space-y-2">
+                      <p className="text-xs font-bold text-slate-600 uppercase tracking-widest">Detalhes do catalogo</p>
+                      {selectedCatalog.category && (
+                        <p className="text-xs text-slate-600"><span className="font-bold">Categoria:</span> {selectedCatalog.category}</p>
+                      )}
+                      {selectedCatalog.manufacturer && (
+                        <p className="text-xs text-slate-600"><span className="font-bold">Fabricante:</span> {selectedCatalog.manufacturer}</p>
+                      )}
+                      {selectedCatalog.indication && (
+                        <p className="text-xs text-slate-600"><span className="font-bold">Indicacao:</span> {selectedCatalog.indication}</p>
+                      )}
+                      {selectedCatalog.application && (
+                        <p className="text-xs text-slate-600"><span className="font-bold">Aplicacao:</span> {selectedCatalog.application}</p>
+                      )}
+                      {selectedCatalog.prescription && (
+                        <p className="text-xs text-slate-600"><span className="font-bold">Receita:</span> {selectedCatalog.prescription}</p>
+                      )}
+                      <p className="text-[10px] text-slate-500 font-medium">Bula: {selectedCatalog.source || 'Consulte o catalogo do fabricante.'}</p>
+                    </div>
+                  )}
+                </div>
+              )}
               <div>
                 <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Nome Comercial</label>
                 <input required type="text" className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-brand font-bold text-slate-700" value={newMed.name || ''} onChange={e => setNewMed({...newMed, name: e.target.value})} />

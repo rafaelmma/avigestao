@@ -48,6 +48,7 @@ const App: React.FC = () => {
     pairs: [], deletedPairs: [],
     clutches: [],
     medications: MOCK_MEDS, deletedMedications: [],
+    medicationCatalog: [],
     applications: [], deletedApplications: [],
     treatments: [], deletedTreatments: [],
     movements: [], deletedMovements: [],
@@ -103,6 +104,7 @@ const App: React.FC = () => {
     const applicationsSplit = splitDeletedItems(data.applications || []);
     const treatmentsSplit = splitDeletedItems(data.treatments || []);
     const hasMedications = Array.isArray(data.medications) && data.medications.length > 0;
+    const medicationCatalog = Array.isArray(data.medicationCatalog) ? data.medicationCatalog : prev.medicationCatalog;
 
     const nextState: AppState = {
       ...prev,
@@ -118,6 +120,7 @@ const App: React.FC = () => {
       deletedTournaments: tournamentsSplit.deleted,
       medications: hasMedications ? medicationsSplit.active : prev.medications,
       deletedMedications: hasMedications ? medicationsSplit.deleted : (prev.deletedMedications || []),
+      medicationCatalog,
       pairs: pairsSplit.active,
       deletedPairs: pairsSplit.deleted,
       clutches: data.clutches || [],
@@ -1615,7 +1618,23 @@ useEffect(() => {
   const addTransaction = async (t: Transaction) => {
     const uid = await getUserId();
     if (!uid) return;
-    await insertRow('transactions', mapTransactionToDb(t, uid));
+    const safeId = uuidRegex.test(t.id) ? t.id : createUuid();
+    const safeTransaction = t.id === safeId ? t : { ...t, id: safeId };
+    let added = false;
+    setState(prev => {
+      if (prev.transactions.some(tx => tx.id === safeTransaction.id)) return prev;
+      added = true;
+      return { ...prev, transactions: [...prev.transactions, safeTransaction] };
+    });
+    try {
+      await insertRow('transactions', mapTransactionToDb(safeTransaction, uid));
+    } catch (err) {
+      if (added) {
+        setState(prev => ({ ...prev, transactions: prev.transactions.filter(tx => tx.id !== safeTransaction.id) }));
+      }
+      console.error('Erro ao salvar lancamento:', err);
+      setError('Falha ao salvar lancamento. Verifique sua conexao.');
+    }
   };
 
   const deleteTransaction = async (id: string) => {
