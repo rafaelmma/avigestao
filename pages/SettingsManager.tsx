@@ -200,8 +200,8 @@ const SettingsManager: React.FC<SettingsManagerProps> = ({ settings, updateSetti
 
       <header className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
         <div>
-          <h2 className="text-3xl font-black text-slate-900">Configura├º├Áes</h2>
-          <p className="text-slate-500">Ajuste dados do criat├│rio, licen├ºas, certificado e apar├¬ncia.</p>
+          <h2 className="text-3xl font-black text-slate-900">Configuracoes</h2>
+          <p className="text-slate-500">Ajuste dados do criatorio, licencas, certificado e aparencia.</p>
         </div>
         <div className="flex flex-wrap gap-3 items-center">
           {isAdmin && (
@@ -479,7 +479,7 @@ const SettingsManager: React.FC<SettingsManagerProps> = ({ settings, updateSetti
                   <div>
                     <p className="text-xs font-black uppercase text-slate-500">Assinatura ativa</p>
                     <p className="text-sm font-bold text-slate-800">
-                      Gerencie cobran├ç├Áes, upgrade/downgrade ou cancele a renova├ç├Á├ç┼ôo autom├ç├«tica.
+                      Gerencie cobrancas, upgrade/downgrade ou cancele a renovacao automatica.
                     </p>
                   </div>
                   <button
@@ -490,7 +490,7 @@ const SettingsManager: React.FC<SettingsManagerProps> = ({ settings, updateSetti
                   </button>
                 </div>
                 <p className="text-[11px] text-slate-500">
-                  No portal voc├¬ pode trocar per├¡odo (mensal/anual), atualizar cart├úo e cancelar a recorr├¬ncia.
+                  No portal voce pode trocar periodo (mensal/anual), atualizar cartao e cancelar a recorrencia.
                 </p>
               </div>
             )}
