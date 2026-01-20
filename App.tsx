@@ -563,25 +563,26 @@ const App: React.FC = () => {
     setState(prev => ({ ...prev, settings: { ...prev.settings, ...settings } }));
 
   const handleLogout = async () => {
-    setIsLoading(true);
-    try {
-      if (!supabaseUnavailable) {
-        await supabase.auth.signOut();
-      }
-    } catch (err) {
-      console.warn('Erro ao deslogar supabase', err);
+    // Reseta UI imediatamente para evitar travar no logout
+    setIsAdmin(false);
+    setSession(null);
+    setState(defaultState);
+    setActiveTab('dashboard');
+    setIsLoading(false);
+
+    // dispara signOut sem bloquear a UI
+    if (!supabaseUnavailable) {
+      supabase.auth.signOut().catch((err: any) => {
+        console.warn('Erro ao deslogar supabase', err);
+      });
     }
+
     try {
       localStorage.removeItem(STORAGE_KEY);
       localStorage.removeItem('avigestao_migrated');
     } catch {
       /* ignore */
     }
-    setIsAdmin(false);
-    setSession(null);
-    setState(defaultState);
-    setActiveTab('dashboard');
-    setIsLoading(false);
   };
 
   const renderContent = () => {

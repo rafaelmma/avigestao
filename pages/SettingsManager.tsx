@@ -200,8 +200,8 @@ const SettingsManager: React.FC<SettingsManagerProps> = ({ settings, updateSetti
 
       <header className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
         <div>
-          <h2 className="text-3xl font-black text-slate-900">Configuracoes</h2>
-          <p className="text-slate-500">Ajuste dados do criatorio, licencas, certificado e aparencia.</p>
+          <h2 className="text-3xl font-black text-slate-900">Configurações</h2>
+          <p className="text-slate-500">Ajuste dados do criatório, licenças, certificado e aparência.</p>
         </div>
         <div className="flex flex-wrap gap-3 items-center">
           {isAdmin && (
@@ -249,7 +249,7 @@ const SettingsManager: React.FC<SettingsManagerProps> = ({ settings, updateSetti
                   )}
                 </div>
                 <div className="flex-1">
-                  <p className="font-black text-slate-800">Logomarca do criat├│rio</p>
+                  <p className="font-black text-slate-800">Logomarca do criatório</p>
                   <p className="text-xs text-slate-500 mt-1">Exibida no menu lateral e em documentos.</p>
                   {canUseLogo ? (
                     <>
@@ -479,7 +479,7 @@ const SettingsManager: React.FC<SettingsManagerProps> = ({ settings, updateSetti
                   <div>
                     <p className="text-xs font-black uppercase text-slate-500">Assinatura ativa</p>
                     <p className="text-sm font-bold text-slate-800">
-                      Gerencie cobrancas, upgrade/downgrade ou cancele a renovacao automatica.
+                      Gerencie cobranças, upgrade/downgrade ou cancele a renovação automática.
                     </p>
                   </div>
                   <button
@@ -490,7 +490,7 @@ const SettingsManager: React.FC<SettingsManagerProps> = ({ settings, updateSetti
                   </button>
                 </div>
                 <p className="text-[11px] text-slate-500">
-                  No portal voce pode trocar periodo (mensal/anual), atualizar cartao e cancelar a recorrencia.
+                  No portal você pode trocar período (mensal/anual), atualizar cartão e cancelar a recorrência.
                 </p>
               </div>
             )}
