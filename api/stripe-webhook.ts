@@ -75,6 +75,25 @@ export default async function handler(req: VercelReq, res: VercelRes) {
   }
 
   try {
+    const setUserAsPro = async (userId: string | null | undefined, customerId?: string | null) => {
+      if (!userId) return;
+      try {
+        await supabase
+          .from("settings")
+          .upsert(
+            {
+              user_id: userId,
+              plan: "Profissional",
+              trial_end_date: null,
+              stripe_customer_id: customerId || null,
+            } as any,
+            { onConflict: "user_id" }
+          );
+      } catch (e) {
+        console.error("Failed to mark user as PRO:", e);
+      }
+    };
+
     // ===============================
     // checkout.session.completed
     // ===============================
@@ -104,6 +123,8 @@ export default async function handler(req: VercelReq, res: VercelRes) {
             ? new Date(currentPeriodEnd * 1000)
             : null,
         });
+
+        await setUserAsPro(userId, session.customer as string);
       }
     }
 
@@ -138,6 +159,20 @@ export default async function handler(req: VercelReq, res: VercelRes) {
             : null,
         })
         .eq("stripe_subscription_id", subscription.id);
+
+      // Best-effort: marcar usuário como PRO se o status estiver ativo/trialing e conhecermos o user_id
+      if (subscription.status === "active" || subscription.status === "trialing") {
+        try {
+          const { data: subRow } = await supabase
+            .from("subscriptions")
+            .select("user_id")
+            .eq("stripe_subscription_id", subscription.id)
+            .maybeSingle();
+          await setUserAsPro(subRow?.user_id, (subscription as any)?.customer);
+        } catch (e) {
+          console.error("Failed to sync PRO on subscription.updated", e);
+        }
+      }
     }
 
     // ===============================
@@ -209,6 +244,11 @@ export default async function handler(req: VercelReq, res: VercelRes) {
           currency: invoice.currency ?? null,
           raw_event: event,
         });
+
+        const invoicePaid = invoice.status === 'paid' || (invoice as any)?.paid;
+        if (userId && invoicePaid) {
+          await setUserAsPro(userId, customerId);
+        }
       } catch (e) {
         console.error('Failed to write billing metric for invoice.payment_succeeded', e);
       }
