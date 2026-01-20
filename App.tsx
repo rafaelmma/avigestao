@@ -34,19 +34,22 @@ import { migrateLocalData } from './services/migrateLocalData';
 const STORAGE_KEY = 'avigestao_state';
 const HYDRATE_TIMEOUT_MS = 20000;
 
-const loadCachedState = (): AppState => {
-  if (typeof localStorage === 'undefined') return defaultState;
+const loadCachedState = (): { state: AppState; hasCache: boolean } => {
+  if (typeof localStorage === 'undefined') return { state: defaultState, hasCache: false };
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
-    if (!raw) return defaultState;
+    if (!raw) return { state: defaultState, hasCache: false };
     const parsed = JSON.parse(raw);
     return {
-      ...defaultState,
-      ...parsed,
-      settings: { ...defaultState.settings, ...(parsed.settings || {}) }
+      state: {
+        ...defaultState,
+        ...parsed,
+        settings: { ...defaultState.settings, ...(parsed.settings || {}) }
+      },
+      hasCache: true
     };
   } catch {
-    return defaultState;
+    return { state: defaultState, hasCache: false };
   }
 };
 
@@ -153,9 +156,10 @@ const App: React.FC = () => {
       return;
     }
 
-    // Mostra cache local imediatamente e sincroniza com Supabase em segundo plano
-    setState(loadCachedState());
-    setHasHydratedOnce(true);
+    // Mostra cache local se existir; se não, mantém overlay até hidratar do Supabase
+    const cached = loadCachedState();
+    setState(cached.state);
+    setHasHydratedOnce(cached.hasCache);
     setIsLoading(true);
     setAuthError(null);
     const token = newSession.access_token;
