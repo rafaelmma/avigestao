@@ -237,7 +237,7 @@ const SettingsManager: React.FC<SettingsManagerProps> = ({ settings, updateSetti
           <div className="space-y-6">
             <div className="bg-white p-8 rounded-3xl border border-slate-100 shadow-sm space-y-6">
               <h3 className="font-black flex items-center gap-2 text-slate-800">
-                <User size={18} /> Identidade do criat├│rio
+                <User size={18} /> Identidade do criatório
               </h3>
 
               <div className="bg-slate-50 border border-slate-100 rounded-2xl p-6 flex flex-col sm:flex-row gap-6 items-center sm:items-start">
