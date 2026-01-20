@@ -54,6 +54,15 @@ const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab, logoUrl, bre
     if (onClose) onClose(); 
   };
 
+  const goToSubscriptionPlans = () => {
+    try {
+      localStorage.setItem('avigestao_settings_tab', 'plano');
+    } catch {
+      /* ignore storage errors and keep navigation */
+    }
+    handleNavigation('settings');
+  };
+
   const hasTrial = !!trialEndDate && !isAdmin;
   const planLabel = isAdmin ? 'ADMIN' : hasTrial ? 'PRO (Teste)' : `Plano ${plan}`;
 
@@ -143,7 +152,7 @@ const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab, logoUrl, bre
         <div className="px-4 py-6 border-t border-slate-50 space-y-2">
           {(plan === 'Básico' || hasTrial) && !isAdmin && (
             <button 
-              onClick={() => handleNavigation('settings')}
+              onClick={goToSubscriptionPlans}
               className={`w-full flex items-center gap-3 px-4 py-3 rounded-2xl font-black text-[10px] uppercase tracking-widest transition-all ${
                 hasTrial 
                   ? 'bg-emerald-50 text-emerald-700 hover:bg-emerald-100' 

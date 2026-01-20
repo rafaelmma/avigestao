@@ -96,6 +96,16 @@ const SettingsManager: React.FC<SettingsManagerProps> = ({ settings, updateSetti
   }, []);
 
   useEffect(() => {
+    try {
+      const storedTab = localStorage.getItem('avigestao_settings_tab');
+      if (storedTab === 'plano') setActiveTab('plano');
+      if (storedTab) localStorage.removeItem('avigestao_settings_tab');
+    } catch {
+      /* ignore storage issues and fall back to default tab */
+    }
+  }, []);
+
+  useEffect(() => {
     const critical: string[] = [];
     if (daysSispass !== null && daysSispass <= 30) critical.push(`SISPASS vence em ${daysSispass} dias`);
     if (daysCert !== null && daysCert <= 30) critical.push(`Certificado vence em ${daysCert} dias`);

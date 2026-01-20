@@ -208,8 +208,16 @@ export const mapSettingsFromDb = (row: any): BreederSettings => ({
   primaryColor: row.primary_color ?? row.primaryColor ?? INITIAL_SETTINGS.primaryColor,
   accentColor: row.accent_color ?? row.accentColor ?? INITIAL_SETTINGS.accentColor,
   plan: row.plan ?? INITIAL_SETTINGS.plan,
-  trialEndDate: row.trial_end_date ?? row.trialEndDate ?? undefined,
+  trialEndDate: normalizeTrialEndDate(row.trial_end_date ?? row.trialEndDate),
   dashboardLayout: row.dashboard_layout ?? row.dashboardLayout ?? undefined,
   certificate: row.certificate ?? undefined,
 });
+
+function normalizeTrialEndDate(value?: string) {
+  if (!value) return undefined;
+  const parsed = new Date(value);
+  if (isNaN(parsed.getTime())) return undefined;
+  // Expirou? Trate como trial inexistente para evitar reativar permissões PRO.
+  return parsed.getTime() >= Date.now() ? parsed.toISOString().split('T')[0] : undefined;
+}
 
