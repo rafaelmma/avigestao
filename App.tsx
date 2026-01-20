@@ -138,8 +138,15 @@ const App: React.FC = () => {
     setAuthError(null);
     const token = newSession.access_token;
 
-    await Promise.all([checkAdmin(token), hydrateUserData(newSession)]);
-    setIsLoading(false);
+    try {
+      await Promise.all([checkAdmin(token), hydrateUserData(newSession)]);
+    } catch (err: any) {
+      console.error('Erro ao hidratar sessão:', err);
+      setAuthError(err?.message || 'Não foi possível carregar seus dados');
+      setState(defaultState);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const checkAdmin = async (token: string) => {
