@@ -98,7 +98,10 @@ const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab, logoUrl, bre
               <div className={`absolute -bottom-1 -right-1 w-4 h-4 border-2 border-white rounded-full ${isAdmin ? 'bg-rose-500' : plan === 'Profissional' ? 'bg-amber-500' : 'bg-emerald-500'}`}></div>
             </div>
             <div className="overflow-hidden">
-              <h1 className="font-black text-slate-900 text-lg leading-tight truncate max-w-[180px]">
+              <h1
+                title={breederName || 'AviGestão'}
+                className="font-black text-slate-900 text-[15px] leading-tight break-words line-clamp-2 max-w-[220px]"
+              >
                 {breederName || 'AviGestão'}
               </h1>
               <span className={`text-[9px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded ${isAdmin ? 'bg-rose-100 text-rose-700' : plan === 'Profissional' ? 'bg-amber-100 text-amber-700' : 'bg-slate-100 text-slate-400'}`}>
