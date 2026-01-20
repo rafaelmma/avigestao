@@ -162,7 +162,7 @@ const Dashboard: React.FC<DashboardProps> = ({ state, updateSettings, navigateTo
               value={`${diffDays}d`} 
               subValue={diffDays < 30 ? "Renovação Urgente" : "Situação Regular"}
               isWarning={diffDays < 30}
-              onClick={() => navigateTo('settings')}
+              onClick={() => navigateTo('documents')}
             />
           </div>
         );
