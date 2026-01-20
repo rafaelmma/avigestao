@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+﻿import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { BreederSettings } from '../types';
 import {
   User,
@@ -109,7 +109,7 @@ const SettingsManager: React.FC<SettingsManagerProps> = ({ settings, updateSetti
     const critical: string[] = [];
     if (daysSispass !== null && daysSispass <= 30) critical.push(`SISPASS vence em ${daysSispass} dias`);
     if (daysCert !== null && daysCert <= 30) critical.push(`Certificado vence em ${daysCert} dias`);
-    setBannerMessage(critical.length ? critical.join(' • ') : null);
+    setBannerMessage(critical.length ? critical.join(' ÔÇó ') : null);
   }, [daysSispass, daysCert]);
 
   const openBillingPortal = async () => {
@@ -200,8 +200,8 @@ const SettingsManager: React.FC<SettingsManagerProps> = ({ settings, updateSetti
 
       <header className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
         <div>
-          <h2 className="text-3xl font-black text-slate-900">Configurações</h2>
-          <p className="text-slate-500">Ajuste dados do criatório, licenças, certificado e aparência.</p>
+          <h2 className="text-3xl font-black text-slate-900">Configura├º├Áes</h2>
+          <p className="text-slate-500">Ajuste dados do criat├│rio, licen├ºas, certificado e apar├¬ncia.</p>
         </div>
         <div className="flex flex-wrap gap-3 items-center">
           {isAdmin && (
@@ -237,7 +237,7 @@ const SettingsManager: React.FC<SettingsManagerProps> = ({ settings, updateSetti
           <div className="space-y-6">
             <div className="bg-white p-8 rounded-3xl border border-slate-100 shadow-sm space-y-6">
               <h3 className="font-black flex items-center gap-2 text-slate-800">
-                <User size={18} /> Identidade do criatório
+                <User size={18} /> Identidade do criat├│rio
               </h3>
 
               <div className="bg-slate-50 border border-slate-100 rounded-2xl p-6 flex flex-col sm:flex-row gap-6 items-center sm:items-start">
@@ -249,7 +249,7 @@ const SettingsManager: React.FC<SettingsManagerProps> = ({ settings, updateSetti
                   )}
                 </div>
                 <div className="flex-1">
-                  <p className="font-black text-slate-800">Logomarca do criatório</p>
+                  <p className="font-black text-slate-800">Logomarca do criat├│rio</p>
                   <p className="text-xs text-slate-500 mt-1">Exibida no menu lateral e em documentos.</p>
                   {canUseLogo ? (
                     <>
@@ -277,7 +277,7 @@ const SettingsManager: React.FC<SettingsManagerProps> = ({ settings, updateSetti
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <label className="space-y-2">
-                  <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Nome do criatório</span>
+                  <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Nome do criat├│rio</span>
                   <input
                     className="w-full p-3 rounded-2xl bg-slate-50 border border-slate-100 text-sm font-bold"
                     value={settings.breederName}
@@ -479,7 +479,7 @@ const SettingsManager: React.FC<SettingsManagerProps> = ({ settings, updateSetti
                   <div>
                     <p className="text-xs font-black uppercase text-slate-500">Assinatura ativa</p>
                     <p className="text-sm font-bold text-slate-800">
-                      Gerencie cobranÇões, upgrade/downgrade ou cancele a renovaÇõÇœo automÇîtica.
+                      Gerencie cobran├ç├Áes, upgrade/downgrade ou cancele a renova├ç├Á├ç┼ôo autom├ç├«tica.
                     </p>
                   </div>
                   <button
@@ -490,7 +490,7 @@ const SettingsManager: React.FC<SettingsManagerProps> = ({ settings, updateSetti
                   </button>
                 </div>
                 <p className="text-[11px] text-slate-500">
-                  No portal você pode trocar período (mensal/anual), atualizar cartão e cancelar a recorrência.
+                  No portal voc├¬ pode trocar per├¡odo (mensal/anual), atualizar cart├úo e cancelar a recorr├¬ncia.
                 </p>
               </div>
             )}
