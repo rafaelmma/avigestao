@@ -12,11 +12,9 @@ interface AuthProps {
 const Auth: React.FC<AuthProps> = ({ onLogin }) => {
   const [isLogin, setIsLogin] = useState(true);
   const [isLoading, setIsLoading] = useState(false);
-  
-  // Form States
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [name, setName] = useState(''); // Only for register
+  const [name, setName] = useState('');
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -24,31 +22,16 @@ const Auth: React.FC<AuthProps> = ({ onLogin }) => {
 
     try {
       if (isLogin) {
-        const { data, error } = await supabase.auth.signInWithPassword({
-          email,
-          password,
-        });
-
+        const { data, error } = await supabase.auth.signInWithPassword({ email, password });
         setIsLoading(false);
-
         if (error) return alert(error.message);
-
         if (data?.user?.id) {
-          onLogin({
-            userId: data.user.id,
-          });
+          onLogin({ userId: data.user.id });
         }
       } else {
-        // Register flow: create user then notify
-        const { data, error } = await supabase.auth.signUp({
-          email,
-          password,
-        });
-
+        const { data, error } = await supabase.auth.signUp({ email, password });
         setIsLoading(false);
-
         if (error) return alert(error.message);
-
         alert('Conta criada! Verifique seu e-mail.');
       }
     } catch (err: any) {
@@ -73,7 +56,7 @@ const Auth: React.FC<AuthProps> = ({ onLogin }) => {
             <span className="text-transparent bg-clip-text bg-gradient-to-r from-brand to-emerald-300">para seu criatório.</span>
           </h1>
           <p className="text-slate-400 text-lg max-w-md leading-relaxed">
-            Controle genealógico, financeiro, manejo sanitário e reprodutivo em um só lugar. Otimizado para criadores exigentes.
+            Controle genealogia, financeiro, manejo sanitário e reprodutivo em um só lugar. Feito para criadores exigentes.
           </p>
         </div>
 
@@ -96,7 +79,7 @@ const Auth: React.FC<AuthProps> = ({ onLogin }) => {
         <div className="w-full max-w-md space-y-8">
           <div className="text-center lg:text-left">
             <h2 className="text-3xl font-black text-slate-900 tracking-tight">
-              {isLogin ? 'Bem-vindo de volta!' : 'Teste Grátis por 7 dias'}
+              {isLogin ? 'Bem-vindo de volta!' : 'Teste grátis por 7 dias'}
             </h2>
             <p className="text-slate-500 mt-2">
               {isLogin ? 'Acesse o painel para gerenciar suas aves.' : 'Comece com todos os recursos do Plano Profissional liberados.'}
@@ -139,14 +122,14 @@ const Auth: React.FC<AuthProps> = ({ onLogin }) => {
             <div className="space-y-2">
               <div className="flex justify-between items-center">
                 <label className="text-xs font-black uppercase text-slate-400 tracking-widest">Senha</label>
-                {isLogin && <a href="#" className="text-xs font-bold text-brand hover:underline">Esqueceu?</a>}
+                {!isLogin && <span className="text-[10px] text-slate-400 font-bold flex items-center gap-1"><Star size={10}/> Mínimo 8 caracteres</span>}
               </div>
               <div className="relative">
                 <Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={20} />
                 <input 
                   required 
                   type="password" 
-                  placeholder="••••••••" 
+                  placeholder="Digite sua senha" 
                   className="w-full pl-12 pr-4 py-4 bg-white border border-slate-200 rounded-2xl outline-none focus:border-brand font-bold text-slate-700 transition-all focus:ring-4 focus:ring-brand/5"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
@@ -154,51 +137,29 @@ const Auth: React.FC<AuthProps> = ({ onLogin }) => {
               </div>
             </div>
 
-            {!isLogin && (
-               <div className="bg-amber-50 p-4 rounded-2xl border border-amber-100 flex gap-3">
-                  <div className="bg-amber-100 p-2 rounded-xl text-amber-600 h-fit">
-                     <Star size={20} fill="currentColor" />
-                  </div>
-                  <div>
-                     <p className="font-bold text-sm text-amber-900">Teste Premium Incluso</p>
-                     <p className="text-xs text-amber-700 mt-1">Você terá 7 dias de acesso total. Se não assinar, sua conta volta automaticamente para o plano gratuito sem perder dados.</p>
-                  </div>
-               </div>
-            )}
-
             <button 
               type="submit" 
               disabled={isLoading}
-              className="w-full py-4 bg-[#0F172A] text-white font-black uppercase tracking-widest rounded-2xl shadow-xl hover:shadow-2xl hover:-translate-y-1 transition-all flex items-center justify-center gap-2 disabled:opacity-70 disabled:hover:translate-y-0"
+              className="w-full py-4 bg-[#0F172A] text-white font-black uppercase tracking-widest rounded-2xl shadow-xl hover:bg-slate-900 transition-all flex items-center justify-center gap-2"
             >
               {isLoading ? (
-                <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                <>
+                  <CheckCircle2 size={18} className="animate-spin" /> Processando...
+                </>
               ) : (
                 <>
-                  {isLogin ? 'Entrar no Sistema' : 'Começar Teste Grátis'} <ArrowRight size={18} />
+                  {isLogin ? 'Entrar' : 'Criar conta'} <ArrowRight size={18} />
                 </>
               )}
             </button>
-          </form>
 
-          <div className="text-center">
-            <p className="text-sm font-medium text-slate-500">
-              {isLogin ? 'Ainda não tem uma conta?' : 'Já possui cadastro?'}
-              <button 
-                onClick={() => { setIsLogin(!isLogin); }}
-                className="ml-2 text-brand font-black hover:underline"
-              >
-                {isLogin ? 'Criar conta grátis' : 'Fazer Login'}
+            <div className="flex items-center justify-center gap-2 text-xs text-slate-500">
+              <span>{isLogin ? 'Ainda não tem conta?' : 'Já tem conta?'}</span>
+              <button type="button" onClick={() => setIsLogin(!isLogin)} className="font-black text-brand uppercase tracking-widest">
+                {isLogin ? 'Criar grátis' : 'Fazer login'}
               </button>
-            </p>
-          </div>
-
-          <div className="pt-8 border-t border-slate-100 flex justify-center gap-6 opacity-50 grayscale hover:grayscale-0 transition-all duration-500">
-             {/* Fake Logos for Social Proof */}
-             <div className="h-6 w-20 bg-slate-300 rounded"></div>
-             <div className="h-6 w-20 bg-slate-300 rounded"></div>
-             <div className="h-6 w-20 bg-slate-300 rounded"></div>
-          </div>
+            </div>
+          </form>
         </div>
       </div>
     </div>

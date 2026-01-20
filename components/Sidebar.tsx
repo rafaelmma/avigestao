@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { 
   LayoutDashboard, 
@@ -28,7 +27,7 @@ interface SidebarProps {
   logoUrl?: string;
   breederName: string;
   plan: SubscriptionPlan;
-  trialEndDate?: string; // Novo: Data do fim do trial
+  trialEndDate?: string;
   isAdmin?: boolean;
   onLogout: () => void;
   isOpen?: boolean; 
@@ -58,7 +57,6 @@ const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab, logoUrl, bre
   const hasTrial = !!trialEndDate && !isAdmin;
   const planLabel = isAdmin ? 'ADMIN' : hasTrial ? 'PRO (Teste)' : `Plano ${plan}`;
 
-  // Lógica de Trial (Arredondamento para cima garante que 0.5 dias vire 1 dia)
   let trialDaysLeft = 0;
   if (hasTrial) {
     const diffTime = new Date(trialEndDate).getTime() - new Date().getTime();
@@ -67,7 +65,6 @@ const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab, logoUrl, bre
 
   return (
     <>
-      {/* Overlay para Mobile */}
       {isOpen && (
         <div 
           className="fixed inset-0 bg-slate-900/50 z-40 lg:hidden backdrop-blur-sm animate-in fade-in"
@@ -80,9 +77,9 @@ const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab, logoUrl, bre
         ${isOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
       `}>
         <div className="p-6 pb-8 flex items-center justify-between">
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-4">
             <div className="relative group">
-              <div className="w-12 h-12 bg-slate-50 rounded-2xl p-2.5 border border-slate-100 shadow-sm flex items-center justify-center">
+              <div className="w-16 h-16 bg-slate-50 rounded-2xl p-3 border border-slate-100 shadow-sm flex items-center justify-center">
                 <img 
                   src={logoUrl || APP_LOGO} 
                   alt="Logo" 
@@ -92,19 +89,19 @@ const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab, logoUrl, bre
               <div className={`absolute -bottom-1 -right-1 w-4 h-4 border-2 border-white rounded-full ${isAdmin ? 'bg-rose-500' : plan === 'Profissional' ? 'bg-amber-500' : 'bg-emerald-500'}`}></div>
             </div>
             <div className="overflow-hidden">
-              <h1 className="font-black text-slate-900 text-base leading-tight truncate max-w-[120px]">AviGestão</h1>
-              <span className={`text-[8px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded ${isAdmin ? 'bg-rose-100 text-rose-700' : plan === 'Profissional' ? 'bg-amber-100 text-amber-700' : 'bg-slate-100 text-slate-400'}`}>
+              <h1 className="font-black text-slate-900 text-lg leading-tight truncate max-w-[180px]">
+                {breederName || 'AviGestão'}
+              </h1>
+              <span className={`text-[9px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded ${isAdmin ? 'bg-rose-100 text-rose-700' : plan === 'Profissional' ? 'bg-amber-100 text-amber-700' : 'bg-slate-100 text-slate-400'}`}>
                 {planLabel}
               </span>
             </div>
           </div>
-          {/* Botão fechar apenas mobile */}
           <button onClick={onClose} className="lg:hidden text-slate-400 hover:text-slate-600">
             <X size={24} />
           </button>
         </div>
 
-        {/* TRIAL BANNER - REFORÇADO */}
         {hasTrial && trialDaysLeft >= 0 && (
           <div className="px-4 mb-4 animate-in fade-in slide-in-from-left-4 duration-500">
              <div className="bg-gradient-to-r from-amber-500 to-amber-600 rounded-2xl p-4 text-white shadow-lg shadow-amber-500/20 relative overflow-hidden">
@@ -113,8 +110,6 @@ const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab, logoUrl, bre
                    <span className="text-xs font-black uppercase tracking-widest">Teste Grátis</span>
                 </div>
                 <p className="text-2xl font-black relative z-10">{trialDaysLeft} <span className="text-xs font-medium opacity-80">dias restantes</span></p>
-                
-                {/* Decorative Circle */}
                 <div className="absolute -bottom-4 -right-4 w-16 h-16 bg-white opacity-10 rounded-full"></div>
              </div>
           </div>
