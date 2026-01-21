@@ -54,6 +54,7 @@ const loadCachedState = (): { state: AppState; hasCache: boolean } => {
 
 const DEFAULT_SESSION_TIMEOUT_MS = 8000;
 const SESSION_RETRY_DELAY_MS = 2000;
+const SESSION_RETRY_LIMIT = 3;
 
 const withTimeout = async <T,>(promise: Promise<T>, ms: number): Promise<T> =>
   Promise.race([
@@ -104,6 +105,7 @@ const App: React.FC = () => {
   const supabaseUnavailable = SUPABASE_MISSING || !supabase;
   const lastValidSessionRef = useRef<any>(null);
   const sessionRetryRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const sessionRetryCountRef = useRef(0);
 
   const fetchSession = async () => {
     const resp: any = await withTimeout<any>(supabase.auth.getSession() as Promise<any>, DEFAULT_SESSION_TIMEOUT_MS);
@@ -124,6 +126,7 @@ const App: React.FC = () => {
     try {
       const session = await fetchSession();
       if (session) {
+        sessionRetryCountRef.current = 0;
         await handleSession(session);
         return;
       }
@@ -134,8 +137,14 @@ const App: React.FC = () => {
         console.warn('timeout ao revalidar sessão, tentando novamente');
       }
     }
-    scheduleSessionRetry(revalidateSession);
+    sessionRetryCountRef.current += 1;
+    if (sessionRetryCountRef.current <= SESSION_RETRY_LIMIT) {
+      scheduleSessionRetry(revalidateSession);
+      return;
+    }
+    setIsLoading(false);
   };
+
   const persistState = (value: AppState) => {
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(value));
@@ -164,23 +173,32 @@ const App: React.FC = () => {
     let mounted = true;
 
     const init = async () => {
+      const cached = loadCachedState();
+      if (cached.hasCache) {
+        setState(cached.state);
+      }
       try {
         const session = await fetchSession();
         if (!mounted) return;
+        sessionRetryCountRef.current = 0;
         setAuthError(null);
         await handleSession(session);
       } catch (err: any) {
         if (!mounted) return;
         if (err?.message === 'timeout session init') {
           console.warn('timeout session init, retrying');
-          scheduleSessionRetry(init);
+          sessionRetryCountRef.current += 1;
+          if (sessionRetryCountRef.current <= SESSION_RETRY_LIMIT) {
+            scheduleSessionRetry(init);
+            return;
+          }
+          setIsLoading(false);
           return;
         }
         setAuthError(err?.message || 'Erro ao iniciar sessão');
         setIsLoading(false);
       }
     };
-
     init();
     const { data: listener } = supabase.auth.onAuthStateChange(async (_event: any, newSession: any) => {
       if (!mounted) return;
@@ -938,6 +956,12 @@ const App: React.FC = () => {
 };
 
 export default App;
+
+
+
+
+
+
 
 
 
