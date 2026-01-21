@@ -32,7 +32,7 @@ import { loadInitialData } from './services/dataService';
 import { migrateLocalData } from './services/migrateLocalData';
 
 const STORAGE_KEY = 'avigestao_state';
-const HYDRATE_TIMEOUT_MS = 20000;
+const HYDRATE_TIMEOUT_MS = 45000;
 
 const loadCachedState = (): { state: AppState; hasCache: boolean } => {
   if (typeof localStorage === 'undefined') return { state: defaultState, hasCache: false };
@@ -298,7 +298,7 @@ const App: React.FC = () => {
     } catch (err: any) {
       console.error('Erro ao carregar dados:', err);
       setAuthError(err?.message || 'Erro ao carregar dados');
-      setState(defaultState);
+      // mantém estado atual para evitar voltar ao perfil default
     }
   };
 
@@ -780,5 +780,9 @@ const App: React.FC = () => {
 };
 
 export default App;
+
+
+
+
 
 

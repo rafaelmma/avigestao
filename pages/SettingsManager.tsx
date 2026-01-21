@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+ï»¿import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { BreederSettings } from '../types';
 import {
   User,
@@ -112,7 +112,7 @@ const SettingsManager: React.FC<SettingsManagerProps> = ({ settings, updateSetti
     if (daysSispass !== null && daysSispass <= 30) critical.push(`SISPASS vence em ${daysSispass} dias`);
     if (daysCert !== null && daysCert <= 30) critical.push(`Certificado vence em ${daysCert} dias`);
     if (settings.plan === 'Profissional' && settings.subscriptionCancelAtPeriodEnd && daysSubscription !== null && daysSubscription <= 30) {
-      critical.push(`Plano profissional termina em ${daysSubscription} dias (Renovação cancelada)`);
+      critical.push(`Plano profissional termina em ${daysSubscription} dias (RenovaÃ§Ã£o cancelada)`);
     }
     setBannerMessage(critical.length ? critical.join(' | ') : null);
   }, [daysSispass, daysCert, daysSubscription, settings.plan, settings.subscriptionCancelAtPeriodEnd]);
@@ -175,13 +175,13 @@ const SettingsManager: React.FC<SettingsManagerProps> = ({ settings, updateSetti
     const cpfOk = !!settings.cpfCnpj && settings.cpfCnpj.replace(/\D/g, '').length >= 11;
     items.push({ label: 'CPF/CNPJ', ok: cpfOk, value: settings.cpfCnpj || 'Pendente' });
     if (settings.sispassNumber) items.push({ label: 'SISPASS', ok: true, value: settings.sispassNumber });
-    if (daysSispass !== null) items.push({ label: 'Licença', ok: daysSispass > 0, value: `${daysSispass} dias` });
+    if (daysSispass !== null) items.push({ label: 'LicenÃ§a', ok: daysSispass > 0, value: `${daysSispass} dias` });
     if (daysCert !== null) items.push({ label: 'Certificado', ok: daysCert > 0, value: `${daysCert} dias` });
     if (settings.plan === 'Profissional' && settings.subscriptionEndDate) {
       const ok = settings.subscriptionCancelAtPeriodEnd ? (daysSubscription ?? 0) > 0 : true;
       const value = settings.subscriptionCancelAtPeriodEnd && daysSubscription !== null
         ? `Termina em ${daysSubscription} dias`
-        : 'Renovação automatica ativa';
+        : 'RenovaÃ§Ã£o automatica ativa';
       items.push({ label: 'Assinatura', ok, value });
     }
     return items;
@@ -219,8 +219,8 @@ const SettingsManager: React.FC<SettingsManagerProps> = ({ settings, updateSetti
 
       <header className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
         <div>
-          <h2 className="text-3xl font-black text-slate-900">Configurações</h2>
-          <p className="text-slate-500">Ajuste dados do criatório, licenças, Certificado e aparência.</p>
+          <h2 className="text-3xl font-black text-slate-900">ConfiguraÃ§Ãµes</h2>
+          <p className="text-slate-500">Ajuste dados do criatÃ³rio, licenÃ§as, Certificado e aparÃªncia.</p>
         </div>
         <div className="flex flex-wrap gap-3 items-center">
           {isAdmin && (
@@ -235,7 +235,7 @@ const SettingsManager: React.FC<SettingsManagerProps> = ({ settings, updateSetti
                 activeTab === 'perfil' ? 'bg-slate-900 text-white' : 'text-slate-400'
               }`}
             >
-              Perfil e Licenças
+              Perfil e LicenÃ§as
             </button>
             <button
               onClick={() => setActiveTab('plano')}
@@ -256,7 +256,7 @@ const SettingsManager: React.FC<SettingsManagerProps> = ({ settings, updateSetti
           <div className="space-y-6">
             <div className="bg-white p-8 rounded-3xl border border-slate-100 shadow-sm space-y-6">
               <h3 className="font-black flex items-center gap-2 text-slate-800">
-                <User size={18} /> Identidade do criatório
+                <User size={18} /> Identidade do criatÃ³rio
               </h3>
 
               <div className="bg-slate-50 border border-slate-100 rounded-2xl p-6 flex flex-col sm:flex-row gap-6 items-center sm:items-start">
@@ -268,7 +268,7 @@ const SettingsManager: React.FC<SettingsManagerProps> = ({ settings, updateSetti
                   )}
                 </div>
                 <div className="flex-1">
-                  <p className="font-black text-slate-800">Logomarca do criatório</p>
+                  <p className="font-black text-slate-800">Logomarca do criatÃ³rio</p>
                   <p className="text-xs text-slate-500 mt-1">Exibida no menu lateral e em documentos.</p>
                   {canUseLogo ? (
                     <>
@@ -296,7 +296,7 @@ const SettingsManager: React.FC<SettingsManagerProps> = ({ settings, updateSetti
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <label className="space-y-2">
-                  <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Nome do criat+¦rio</span>
+                  <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Nome do criat+Â¦rio</span>
                   <input
                     className="w-full p-3 rounded-2xl bg-slate-50 border border-slate-100 text-sm font-bold"
                     value={settings.breederName}
@@ -327,7 +327,7 @@ const SettingsManager: React.FC<SettingsManagerProps> = ({ settings, updateSetti
                   />
                 </label>
                 <label className="space-y-2">
-                  <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Data de Renovação SISPASS</span>
+                  <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Data de RenovaÃ§Ã£o SISPASS</span>
                   <input
                     ref={renewalDateRef}
                     type="date"
@@ -349,7 +349,7 @@ const SettingsManager: React.FC<SettingsManagerProps> = ({ settings, updateSetti
                   />
                 </label>
                 <label className="space-y-2">
-                  <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Última Renovação</span>
+                  <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Ãšltima RenovaÃ§Ã£o</span>
                   <input
                     type="date"
                     className="w-full p-3 rounded-2xl bg-slate-50 border border-slate-100 text-sm font-bold"
@@ -398,7 +398,7 @@ const SettingsManager: React.FC<SettingsManagerProps> = ({ settings, updateSetti
                 </div>
 
                 <div className="flex-1 min-w-[240px]">
-                  <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3">Preview rapido</p>
+                  <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3">Preview rÃ¡pido</p>
                   <div className="rounded-2xl border border-slate-100 p-4 flex items-center gap-3 shadow-sm">
                     <div
                       className="w-12 h-12 rounded-full flex items-center justify-center text-white font-black"
@@ -425,7 +425,7 @@ const SettingsManager: React.FC<SettingsManagerProps> = ({ settings, updateSetti
           <div className="space-y-4">
             <div className="bg-white p-6 rounded-3xl border border-slate-100 shadow-sm space-y-4">
               <h4 className="font-black text-slate-800 flex items-center gap-2">
-                <ShieldCheck size={16} className="text-emerald-600" /> Status rapido
+                <ShieldCheck size={16} className="text-emerald-600" /> Status rÃ¡pido
               </h4>
               <div className="space-y-2">
                 {statusItems.map((item, idx) => (
@@ -449,8 +449,8 @@ const SettingsManager: React.FC<SettingsManagerProps> = ({ settings, updateSetti
                 <Calendar size={16} className="text-slate-500" /> Datas importantes
               </h4>
               <div className="text-sm text-slate-600 space-y-2">
-                <p>Renovação SISPASS: {settings.renewalDate ? new Date(settings.renewalDate).toLocaleDateString() : 'Pendente'}</p>
-                <p>Última Renovação: {settings.lastRenewalDate ? new Date(settings.lastRenewalDate).toLocaleDateString() : 'Pendente'}</p>
+                <p>RenovaÃ§Ã£o SISPASS: {settings.renewalDate ? new Date(settings.renewalDate).toLocaleDateString() : 'Pendente'}</p>
+                <p>Ãšltima RenovaÃ§Ã£o: {settings.lastRenewalDate ? new Date(settings.lastRenewalDate).toLocaleDateString() : 'Pendente'}</p>
                 <p>Certificado: {settings.certificate?.expiryDate ? new Date(settings.certificate.expiryDate).toLocaleDateString() : 'Pendente'}</p>
               </div>
               <p className="text-[11px] text-slate-500">Mantenha as datas atualizadas para ver alertas no dashboard.</p>
@@ -499,7 +499,7 @@ const SettingsManager: React.FC<SettingsManagerProps> = ({ settings, updateSetti
                   <div>
                     <p className="text-xs font-black uppercase text-slate-500">Assinatura ativa</p>
                     <p className="text-sm font-bold text-slate-800">
-                      Gerencie cobranças, upgrade/downgrade ou cancele a renovação automática.
+                      Gerencie cobranÃ§as, upgrade/downgrade ou cancele a renovaÃ§Ã£o automÃ¡tica.
                     </p>
                   </div>
                   <button
@@ -510,7 +510,7 @@ const SettingsManager: React.FC<SettingsManagerProps> = ({ settings, updateSetti
                   </button>
                 </div>
                 <p className="text-[11px] text-slate-500">
-                  No portal você pode trocar período (mensal/anual), atualizar cartão e cancelar a recorrência.
+                  No portal vocÃª pode trocar perÃ­odo (mensal/anual), atualizar cartÃ£o e cancelar a recorrÃªncia.
                 </p>
               </div>
             )}
@@ -587,6 +587,10 @@ const SettingsManager: React.FC<SettingsManagerProps> = ({ settings, updateSetti
 };
 
 export default SettingsManager;
+
+
+
+
 
 
 
