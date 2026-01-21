@@ -146,7 +146,28 @@ const App: React.FC = () => {
     };
   }, [supabaseUnavailable]);
 
-  const handleSession = async (newSession: any) => {
+
+  // Revalida sessão ao voltar de outra aba/janela (ex: portal Stripe)
+  useEffect(() => {
+    if (supabaseUnavailable) return;
+    const revalidate = async () => {
+      try {
+        const { data } = await supabase.auth.getSession();
+        await handleSession(data?.session || null);
+      } catch (err) {
+        console.warn('Falha ao revalidar sessão', err);
+      }
+    };
+    const onVisibility = () => {
+      if (document.visibilityState === 'visible') revalidate();
+    };
+    window.addEventListener('focus', revalidate);
+    document.addEventListener('visibilitychange', onVisibility);
+    return () => {
+      window.removeEventListener('focus', revalidate);
+      document.removeEventListener('visibilitychange', onVisibility);
+    };
+  }, [supabaseUnavailable]);  const handleSession = async (newSession: any) => {
     setSession(newSession);
     if (!newSession) {
       setIsAdmin(false);
@@ -160,10 +181,8 @@ const App: React.FC = () => {
     const cached = loadCachedState();
     if (cached.hasCache) {
       setState(cached.state);
-      setHasHydratedOnce(true);
-    } else {
-      setHasHydratedOnce(false);
     }
+    setHasHydratedOnce(false);
     setIsLoading(true);
     setAuthError(null);
     const token = newSession.access_token;
@@ -234,9 +253,7 @@ const App: React.FC = () => {
     };
 
     try {
-      console.time('hydration:loadInitialData');
       const data = await loadInitialData(userId);
-      console.timeEnd('hydration:loadInitialData');
       let subscriptionEndDate = data.settings?.subscriptionEndDate;
       let subscriptionCancelAtPeriodEnd = data.settings?.subscriptionCancelAtPeriodEnd;
       let subscriptionStatus = data.settings?.subscriptionStatus;
@@ -245,7 +262,6 @@ const App: React.FC = () => {
       if (supabase) {
         try {
           const token = currentSession.access_token;
-          console.time('hydration:subscription-status');
           const res = await fetch('/api/subscription-status', {
             method: 'POST',
             headers: { Authorization: `Bearer ${token}` }
@@ -779,6 +795,10 @@ const App: React.FC = () => {
 };
 
 export default App;
+
+
+
+
 
 
 
