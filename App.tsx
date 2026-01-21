@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+ï»¿import React, { useEffect, useState } from 'react';
 import {
   AppState,
   Bird,
@@ -29,7 +29,6 @@ import DocumentsManager from './pages/DocumentsManager';
 import Auth from './pages/Auth';
 import { supabase, SUPABASE_MISSING } from './lib/supabase';
 import { loadInitialData } from './services/dataService';
-import { migrateLocalData } from './services/migrateLocalData';
 
 const STORAGE_KEY = 'avigestao_state';
 const HYDRATE_TIMEOUT_MS = 45000;
@@ -121,26 +120,27 @@ const App: React.FC = () => {
     }
 
     let mounted = true;
-    const withTimeout = async <T,>(promise: Promise<T>, ms: number): Promise<T> => {
-      return Promise.race([
+    const withTimeout = async <T,>(promise: Promise<T>, ms: number): Promise<T> =>
+      Promise.race([
         promise,
         new Promise<never>((_, reject) => setTimeout(() => reject(new Error('timeout session init')), ms))
       ]);
-    };
 
     const init = async () => {
       try {
-        const sessionResp = await withTimeout(supabase.auth.getSession(), 8000) as Awaited<ReturnType<typeof supabase.auth.getSession>>;
-        const { data, error } = sessionResp;
+        const sessionResp: any = await withTimeout<any>(supabase.auth.getSession() as Promise<any>, 8000);
+        const data = sessionResp?.data;
+        const error = sessionResp?.error;
         if (!mounted) return;
         if (error) setAuthError(error.message);
         await handleSession(data?.session || null);
       } catch (err: any) {
         if (!mounted) return;
-        setAuthError(err?.message || "Erro ao iniciar sessão");
+        setAuthError(err?.message || 'Erro ao iniciar sessÃ£o');
         setIsLoading(false);
       }
     };
+
     init();
     const { data: listener } = supabase.auth.onAuthStateChange(async (_event: any, newSession: any) => {
       if (!mounted) return;
@@ -151,7 +151,31 @@ const App: React.FC = () => {
       mounted = false;
       listener?.subscription?.unsubscribe();
     };
-  }, [supabaseUnavailable]);  const handleSession = async (newSession: any) => {
+  }, [supabaseUnavailable]);
+
+  // Revalida sessÃ£o ao voltar de outra aba/janela (ex: portal Stripe)
+  useEffect(() => {
+    if (supabaseUnavailable) return;
+    const revalidate = async () => {
+      try {
+        const { data } = (await supabase.auth.getSession()) as any;
+        await handleSession(data?.session || null);
+      } catch (err) {
+        console.warn('Falha ao revalidar sessÃ£o', err);
+      }
+    };
+    const onVisibility = () => {
+      if (document.visibilityState === 'visible') revalidate();
+    };
+    window.addEventListener('focus', revalidate);
+    document.addEventListener('visibilitychange', onVisibility);
+    return () => {
+      window.removeEventListener('focus', revalidate);
+      document.removeEventListener('visibilitychange', onVisibility);
+    };
+  }, [supabaseUnavailable]);
+
+  const handleSession = async (newSession: any) => {
     setSession(newSession);
     if (!newSession) {
       setIsAdmin(false);
@@ -161,7 +185,7 @@ const App: React.FC = () => {
       return;
     }
 
-    // Mostra cache local se existir; se não, mantém overlay até hidratar do Supabase
+    // Mostra cache local se existir; se nÃ£o, mantÃ©m overlay atÃ© hidratar do Supabase
     const cached = loadCachedState();
     if (cached.hasCache) {
       setState(cached.state);
@@ -174,9 +198,9 @@ const App: React.FC = () => {
     try {
       await Promise.all([checkAdmin(token), hydrateUserData(newSession)]);
     } catch (err: any) {
-      console.error('Erro ao hidratar sessão:', err);
-      setAuthError(err?.message || 'Não foi possível carregar seus dados');
-      // mantém estado atual se houver falha para evitar piscar para default
+      console.error('Erro ao hidratar sessÃ£o:', err);
+      setAuthError(err?.message || 'NÃ£o foi possÃ­vel carregar seus dados');
+      // mantÃ©m estado atual se houver falha para evitar piscar para default
     } finally {
       setHasHydratedOnce(true);
       setIsLoading(false);
@@ -207,14 +231,8 @@ const App: React.FC = () => {
 
     const userId = currentSession.user.id as string;
 
-    // Migração local desativada para evitar posts desnecessários/erros no Supabase\n    try { localStorage.setItem('avigestao_migrated', 'true'); } catch { /* ignore */ }
-
-    const withTimeout = async <T,>(promise: Promise<T>, ms: number): Promise<T> => {
-      return Promise.race([
-        promise,
-        new Promise<never>((_, reject) => setTimeout(() => reject(new Error('Tempo esgotado ao carregar dados')), ms))
-      ]);
-    };
+    // MigraÃ§Ã£o local desativada para evitar chamadas extras ao Supabase
+    try { localStorage.setItem('avigestao_migrated', 'true'); } catch {}
 
     const ensureTrial = async (settings: BreederSettings): Promise<BreederSettings> => {
       if (isAdmin) return settings;
@@ -222,7 +240,7 @@ const App: React.FC = () => {
       const trialDate = new Date();
       trialDate.setDate(trialDate.getDate() + 7);
       const trialIso = trialDate.toISOString().split('T')[0];
-      const updated = { ...settings, trialEndDate: trialIso, plan: settings.plan || 'Básico' };
+      const updated = { ...settings, trialEndDate: trialIso, plan: settings.plan || 'BÃ¡sico' };
 
       try {
         if (supabase) {
@@ -237,10 +255,33 @@ const App: React.FC = () => {
     };
 
     try {
+      // Sem timeout para nÃ£o abortar hidrataÃ§Ã£o
       const data = await loadInitialData(userId);
       let subscriptionEndDate = data.settings?.subscriptionEndDate;
       let subscriptionCancelAtPeriodEnd = data.settings?.subscriptionCancelAtPeriodEnd;
       let subscriptionStatus = data.settings?.subscriptionStatus;
+
+      // Preenche settings mÃ­nimo se vier vazio
+      if (!data.settings || data.settings.breederName === INITIAL_SETTINGS.breederName) {
+        const fallbackSettings: BreederSettings = {
+          ...(data.settings || defaultState.settings),
+          breederName: currentSession.user?.email || defaultState.settings.breederName,
+          plan: data.settings?.plan || defaultState.settings.plan,
+        };
+        data.settings = fallbackSettings;
+        try {
+          await supabase
+            .from('settings')
+            .upsert({
+              user_id: userId,
+              breeder_name: fallbackSettings.breederName,
+              plan: fallbackSettings.plan,
+              trial_end_date: fallbackSettings.trialEndDate || null,
+            } as any, { onConflict: 'user_id' });
+        } catch (e) {
+          console.warn('Falha ao salvar settings mÃ­nimos', e);
+        }
+      }
 
       // Checa status da assinatura no backend e forca plano PRO se estiver ativo
       if (supabase) {
@@ -248,7 +289,7 @@ const App: React.FC = () => {
           const token = currentSession.access_token;
           const res = await fetch('/api/subscription-status', {
             method: 'POST',
-        headers: { Authorization: "Bearer " }
+            headers: { Authorization: `Bearer ${token}` }
           });
           if (res.ok) {
             const sub = await res.json();
@@ -268,7 +309,7 @@ const App: React.FC = () => {
             } else if (!isAdmin) {
               data.settings = {
                 ...(data.settings || {}),
-                plan: data.settings?.trialEndDate ? data.settings.plan : 'Básico'
+                plan: data.settings?.trialEndDate ? data.settings.plan : 'BÃ¡sico'
               } as BreederSettings;
             }
           }
@@ -297,7 +338,7 @@ const App: React.FC = () => {
     } catch (err: any) {
       console.error('Erro ao carregar dados:', err);
       setAuthError(err?.message || 'Erro ao carregar dados');
-      // mantém estado atual para evitar voltar ao perfil default
+      // mantÃ©m estado atual para evitar voltar ao perfil default
     }
   };
 
@@ -735,7 +776,7 @@ const App: React.FC = () => {
   };
 
   if (!session && !supabaseUnavailable) {
-    return <Auth onLogin={() => { /* sessão será tratada via supabase listener */ }} />;
+    return <Auth onLogin={() => { /* sessÃ£o serÃ¡ tratada via supabase listener */ }} />;
   }
 
   return (
@@ -772,31 +813,12 @@ const App: React.FC = () => {
         .text-brand { color: var(--primary) !important; }
         .border-brand { border-color: var(--primary) !important; }
         .ring-brand { --tw-ring-color: var(--primary) !important; }
-        .hover\\:bg-brand:hover { background-color: var(--primary-hover) !important; }
+        .hover\:bg-brand:hover { background-color: var(--primary-hover) !important; }
       `}</style>
     </div>
   );
 };
 
 export default App;
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
