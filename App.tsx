@@ -680,35 +680,61 @@ const App: React.FC = () => {
 
   const persistSettings = async (settings: BreederSettings) => {
     if (supabaseUnavailable || !session?.user?.id) return;
+    const userId = session.user.id;
+    const fullPayload = {
+      user_id: userId,
+      breeder_name: settings.breederName,
+      cpf_cnpj: settings.cpfCnpj || null,
+      sispass_number: settings.sispassNumber || null,
+      sispass_document_url: settings.sispassDocumentUrl || null,
+      registration_date: settings.registrationDate || null,
+      renewal_date: settings.renewalDate || null,
+      last_renewal_date: settings.lastRenewalDate || null,
+      logo_url: settings.logoUrl || null,
+      primary_color: settings.primaryColor,
+      accent_color: settings.accentColor,
+      plan: settings.plan,
+      trial_end_date: settings.trialEndDate || null,
+      dashboard_layout: settings.dashboardLayout || null,
+      certificate: settings.certificate || null,
+      subscription_end_date: settings.subscriptionEndDate || null,
+      subscription_status: settings.subscriptionStatus || null,
+      subscription_cancel_at_period_end: settings.subscriptionCancelAtPeriodEnd ?? null
+    };
+
+    const minimalPayload = {
+      user_id: userId,
+      breeder_name: settings.breederName,
+      plan: settings.plan,
+      trial_end_date: settings.trialEndDate || null,
+      primary_color: settings.primaryColor,
+      accent_color: settings.accentColor,
+      cpf_cnpj: settings.cpfCnpj || null,
+      sispass_number: settings.sispassNumber || null,
+      sispass_document_url: settings.sispassDocumentUrl || null,
+      registration_date: settings.registrationDate || null,
+      renewal_date: settings.renewalDate || null,
+      last_renewal_date: settings.lastRenewalDate || null,
+      logo_url: settings.logoUrl || null,
+      dashboard_layout: settings.dashboardLayout || null,
+      certificate: settings.certificate || null
+    };
+
     try {
-      await supabase.from('settings').upsert(
-        {
-          user_id: session.user.id,
-          breeder_name: settings.breederName,
-          cpf_cnpj: settings.cpfCnpj || null,
-          sispass_number: settings.sispassNumber || null,
-          sispass_document_url: settings.sispassDocumentUrl || null,
-          registration_date: settings.registrationDate || null,
-          renewal_date: settings.renewalDate || null,
-          last_renewal_date: settings.lastRenewalDate || null,
-          logo_url: settings.logoUrl || null,
-          primary_color: settings.primaryColor,
-          accent_color: settings.accentColor,
-          plan: settings.plan,
-          trial_end_date: settings.trialEndDate || null,
-          dashboard_layout: settings.dashboardLayout || null,
-          certificate: settings.certificate || null,
-          subscription_end_date: settings.subscriptionEndDate || null,
-          subscription_status: settings.subscriptionStatus || null,
-          subscription_cancel_at_period_end: settings.subscriptionCancelAtPeriodEnd ?? null
-        } as any,
-        { onConflict: 'user_id' }
-      );
+      const { error } = await supabase.from('settings').upsert(fullPayload as any, { onConflict: 'user_id' });
+      if (error) {
+        console.warn('Falha ao persistir settings (completo)', error);
+        await supabase.from('settings').upsert(minimalPayload as any, { onConflict: 'user_id' });
+      }
     } catch (err) {
       console.warn('Falha ao persistir settings', err);
+      try {
+        await supabase.from('settings').upsert(minimalPayload as any, { onConflict: 'user_id' });
+      } catch (fallbackErr) {
+        console.warn('Falha ao persistir settings (fallback)', fallbackErr);
+      }
     }
   };
-
   const handleLogout = async () => {
     // Reseta UI imediatamente para evitar travar no logout
     lastValidSessionRef.current = null;
@@ -912,6 +938,7 @@ const App: React.FC = () => {
 };
 
 export default App;
+
 
 
 
