@@ -234,7 +234,7 @@ const App: React.FC = () => {
     };
 
     try {
-      const data = await withTimeout(loadInitialData(userId), HYDRATE_TIMEOUT_MS);
+      const data = await loadInitialData(userId);
       let subscriptionEndDate = data.settings?.subscriptionEndDate;
       let subscriptionCancelAtPeriodEnd = data.settings?.subscriptionCancelAtPeriodEnd;
       let subscriptionStatus = data.settings?.subscriptionStatus;
@@ -776,6 +776,7 @@ const App: React.FC = () => {
 };
 
 export default App;
+
 
 
 
