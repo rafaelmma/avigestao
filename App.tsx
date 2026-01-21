@@ -121,19 +121,26 @@ const App: React.FC = () => {
     }
 
     let mounted = true;
+    const withTimeout = async <T,>(promise: Promise<T>, ms: number): Promise<T> => {
+      return Promise.race([
+        promise,
+        new Promise<never>((_, reject) => setTimeout(() => reject(new Error('timeout session init')), ms))
+      ]);
+    };
+
     const init = async () => {
       try {
-        const { data, error } = await supabase.auth.getSession();
+        const sessionResp = await withTimeout(supabase.auth.getSession(), 8000) as Awaited<ReturnType<typeof supabase.auth.getSession>>;
+        const { data, error } = sessionResp;
         if (!mounted) return;
         if (error) setAuthError(error.message);
         await handleSession(data?.session || null);
       } catch (err: any) {
         if (!mounted) return;
-        setAuthError(err?.message || 'Erro ao iniciar sessão');
+        setAuthError(err?.message || "Erro ao iniciar sessão");
         setIsLoading(false);
       }
     };
-
     init();
     const { data: listener } = supabase.auth.onAuthStateChange(async (_event: any, newSession: any) => {
       if (!mounted) return;
@@ -143,29 +150,6 @@ const App: React.FC = () => {
     return () => {
       mounted = false;
       listener?.subscription?.unsubscribe();
-    };
-  }, [supabaseUnavailable]);
-
-
-  // Revalida sessão ao voltar de outra aba/janela (ex: portal Stripe)
-  useEffect(() => {
-    if (supabaseUnavailable) return;
-    const revalidate = async () => {
-      try {
-        const { data } = await supabase.auth.getSession();
-        await handleSession(data?.session || null);
-      } catch (err) {
-        console.warn('Falha ao revalidar sessão', err);
-      }
-    };
-    const onVisibility = () => {
-      if (document.visibilityState === 'visible') revalidate();
-    };
-    window.addEventListener('focus', revalidate);
-    document.addEventListener('visibilitychange', onVisibility);
-    return () => {
-      window.removeEventListener('focus', revalidate);
-      document.removeEventListener('visibilitychange', onVisibility);
     };
   }, [supabaseUnavailable]);  const handleSession = async (newSession: any) => {
     setSession(newSession);
@@ -264,7 +248,7 @@ const App: React.FC = () => {
           const token = currentSession.access_token;
           const res = await fetch('/api/subscription-status', {
             method: 'POST',
-            headers: { Authorization: `Bearer ${token}` }
+        headers: { Authorization: "Bearer " }
           });
           if (res.ok) {
             const sub = await res.json();
@@ -788,13 +772,21 @@ const App: React.FC = () => {
         .text-brand { color: var(--primary) !important; }
         .border-brand { border-color: var(--primary) !important; }
         .ring-brand { --tw-ring-color: var(--primary) !important; }
-        .hover\:bg-brand:hover { background-color: var(--primary-hover) !important; }
+        .hover\\:bg-brand:hover { background-color: var(--primary-hover) !important; }
       `}</style>
     </div>
   );
 };
 
 export default App;
+
+
+
+
+
+
+
+
 
 
 
