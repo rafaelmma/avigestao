@@ -175,7 +175,10 @@ export const INITIAL_SETTINGS: BreederSettings = {
   logoUrl: APP_LOGO, 
   primaryColor: '#10B981',
   accentColor: '#F59E0B',
-  plan: 'Básico'
+  plan: 'Básico',
+  subscriptionEndDate: '',
+  subscriptionCancelAtPeriodEnd: false,
+  subscriptionStatus: ''
 };
 
 export const MOCK_BIRDS: Bird[] = [

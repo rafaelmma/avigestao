@@ -1,13 +1,13 @@
-﻿
+
 export type BirdStatus = 'Ativo' | 'Falecido' | 'Vendido' | 'Transferido' | 'Fugido';
-export type Sex = 'Macho' | 'Fêmea' | 'Indeterminado';
-export type BirdClassification = 'Galador' | 'Pássaro de Canto' | 'Ambos' | 'Não Definido';
-export type TrainingStatus = 'Não Iniciado' | 'Em Encarte' | 'Fixado' | 'Pardo (Aprendizado)';
-export type SubscriptionPlan = 'Básico' | 'Profissional';
+export type Sex = 'Macho' | 'F�mea' | 'Indeterminado';
+export type BirdClassification = 'Galador' | 'P�ssaro de Canto' | 'Ambos' | 'N�o Definido';
+export type TrainingStatus = 'N�o Iniciado' | 'Em Encarte' | 'Fixado' | 'Pardo (Aprendizado)';
+export type SubscriptionPlan = 'B�sico' | 'Profissional';
 
 export interface SexingData {
-  protocol: string;        // NÃºmero do pedido/sexagem
-  laboratory: string;      // LaboratÃ³rio
+  protocol: string;        // Número do pedido/sexagem
+  laboratory: string;      // Laboratório
   sentDate: string;        // Data de envio
   resultDate?: string;     // Data do resultado/chegada
   attachmentUrl?: string;  // Anexo do laudo (Base64)
@@ -43,21 +43,21 @@ export interface Bird {
   songType: string;
   songSource?: string;        // Fonte (CD / Tutor / Mestre)
   trainingStartDate?: string; // Data inicio do encarte
-  trainingNotes?: string;     // ObservaÃ§Ãµes de evoluÃ§Ã£o do canto
+  trainingNotes?: string;     // Observações de evolução do canto
   isRepeater: boolean;
   sexing?: SexingData; 
-  documents?: BirdDocument[]; // Novo campo: RepositÃ³rio de documentos da ave
+  documents?: BirdDocument[]; // Novo campo: Repositório de documentos da ave
   deletedAt?: string;
 }
 
 export type TransactionCategory = 
   | 'Venda de Aves' 
-  | 'Serviços' 
-  | 'Alimentação' 
-  | 'Saúde' 
+  | 'Servi�os' 
+  | 'Alimenta��o' 
+  | 'Sa�de' 
   | 'Manejo e Insumos' 
   | 'Estrutura' 
-  | 'Taxas e Licenças' 
+  | 'Taxas e Licen�as' 
   | 'Outros';
 
 export interface Transaction {
@@ -67,7 +67,7 @@ export interface Transaction {
   date: string;
   type: 'Receita' | 'Despesa';
   category: TransactionCategory;
-  subcategory?: string; // Novo campo para subitens (ex: RaÃ§Ã£o, Medicamento)
+  subcategory?: string; // Novo campo para subitens (ex: Ração, Medicamento)
   deletedAt?: string;
 }
 
@@ -76,9 +76,9 @@ export interface MaintenanceTask {
   title: string;
   dueDate: string;
   isCompleted: boolean;
-  priority: 'Baixa' | 'Média' | 'Alta';
+  priority: 'Baixa' | 'M�dia' | 'Alta';
   birdId?: string;
-  frequency?: 'Única' | 'Diária' | 'Semanal' | 'Mensal'; // Adicionado
+  frequency?: '�nica' | 'Di�ria' | 'Semanal' | 'Mensal'; // Adicionado
   remindMe?: boolean; // Adicionado: Flag para destacar aviso
   deletedAt?: string;
 }
@@ -88,17 +88,17 @@ export interface TournamentEvent {
   title: string;
   date: string;
   location: string;
-  type: 'Torneio' | 'Encontro' | 'Exposição';
+  type: 'Torneio' | 'Encontro' | 'Exposi��o';
   category: 'Fibra' | 'Canto' | 'Morfologia' | 'Social';
   notes?: string;
   organizer?: string;
   
   // Novos Campos Melhorados
-  result?: string; // Mantido para compatibilidade (ex: "1Âº Lugar")
-  trophy?: boolean; // Se ganhou trofÃ©u
-  score?: number; // PontuaÃ§Ã£o ou Cantos
+  result?: string; // Mantido para compatibilidade (ex: "1º Lugar")
+  trophy?: boolean; // Se ganhou troféu
+  score?: number; // Pontuação ou Cantos
   
-  participatingBirds?: string[]; // IDs dos pÃ¡ssaros
+  participatingBirds?: string[]; // IDs dos pássaros
   preparationChecklist?: { item: string; checked: boolean }[]; // Checklist
   deletedAt?: string;
 }
@@ -106,7 +106,7 @@ export interface TournamentEvent {
 export interface MovementRecord {
   id: string;
   birdId: string;
-  type: 'Óbito' | 'Fuga' | 'Transporte' | 'Venda';
+  type: '�bito' | 'Fuga' | 'Transporte' | 'Venda';
   date: string;
   notes: string;
   gtrUrl?: string;
@@ -165,30 +165,30 @@ export interface MedicationApplication {
   date: string;
   dosage: string;
   notes: string;
-  treatmentId?: string; // Link para tratamento contÃ­nuo
+  treatmentId?: string; // Link para tratamento contínuo
   deletedAt?: string;
 }
 
 export interface ContinuousTreatment {
   id: string;
-  birdId: string; // Pode ser 'ALL' para tratamento coletivo ou ID do pÃ¡ssaro
+  birdId: string; // Pode ser 'ALL' para tratamento coletivo ou ID do pássaro
   medicationId: string;
   startDate: string;
-  endDate?: string; // Opcional (se for contÃ­nuo indefinido)
-  frequency: 'Diário' | '12h em 12h' | 'Semanal' | 'Mensal';
+  endDate?: string; // Opcional (se for contínuo indefinido)
+  frequency: 'Di�rio' | '12h em 12h' | 'Semanal' | 'Mensal';
   dosage: string;
-  status: 'Ativo' | 'Pausado' | 'Concluído';
+  status: 'Ativo' | 'Pausado' | 'Conclu�do';
   lastApplicationDate?: string;
   notes?: string;
   deletedAt?: string;
 }
 
-export type CertificateType = 'A1 (Arquivo)' | 'A3 (Token USB)' | 'A3 (Cartão)' | 'Nuvem (BirdID/Vidaas)';
+export type CertificateType = 'A1 (Arquivo)' | 'A3 (Token USB)' | 'A3 (Cart�o)' | 'Nuvem (BirdID/Vidaas)';
 
 export interface DigitalCertificateData {
-  issuer: string;       // OrgÃ£o emissor (ex: Serasa, Certisign)
+  issuer: string;       // Orgão emissor (ex: Serasa, Certisign)
   expiryDate: string;   // Validade
-  installed: boolean;   // Se estÃ¡ configurado/detectado (simulaÃ§Ã£o)
+  installed: boolean;   // Se está configurado/detectado (simulação)
   type: CertificateType; // Novo Campo
 }
 
@@ -198,52 +198,22 @@ export interface BreederSettings {
   cpfCnpj: string;
   sispassNumber: string;
   sispassDocumentUrl?: string;
-registrationDate: string;
-  renewalDate: string;      // Vencimento LicenÃ§a SISPASS
-  lastRenewalDate?: string; // Ãšltima RenovaÃ§Ã£o SISPASS
+  registrationDate: string;
+  renewalDate: string;      // Vencimento Licenca SISPASS
+  lastRenewalDate?: string; // Ultima Renovacao SISPASS
   logoUrl?: string;
   primaryColor: string;
   accentColor: string;
   plan: SubscriptionPlan;
-  trialEndDate?: string; // NOVA PROPRIEDADE: Data fim do perÃ­odo de teste
+  trialEndDate?: string; // NOVA PROPRIEDADE: Data fim do periodo de teste
   dashboardLayout?: string[];
   certificate?: DigitalCertificateData; // Dados do Certificado Digital
+  subscriptionEndDate?: string; // Fim do periodo atual da assinatura
+  subscriptionCancelAtPeriodEnd?: boolean; // Se a recorrencia foi cancelada
+  subscriptionStatus?: string; // Estado bruto vindo do Stripe (active, trialing, etc)
 }
 
-export interface AppState {
-  birds: Bird[];
-  deletedBirds?: Bird[];
-  
-  pairs: Pair[];
-  deletedPairs?: Pair[]; // Lixeira Casais
 
-  clutches: Clutch[];
-  // Clutches geralmente sÃ£o deletadas junto com o casal ou diretamente, simplificando nÃ£o ter lixeira para clutch por enquanto ou herdar do pai.
-  
-  medications: Medication[];
-  deletedMedications?: Medication[]; // Lixeira Meds
-  medicationCatalog: MedicationCatalogItem[];
-
-  applications: MedicationApplication[];
-  deletedApplications?: MedicationApplication[]; // Lixeira AplicaÃ§Ãµes
-  
-  treatments: ContinuousTreatment[]; // Novo array de tratamentos
-  deletedTreatments?: ContinuousTreatment[];
-
-  movements: MovementRecord[];
-  deletedMovements?: MovementRecord[]; // Lixeira MovimentaÃ§Ãµes
-
-  transactions: Transaction[];
-  deletedTransactions?: Transaction[]; // Lixeira Financeiro
-
-  tasks: MaintenanceTask[];
-  deletedTasks?: MaintenanceTask[]; // Lixeira Tarefas
-
-  tournaments: TournamentEvent[];
-  deletedTournaments?: TournamentEvent[]; // Lixeira Eventos
-
-  settings: BreederSettings;
-}
 
 
 

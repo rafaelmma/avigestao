@@ -309,6 +309,9 @@ export const mapSettingsFromDb = (row: any): BreederSettings => ({
   trialEndDate: normalizeTrialEndDate(row.trial_end_date ?? row.trialEndDate),
   dashboardLayout: row.dashboard_layout ?? row.dashboardLayout ?? undefined,
   certificate: row.certificate ?? undefined,
+  subscriptionEndDate: row.subscription_end_date ?? row.subscriptionEndDate ?? undefined,
+  subscriptionCancelAtPeriodEnd: row.subscription_cancel_at_period_end ?? row.subscriptionCancelAtPeriodEnd ?? undefined,
+  subscriptionStatus: row.subscription_status ?? row.subscriptionStatus ?? undefined,
 });
 
 function normalizeTrialEndDate(value?: string) {

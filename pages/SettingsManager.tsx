@@ -1,4 +1,4 @@
-ï»¿import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { BreederSettings } from '../types';
 import {
   User,
@@ -65,6 +65,7 @@ const SettingsManager: React.FC<SettingsManagerProps> = ({ settings, updateSetti
   const fileInputRef = useRef<HTMLInputElement>(null);
   const primaryColorRef = useRef<HTMLInputElement>(null);
   const accentColorRef = useRef<HTMLInputElement>(null);
+  const renewalDateRef = useRef<HTMLInputElement>(null);
 
   const [activeTab, setActiveTab] = useState<'perfil' | 'plano'>('perfil');
   const [selectedPlanId, setSelectedPlanId] = useState('monthly');
@@ -80,6 +81,7 @@ const SettingsManager: React.FC<SettingsManagerProps> = ({ settings, updateSetti
 
   const daysSispass = daysTo(settings.renewalDate);
   const daysCert = daysTo(settings.certificate?.expiryDate);
+  const daysSubscription = settings.subscriptionEndDate ? daysTo(settings.subscriptionEndDate) : null;
 
   useEffect(() => {
     if (!canUseLogo && settings.logoUrl && settings.logoUrl !== APP_LOGO) {
@@ -109,8 +111,11 @@ const SettingsManager: React.FC<SettingsManagerProps> = ({ settings, updateSetti
     const critical: string[] = [];
     if (daysSispass !== null && daysSispass <= 30) critical.push(`SISPASS vence em ${daysSispass} dias`);
     if (daysCert !== null && daysCert <= 30) critical.push(`Certificado vence em ${daysCert} dias`);
-    setBannerMessage(critical.length ? critical.join(' Ã”Ã‡Ã³ ') : null);
-  }, [daysSispass, daysCert]);
+    if (settings.plan === 'Profissional' && settings.subscriptionCancelAtPeriodEnd && daysSubscription !== null && daysSubscription <= 30) {
+      critical.push(`Plano profissional termina em ${daysSubscription} dias (renovacao cancelada)`);
+    }
+    setBannerMessage(critical.length ? critical.join(' | ') : null);
+  }, [daysSispass, daysCert, daysSubscription, settings.plan, settings.subscriptionCancelAtPeriodEnd]);
 
   const openBillingPortal = async () => {
     try {
@@ -172,8 +177,15 @@ const SettingsManager: React.FC<SettingsManagerProps> = ({ settings, updateSetti
     if (settings.sispassNumber) items.push({ label: 'SISPASS', ok: true, value: settings.sispassNumber });
     if (daysSispass !== null) items.push({ label: 'Licenca', ok: daysSispass > 0, value: `${daysSispass} dias` });
     if (daysCert !== null) items.push({ label: 'Certificado', ok: daysCert > 0, value: `${daysCert} dias` });
+    if (settings.plan === 'Profissional' && settings.subscriptionEndDate) {
+      const ok = settings.subscriptionCancelAtPeriodEnd ? (daysSubscription ?? 0) > 0 : true;
+      const value = settings.subscriptionCancelAtPeriodEnd && daysSubscription !== null
+        ? `Termina em ${daysSubscription} dias`
+        : 'Renovacao automatica ativa';
+      items.push({ label: 'Assinatura', ok, value });
+    }
     return items;
-  }, [settings, daysSispass, daysCert]);
+  }, [settings, daysSispass, daysCert, daysSubscription]);
 
   const handleSaveClick = () => {
     updateSettings({ ...settings });
@@ -190,7 +202,14 @@ const SettingsManager: React.FC<SettingsManagerProps> = ({ settings, updateSetti
           </div>
           <a
             href="#"
-            onClick={() => setActiveTab('perfil')}
+            onClick={(e) => {
+              e.preventDefault();
+              setActiveTab('perfil');
+              setTimeout(() => {
+                renewalDateRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                renewalDateRef.current?.focus({ preventScroll: true });
+              }, 50);
+            }}
             className="text-[11px] uppercase tracking-widest font-black text-amber-700"
           >
             Atualizar datas
@@ -200,8 +219,8 @@ const SettingsManager: React.FC<SettingsManagerProps> = ({ settings, updateSetti
 
       <header className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
         <div>
-          <h2 className="text-3xl font-black text-slate-900">ConfiguraÃ§Ãµes</h2>
-          <p className="text-slate-500">Ajuste dados do criatÃ³rio, licenÃ§as, certificado e aparÃªncia.</p>
+          <h2 className="text-3xl font-black text-slate-900">Configurações</h2>
+          <p className="text-slate-500">Ajuste dados do criatório, licenças, certificado e aparência.</p>
         </div>
         <div className="flex flex-wrap gap-3 items-center">
           {isAdmin && (
@@ -237,7 +256,7 @@ const SettingsManager: React.FC<SettingsManagerProps> = ({ settings, updateSetti
           <div className="space-y-6">
             <div className="bg-white p-8 rounded-3xl border border-slate-100 shadow-sm space-y-6">
               <h3 className="font-black flex items-center gap-2 text-slate-800">
-                <User size={18} /> Identidade do criatÃ³rio
+                <User size={18} /> Identidade do criatório
               </h3>
 
               <div className="bg-slate-50 border border-slate-100 rounded-2xl p-6 flex flex-col sm:flex-row gap-6 items-center sm:items-start">
@@ -249,7 +268,7 @@ const SettingsManager: React.FC<SettingsManagerProps> = ({ settings, updateSetti
                   )}
                 </div>
                 <div className="flex-1">
-                  <p className="font-black text-slate-800">Logomarca do criatÃ³rio</p>
+                  <p className="font-black text-slate-800">Logomarca do criatório</p>
                   <p className="text-xs text-slate-500 mt-1">Exibida no menu lateral e em documentos.</p>
                   {canUseLogo ? (
                     <>
@@ -277,7 +296,7 @@ const SettingsManager: React.FC<SettingsManagerProps> = ({ settings, updateSetti
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <label className="space-y-2">
-                  <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Nome do criatâ”œâ”‚rio</span>
+                  <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Nome do criat+¦rio</span>
                   <input
                     className="w-full p-3 rounded-2xl bg-slate-50 border border-slate-100 text-sm font-bold"
                     value={settings.breederName}
@@ -310,6 +329,7 @@ const SettingsManager: React.FC<SettingsManagerProps> = ({ settings, updateSetti
                 <label className="space-y-2">
                   <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Data de renovacao SISPASS</span>
                   <input
+                    ref={renewalDateRef}
                     type="date"
                     className="w-full p-3 rounded-2xl bg-slate-50 border border-slate-100 text-sm font-bold"
                     value={settings.renewalDate}
@@ -479,7 +499,7 @@ const SettingsManager: React.FC<SettingsManagerProps> = ({ settings, updateSetti
                   <div>
                     <p className="text-xs font-black uppercase text-slate-500">Assinatura ativa</p>
                     <p className="text-sm font-bold text-slate-800">
-                      Gerencie cobranÃ§as, upgrade/downgrade ou cancele a renovaÃ§Ã£o automÃ¡tica.
+                      Gerencie cobranças, upgrade/downgrade ou cancele a renovação automática.
                     </p>
                   </div>
                   <button
@@ -490,7 +510,7 @@ const SettingsManager: React.FC<SettingsManagerProps> = ({ settings, updateSetti
                   </button>
                 </div>
                 <p className="text-[11px] text-slate-500">
-                  No portal vocÃª pode trocar perÃ­odo (mensal/anual), atualizar cartÃ£o e cancelar a recorrÃªncia.
+                  No portal você pode trocar período (mensal/anual), atualizar cartão e cancelar a recorrência.
                 </p>
               </div>
             )}
@@ -567,3 +587,6 @@ const SettingsManager: React.FC<SettingsManagerProps> = ({ settings, updateSetti
 };
 
 export default SettingsManager;
+
+
+

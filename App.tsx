@@ -235,7 +235,11 @@ const App: React.FC = () => {
 
     try {
       const data = await withTimeout(loadInitialData(userId), HYDRATE_TIMEOUT_MS);
-      // Checa status da assinatura no backend e força plano PRO se estiver ativo
+      let subscriptionEndDate = data.settings?.subscriptionEndDate;
+      let subscriptionCancelAtPeriodEnd = data.settings?.subscriptionCancelAtPeriodEnd;
+      let subscriptionStatus = data.settings?.subscriptionStatus;
+
+      // Checa status da assinatura no backend e forca plano PRO se estiver ativo
       if (supabase) {
         try {
           const token = currentSession.access_token;
@@ -245,27 +249,42 @@ const App: React.FC = () => {
           });
           if (res.ok) {
             const sub = await res.json();
-            if (sub?.isActive || sub?.isTrial) {
+            const end = sub?.currentPeriodEnd || sub?.current_period_end;
+            subscriptionEndDate = end ? new Date(end).toISOString().split('T')[0] : subscriptionEndDate;
+            subscriptionCancelAtPeriodEnd = sub?.cancelAtPeriodEnd ?? subscriptionCancelAtPeriodEnd;
+            subscriptionStatus = sub?.status ?? subscriptionStatus;
+
+            const isActive = !!sub?.isActive;
+            const isTrialSub = !!sub?.isTrial;
+            if (isActive || isTrialSub) {
               data.settings = {
                 ...(data.settings || {}),
                 plan: 'Profissional',
                 trialEndDate: null
               } as BreederSettings;
+            } else if (!isAdmin) {
+              data.settings = {
+                ...(data.settings || {}),
+                plan: data.settings?.trialEndDate ? data.settings.plan : 'B�sico'
+              } as BreederSettings;
             }
           }
         } catch (e) {
-          console.warn('Não foi possível verificar status da assinatura', e);
+          console.warn('Nao foi possivel verificar status da assinatura', e);
         }
       }
 
-      // Se não tem plano PRO nem trial, aplica trial de 7 dias e persiste
+      // Se nao tem plano PRO nem trial, aplica trial de 7 dias e persiste
       data.settings = await ensureTrial(data.settings || defaultState.settings);
 
       const normalizedSettings: BreederSettings = {
         ...defaultState.settings,
         ...(data.settings || {}),
         userId,
-        trialEndDate: normalizeTrialEndDate(data.settings?.trialEndDate)
+        trialEndDate: normalizeTrialEndDate(data.settings?.trialEndDate),
+        subscriptionEndDate,
+        subscriptionCancelAtPeriodEnd,
+        subscriptionStatus
       };
       setState({
         ...defaultState,
@@ -757,3 +776,5 @@ const App: React.FC = () => {
 };
 
 export default App;
+
+

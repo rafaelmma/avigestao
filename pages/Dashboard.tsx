@@ -130,25 +130,29 @@ const Dashboard: React.FC<DashboardProps> = ({ state, updateSettings, navigateTo
   const diffDays = Math.ceil((sispassRenewalDate.getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24));
   const certDate = state.settings?.certificate?.expiryDate ? new Date(state.settings.certificate.expiryDate) : null;
   const certDiff = certDate ? Math.ceil((certDate.getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24)) : null;
+  const subEndDate = state.settings?.subscriptionEndDate ? new Date(state.settings.subscriptionEndDate) : null;
+  const subDiff = subEndDate ? Math.ceil((subEndDate.getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24)) : null;
+  const cancelAtPeriodEnd = !!state.settings?.subscriptionCancelAtPeriodEnd;
   
   const renderWidgetContent = (id: string) => {
     switch(id) {
       case 'stats':
         return (
           <div className="space-y-4">
-            {(diffDays < 30 || (certDiff !== null && certDiff < 30)) && (
+            {(diffDays < 30 || (certDiff !== null && certDiff < 30) || (cancelAtPeriodEnd && subDiff !== null)) && (
               <div className="flex items-center justify-between p-3 rounded-2xl border border-amber-200 bg-amber-50 text-amber-800 text-sm font-bold">
                 <div className="flex items-center gap-2">
                   <Clock size={16} className="text-amber-600" />
                   <span>
-                    {diffDays < 30 ? `SISPASS vence em ${diffDays} dias` : ''} 
-                    {diffDays < 30 && certDiff !== null && certDiff < 30 ? ' • ' : ''}
-                    {certDiff !== null && certDiff < 30 ? `Certificado vence em ${certDiff} dias` : ''}
+                    {[
+                      diffDays < 30 ? `SISPASS vence em ${diffDays} dias` : null,
+                      certDiff !== null && certDiff < 30 ? `Certificado vence em ${certDiff} dias` : null,
+                      cancelAtPeriodEnd && subDiff !== null ? `Plano profissional termina em ${subDiff} dias (renovacao cancelada)` : null
+                    ].filter(Boolean).join(' | ')}
                   </span>
                 </div>
               </div>
-            )}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 h-full">
+            )}<div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 h-full">
             <StatCard 
               icon={<Users size={20} className="text-emerald-600" />} 
               label="Plantel" 
@@ -464,3 +468,5 @@ const Dashboard: React.FC<DashboardProps> = ({ state, updateSettings, navigateTo
 };
 
 export default Dashboard;
+
+
