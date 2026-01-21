@@ -1,4 +1,4 @@
-ï»¿import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import {
   AppState,
   Bird,
@@ -52,6 +52,15 @@ const loadCachedState = (): { state: AppState; hasCache: boolean } => {
   }
 };
 
+const DEFAULT_SESSION_TIMEOUT_MS = 8000;
+const SESSION_RETRY_DELAY_MS = 2000;
+
+const withTimeout = async <T,>(promise: Promise<T>, ms: number): Promise<T> =>
+  Promise.race([
+    promise,
+    new Promise<never>((_, reject) => setTimeout(() => reject(new Error('timeout session init')), ms))
+  ]);
+
 const defaultState: AppState = {
   birds: MOCK_BIRDS,
   deletedBirds: [],
@@ -93,6 +102,8 @@ const App: React.FC = () => {
   const [hasHydratedOnce, setHasHydratedOnce] = useState(false);
 
   const supabaseUnavailable = SUPABASE_MISSING || !supabase;
+  const lastValidSessionRef = useRef<any>(null);
+  const sessionRetryRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const persistState = (value: AppState) => {
     try {
@@ -120,23 +131,29 @@ const App: React.FC = () => {
     }
 
     let mounted = true;
-    const withTimeout = async <T,>(promise: Promise<T>, ms: number): Promise<T> =>
-      Promise.race([
-        promise,
-        new Promise<never>((_, reject) => setTimeout(() => reject(new Error('timeout session init')), ms))
-      ]);
 
     const init = async () => {
       try {
-        const sessionResp: any = await withTimeout<any>(supabase.auth.getSession() as Promise<any>, 8000);
+        const sessionResp: any = await withTimeout<any>(supabase.auth.getSession() as Promise<any>, DEFAULT_SESSION_TIMEOUT_MS);
         const data = sessionResp?.data;
         const error = sessionResp?.error;
         if (!mounted) return;
         if (error) setAuthError(error.message);
+        setAuthError(null);
         await handleSession(data?.session || null);
       } catch (err: any) {
         if (!mounted) return;
-        setAuthError(err?.message || 'Erro ao iniciar sessÃ£o');
+        if (err?.message === 'timeout session init') {
+          console.warn('timeout session init, retrying');
+          if (sessionRetryRef.current) {
+            clearTimeout(sessionRetryRef.current);
+          }
+          sessionRetryRef.current = setTimeout(() => {
+            init();
+          }, SESSION_RETRY_DELAY_MS);
+          return;
+        }
+        setAuthError(err?.message || 'Erro ao iniciar sessão');
         setIsLoading(false);
       }
     };
@@ -150,18 +167,26 @@ const App: React.FC = () => {
     return () => {
       mounted = false;
       listener?.subscription?.unsubscribe();
+      if (sessionRetryRef.current) {
+        clearTimeout(sessionRetryRef.current);
+      }
     };
   }, [supabaseUnavailable]);
 
-  // Revalida sessÃ£o ao voltar de outra aba/janela (ex: portal Stripe)
+  // Revalida sessão ao voltar de outra aba/janela (ex: portal Stripe)
   useEffect(() => {
     if (supabaseUnavailable) return;
     const revalidate = async () => {
       try {
-        const { data } = (await supabase.auth.getSession()) as any;
+        const sessionResp: any = await withTimeout<any>(supabase.auth.getSession() as Promise<any>, DEFAULT_SESSION_TIMEOUT_MS);
+        const data = sessionResp?.data;
         await handleSession(data?.session || null);
-      } catch (err) {
-        console.warn('Falha ao revalidar sessÃ£o', err);
+      } catch (err: any) {
+        if (err?.message === 'timeout session init') {
+          console.warn('Falha ao revalidar sessão (timeout), ignorando');
+          return;
+        }
+        console.warn('Falha ao revalidar sessão', err);
       }
     };
     const onVisibility = () => {
@@ -176,8 +201,13 @@ const App: React.FC = () => {
   }, [supabaseUnavailable]);
 
   const handleSession = async (newSession: any) => {
-    setSession(newSession);
     if (!newSession) {
+      if (lastValidSessionRef.current) {
+        console.info('Sessão temporariamente indisponível, mantendo o último estado válido');
+        return;
+      }
+      lastValidSessionRef.current = null;
+      setSession(null);
       setIsAdmin(false);
       setState(defaultState);
       setHasHydratedOnce(false);
@@ -185,7 +215,10 @@ const App: React.FC = () => {
       return;
     }
 
-    // Mostra cache local se existir; se nÃ£o, mantÃ©m overlay atÃ© hidratar do Supabase
+    lastValidSessionRef.current = newSession;
+    setSession(newSession);
+
+    // Mostra cache local se existir; se não, mantém overlay até hidratar do Supabase
     const cached = loadCachedState();
     if (cached.hasCache) {
       setState(cached.state);
@@ -198,9 +231,9 @@ const App: React.FC = () => {
     try {
       await Promise.all([checkAdmin(token), hydrateUserData(newSession)]);
     } catch (err: any) {
-      console.error('Erro ao hidratar sessÃ£o:', err);
-      setAuthError(err?.message || 'NÃ£o foi possÃ­vel carregar seus dados');
-      // mantÃ©m estado atual se houver falha para evitar piscar para default
+      console.error('Erro ao hidratar sessão:', err);
+      setAuthError(err?.message || 'Não foi possível carregar seus dados');
+      // mantém estado atual se houver falha para evitar piscar para default
     } finally {
       setHasHydratedOnce(true);
       setIsLoading(false);
@@ -231,7 +264,7 @@ const App: React.FC = () => {
 
     const userId = currentSession.user.id as string;
 
-    // MigraÃ§Ã£o local desativada para evitar chamadas extras ao Supabase
+    // Migração local desativada para evitar chamadas extras ao Supabase
     try { localStorage.setItem('avigestao_migrated', 'true'); } catch {}
 
     const ensureTrial = async (settings: BreederSettings): Promise<BreederSettings> => {
@@ -240,7 +273,7 @@ const App: React.FC = () => {
       const trialDate = new Date();
       trialDate.setDate(trialDate.getDate() + 7);
       const trialIso = trialDate.toISOString().split('T')[0];
-      const updated = { ...settings, trialEndDate: trialIso, plan: settings.plan || 'BÃ¡sico' };
+      const updated = { ...settings, trialEndDate: trialIso, plan: settings.plan || 'Básico' };
 
       try {
         if (supabase) {
@@ -255,13 +288,13 @@ const App: React.FC = () => {
     };
 
     try {
-      // Sem timeout para nÃ£o abortar hidrataÃ§Ã£o
+      // Sem timeout para não abortar hidratação
       const data = await loadInitialData(userId);
       let subscriptionEndDate = data.settings?.subscriptionEndDate;
       let subscriptionCancelAtPeriodEnd = data.settings?.subscriptionCancelAtPeriodEnd;
       let subscriptionStatus = data.settings?.subscriptionStatus;
 
-      // Preenche settings mÃ­nimo se vier vazio
+      // Preenche settings mínimo se vier vazio
       if (!data.settings || data.settings.breederName === INITIAL_SETTINGS.breederName) {
         const fallbackSettings: BreederSettings = {
           ...(data.settings || defaultState.settings),
@@ -279,7 +312,7 @@ const App: React.FC = () => {
               trial_end_date: fallbackSettings.trialEndDate || null,
             } as any, { onConflict: 'user_id' });
         } catch (e) {
-          console.warn('Falha ao salvar settings mÃ­nimos', e);
+          console.warn('Falha ao salvar settings mínimos', e);
         }
       }
 
@@ -309,7 +342,7 @@ const App: React.FC = () => {
             } else if (!isAdmin) {
               data.settings = {
                 ...(data.settings || {}),
-                plan: data.settings?.trialEndDate ? data.settings.plan : 'BÃ¡sico'
+                plan: data.settings?.trialEndDate ? data.settings.plan : 'Básico'
               } as BreederSettings;
             }
           }
@@ -338,7 +371,7 @@ const App: React.FC = () => {
     } catch (err: any) {
       console.error('Erro ao carregar dados:', err);
       setAuthError(err?.message || 'Erro ao carregar dados');
-      // mantÃ©m estado atual para evitar voltar ao perfil default
+      // mantém estado atual para evitar voltar ao perfil default
     }
   };
 
@@ -629,8 +662,44 @@ const App: React.FC = () => {
   const updateSettings = (settings: BreederSettings) =>
     setState(prev => ({ ...prev, settings: { ...prev.settings, ...settings } }));
 
+  const persistSettings = async (settings: BreederSettings) => {
+    if (supabaseUnavailable || !session?.user?.id) return;
+    try {
+      await supabase.from('settings').upsert(
+        {
+          user_id: session.user.id,
+          breeder_name: settings.breederName,
+          cpf_cnpj: settings.cpfCnpj || null,
+          sispass_number: settings.sispassNumber || null,
+          sispass_document_url: settings.sispassDocumentUrl || null,
+          registration_date: settings.registrationDate || null,
+          renewal_date: settings.renewalDate || null,
+          last_renewal_date: settings.lastRenewalDate || null,
+          logo_url: settings.logoUrl || null,
+          primary_color: settings.primaryColor,
+          accent_color: settings.accentColor,
+          plan: settings.plan,
+          trial_end_date: settings.trialEndDate || null,
+          dashboard_layout: settings.dashboardLayout || null,
+          certificate: settings.certificate || null,
+          subscription_end_date: settings.subscriptionEndDate || null,
+          subscription_status: settings.subscriptionStatus || null,
+          subscription_cancel_at_period_end: settings.subscriptionCancelAtPeriodEnd ?? null
+        } as any,
+        { onConflict: 'user_id' }
+      );
+    } catch (err) {
+      console.warn('Falha ao persistir settings', err);
+    }
+  };
+
   const handleLogout = async () => {
     // Reseta UI imediatamente para evitar travar no logout
+    lastValidSessionRef.current = null;
+    if (sessionRetryRef.current) {
+      clearTimeout(sessionRetryRef.current);
+      sessionRetryRef.current = null;
+    }
     setIsAdmin(false);
     setSession(null);
     setState(defaultState);
@@ -767,7 +836,14 @@ const App: React.FC = () => {
       case 'documents':
         return <DocumentsManager settings={state.settings} updateSettings={updateSettings} />;
       case 'settings':
-        return <SettingsManager settings={state.settings} updateSettings={updateSettings} isAdmin={isAdmin} />;
+        return (
+          <SettingsManager
+            settings={state.settings}
+            updateSettings={updateSettings}
+            onSave={persistSettings}
+            isAdmin={isAdmin}
+          />
+        );
       case 'help':
         return <HelpCenter />;
       default:
@@ -776,7 +852,7 @@ const App: React.FC = () => {
   };
 
   if (!session && !supabaseUnavailable) {
-    return <Auth onLogin={() => { /* sessÃ£o serÃ¡ tratada via supabase listener */ }} />;
+    return <Auth onLogin={() => { /* sessão será tratada via supabase listener */ }} />;
   }
 
   return (
@@ -820,5 +896,12 @@ const App: React.FC = () => {
 };
 
 export default App;
+
+
+
+
+
+
+
 
 

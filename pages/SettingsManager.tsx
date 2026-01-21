@@ -21,6 +21,7 @@ import { supabase } from '../supabaseClient';
 interface SettingsManagerProps {
   settings: BreederSettings;
   updateSettings: (settings: BreederSettings) => void;
+  onSave: (settings: BreederSettings) => Promise<void>;
   isAdmin?: boolean;
 }
 
@@ -61,7 +62,7 @@ const daysTo = (date?: string) => {
   return isNaN(diff) ? null : diff;
 };
 
-const SettingsManager: React.FC<SettingsManagerProps> = ({ settings, updateSettings, isAdmin }) => {
+const SettingsManager: React.FC<SettingsManagerProps> = ({ settings, updateSettings, onSave, isAdmin }) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const primaryColorRef = useRef<HTMLInputElement>(null);
   const accentColorRef = useRef<HTMLInputElement>(null);
@@ -187,9 +188,15 @@ const SettingsManager: React.FC<SettingsManagerProps> = ({ settings, updateSetti
     return items;
   }, [settings, daysSispass, daysCert, daysSubscription]);
 
-  const handleSaveClick = () => {
+  const handleSaveClick = async () => {
     updateSettings({ ...settings });
-    setSavedAt(new Date().toLocaleTimeString());
+    try {
+      await onSave(settings);
+      setSavedAt(new Date().toLocaleTimeString());
+    } catch (err) {
+      console.warn('Falha ao salvar as configurações', err);
+      setSavedAt(null);
+    }
   };
 
   return (
