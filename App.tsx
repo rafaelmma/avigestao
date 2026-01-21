@@ -105,6 +105,37 @@ const App: React.FC = () => {
   const lastValidSessionRef = useRef<any>(null);
   const sessionRetryRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+  const fetchSession = async () => {
+    const resp: any = await withTimeout<any>(supabase.auth.getSession() as Promise<any>, DEFAULT_SESSION_TIMEOUT_MS);
+    return resp?.data?.session ?? null;
+  };
+
+  const scheduleSessionRetry = (fn: () => void) => {
+    if (sessionRetryRef.current) {
+      clearTimeout(sessionRetryRef.current);
+    }
+    sessionRetryRef.current = setTimeout(() => {
+      sessionRetryRef.current = null;
+      fn();
+    }, SESSION_RETRY_DELAY_MS);
+  };
+
+  const revalidateSession = async () => {
+    try {
+      const session = await fetchSession();
+      if (session) {
+        await handleSession(session);
+        return;
+      }
+    } catch (err: any) {
+      if (err?.message !== 'timeout session init') {
+        console.warn('Falha ao revalidar sessão', err);
+      } else {
+        console.warn('timeout ao revalidar sessão, tentando novamente');
+      }
+    }
+    scheduleSessionRetry(revalidateSession);
+  };
   const persistState = (value: AppState) => {
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(value));
@@ -134,23 +165,15 @@ const App: React.FC = () => {
 
     const init = async () => {
       try {
-        const sessionResp: any = await withTimeout<any>(supabase.auth.getSession() as Promise<any>, DEFAULT_SESSION_TIMEOUT_MS);
-        const data = sessionResp?.data;
-        const error = sessionResp?.error;
+        const session = await fetchSession();
         if (!mounted) return;
-        if (error) setAuthError(error.message);
         setAuthError(null);
-        await handleSession(data?.session || null);
+        await handleSession(session);
       } catch (err: any) {
         if (!mounted) return;
         if (err?.message === 'timeout session init') {
           console.warn('timeout session init, retrying');
-          if (sessionRetryRef.current) {
-            clearTimeout(sessionRetryRef.current);
-          }
-          sessionRetryRef.current = setTimeout(() => {
-            init();
-          }, SESSION_RETRY_DELAY_MS);
+          scheduleSessionRetry(init);
           return;
         }
         setAuthError(err?.message || 'Erro ao iniciar sessão');
@@ -169,6 +192,7 @@ const App: React.FC = () => {
       listener?.subscription?.unsubscribe();
       if (sessionRetryRef.current) {
         clearTimeout(sessionRetryRef.current);
+        sessionRetryRef.current = null;
       }
     };
   }, [supabaseUnavailable]);
@@ -176,27 +200,18 @@ const App: React.FC = () => {
   // Revalida sessão ao voltar de outra aba/janela (ex: portal Stripe)
   useEffect(() => {
     if (supabaseUnavailable) return;
-    const revalidate = async () => {
-      try {
-        const sessionResp: any = await withTimeout<any>(supabase.auth.getSession() as Promise<any>, DEFAULT_SESSION_TIMEOUT_MS);
-        const data = sessionResp?.data;
-        await handleSession(data?.session || null);
-      } catch (err: any) {
-        if (err?.message === 'timeout session init') {
-          console.warn('Falha ao revalidar sessão (timeout), ignorando');
-          return;
-        }
-        console.warn('Falha ao revalidar sessão', err);
-      }
-    };
     const onVisibility = () => {
-      if (document.visibilityState === 'visible') revalidate();
+      if (document.visibilityState === 'visible') revalidateSession();
     };
-    window.addEventListener('focus', revalidate);
+    window.addEventListener('focus', revalidateSession);
     document.addEventListener('visibilitychange', onVisibility);
     return () => {
-      window.removeEventListener('focus', revalidate);
+      window.removeEventListener('focus', revalidateSession);
       document.removeEventListener('visibilitychange', onVisibility);
+      if (sessionRetryRef.current) {
+        clearTimeout(sessionRetryRef.current);
+        sessionRetryRef.current = null;
+      }
     };
   }, [supabaseUnavailable]);
 
@@ -294,8 +309,8 @@ const App: React.FC = () => {
       let subscriptionCancelAtPeriodEnd = data.settings?.subscriptionCancelAtPeriodEnd;
       let subscriptionStatus = data.settings?.subscriptionStatus;
 
-      // Preenche settings mínimo se vier vazio
-      if (!data.settings || data.settings.breederName === INITIAL_SETTINGS.breederName) {
+      const hasSettingsRow = !!data.settings?.userId;
+      if (!hasSettingsRow) {
         const fallbackSettings: BreederSettings = {
           ...(data.settings || defaultState.settings),
           breederName: currentSession.user?.email || defaultState.settings.breederName,
@@ -314,8 +329,9 @@ const App: React.FC = () => {
         } catch (e) {
           console.warn('Falha ao salvar settings mínimos', e);
         }
+      } else if (!data.settings.breederName && currentSession.user?.email) {
+        data.settings.breederName = currentSession.user.email;
       }
-
       // Checa status da assinatura no backend e forca plano PRO se estiver ativo
       if (supabase) {
         try {
@@ -896,6 +912,15 @@ const App: React.FC = () => {
 };
 
 export default App;
+
+
+
+
+
+
+
+
+
 
 
 
