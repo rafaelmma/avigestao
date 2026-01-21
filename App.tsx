@@ -234,7 +234,9 @@ const App: React.FC = () => {
     };
 
     try {
+      console.time('hydration:loadInitialData');
       const data = await loadInitialData(userId);
+      console.timeEnd('hydration:loadInitialData');
       let subscriptionEndDate = data.settings?.subscriptionEndDate;
       let subscriptionCancelAtPeriodEnd = data.settings?.subscriptionCancelAtPeriodEnd;
       let subscriptionStatus = data.settings?.subscriptionStatus;
@@ -243,6 +245,7 @@ const App: React.FC = () => {
       if (supabase) {
         try {
           const token = currentSession.access_token;
+          console.time('hydration:subscription-status');
           const res = await fetch('/api/subscription-status', {
             method: 'POST',
             headers: { Authorization: `Bearer ${token}` }
@@ -776,6 +779,7 @@ const App: React.FC = () => {
 };
 
 export default App;
+
 
 
 
