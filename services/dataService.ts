@@ -75,62 +75,79 @@ export async function loadInitialData(userId: string) {
     supabase.from("settings").select("*").eq("user_id", userId).maybeSingle()
   );
 
-  // Carregamento crítico (sem catálogo) para renderizar rápido
-  const [
-    birds,
-    movements,
-    transactions,
-    tasks,
-    tournaments,
-    medications,
-    pairs,
-    clutches,
-    applications,
-    treatments,
-    settings,
-  ] = await Promise.all([
+  // Initial data for dashboard and core UI only.
+  const [birds, transactions, tasks, tournaments, clutches, settings] = await Promise.all([
     safeSelect(supabase.from("birds").select("*").eq("user_id", userId), mapBirdFromDb),
-    safeSelect(supabase.from("movements").select("*").eq("user_id", userId), mapMovementFromDb),
     safeSelect(supabase.from("transactions").select("*").eq("user_id", userId), mapTransactionFromDb),
     safeSelect(supabase.from("tasks").select("*").eq("user_id", userId), mapTaskFromDb),
     safeSelect(supabase.from("tournaments").select("*").eq("user_id", userId), mapTournamentFromDb),
-    safeSelect(supabase.from("medications").select("*").eq("user_id", userId), mapMedicationFromDb),
-    safeSelect(supabase.from("pairs").select("*").eq("user_id", userId), mapPairFromDb),
     safeSelect(supabase.from("clutches").select("*").eq("user_id", userId), mapClutchFromDb),
-    safeSelect(supabase.from("applications").select("*").eq("user_id", userId), mapApplicationFromDb),
-    safeSelect(supabase.from("treatments").select("*").eq("user_id", userId), mapTreatmentFromDb),
     settingsPromise,
   ]);
 
-  // Catálogo de medicamentos carregado em segundo plano com cache
-  let medicationCatalog = getCachedMedicationCatalog() || [];
-  if (medicationCatalog.length === 0) {
-    // dispara após render inicial
-    setTimeout(async () => {
-      const items = await safeSelect(
-        supabase.from("medication_catalog").select("*"),
-        mapMedicationCatalogFromDb
-      );
-      cacheMedicationCatalog(items);
-    }, MED_CAT_PREFETCH_DELAY);
-  }
-
   return {
     birds,
-    movements,
+    movements: [],
     transactions,
     tasks,
     tournaments,
-    medications,
-    pairs,
+    medications: [],
+    pairs: [],
     clutches,
-    applications,
-    treatments,
-    medicationCatalog,
+    applications: [],
+    treatments: [],
+    medicationCatalog: [],
     settings: settings ?? INITIAL_SETTINGS,
   };
 }
 
+export async function loadTabData(userId: string, tab: string) {
+  switch (tab) {
+    case "movements":
+      return {
+        movements: await safeSelect(supabase.from("movements").select("*").eq("user_id", userId), mapMovementFromDb),
+      };
+    case "breeding":
+      return {
+        pairs: await safeSelect(supabase.from("pairs").select("*").eq("user_id", userId), mapPairFromDb),
+        clutches: await safeSelect(supabase.from("clutches").select("*").eq("user_id", userId), mapClutchFromDb),
+      };
+    case "meds": {
+      const medications = await safeSelect(supabase.from("medications").select("*").eq("user_id", userId), mapMedicationFromDb);
+      const applications = await safeSelect(supabase.from("applications").select("*").eq("user_id", userId), mapApplicationFromDb);
+      const treatments = await safeSelect(supabase.from("treatments").select("*").eq("user_id", userId), mapTreatmentFromDb);
+      let medicationCatalog = getCachedMedicationCatalog() || [];
+      if (medicationCatalog.length === 0) {
+        const items = await safeSelect(
+          supabase.from("medication_catalog").select("*"),
+          mapMedicationCatalogFromDb
+        );
+        medicationCatalog = items;
+        cacheMedicationCatalog(items);
+      }
+      return { medications, applications, treatments, medicationCatalog };
+    }
+    case "birds":
+    case "sexing":
+      return {
+        birds: await safeSelect(supabase.from("birds").select("*").eq("user_id", userId), mapBirdFromDb),
+      };
+    case "tasks":
+      return {
+        tasks: await safeSelect(supabase.from("tasks").select("*").eq("user_id", userId), mapTaskFromDb),
+      };
+    case "tournaments":
+      return {
+        tournaments: await safeSelect(supabase.from("tournaments").select("*").eq("user_id", userId), mapTournamentFromDb),
+      };
+    case "finance":
+      return {
+        transactions: await safeSelect(supabase.from("transactions").select("*").eq("user_id", userId), mapTransactionFromDb),
+      };
+    default:
+      return {};
+  }
+}
 export const mapBirdFromDb = (row: any): Bird => {
   const species = row.species ?? "";
   const sex = row.sex ?? "Indeterminado";
@@ -316,4 +333,5 @@ function normalizeTrialEndDate(value?: string) {
   // Expirou? Trate como trial inexistente para evitar reativar permissões PRO.
   return parsed.getTime() >= Date.now() ? parsed.toISOString().split("T")[0] : undefined;
 }
+
 

@@ -1,9 +1,8 @@
-
-export type BirdStatus = 'Ativo' | 'Falecido' | 'Vendido' | 'Transferido' | 'Fugido';
-export type Sex = 'Macho' | 'FÍmea' | 'Indeterminado';
-export type BirdClassification = 'Galador' | 'P·ssaro de Canto' | 'Ambos' | 'N„o Definido';
-export type TrainingStatus = 'N„o Iniciado' | 'Em Encarte' | 'Fixado' | 'Pardo (Aprendizado)';
-export type SubscriptionPlan = 'B·sico' | 'Profissional';
+Ôªøexport type BirdStatus = 'Ativo' | 'Falecido' | 'Vendido' | 'Transferido' | 'Fugido';
+export type Sex = 'Macho' | 'F√™mea' | 'Indeterminado';
+export type BirdClassification = 'Galador' | 'P√°ssaro de Canto' | 'Ambos' | 'N√£o Definido';
+export type TrainingStatus = 'N√£o Iniciado' | 'Em Encarte' | 'Fixado' | 'Pardo (Aprendizado)';
+export type SubscriptionPlan = 'B√°sico' | 'Profissional';
 
 export interface SexingData {
   protocol: string;        // N√∫mero do pedido/sexagem
@@ -52,12 +51,12 @@ export interface Bird {
 
 export type TransactionCategory = 
   | 'Venda de Aves' 
-  | 'ServiÁos' 
-  | 'AlimentaÁ„o' 
-  | 'Sa˙de' 
+  | 'Servi√ßos' 
+  | 'Alimenta√ß√£o' 
+  | 'Sa√∫de' 
   | 'Manejo e Insumos' 
   | 'Estrutura' 
-  | 'Taxas e LicenÁas' 
+  | 'Taxas e Licen√ßas' 
   | 'Outros';
 
 export interface Transaction {
@@ -76,9 +75,9 @@ export interface MaintenanceTask {
   title: string;
   dueDate: string;
   isCompleted: boolean;
-  priority: 'Baixa' | 'MÈdia' | 'Alta';
+  priority: 'Baixa' | 'M√©dia' | 'Alta';
   birdId?: string;
-  frequency?: '⁄nica' | 'Di·ria' | 'Semanal' | 'Mensal'; // Adicionado
+  frequency?: '√önica' | 'Di√°ria' | 'Semanal' | 'Mensal'; // Adicionado
   remindMe?: boolean; // Adicionado: Flag para destacar aviso
   deletedAt?: string;
 }
@@ -88,7 +87,7 @@ export interface TournamentEvent {
   title: string;
   date: string;
   location: string;
-  type: 'Torneio' | 'Encontro' | 'ExposiÁ„o';
+  type: 'Torneio' | 'Encontro' | 'Exposi√ß√£o';
   category: 'Fibra' | 'Canto' | 'Morfologia' | 'Social';
   notes?: string;
   organizer?: string;
@@ -106,7 +105,7 @@ export interface TournamentEvent {
 export interface MovementRecord {
   id: string;
   birdId: string;
-  type: '”bito' | 'Fuga' | 'Transporte' | 'Venda';
+  type: '√ìbito' | 'Fuga' | 'Transporte' | 'Venda';
   date: string;
   notes: string;
   gtrUrl?: string;
@@ -175,18 +174,18 @@ export interface ContinuousTreatment {
   medicationId: string;
   startDate: string;
   endDate?: string; // Opcional (se for cont√≠nuo indefinido)
-  frequency: 'Di·rio' | '12h em 12h' | 'Semanal' | 'Mensal';
+  frequency: 'Di√°rio' | '12h em 12h' | 'Semanal' | 'Mensal';
   dosage: string;
-  status: 'Ativo' | 'Pausado' | 'ConcluÌdo';
+  status: 'Ativo' | 'Pausado' | 'Conclu√≠do';
   lastApplicationDate?: string;
   notes?: string;
   deletedAt?: string;
 }
 
-export type CertificateType = 'A1 (Arquivo)' | 'A3 (Token USB)' | 'A3 (Cart„o)' | 'Nuvem (BirdID/Vidaas)';
+export type CertificateType = 'A1 (Arquivo)' | 'A3 (Token USB)' | 'A3 (Cart√£o)' | 'Nuvem (BirdID/Vidaas)';
 
 export interface DigitalCertificateData {
-  issuer: string;       // Org√£o emissor (ex: Serasa, Certisign)
+  issuer: string;       // √ìrg√£o emissor (ex: Serasa, Certisign)
   expiryDate: string;   // Validade
   installed: boolean;   // Se est√° configurado/detectado (simula√ß√£o)
   type: CertificateType; // Novo Campo
@@ -212,7 +211,7 @@ export interface BreederSettings {
   subscriptionCancelAtPeriodEnd?: boolean; // Se a recorrencia foi cancelada
   subscriptionStatus?: string; // Estado bruto vindo do Stripe (active, trialing, etc)
 }
-// Estado global da aplicaÁ„o
+// Estado global da aplica√ß√£o
 export interface AppState {
   birds: Bird[];
   deletedBirds?: Bird[];

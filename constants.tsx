@@ -1,5 +1,4 @@
-
-import { Bird, Medication, BreederSettings, Sex } from './types';
+﻿import { Bird, Medication, BreederSettings, Sex } from './types';
 
 export const MAX_FREE_BIRDS = 5;
 

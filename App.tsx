@@ -28,7 +28,7 @@ import HelpCenter from './pages/HelpCenter';
 import DocumentsManager from './pages/DocumentsManager';
 import Auth from './pages/Auth';
 import { supabase, SUPABASE_MISSING } from './lib/supabase';
-import { loadInitialData } from './services/dataService';
+import { loadInitialData, loadTabData } from './services/dataService';
 
 const STORAGE_KEY = 'avigestao_state';
 const HYDRATE_TIMEOUT_MS = 45000;
@@ -100,6 +100,7 @@ const App: React.FC = () => {
   const lastValidSessionRef = useRef<any>(null);
   const sessionRetryRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const sessionRetryCountRef = useRef(0);
+  const loadedTabsRef = useRef(new Set<string>());
 
   const fetchSession = async () => {
     const resp: any = await supabase.auth.getSession();
@@ -125,7 +126,7 @@ const App: React.FC = () => {
         return;
       }
     } catch (err: any) {
-      console.warn('Falha ao revalidar sessão', err);
+      console.warn('Falha ao revalidar sessÒo', err);
     }
     sessionRetryCountRef.current += 1;
     if (sessionRetryCountRef.current <= SESSION_RETRY_LIMIT) {
@@ -174,7 +175,7 @@ const App: React.FC = () => {
         await handleSession(session);
       } catch (err: any) {
         if (!mounted) return;
-        setAuthError(err?.message || 'Erro ao iniciar sessão');
+        setAuthError(err?.message || 'Erro ao iniciar sessÒo');
         setIsLoading(false);
       }
     };
@@ -194,7 +195,7 @@ const App: React.FC = () => {
     };
   }, [supabaseUnavailable]);
 
-  // Revalida sessão ao voltar de outra aba/janela (ex: portal Stripe)
+  // Revalida sessÒo ao voltar de outra aba/janela (ex: portal Stripe)
   useEffect(() => {
     if (supabaseUnavailable) return;
     const onVisibility = () => {
@@ -212,6 +213,32 @@ const App: React.FC = () => {
     };
   }, [supabaseUnavailable]);
 
+  // Carrega dados por aba sob demanda
+  useEffect(() => {
+    if (supabaseUnavailable || !session?.user?.id) return;
+    const tab = activeTab;
+    if (loadedTabsRef.current.has(tab)) return;
+
+    let cancelled = false;
+    const load = async () => {
+      try {
+        const data = await loadTabData(session.user.id, tab);
+        if (cancelled) return;
+        if (data && Object.keys(data).length > 0) {
+          setState(prev => ({ ...prev, ...data }));
+        }
+      } catch (err) {
+        console.warn('Falha ao carregar dados da aba', tab, err);
+      } finally {
+        loadedTabsRef.current.add(tab);
+      }
+    };
+
+    load();
+    return () => {
+      cancelled = true;
+    };
+  }, [activeTab, session, supabaseUnavailable]);
   const handleSession = async (newSession: any) => {
     if (!newSession) {
       if (lastValidSessionRef.current) {
@@ -222,6 +249,7 @@ const App: React.FC = () => {
         return;
       }
       lastValidSessionRef.current = null;
+      loadedTabsRef.current = new Set();
       setSession(null);
       setIsAdmin(false);
       setState(defaultState);
@@ -283,7 +311,7 @@ const App: React.FC = () => {
 
     const userId = currentSession.user.id as string;
 
-    // Migração local desativada para evitar chamadas extras ao Supabase
+    // MigraþÒo local desativada para evitar chamadas extras ao Supabase
     try { localStorage.setItem('avigestao_migrated', 'true'); } catch {}
 
     const ensureTrial = async (settings: BreederSettings): Promise<BreederSettings> => {
@@ -292,7 +320,7 @@ const App: React.FC = () => {
       const trialDate = new Date();
       trialDate.setDate(trialDate.getDate() + 7);
       const trialIso = trialDate.toISOString().split('T')[0];
-      const updated = { ...settings, trialEndDate: trialIso, plan: settings.plan || 'Básico' };
+      const updated = { ...settings, trialEndDate: trialIso, plan: settings.plan || 'Bßsico' };
 
       try {
         if (supabase) {
@@ -307,7 +335,7 @@ const App: React.FC = () => {
     };
 
     try {
-      // Sem timeout para não abortar hidratação
+      // Sem timeout para nÒo abortar hidrataþÒo
       const data = await loadInitialData(userId);
       let subscriptionEndDate = data.settings?.subscriptionEndDate;
       let subscriptionCancelAtPeriodEnd = data.settings?.subscriptionCancelAtPeriodEnd;
@@ -331,7 +359,7 @@ const App: React.FC = () => {
               trial_end_date: fallbackSettings.trialEndDate || null,
             } as any, { onConflict: 'user_id' });
         } catch (e) {
-          console.warn('Falha ao salvar settings mínimos', e);
+          console.warn('Falha ao salvar settings mÝnimos', e);
         }
       } else if (!data.settings.breederName && currentSession.user?.email) {
         data.settings.breederName = currentSession.user.email;
@@ -362,7 +390,7 @@ const App: React.FC = () => {
             } else if (!isAdmin) {
               data.settings = {
                 ...(data.settings || {}),
-                plan: data.settings?.trialEndDate ? data.settings.plan : 'Básico'
+                plan: data.settings?.trialEndDate ? data.settings.plan : 'Bßsico'
               } as BreederSettings;
             }
           }
@@ -391,7 +419,7 @@ const App: React.FC = () => {
     } catch (err: any) {
       console.error('Erro ao carregar dados:', err);
       setAuthError(err?.message || 'Erro ao carregar dados');
-      // mantém estado atual para evitar voltar ao perfil default
+      // mantÚm estado atual para evitar voltar ao perfil default
     }
   };
 
@@ -898,7 +926,7 @@ const App: React.FC = () => {
   };
 
   if (!session && !supabaseUnavailable) {
-    return <Auth onLogin={() => { /* sessão será tratada via supabase listener */ }} />;
+    return <Auth onLogin={() => { /* sessÒo serß tratada via supabase listener */ }} />;
   }
 
   return (
@@ -942,6 +970,11 @@ const App: React.FC = () => {
 };
 
 export default App;
+
+
+
+
+
 
 
 
