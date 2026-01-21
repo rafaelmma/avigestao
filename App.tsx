@@ -129,13 +129,13 @@ const App: React.FC = () => {
         await handleSession(data?.session || null);
       } catch (err: any) {
         if (!mounted) return;
-        setAuthError(err?.message || 'Erro ao iniciar sessÃ£o');
+        setAuthError(err?.message || 'Erro ao iniciar sessão');
         setIsLoading(false);
       }
     };
 
     init();
-    const { data: listener } = supabase.auth.onAuthStateChange(async (_event, newSession) => {
+    const { data: listener } = supabase.auth.onAuthStateChange(async (_event: any, newSession: any) => {
       if (!mounted) return;
       await handleSession(newSession);
     });
@@ -156,10 +156,14 @@ const App: React.FC = () => {
       return;
     }
 
-    // Mostra cache local se existir; se nÃ£o, mantÃ©m overlay atÃ© hidratar do Supabase
+    // Mostra cache local se existir; se não, mantém overlay até hidratar do Supabase
     const cached = loadCachedState();
-    setState(cached.state);
-    setHasHydratedOnce(cached.hasCache);
+    if (cached.hasCache) {
+      setState(cached.state);
+      setHasHydratedOnce(true);
+    } else {
+      setHasHydratedOnce(false);
+    }
     setIsLoading(true);
     setAuthError(null);
     const token = newSession.access_token;
@@ -167,9 +171,9 @@ const App: React.FC = () => {
     try {
       await Promise.all([checkAdmin(token), hydrateUserData(newSession)]);
     } catch (err: any) {
-      console.error('Erro ao hidratar sessÃ£o:', err);
-      setAuthError(err?.message || 'NÃ£o foi possÃ­vel carregar seus dados');
-      // mantÃ©m estado atual se houver falha para evitar piscar para default
+      console.error('Erro ao hidratar sessão:', err);
+      setAuthError(err?.message || 'Não foi possível carregar seus dados');
+      // mantém estado atual se houver falha para evitar piscar para default
     } finally {
       setHasHydratedOnce(true);
       setIsLoading(false);
@@ -219,7 +223,7 @@ const App: React.FC = () => {
       const trialDate = new Date();
       trialDate.setDate(trialDate.getDate() + 7);
       const trialIso = trialDate.toISOString().split('T')[0];
-      const updated = { ...settings, trialEndDate: trialIso, plan: settings.plan || 'BÃ¡sico' };
+      const updated = { ...settings, trialEndDate: trialIso, plan: settings.plan || 'Básico' };
 
       try {
         if (supabase) {
@@ -260,7 +264,7 @@ const App: React.FC = () => {
               data.settings = {
                 ...(data.settings || {}),
                 plan: 'Profissional',
-                trialEndDate: null
+                trialEndDate: undefined
               } as BreederSettings;
             } else if (!isAdmin) {
               data.settings = {
@@ -732,7 +736,7 @@ const App: React.FC = () => {
   };
 
   if (!session && !supabaseUnavailable) {
-    return <Auth onLogin={() => { /* sessÃ£o serÃ¡ tratada via supabase listener */ }} />;
+    return <Auth onLogin={() => { /* sessão será tratada via supabase listener */ }} />;
   }
 
   return (
@@ -769,7 +773,7 @@ const App: React.FC = () => {
         .text-brand { color: var(--primary) !important; }
         .border-brand { border-color: var(--primary) !important; }
         .ring-brand { --tw-ring-color: var(--primary) !important; }
-        .hover\\:bg-brand:hover { background-color: var(--primary-hover) !important; }
+        .hover\:bg-brand:hover { background-color: var(--primary-hover) !important; }
       `}</style>
     </div>
   );

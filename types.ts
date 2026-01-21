@@ -212,11 +212,37 @@ export interface BreederSettings {
   subscriptionCancelAtPeriodEnd?: boolean; // Se a recorrencia foi cancelada
   subscriptionStatus?: string; // Estado bruto vindo do Stripe (active, trialing, etc)
 }
+// Estado global da aplicação
+export interface AppState {
+  birds: Bird[];
+  deletedBirds?: Bird[];
 
+  pairs: Pair[];
+  deletedPairs?: Pair[];
 
+  clutches: Clutch[];
 
+  medications: Medication[];
+  deletedMedications?: Medication[];
+  medicationCatalog: MedicationCatalogItem[];
 
+  applications: MedicationApplication[];
+  deletedApplications?: MedicationApplication[];
 
+  treatments: ContinuousTreatment[];
+  deletedTreatments?: ContinuousTreatment[];
 
+  movements: MovementRecord[];
+  deletedMovements?: MovementRecord[];
 
+  transactions: Transaction[];
+  deletedTransactions?: Transaction[];
 
+  tasks: MaintenanceTask[];
+  deletedTasks?: MaintenanceTask[];
+
+  tournaments: TournamentEvent[];
+  deletedTournaments?: TournamentEvent[];
+
+  settings: BreederSettings;
+}

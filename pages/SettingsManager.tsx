@@ -112,7 +112,7 @@ const SettingsManager: React.FC<SettingsManagerProps> = ({ settings, updateSetti
     if (daysSispass !== null && daysSispass <= 30) critical.push(`SISPASS vence em ${daysSispass} dias`);
     if (daysCert !== null && daysCert <= 30) critical.push(`Certificado vence em ${daysCert} dias`);
     if (settings.plan === 'Profissional' && settings.subscriptionCancelAtPeriodEnd && daysSubscription !== null && daysSubscription <= 30) {
-      critical.push(`Plano profissional termina em ${daysSubscription} dias (renovacao cancelada)`);
+      critical.push(`Plano profissional termina em ${daysSubscription} dias (Renovação cancelada)`);
     }
     setBannerMessage(critical.length ? critical.join(' | ') : null);
   }, [daysSispass, daysCert, daysSubscription, settings.plan, settings.subscriptionCancelAtPeriodEnd]);
@@ -175,13 +175,13 @@ const SettingsManager: React.FC<SettingsManagerProps> = ({ settings, updateSetti
     const cpfOk = !!settings.cpfCnpj && settings.cpfCnpj.replace(/\D/g, '').length >= 11;
     items.push({ label: 'CPF/CNPJ', ok: cpfOk, value: settings.cpfCnpj || 'Pendente' });
     if (settings.sispassNumber) items.push({ label: 'SISPASS', ok: true, value: settings.sispassNumber });
-    if (daysSispass !== null) items.push({ label: 'Licenca', ok: daysSispass > 0, value: `${daysSispass} dias` });
+    if (daysSispass !== null) items.push({ label: 'Licença', ok: daysSispass > 0, value: `${daysSispass} dias` });
     if (daysCert !== null) items.push({ label: 'Certificado', ok: daysCert > 0, value: `${daysCert} dias` });
     if (settings.plan === 'Profissional' && settings.subscriptionEndDate) {
       const ok = settings.subscriptionCancelAtPeriodEnd ? (daysSubscription ?? 0) > 0 : true;
       const value = settings.subscriptionCancelAtPeriodEnd && daysSubscription !== null
         ? `Termina em ${daysSubscription} dias`
-        : 'Renovacao automatica ativa';
+        : 'Renovação automatica ativa';
       items.push({ label: 'Assinatura', ok, value });
     }
     return items;
@@ -220,7 +220,7 @@ const SettingsManager: React.FC<SettingsManagerProps> = ({ settings, updateSetti
       <header className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
         <div>
           <h2 className="text-3xl font-black text-slate-900">Configurações</h2>
-          <p className="text-slate-500">Ajuste dados do criatório, licenças, certificado e aparência.</p>
+          <p className="text-slate-500">Ajuste dados do criatório, licenças, Certificado e aparência.</p>
         </div>
         <div className="flex flex-wrap gap-3 items-center">
           {isAdmin && (
@@ -235,7 +235,7 @@ const SettingsManager: React.FC<SettingsManagerProps> = ({ settings, updateSetti
                 activeTab === 'perfil' ? 'bg-slate-900 text-white' : 'text-slate-400'
               }`}
             >
-              Perfil e Licencas
+              Perfil e Licenças
             </button>
             <button
               onClick={() => setActiveTab('plano')}
@@ -327,7 +327,7 @@ const SettingsManager: React.FC<SettingsManagerProps> = ({ settings, updateSetti
                   />
                 </label>
                 <label className="space-y-2">
-                  <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Data de renovacao SISPASS</span>
+                  <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Data de Renovação SISPASS</span>
                   <input
                     ref={renewalDateRef}
                     type="date"
@@ -349,7 +349,7 @@ const SettingsManager: React.FC<SettingsManagerProps> = ({ settings, updateSetti
                   />
                 </label>
                 <label className="space-y-2">
-                  <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Ultima renovacao</span>
+                  <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Última Renovação</span>
                   <input
                     type="date"
                     className="w-full p-3 rounded-2xl bg-slate-50 border border-slate-100 text-sm font-bold"
@@ -449,8 +449,8 @@ const SettingsManager: React.FC<SettingsManagerProps> = ({ settings, updateSetti
                 <Calendar size={16} className="text-slate-500" /> Datas importantes
               </h4>
               <div className="text-sm text-slate-600 space-y-2">
-                <p>Renovacao SISPASS: {settings.renewalDate ? new Date(settings.renewalDate).toLocaleDateString() : 'Pendente'}</p>
-                <p>Ultima renovacao: {settings.lastRenewalDate ? new Date(settings.lastRenewalDate).toLocaleDateString() : 'Pendente'}</p>
+                <p>Renovação SISPASS: {settings.renewalDate ? new Date(settings.renewalDate).toLocaleDateString() : 'Pendente'}</p>
+                <p>Última Renovação: {settings.lastRenewalDate ? new Date(settings.lastRenewalDate).toLocaleDateString() : 'Pendente'}</p>
                 <p>Certificado: {settings.certificate?.expiryDate ? new Date(settings.certificate.expiryDate).toLocaleDateString() : 'Pendente'}</p>
               </div>
               <p className="text-[11px] text-slate-500">Mantenha as datas atualizadas para ver alertas no dashboard.</p>
@@ -470,7 +470,7 @@ const SettingsManager: React.FC<SettingsManagerProps> = ({ settings, updateSetti
                 rel="noopener noreferrer"
                 className="inline-flex items-center gap-2 text-xs font-black uppercase tracking-widest text-slate-500 hover:text-slate-700"
               >
-                <ExternalLink size={12} /> Testar certificado (Serpro)
+                <ExternalLink size={12} /> Testar Certificado (Serpro)
               </a>
             </div>
           </div>
