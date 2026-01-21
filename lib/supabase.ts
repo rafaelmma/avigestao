@@ -14,6 +14,10 @@ if (SUPABASE_MISSING) {
 } else {
   try {
     _supabase = createClient(VITE_SUPABASE_URL, VITE_SUPABASE_ANON_KEY);
+    // Expor no window para facilitar debug no console do navegador.
+    if (typeof window !== 'undefined') {
+      (window as any).supabase = _supabase;
+    }
   } catch (err) {
     console.error('Failed to initialize Supabase client:', err);
   }
