@@ -204,11 +204,7 @@ const App: React.FC = () => {
 
     const userId = currentSession.user.id as string;
 
-    try {
-      await migrateLocalData(userId);
-    } catch (err) {
-      console.warn('Falha ao migrar dados locais', err);
-    }
+    // Migração local desativada para evitar posts desnecessários/erros no Supabase\n    try { localStorage.setItem('avigestao_migrated', 'true'); } catch { /* ignore */ }
 
     const withTimeout = async <T,>(promise: Promise<T>, ms: number): Promise<T> => {
       return Promise.race([
@@ -780,6 +776,7 @@ const App: React.FC = () => {
 };
 
 export default App;
+
 
 
 
