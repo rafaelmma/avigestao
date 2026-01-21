@@ -243,11 +243,16 @@ const App: React.FC = () => {
     setAuthError(null);
     const token = newSession.access_token;
 
-    try {
-      await Promise.all([checkAdmin(token), hydrateUserData(newSession)]);
+    try {      await Promise.race([
+        Promise.all([checkAdmin(token), hydrateUserData(newSession)]),
+        new Promise<never>((_, reject) => setTimeout(() => reject(new Error('timeout hydrate')), HYDRATE_TIMEOUT_MS))
+      ]);
     } catch (err: any) {
-      console.error('Erro ao hidratar sessao:', err);
-      setAuthError(err?.message || 'Nao foi possivel carregar seus dados');
+      console.error('Erro ao hidratar sessao:', err);      if (err?.message === 'timeout hydrate') {
+        setAuthError('Demorou para carregar seus dados. Tente novamente.');
+      } else {
+        setAuthError(err?.message || 'Nao foi possivel carregar seus dados');
+      }
       // mantem estado atual se houver falha para evitar piscar para default
     } finally {
       setHasHydratedOnce(true);
@@ -937,6 +942,8 @@ const App: React.FC = () => {
 };
 
 export default App;
+
+
 
 
 

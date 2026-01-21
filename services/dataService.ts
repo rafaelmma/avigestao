@@ -20,16 +20,11 @@ const MED_CAT_CACHE_KEY = "avigestao_med_catalog_v1";
 const MED_CAT_CACHE_TTL = 1000 * 60 * 60 * 24; // 24h
 const MED_CAT_PREFETCH_DELAY = 5000; // 5s depois do load inicial
 
-const withTimeout = async <T>(promise: Promise<T>): Promise<T> => {
-  const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), TIMEOUT_MS);
-  try {
-    return await promise;
-  } finally {
-    clearTimeout(timer);
-  }
-};
-
+const withTimeout = async <T>(promise: Promise<T>): Promise<T> =>
+  Promise.race([
+    promise,
+    new Promise<never>((_, reject) => setTimeout(() => reject(new Error("timeout data fetch")), TIMEOUT_MS))
+  ]);
 const safeSelect = async <T>(query: any, mapFn: (row: any) => T): Promise<T[]> => {
   try {
     const { data, error } = await withTimeout(query);
@@ -321,3 +316,4 @@ function normalizeTrialEndDate(value?: string) {
   // Expirou? Trate como trial inexistente para evitar reativar permissões PRO.
   return parsed.getTime() >= Date.now() ? parsed.toISOString().split("T")[0] : undefined;
 }
+
