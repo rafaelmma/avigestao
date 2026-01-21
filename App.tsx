@@ -56,12 +56,6 @@ const DEFAULT_SESSION_TIMEOUT_MS = 8000;
 const SESSION_RETRY_DELAY_MS = 2000;
 const SESSION_RETRY_LIMIT = 3;
 
-const withTimeout = async <T,>(promise: Promise<T>, ms: number): Promise<T> =>
-  Promise.race([
-    promise,
-    new Promise<never>((_, reject) => setTimeout(() => reject(new Error('timeout session init')), ms))
-  ]);
-
 const defaultState: AppState = {
   birds: MOCK_BIRDS,
   deletedBirds: [],
@@ -108,7 +102,7 @@ const App: React.FC = () => {
   const sessionRetryCountRef = useRef(0);
 
   const fetchSession = async () => {
-    const resp: any = await withTimeout<any>(supabase.auth.getSession() as Promise<any>, DEFAULT_SESSION_TIMEOUT_MS);
+    const resp: any = await supabase.auth.getSession();
     return resp?.data?.session ?? null;
   };
 
@@ -131,20 +125,13 @@ const App: React.FC = () => {
         return;
       }
     } catch (err: any) {
-      if (err?.message !== 'timeout session init') {
-        console.warn('Falha ao revalidar sessão', err);
-      } else {
-        console.warn('timeout ao revalidar sessão, tentando novamente');
-      }
+      console.warn('Falha ao revalidar sessão', err);
     }
     sessionRetryCountRef.current += 1;
     if (sessionRetryCountRef.current <= SESSION_RETRY_LIMIT) {
       scheduleSessionRetry(revalidateSession);
-      return;
     }
-    setIsLoading(false);
   };
-
   const persistState = (value: AppState) => {
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(value));
@@ -155,14 +142,14 @@ const App: React.FC = () => {
 
   // Persist state + theme colors
   useEffect(() => {
-    persistState(state);
     const root = document.documentElement;
     root.style.setProperty('--primary', state.settings.primaryColor);
     root.style.setProperty('--primary-hover', state.settings.primaryColor + 'ee');
     root.style.setProperty('--primary-soft', state.settings.primaryColor + '15');
     root.style.setProperty('--accent', state.settings.accentColor);
-  }, [state]);
-
+    if (!session || !hasHydratedOnce) return;
+    persistState(state);
+  }, [state, session, hasHydratedOnce]);
   // Bootstrap session
   useEffect(() => {
     if (supabaseUnavailable) {
@@ -176,6 +163,8 @@ const App: React.FC = () => {
       const cached = loadCachedState();
       if (cached.hasCache) {
         setState(cached.state);
+        setHasHydratedOnce(true);
+        setIsLoading(false);
       }
       try {
         const session = await fetchSession();
@@ -185,16 +174,6 @@ const App: React.FC = () => {
         await handleSession(session);
       } catch (err: any) {
         if (!mounted) return;
-        if (err?.message === 'timeout session init') {
-          console.warn('timeout session init, retrying');
-          sessionRetryCountRef.current += 1;
-          if (sessionRetryCountRef.current <= SESSION_RETRY_LIMIT) {
-            scheduleSessionRetry(init);
-            return;
-          }
-          setIsLoading(false);
-          return;
-        }
         setAuthError(err?.message || 'Erro ao iniciar sessão');
         setIsLoading(false);
       }
@@ -236,7 +215,10 @@ const App: React.FC = () => {
   const handleSession = async (newSession: any) => {
     if (!newSession) {
       if (lastValidSessionRef.current) {
-        console.info('Sessão temporariamente indisponível, mantendo o último estado válido');
+        console.info('Sessao temporariamente indisponivel, mantendo o ultimo estado valido');
+        setAuthError(null);
+        setHasHydratedOnce(true);
+        setIsLoading(false);
         return;
       }
       lastValidSessionRef.current = null;
@@ -251,7 +233,7 @@ const App: React.FC = () => {
     lastValidSessionRef.current = newSession;
     setSession(newSession);
 
-    // Mostra cache local se existir; se não, mantém overlay até hidratar do Supabase
+    // Mostra cache local se existir; se nao, mantem overlay ate hidratar do Supabase
     const cached = loadCachedState();
     if (cached.hasCache) {
       setState(cached.state);
@@ -264,15 +246,14 @@ const App: React.FC = () => {
     try {
       await Promise.all([checkAdmin(token), hydrateUserData(newSession)]);
     } catch (err: any) {
-      console.error('Erro ao hidratar sessão:', err);
-      setAuthError(err?.message || 'Não foi possível carregar seus dados');
-      // mantém estado atual se houver falha para evitar piscar para default
+      console.error('Erro ao hidratar sessao:', err);
+      setAuthError(err?.message || 'Nao foi possivel carregar seus dados');
+      // mantem estado atual se houver falha para evitar piscar para default
     } finally {
       setHasHydratedOnce(true);
       setIsLoading(false);
     }
   };
-
   const checkAdmin = async (token: string) => {
     try {
       const res = await fetch('/api/admin/check', {
@@ -956,6 +937,12 @@ const App: React.FC = () => {
 };
 
 export default App;
+
+
+
+
+
+
 
 
 
