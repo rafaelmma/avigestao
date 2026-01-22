@@ -631,11 +631,17 @@ const App: React.FC = () => {
       if (!supabaseUnavailable && session?.user?.id) {
         const dbMov = { id: mov.id, user_id: session.user.id, bird_id: mov.birdId, type: mov.type, date: mov.date, notes: mov.notes, gtr_url: mov.gtrUrl, destination: mov.destination, buyer_sispass: mov.buyerSispass };
         const { error } = await supabase.from('movements').insert(dbMov);
-        if (error) console.error('Erro ao salvar movimentação:', error);
+        if (error) {
+          console.error('Erro ao salvar movimentação:', error);
+          throw error; // Lança erro para não continuar
+        }
       }
     } catch (e) {
       console.error('addMovement failed', e);
+      return; // Sai sem atualizar estado se falhar
     }
+    
+    // Só atualiza estado após sucesso no Supabase
     setState(prev => ({ ...prev, movements: [mov, ...prev.movements] }));
     
     // Atualizar status da ave baseado no tipo de movimentação
