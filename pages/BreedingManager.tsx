@@ -101,30 +101,41 @@ const BreedingManager: React.FC<BreedingManagerProps> = ({ state, addPair, updat
   const handleSavePair = (e: React.FormEvent) => {
     e.preventDefault();
     
+    // Validação de campos obrigatórios
+    if (!newPair.maleId || !newPair.femaleId || !newPair.name) {
+      setNotification({ 
+        message: 'Erro: Preencha todos os campos obrigatórios (macho, fêmea e nome do casal).', 
+        type: 'error' 
+      });
+      return;
+    }
+    
     // Validação de Espécie Cruzada
-    if (newPair.maleId && newPair.femaleId) {
-        const m = males.find(b => b.id === newPair.maleId);
-        const f = females.find(b => b.id === newPair.femaleId);
-        
-        if (m && f && m.species !== f.species) {
-            setNotification({ 
-                message: `Erro: Não é permitido acasalar espécies diferentes (${m.species} + ${f.species}).`, 
-                type: 'error' 
-            });
-            return;
-        }
+    const m = males.find(b => b.id === newPair.maleId);
+    const f = females.find(b => b.id === newPair.femaleId);
+    
+    if (m && f && m.species !== f.species) {
+      setNotification({ 
+        message: `Erro: Não é permitido acasalar espécies diferentes (${m.species} + ${f.species}).`, 
+        type: 'error' 
+      });
+      return;
     }
 
-    if (newPair.maleId && newPair.femaleId && newPair.name) {
-      addPair({
-        ...newPair as Pair,
-        id: makeId(),
-        startDate: new Date().toISOString().split('T')[0]
-      });
-      setShowPairModal(false);
-      setNewPair({ status: 'Ativo' });
-      setNotification({ message: 'Novo casal registrado com sucesso!', type: 'success' });
-    }
+    // Criar o casal com todos os campos obrigatórios
+    const pairData: Pair = {
+      id: makeId(),
+      maleId: newPair.maleId,
+      femaleId: newPair.femaleId,
+      name: newPair.name,
+      startDate: new Date().toISOString().split('T')[0],
+      status: 'Ativo'
+    };
+
+    addPair(pairData);
+    setShowPairModal(false);
+    setNewPair({ status: 'Ativo' });
+    setNotification({ message: 'Novo casal registrado com sucesso!', type: 'success' });
   };
 
   const handleSaveClutch = (e: React.FormEvent) => {
