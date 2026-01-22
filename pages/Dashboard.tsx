@@ -389,7 +389,7 @@ const Dashboard: React.FC<DashboardProps> = ({ state, updateSettings, navigateTo
         </button>
       </header>
 
-      {/* Alerta de Baixa IBAMA Pendente */}
+      {/* Alerta de Registro IBAMA Pendente */}
       {state.birds.some(b => b.ibamaBaixaPendente) && (
         <div className="bg-amber-50 border-2 border-amber-300 rounded-3xl p-6 shadow-sm animate-in slide-in-from-top-2">
           <div className="flex items-start gap-4">
@@ -398,10 +398,10 @@ const Dashboard: React.FC<DashboardProps> = ({ state, updateSettings, navigateTo
             </div>
             <div className="flex-1">
               <h3 className="text-sm font-black text-amber-800 uppercase tracking-widest mb-1">
-                ⚠️ Baixa IBAMA Pendente
+                ⚠️ Registro IBAMA Pendente
               </h3>
               <p className="text-sm text-amber-700 font-bold mb-3">
-                {state.birds.filter(b => b.ibamaBaixaPendente).length} {state.birds.filter(b => b.ibamaBaixaPendente).length === 1 ? 'ave necessita' : 'aves necessitam'} de baixa no sistema IBAMA por óbito.
+                {state.birds.filter(b => b.ibamaBaixaPendente).length} {state.birds.filter(b => b.ibamaBaixaPendente).length === 1 ? 'ave necessita' : 'aves necessitam'} de registro no sistema IBAMA (óbito, fuga, venda ou doação).
               </p>
               <button 
                 onClick={() => navigateTo('birds')}

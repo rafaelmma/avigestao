@@ -647,16 +647,19 @@ const App: React.FC = () => {
       switch (mov.type) {
         case 'Óbito':
           newStatus = 'Óbito';
-          ibamaBaixaPendente = true;
+          ibamaBaixaPendente = true; // Precisa dar baixa no IBAMA
           break;
         case 'Fuga':
           newStatus = 'Fugiu';
+          ibamaBaixaPendente = true; // Precisa registrar fuga no IBAMA
           break;
         case 'Venda':
           newStatus = 'Vendido';
+          ibamaBaixaPendente = true; // Precisa registrar transferência no IBAMA
           break;
         case 'Doação':
           newStatus = 'Doado';
+          ibamaBaixaPendente = true; // Precisa registrar doação no IBAMA
           break;
       }
       

@@ -1019,7 +1019,7 @@ const BirdManager: React.FC<BirdManagerProps> = ({
                       {bird.status}
                     </span>
                     {bird.ibamaBaixaPendente && (
-                      <span className="px-2 py-0.5 rounded-full text-[9px] font-black uppercase bg-amber-100 text-amber-700 animate-pulse" title="Baixa IBAMA Pendente">
+                      <span className="px-2 py-0.5 rounded-full text-[9px] font-black uppercase bg-amber-100 text-amber-700 animate-pulse" title="Registro IBAMA Pendente">
                         ⚠️ IBAMA
                       </span>
                     )}
@@ -1219,12 +1219,20 @@ const BirdManager: React.FC<BirdManagerProps> = ({
                               </div>
                           </div>
 
-                          {/* Controle de Baixa IBAMA */}
-                          {editingBird.status === 'Óbito' && (
+                          {/* Controle de Registro IBAMA */}
+                          {(editingBird.status === 'Óbito' || editingBird.status === 'Fugiu' || editingBird.status === 'Vendido' || editingBird.status === 'Doado') && (
                             <div className="p-6 bg-amber-50 border-2 border-amber-200 rounded-2xl space-y-4">
                               <div className="flex items-center gap-2 text-amber-700">
-                                <Syringe size={18} />
-                                <h4 className="text-sm font-black uppercase tracking-widest">Controle de Baixa IBAMA</h4>
+                                <Zap size={18} />
+                                <h4 className="text-sm font-black uppercase tracking-widest">Controle de Registro IBAMA</h4>
+                              </div>
+                              <div className="p-3 bg-white border border-amber-200 rounded-xl mb-4">
+                                <p className="text-xs font-bold text-amber-800">
+                                  {editingBird.status === 'Óbito' && '⚠️ Óbito: Necessário dar baixa no sistema IBAMA'}
+                                  {editingBird.status === 'Fugiu' && '⚠️ Fuga: Necessário registrar a fuga no sistema IBAMA'}
+                                  {editingBird.status === 'Vendido' && '⚠️ Venda: Necessário registrar a transferência no IBAMA (com SISPASS do comprador)'}
+                                  {editingBird.status === 'Doado' && '⚠️ Doação: Necessário registrar a doação no IBAMA (com SISPASS do destinatário)'}
+                                </p>
                               </div>
                               <div className="space-y-4">
                                 <label className="flex items-center gap-3 cursor-pointer">
@@ -1234,11 +1242,11 @@ const BirdManager: React.FC<BirdManagerProps> = ({
                                     onChange={e => setEditingBird({...editingBird, ibamaBaixaPendente: !e.target.checked, ibamaBaixaData: e.target.checked ? new Date().toISOString().split('T')[0] : undefined})}
                                     className="w-5 h-5 rounded border-amber-300 text-amber-600 focus:ring-amber-500"
                                   />
-                                  <span className="text-sm font-bold text-amber-800">Baixa IBAMA concluída</span>
+                                  <span className="text-sm font-bold text-amber-800">Registro IBAMA concluído</span>
                                 </label>
                                 {!editingBird.ibamaBaixaPendente && (
                                   <div className="space-y-2 animate-in fade-in">
-                                    <label className="block text-[10px] font-black text-amber-700 uppercase tracking-widest">Data da Baixa</label>
+                                    <label className="block text-[10px] font-black text-amber-700 uppercase tracking-widest">Data do Registro</label>
                                     <input 
                                       type="date" 
                                       className="w-full p-4 bg-white border border-amber-300 rounded-2xl font-bold text-slate-700 outline-none focus:border-amber-500" 
