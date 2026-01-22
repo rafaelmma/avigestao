@@ -38,7 +38,7 @@ interface BreedingManagerProps {
 interface PendingHatchling {
   name: string;
   ringNumber: string;
-  sex: 'Indeterminado' | 'Macho' | 'F├¬mea';
+  sex: 'Indeterminado' | 'Macho' | 'Fêmea';
 }
 
 const BreedingManager: React.FC<BreedingManagerProps> = ({ state, addPair, updatePair, addBird, addClutch, updateClutch, deletePair, restorePair, permanentlyDeletePair }) => {
@@ -71,7 +71,7 @@ const BreedingManager: React.FC<BreedingManagerProps> = ({ state, addPair, updat
 
   // Listas base de aves ativas
   const males = useMemo(() => state.birds.filter(b => b.sex === 'Macho' && b.status === 'Ativo'), [state.birds]);
-  const females = useMemo(() => state.birds.filter(b => b.sex === 'F├¬mea' && b.status === 'Ativo'), [state.birds]);
+  const females = useMemo(() => state.birds.filter(b => b.sex === 'Fêmea' && b.status === 'Ativo'), [state.birds]);
 
   // L├│gica de Filtragem Cruzada (Mesma Esp├®cie)
   const selectedMaleBird = useMemo(() => males.find(m => m.id === newPair.maleId), [males, newPair.maleId]);
@@ -205,9 +205,9 @@ const BreedingManager: React.FC<BreedingManagerProps> = ({ state, addPair, updat
         status: 'Ativo',
         fatherId: pair.maleId,
         motherId: pair.femaleId,
-        classification: 'N├úo Definido',
-        songTrainingStatus: 'N├úo Iniciado',
-        colorMutation: 'Cl├íssico (Filhote)', // Padr├úo
+        classification: 'Não Definido',
+        songTrainingStatus: 'Não Iniciado',
+        colorMutation: 'Clássico (Filhote)', // Padrão
         location: pair.name, // Herda localiza├º├úo do casal
         photoUrl: getDefaultBirdImage(species, hatchling.sex),
         createdAt: new Date().toISOString(),
@@ -838,7 +838,7 @@ const BreedingManager: React.FC<BreedingManagerProps> = ({ state, addPair, updat
                             >
                               <option value="Indeterminado">Indeterminado</option>
                               <option value="Macho">Macho</option>
-                              <option value="F├¬mea">F├¬mea</option>
+                              <option value="Fêmea">Fêmea</option>
                             </select>
                          </div>
                       </div>

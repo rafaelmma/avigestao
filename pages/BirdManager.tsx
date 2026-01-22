@@ -104,8 +104,8 @@ const BirdManager: React.FC<BirdManagerProps> = ({
   // Ref para Upload de Foto da Ave
   const birdPhotoInputRef = useRef<HTMLInputElement>(null);
 
-  // Verifica├º├úo de Plano
-  const isLimitReached = !isAdmin && state.settings.plan === 'B├ísico' && state.birds.length >= MAX_FREE_BIRDS;
+  // Verificação de Plano
+  const isLimitReached = !isAdmin && state.settings.plan === 'Básico' && state.birds.length >= MAX_FREE_BIRDS;
   const isPro = isAdmin || state.settings.plan === 'Profissional' || !!state.settings.trialEndDate;
 
   // New Bird State
@@ -113,8 +113,8 @@ const BirdManager: React.FC<BirdManagerProps> = ({
     sex: 'Indeterminado',
     status: 'Ativo',
     species: BRAZILIAN_SPECIES[0],
-    classification: 'N├úo Definido',
-    songTrainingStatus: 'N├úo Iniciado',
+    classification: 'Não Definido',
+    songTrainingStatus: 'Não Iniciado',
     isRepeater: false,
     photoUrl: getDefaultBirdImage(BRAZILIAN_SPECIES[0], 'Indeterminado'),
     birthDate: new Date().toISOString().split('T')[0],
@@ -143,7 +143,7 @@ const BirdManager: React.FC<BirdManagerProps> = ({
     if (!entry) return [];
     return [
       { label: 'Macho', url: entry.male },
-      { label: 'F├¬mea', url: entry.female }
+      { label: 'Fêmea', url: entry.female }
     ];
   };
 
@@ -349,7 +349,7 @@ const BirdManager: React.FC<BirdManagerProps> = ({
   const waitingResultBirds = state.birds.filter(b => b.sexing?.sentDate && !b.sexing?.resultDate);
 
   const males = state.birds.filter(b => b.sex === 'Macho');
-  const females = state.birds.filter(b => b.sex === 'F├¬mea');
+  const females = state.birds.filter(b => b.sex === 'Fêmea');
   const getMedicationName = (id: string) => state.medications.find(m => m.id === id)?.name || 'Medicamento';
   const getMedicationHistoryForBird = (birdId: string) =>
     state.applications
@@ -663,10 +663,10 @@ const BirdManager: React.FC<BirdManagerProps> = ({
       photoUrl: getDefaultBirdImage(BRAZILIAN_SPECIES[0], 'Indeterminado'),
       birthDate: new Date().toISOString().split('T')[0],
       sexing: { protocol: '', laboratory: '', sentDate: '' },
-      songTrainingStatus: 'N├úo Iniciado',
+      songTrainingStatus: 'Não Iniciado',
       songType: '',
       isRepeater: false,
-      classification: 'N├úo Definido'
+      classification: 'Não Definido'
     });
     setGenealogyMode({ father: 'plantel', mother: 'plantel' });
     setManualAncestorsForm({ f: '', ff: '', fm: '', m: '', mf: '', mm: '' });
@@ -677,14 +677,14 @@ const BirdManager: React.FC<BirdManagerProps> = ({
   const renderClassificationBadge = (cls: BirdClassification) => {
     switch (cls) {
       case 'Galador': return <span className="flex items-center gap-1 text-[8px] font-black bg-rose-50 text-rose-600 px-2 py-0.5 rounded-full uppercase"><Heart size={8} fill="currentColor" /> Galador</span>;
-      case 'P├íssaro de Canto': return <span className="flex items-center gap-1 text-[8px] font-black bg-indigo-50 text-indigo-600 px-2 py-0.5 rounded-full uppercase"><Mic2 size={8} /> Canto</span>;
+      case 'Pássaro de Canto': return <span className="flex items-center gap-1 text-[8px] font-black bg-indigo-50 text-indigo-600 px-2 py-0.5 rounded-full uppercase"><Mic2 size={8} /> Canto</span>;
       case 'Ambos': return <span className="flex items-center gap-1 text-[8px] font-black bg-purple-50 text-purple-600 px-2 py-0.5 rounded-full uppercase"><Award size={8} /> Ambos</span>;
       default: return null;
     }
   };
 
   const renderTrainingStatusBadge = (status: TrainingStatus) => {
-    if (status === 'N├úo Iniciado') return null;
+    if (status === 'Não Iniciado') return null;
     let color = 'bg-slate-100 text-slate-500';
     let label: string = status;
     let icon = <Music size={8} />;
@@ -707,7 +707,7 @@ const BirdManager: React.FC<BirdManagerProps> = ({
       <header className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <h2 className="text-3xl font-black text-[#0F172A] tracking-tight">{headerTitle}</h2>
-          {currentList === 'plantel' && state.settings.plan === 'B├ísico' && !isAdmin && (
+          {currentList === 'plantel' && state.settings.plan === 'Básico' && !isAdmin && (
             <div className="flex items-center gap-2 mt-1">
               <div className="w-24 h-1.5 bg-slate-100 rounded-full overflow-hidden">
                 <div 
@@ -716,7 +716,7 @@ const BirdManager: React.FC<BirdManagerProps> = ({
                 ></div>
               </div>
               <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
-                {state.birds.length} de {MAX_FREE_BIRDS} aves (Plano B├ísico)
+                {state.birds.length} de {MAX_FREE_BIRDS} aves (Plano Básico)
               </p>
             </div>
           )}
@@ -923,7 +923,7 @@ const BirdManager: React.FC<BirdManagerProps> = ({
                      >
                        <option value="">Todos</option>
                        <option value="Macho">Macho</option>
-                       <option value="F├¬mea">F├¬mea</option>
+                       <option value="Fêmea">Fêmea</option>
                        <option value="Indeterminado">Indeterminado</option>
                      </select>
                   </div>
@@ -935,7 +935,7 @@ const BirdManager: React.FC<BirdManagerProps> = ({
                        className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-700 outline-none focus:border-brand"
                      >
                        <option value="">Todos</option>
-                       <option value="N├úo Iniciado">N├úo Iniciado</option>
+                       <option value="Não Iniciado">Não Iniciado</option>
                        <option value="Pardo (Aprendizado)">Pardo (Aprendizado)</option>
                        <option value="Em Encarte">Em Encarte</option>
                        <option value="Fixado">Mestre (Fixado)</option>
@@ -976,7 +976,7 @@ const BirdManager: React.FC<BirdManagerProps> = ({
                   <img src={resolveBirdPhoto(bird)} className={`w-full h-full object-cover ${currentList === 'lixeira' ? 'grayscale opacity-50' : ''}`} />
                   <div className={`absolute top-3 left-3 px-2 py-0.5 rounded-lg text-[8px] font-black uppercase border shadow-sm ${
                       bird.sex === 'Macho' ? 'bg-blue-50 text-blue-600 border-blue-100' : 
-                      bird.sex === 'F├¬mea' ? 'bg-pink-50 text-pink-600 border-pink-100' : 
+                      bird.sex === 'Fêmea' ? 'bg-pink-50 text-pink-600 border-pink-100' : 
                       'bg-slate-50 text-slate-500 border-slate-200'
                   }`}>
                       {bird.sex}
@@ -1161,7 +1161,7 @@ const BirdManager: React.FC<BirdManagerProps> = ({
                                   <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest">Sexo</label>
                                   <select className="w-full p-4 bg-white border border-slate-200 rounded-2xl font-bold text-slate-700 outline-none focus:border-brand appearance-none" value={editingBird.sex} onChange={e => setEditingBird({...editingBird, sex: e.target.value as any})}>
                                     <option value="Macho">Macho</option>
-                                    <option value="F├¬mea">F├¬mea</option>
+                                    <option value="Fêmea">Fêmea</option>
                                     <option value="Indeterminado">Indeterminado</option>
                                   </select>
                                </div>
@@ -1179,9 +1179,9 @@ const BirdManager: React.FC<BirdManagerProps> = ({
                               <div className="space-y-2">
                                  <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest">Classifica├º├úo</label>
                                  <select className="w-full p-4 bg-white border border-slate-200 rounded-2xl font-bold text-slate-700 outline-none focus:border-brand appearance-none" value={editingBird.classification} onChange={e => setEditingBird({...editingBird, classification: e.target.value as any})}>
-                                   <option value="N├úo Definido">N├úo Definido</option>
+                                   <option value="Não Definido">Não Definido</option>
                                    <option value="Galador">Galador</option>
-                                   <option value="P├íssaro de Canto">P├íssaro de Canto</option>
+                                   <option value="Pássaro de Canto">Pássaro de Canto</option>
                                    <option value="Ambos">Ambos</option>
                                  </select>
                               </div>
@@ -1408,7 +1408,7 @@ const BirdManager: React.FC<BirdManagerProps> = ({
                          {/* ... (Existing Details Card) ... */}
                          <div className="bg-white p-10 rounded-[32px] border border-slate-100 shadow-sm space-y-8">
                             <div className="flex justify-between">
-                               <h3 className="text-xl font-black text-slate-800">Dados B├ísicos</h3>
+                              <h3 className="text-xl font-black text-slate-800">Dados Básicos</h3>
                                <span className={`px-3 py-1 rounded-lg text-xs font-black uppercase ${selectedBird.status === 'Ativo' ? 'bg-emerald-50 text-emerald-600' : 'bg-slate-100 text-slate-500'}`}>{selectedBird.status}</span>
                             </div>
                             
@@ -1531,9 +1531,9 @@ const BirdManager: React.FC<BirdManagerProps> = ({
                                       value={selectedBird.classification}
                                       onChange={(e) => handleQuickFieldUpdate(selectedBird.id, 'classification', e.target.value)}
                                     >
-                                      <option value="N├úo Definido">N├úo Definido</option>
+                                      <option value="Não Definido">Não Definido</option>
                                       <option value="Galador">Galador</option>
-                                      <option value="P├íssaro de Canto">P├íssaro de Canto</option>
+                                      <option value="Pássaro de Canto">Pássaro de Canto</option>
                                       <option value="Ambos">Ambos</option>
                                     </select>
                                     <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400">
@@ -1550,7 +1550,7 @@ const BirdManager: React.FC<BirdManagerProps> = ({
                                       value={selectedBird.songTrainingStatus}
                                       onChange={(e) => handleQuickFieldUpdate(selectedBird.id, 'songTrainingStatus', e.target.value)}
                                     >
-                                      <option value="N├úo Iniciado">N├úo Iniciado</option>
+                                      <option value="Não Iniciado">Não Iniciado</option>
                                       <option value="Pardo (Aprendizado)">Pardo (Aprendizado)</option>
                                       <option value="Em Encarte">Em Encarte / Andamento</option>
                                       <option value="Fixado">Mestre (Fixado)</option>
@@ -1630,7 +1630,7 @@ const BirdManager: React.FC<BirdManagerProps> = ({
                           </div>
                           <div className="space-y-2">
                              <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest">Sexo</label>
-                             <select className="w-full p-4 bg-white border border-slate-200 rounded-2xl font-bold text-slate-700 outline-none focus:border-brand appearance-none" value={newBird.sex} onChange={e => updateNewBirdWithDefaultPhoto({ sex: e.target.value as Sex })}> <option value="Macho">Macho</option> <option value="F├¬mea">F├¬mea</option> <option value="Indeterminado">Indeterminado</option> </select>
+                             <select className="w-full p-4 bg-white border border-slate-200 rounded-2xl font-bold text-slate-700 outline-none focus:border-brand appearance-none" value={newBird.sex} onChange={e => updateNewBirdWithDefaultPhoto({ sex: e.target.value as Sex })}> <option value="Macho">Macho</option> <option value="Fêmea">Fêmea</option> <option value="Indeterminado">Indeterminado</option> </select>
                           </div>
                           <div className="space-y-2">
                              <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest">Data Nasc.</label>
@@ -1644,7 +1644,7 @@ const BirdManager: React.FC<BirdManagerProps> = ({
                       <div className="grid grid-cols-2 gap-6">
                           <div className="space-y-2">
                              <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest">Classifica├º├úo</label>
-                             <select className="w-full p-4 bg-white border border-slate-200 rounded-2xl font-bold text-slate-700 outline-none focus:border-brand appearance-none" value={newBird.classification} onChange={e => setNewBird({...newBird, classification: e.target.value as any})}> <option value="N├úo Definido">N├úo Definido</option> <option value="Galador">Galador</option> <option value="P├íssaro de Canto">P├íssaro de Canto</option> <option value="Ambos">Ambos</option> </select>
+                             <select className="w-full p-4 bg-white border border-slate-200 rounded-2xl font-bold text-slate-700 outline-none focus:border-brand appearance-none" value={newBird.classification} onChange={e => setNewBird({...newBird, classification: e.target.value as any})}> <option value="Não Definido">Não Definido</option> <option value="Galador">Galador</option> <option value="Pássaro de Canto">Pássaro de Canto</option> <option value="Ambos">Ambos</option> </select>
                           </div>
                           <div className="space-y-2">
                              <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest">Status</label>
@@ -1652,7 +1652,7 @@ const BirdManager: React.FC<BirdManagerProps> = ({
                           </div>
                           <div className="space-y-2">
                              <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest">Fase de Canto</label>
-                             <select className="w-full p-4 bg-white border border-slate-200 rounded-2xl font-bold text-slate-700 outline-none focus:border-brand appearance-none" value={newBird.songTrainingStatus} onChange={e => setNewBird({...newBird, songTrainingStatus: e.target.value as any})}> <option value="N├úo Iniciado">N├úo Iniciado</option> <option value="Pardo (Aprendizado)">Pardo (Aprendizado)</option> <option value="Em Encarte">Em Encarte / Andamento</option> <option value="Fixado">Mestre (Fixado)</option> </select>
+                             <select className="w-full p-4 bg-white border border-slate-200 rounded-2xl font-bold text-slate-700 outline-none focus:border-brand appearance-none" value={newBird.songTrainingStatus} onChange={e => setNewBird({...newBird, songTrainingStatus: e.target.value as any})}> <option value="Não Iniciado">Não Iniciado</option> <option value="Pardo (Aprendizado)">Pardo (Aprendizado)</option> <option value="Em Encarte">Em Encarte / Andamento</option> <option value="Fixado">Mestre (Fixado)</option> </select>
                           </div>
                       </div>
                    </div>
@@ -1710,10 +1710,10 @@ const BirdManager: React.FC<BirdManagerProps> = ({
                       <span className="font-black text-sm uppercase">Macho</span>
                    </button>
                    <button 
-                     onClick={() => setResultForm({...resultForm, sex: 'F├¬mea'})}
-                     className={`py-4 rounded-xl border-2 flex flex-col items-center justify-center gap-2 transition-all ${resultForm.sex === 'F├¬mea' ? 'border-pink-500 bg-pink-50 text-pink-600' : 'border-slate-100 text-slate-400 hover:border-slate-200'}`}
+                     onClick={() => setResultForm({...resultForm, sex: 'Fêmea'})}
+                     className={`py-4 rounded-xl border-2 flex flex-col items-center justify-center gap-2 transition-all ${resultForm.sex === 'Fêmea' ? 'border-pink-500 bg-pink-50 text-pink-600' : 'border-slate-100 text-slate-400 hover:border-slate-200'}`}
                    >
-                      <span className="font-black text-sm uppercase">F├¬mea</span>
+                      <span className="font-black text-sm uppercase">Fêmea</span>
                    </button>
                 </div>
 
@@ -1824,8 +1824,8 @@ const BirdManager: React.FC<BirdManagerProps> = ({
               </div>
               <h3 className="text-3xl font-black text-slate-800 tracking-tight leading-tight">Limite Atingido!</h3>
               <p className="text-slate-500 font-medium mt-4 max-w-sm mx-auto leading-relaxed">
-                {state.settings.plan === 'B├ísico' && state.birds.length >= MAX_FREE_BIRDS && !isAdmin
-                  ? `Voc├¬ atingiu o limite de ${MAX_FREE_BIRDS} aves do plano b├ísico. Migre para o profissional e tenha gest├úo ilimitada.`
+                {state.settings.plan === 'Básico' && state.birds.length >= MAX_FREE_BIRDS && !isAdmin
+                  ? `Você atingiu o limite de ${MAX_FREE_BIRDS} aves do plano básico. Migre para o profissional e tenha gestão ilimitada.`
                   : "O upload de fotos personalizadas ├® exclusivo do Plano Profissional."
                 }
               </p>
@@ -1845,3 +1845,4 @@ const BirdManager: React.FC<BirdManagerProps> = ({
 };
 
 export default BirdManager;
+

@@ -500,6 +500,39 @@ const App: React.FC = () => {
   // Birds
   const addBird = async (bird: Bird): Promise<boolean> => {
     try {
+      if (!supabaseUnavailable && session?.user?.id) {
+        const dbBird = {
+          id: bird.id,
+          user_id: session.user.id,
+          ring: bird.ringNumber,
+          name: bird.name,
+          species: bird.species,
+          sex: bird.sex,
+          color_mutation: bird.colorMutation,
+          birth_date: bird.birthDate,
+          status: bird.status,
+          location: bird.location,
+          photo_url: bird.photoUrl,
+          father_id: bird.fatherId,
+          mother_id: bird.motherId,
+          manual_ancestors: bird.manualAncestors,
+          classification: bird.classification,
+          song_training_status: bird.songTrainingStatus,
+          song_type: bird.songType,
+          song_source: bird.songSource,
+          training_start_date: bird.trainingStartDate,
+          training_notes: bird.trainingNotes,
+          is_repeater: bird.isRepeater,
+          sexing: bird.sexing,
+          documents: bird.documents,
+          created_at: bird.createdAt || new Date().toISOString()
+        };
+        const { error } = await supabase.from('birds').insert(dbBird);
+        if (error) {
+          console.error('Erro ao salvar ave no Supabase:', error);
+          return false;
+        }
+      }
       setState(prev => ({ ...prev, birds: [...prev.birds, bird] }));
       return true;
     } catch (e) {
@@ -507,11 +540,52 @@ const App: React.FC = () => {
       return false;
     }
   };
-  const updateBird = (bird: Bird) => setState(prev => ({
-    ...prev,
-    birds: prev.birds.map(b => (b.id === bird.id ? bird : b))
-  }));
-  const deleteBird = (id: string) =>
+  const updateBird = async (bird: Bird) => {
+    try {
+      if (!supabaseUnavailable && session?.user?.id) {
+        const dbBird = {
+          ring: bird.ringNumber,
+          name: bird.name,
+          species: bird.species,
+          sex: bird.sex,
+          color_mutation: bird.colorMutation,
+          birth_date: bird.birthDate,
+          status: bird.status,
+          location: bird.location,
+          photo_url: bird.photoUrl,
+          father_id: bird.fatherId,
+          mother_id: bird.motherId,
+          manual_ancestors: bird.manualAncestors,
+          classification: bird.classification,
+          song_training_status: bird.songTrainingStatus,
+          song_type: bird.songType,
+          song_source: bird.songSource,
+          training_start_date: bird.trainingStartDate,
+          training_notes: bird.trainingNotes,
+          is_repeater: bird.isRepeater,
+          sexing: bird.sexing,
+          documents: bird.documents
+        };
+        const { error } = await supabase.from('birds').update(dbBird).eq('id', bird.id).eq('user_id', session.user.id);
+        if (error) console.error('Erro ao atualizar ave:', error);
+      }
+    } catch (e) {
+      console.error('updateBird failed', e);
+    }
+    setState(prev => ({
+      ...prev,
+      birds: prev.birds.map(b => (b.id === bird.id ? bird : b))
+    }));
+  };
+  const deleteBird = async (id: string) => {
+    try {
+      if (!supabaseUnavailable && session?.user?.id) {
+        const { error } = await supabase.from('birds').update({ deleted_at: new Date().toISOString() }).eq('id', id).eq('user_id', session.user.id);
+        if (error) console.error('Erro ao deletar ave:', error);
+      }
+    } catch (e) {
+      console.error('deleteBird failed', e);
+    }
     setState(prev => {
       const found = prev.birds.find(b => b.id === id);
       if (!found) return prev;
@@ -522,6 +596,7 @@ const App: React.FC = () => {
         deletedBirds: [...(prev.deletedBirds || []), deleted]
       };
     });
+  };
   const restoreBird = (id: string) =>
     setState(prev => {
       const found = (prev.deletedBirds || []).find(b => b.id === id);
@@ -536,14 +611,42 @@ const App: React.FC = () => {
     setState(prev => ({ ...prev, deletedBirds: (prev.deletedBirds || []).filter(b => b.id !== id) }));
 
   // Movements
-  const addMovement = (mov: MovementRecord) =>
+  const addMovement = async (mov: MovementRecord) => {
+    try {
+      if (!supabaseUnavailable && session?.user?.id) {
+        const dbMov = { id: mov.id, user_id: session.user.id, bird_id: mov.birdId, type: mov.type, date: mov.date, notes: mov.notes, gtr_url: mov.gtrUrl, destination: mov.destination, buyer_sispass: mov.buyerSispass };
+        const { error } = await supabase.from('movements').insert(dbMov);
+        if (error) console.error('Erro ao salvar movimentação:', error);
+      }
+    } catch (e) {
+      console.error('addMovement failed', e);
+    }
     setState(prev => ({ ...prev, movements: [mov, ...prev.movements] }));
-  const updateMovement = (mov: MovementRecord) =>
+  };
+  const updateMovement = async (mov: MovementRecord) => {
+    try {
+      if (!supabaseUnavailable && session?.user?.id) {
+        const dbMov = { bird_id: mov.birdId, type: mov.type, date: mov.date, notes: mov.notes, gtr_url: mov.gtrUrl, destination: mov.destination, buyer_sispass: mov.buyerSispass };
+        const { error } = await supabase.from('movements').update(dbMov).eq('id', mov.id).eq('user_id', session.user.id);
+        if (error) console.error('Erro ao atualizar movimentação:', error);
+      }
+    } catch (e) {
+      console.error('updateMovement failed', e);
+    }
     setState(prev => ({
       ...prev,
       movements: prev.movements.map(m => (m.id === mov.id ? mov : m))
     }));
-  const deleteMovement = (id: string) =>
+  };
+  const deleteMovement = async (id: string) => {
+    try {
+      if (!supabaseUnavailable && session?.user?.id) {
+        const { error } = await supabase.from('movements').update({ deleted_at: new Date().toISOString() }).eq('id', id).eq('user_id', session.user.id);
+        if (error) console.error('Erro ao deletar movimentação:', error);
+      }
+    } catch (e) {
+      console.error('deleteMovement failed', e);
+    }
     setState(prev => {
       const found = prev.movements.find(m => m.id === id);
       if (!found) return prev;
@@ -553,6 +656,7 @@ const App: React.FC = () => {
         deletedMovements: [...(prev.deletedMovements || []), { ...found, deletedAt: new Date().toISOString() }]
       };
     });
+  };
   const restoreMovement = (id: string) =>
     setState(prev => {
       const found = (prev.deletedMovements || []).find(m => m.id === id);
@@ -567,13 +671,64 @@ const App: React.FC = () => {
     setState(prev => ({ ...prev, deletedMovements: (prev.deletedMovements || []).filter(m => m.id !== id) }));
 
   // Pairs / Breeding
-  const addPair = (pair: Pair) => setState(prev => ({ ...prev, pairs: [...prev.pairs, pair] }));
-  const updatePair = (pair: Pair) =>
+  const addPair = async (pair: Pair) => {
+    if (!pair.name || !pair.startDate || !pair.status) {
+      console.warn('addPair validation failed: name, startDate e status são obrigatórios');
+      return;
+    }
+    try {
+      if (!supabaseUnavailable && session?.user?.id) {
+        const dbPair = {
+          id: pair.id,
+          user_id: session.user.id,
+          male_id: pair.maleId,
+          female_id: pair.femaleId,
+          name: pair.name,
+          start_date: pair.startDate,
+          end_date: pair.endDate,
+          status: pair.status,
+          last_hatch_date: pair.lastHatchDate
+        };
+        const { error } = await supabase.from('pairs').insert(dbPair);
+        if (error) console.error('Erro ao salvar casal:', error);
+      }
+    } catch (e) {
+      console.error('addPair failed', e);
+    }
+    setState(prev => ({ ...prev, pairs: [...prev.pairs, pair] }));
+  };
+  const updatePair = async (pair: Pair) => {
+    try {
+      if (!supabaseUnavailable && session?.user?.id) {
+        const dbPair = {
+          male_id: pair.maleId,
+          female_id: pair.femaleId,
+          name: pair.name,
+          start_date: pair.startDate,
+          end_date: pair.endDate,
+          status: pair.status,
+          last_hatch_date: pair.lastHatchDate
+        };
+        const { error } = await supabase.from('pairs').update(dbPair).eq('id', pair.id).eq('user_id', session.user.id);
+        if (error) console.error('Erro ao atualizar casal:', error);
+      }
+    } catch (e) {
+      console.error('updatePair failed', e);
+    }
     setState(prev => ({
       ...prev,
       pairs: prev.pairs.map(p => (p.id === pair.id ? pair : p))
     }));
-  const deletePair = (id: string) =>
+  };
+  const deletePair = async (id: string) => {
+    try {
+      if (!supabaseUnavailable && session?.user?.id) {
+        const { error } = await supabase.from('pairs').update({ deleted_at: new Date().toISOString() }).eq('id', id).eq('user_id', session.user.id);
+        if (error) console.error('Erro ao deletar casal:', error);
+      }
+    } catch (e) {
+      console.error('deletePair failed', e);
+    }
     setState(prev => {
       const found = prev.pairs.find(p => p.id === id);
       if (!found) return prev;
@@ -583,6 +738,7 @@ const App: React.FC = () => {
         deletedPairs: [...(prev.deletedPairs || []), { ...found, deletedAt: new Date().toISOString() }]
       };
     });
+  };
   const restorePair = (id: string) =>
     setState(prev => {
       const found = (prev.deletedPairs || []).find(p => p.id === id);
@@ -596,21 +752,105 @@ const App: React.FC = () => {
   const permanentlyDeletePair = (id: string) =>
     setState(prev => ({ ...prev, deletedPairs: (prev.deletedPairs || []).filter(p => p.id !== id) }));
 
-  const addClutch = (clutch: Clutch) => setState(prev => ({ ...prev, clutches: [...prev.clutches, clutch] }));
-  const updateClutch = (clutch: Clutch) =>
+  const addClutch = async (clutch: Clutch) => {
+    if (!clutch.pairId || !clutch.layDate) {
+      console.warn('addClutch validation failed: pairId e layDate são obrigatórios');
+      return;
+    }
+    try {
+      if (!supabaseUnavailable && session?.user?.id) {
+        const dbClutch = {
+          id: clutch.id,
+          user_id: session.user.id,
+          pair_id: clutch.pairId,
+          lay_date: clutch.layDate,
+          egg_count: clutch.eggCount,
+          fertile_count: clutch.fertileCount,
+          hatched_count: clutch.hatchedCount,
+          notes: clutch.notes || ''
+        };
+        const { error } = await supabase.from('clutches').insert(dbClutch);
+        if (error) console.error('Erro ao salvar postura:', error);
+      }
+    } catch (e) {
+      console.error('addClutch failed', e);
+    }
+    setState(prev => ({ ...prev, clutches: [...prev.clutches, clutch] }));
+  };
+  const updateClutch = async (clutch: Clutch) => {
+    try {
+      if (!supabaseUnavailable && session?.user?.id) {
+        const dbClutch = {
+          pair_id: clutch.pairId,
+          lay_date: clutch.layDate,
+          egg_count: clutch.eggCount,
+          fertile_count: clutch.fertileCount,
+          hatched_count: clutch.hatchedCount,
+          notes: clutch.notes || ''
+        };
+        const { error } = await supabase.from('clutches').update(dbClutch).eq('id', clutch.id).eq('user_id', session.user.id);
+        if (error) console.error('Erro ao atualizar postura:', error);
+      }
+    } catch (e) {
+      console.error('updateClutch failed', e);
+    }
     setState(prev => ({
       ...prev,
       clutches: prev.clutches.map(c => (c.id === clutch.id ? clutch : c))
     }));
+  };
 
   // Medications
-  const addMed = (med: Medication) => setState(prev => ({ ...prev, medications: [...prev.medications, med] }));
-  const updateMed = (med: Medication) =>
+  const addMed = async (med: Medication) => {
+    try {
+      if (!supabaseUnavailable && session?.user?.id) {
+        const dbMed = {
+          id: med.id,
+          user_id: session.user.id,
+          name: med.name,
+          type: med.type,
+          batch: med.batch,
+          expiry_date: med.expiryDate,
+          stock: med.stock
+        };
+        const { error } = await supabase.from('medications').insert(dbMed);
+        if (error) console.error('Erro ao salvar medicamento:', error);
+      }
+    } catch (e) {
+      console.error('addMed failed', e);
+    }
+    setState(prev => ({ ...prev, medications: [...prev.medications, med] }));
+  };
+  const updateMed = async (med: Medication) => {
+    try {
+      if (!supabaseUnavailable && session?.user?.id) {
+        const dbMed = {
+          name: med.name,
+          type: med.type,
+          batch: med.batch,
+          expiry_date: med.expiryDate,
+          stock: med.stock
+        };
+        const { error } = await supabase.from('medications').update(dbMed).eq('id', med.id).eq('user_id', session.user.id);
+        if (error) console.error('Erro ao atualizar medicamento:', error);
+      }
+    } catch (e) {
+      console.error('updateMed failed', e);
+    }
     setState(prev => ({
       ...prev,
       medications: prev.medications.map(m => (m.id === med.id ? med : m))
     }));
-  const deleteMed = (id: string) =>
+  };
+  const deleteMed = async (id: string) => {
+    try {
+      if (!supabaseUnavailable && session?.user?.id) {
+        const { error } = await supabase.from('medications').update({ deleted_at: new Date().toISOString() }).eq('id', id).eq('user_id', session.user.id);
+        if (error) console.error('Erro ao deletar medicamento:', error);
+      }
+    } catch (e) {
+      console.error('deleteMed failed', e);
+    }
     setState(prev => {
       const found = prev.medications.find(m => m.id === id);
       if (!found) return prev;
@@ -620,6 +860,7 @@ const App: React.FC = () => {
         deletedMedications: [...(prev.deletedMedications || []), { ...found, deletedAt: new Date().toISOString() }]
       };
     });
+  };
   const restoreMed = (id: string) =>
     setState(prev => {
       const found = (prev.deletedMedications || []).find(m => m.id === id);
@@ -633,14 +874,58 @@ const App: React.FC = () => {
   const permanentlyDeleteMed = (id: string) =>
     setState(prev => ({ ...prev, deletedMedications: (prev.deletedMedications || []).filter(m => m.id !== id) }));
 
-  const applyMed = (app: MedicationApplication) =>
+  const applyMed = async (app: MedicationApplication) => {
+    try {
+      if (!supabaseUnavailable && session?.user?.id) {
+        const dbApp = {
+          id: app.id,
+          user_id: session.user.id,
+          medication_id: app.medicationId,
+          bird_id: app.birdId,
+          date: app.date,
+          dosage: app.dosage || '',
+          notes: app.notes || '',
+          treatment_id: app.treatmentId
+        };
+        const { error } = await supabase.from('applications').insert(dbApp);
+        if (error) console.error('Erro ao salvar aplicação:', error);
+      }
+    } catch (e) {
+      console.error('applyMed failed', e);
+    }
     setState(prev => ({ ...prev, applications: [...prev.applications, app] }));
-  const updateApplication = (app: MedicationApplication) =>
+  };
+  const updateApplication = async (app: MedicationApplication) => {
+    try {
+      if (!supabaseUnavailable && session?.user?.id) {
+        const dbApp = {
+          medication_id: app.medicationId,
+          bird_id: app.birdId,
+          date: app.date,
+          dosage: app.dosage || '',
+          notes: app.notes || '',
+          treatment_id: app.treatmentId
+        };
+        const { error } = await supabase.from('applications').update(dbApp).eq('id', app.id).eq('user_id', session.user.id);
+        if (error) console.error('Erro ao atualizar aplicação:', error);
+      }
+    } catch (e) {
+      console.error('updateApplication failed', e);
+    }
     setState(prev => ({
       ...prev,
       applications: prev.applications.map(a => (a.id === app.id ? app : a))
     }));
-  const deleteApplication = (id: string) =>
+  };
+  const deleteApplication = async (id: string) => {
+    try {
+      if (!supabaseUnavailable && session?.user?.id) {
+        const { error } = await supabase.from('applications').update({ deleted_at: new Date().toISOString() }).eq('id', id).eq('user_id', session.user.id);
+        if (error) console.error('Erro ao deletar aplicação:', error);
+      }
+    } catch (e) {
+      console.error('deleteApplication failed', e);
+    }
     setState(prev => {
       const found = prev.applications.find(a => a.id === id);
       if (!found) return prev;
@@ -650,6 +935,7 @@ const App: React.FC = () => {
         deletedApplications: [...(prev.deletedApplications || []), { ...found, deletedAt: new Date().toISOString() }]
       };
     });
+  };
   const restoreApplication = (id: string) =>
     setState(prev => {
       const found = (prev.deletedApplications || []).find(a => a.id === id);
@@ -663,14 +949,46 @@ const App: React.FC = () => {
   const permanentlyDeleteApplication = (id: string) =>
     setState(prev => ({ ...prev, deletedApplications: (prev.deletedApplications || []).filter(a => a.id !== id) }));
 
-  const addTreatment = (t: ContinuousTreatment) =>
+  const addTreatment = async (t: ContinuousTreatment) => {
+    if (!t.startDate || !t.frequency || !t.status) {
+      console.warn('addTreatment validation failed: startDate, frequency e status são obrigatórios');
+      return;
+    }
+    try {
+      if (!supabaseUnavailable && session?.user?.id) {
+        const dbTreat = { id: t.id, user_id: session.user.id, medication_id: t.medicationId, bird_id: t.birdId, start_date: t.startDate, end_date: t.endDate, frequency: t.frequency, dosage: t.dosage || '', status: t.status, notes: t.notes };
+        const { error } = await supabase.from('treatments').insert(dbTreat);
+        if (error) console.error('Erro ao salvar tratamento:', error);
+      }
+    } catch (e) {
+      console.error('addTreatment failed', e);
+    }
     setState(prev => ({ ...prev, treatments: [...prev.treatments, t] }));
-  const updateTreatment = (t: ContinuousTreatment) =>
+  };
+  const updateTreatment = async (t: ContinuousTreatment) => {
+    try {
+      if (!supabaseUnavailable && session?.user?.id) {
+        const dbTreat = { medication_id: t.medicationId, bird_id: t.birdId, start_date: t.startDate, end_date: t.endDate, frequency: t.frequency, dosage: t.dosage || '', status: t.status, notes: t.notes };
+        const { error } = await supabase.from('treatments').update(dbTreat).eq('id', t.id).eq('user_id', session.user.id);
+        if (error) console.error('Erro ao atualizar tratamento:', error);
+      }
+    } catch (e) {
+      console.error('updateTreatment failed', e);
+    }
     setState(prev => ({
       ...prev,
       treatments: prev.treatments.map(item => (item.id === t.id ? t : item))
     }));
-  const deleteTreatment = (id: string) =>
+  };
+  const deleteTreatment = async (id: string) => {
+    try {
+      if (!supabaseUnavailable && session?.user?.id) {
+        const { error } = await supabase.from('treatments').update({ deleted_at: new Date().toISOString() }).eq('id', id).eq('user_id', session.user.id);
+        if (error) console.error('Erro ao deletar tratamento:', error);
+      }
+    } catch (e) {
+      console.error('deleteTreatment failed', e);
+    }
     setState(prev => {
       const found = prev.treatments.find(t => t.id === id);
       if (!found) return prev;
@@ -680,6 +998,7 @@ const App: React.FC = () => {
         deletedTreatments: [...(prev.deletedTreatments || []), { ...found, deletedAt: new Date().toISOString() }]
       };
     });
+  };
   const restoreTreatment = (id: string) =>
     setState(prev => {
       const found = (prev.deletedTreatments || []).find(t => t.id === id);
@@ -694,9 +1013,27 @@ const App: React.FC = () => {
     setState(prev => ({ ...prev, deletedTreatments: (prev.deletedTreatments || []).filter(t => t.id !== id) }));
 
   // Finance
-  const addTransaction = (t: Transaction) =>
+  const addTransaction = async (t: Transaction) => {
+    try {
+      if (!supabaseUnavailable && session?.user?.id) {
+        const dbTx = { id: t.id, user_id: session.user.id, type: t.type, amount: t.amount, date: t.date, category: t.category, subcategory: t.subcategory, description: t.description };
+        const { error } = await supabase.from('transactions').insert(dbTx);
+        if (error) console.error('Erro ao salvar transação:', error);
+      }
+    } catch (e) {
+      console.error('addTransaction failed', e);
+    }
     setState(prev => ({ ...prev, transactions: [...prev.transactions, t] }));
-  const deleteTransaction = (id: string) =>
+  };
+  const deleteTransaction = async (id: string) => {
+    try {
+      if (!supabaseUnavailable && session?.user?.id) {
+        const { error } = await supabase.from('transactions').update({ deleted_at: new Date().toISOString() }).eq('id', id).eq('user_id', session.user.id);
+        if (error) console.error('Erro ao deletar transação:', error);
+      }
+    } catch (e) {
+      console.error('deleteTransaction failed', e);
+    }
     setState(prev => {
       const found = prev.transactions.find(tx => tx.id === id);
       if (!found) return prev;
@@ -706,6 +1043,7 @@ const App: React.FC = () => {
         deletedTransactions: [...(prev.deletedTransactions || []), { ...found, deletedAt: new Date().toISOString() }]
       };
     });
+  };
   const restoreTransaction = (id: string) =>
     setState(prev => {
       const found = (prev.deletedTransactions || []).find(tx => tx.id === id);
@@ -720,20 +1058,83 @@ const App: React.FC = () => {
     setState(prev => ({ ...prev, deletedTransactions: (prev.deletedTransactions || []).filter(tx => tx.id !== id) }));
 
   // Tasks
-  const addTask = (t: MaintenanceTask) => setState(prev => ({ ...prev, tasks: [...prev.tasks, t] }));
-  const updateTask = (t: MaintenanceTask) =>
+  const addTask = async (t: MaintenanceTask) => {
+    if (!t.title) {
+      console.warn('addTask validation failed: title é obrigatório');
+      return;
+    }
+    try {
+      if (!supabaseUnavailable && session?.user?.id) {
+        const dbTask = {
+          id: t.id,
+          user_id: session.user.id,
+          title: t.title,
+          due_date: t.dueDate,
+          is_completed: t.isCompleted,
+          bird_id: t.birdId,
+          priority: t.priority,
+          frequency: t.frequency,
+          remind_me: t.remindMe ?? false
+        };
+        const { error } = await supabase.from('tasks').insert(dbTask);
+        if (error) console.error('Erro ao salvar tarefa:', error);
+      }
+    } catch (e) {
+      console.error('addTask failed', e);
+    }
+    setState(prev => ({ ...prev, tasks: [...prev.tasks, t] }));
+  };
+  const updateTask = async (t: MaintenanceTask) => {
+    try {
+      if (!supabaseUnavailable && session?.user?.id) {
+        const dbTask = {
+          title: t.title,
+          due_date: t.dueDate,
+          is_completed: t.isCompleted,
+          bird_id: t.birdId,
+          priority: t.priority,
+          frequency: t.frequency,
+          remind_me: t.remindMe ?? false
+        };
+        const { error } = await supabase.from('tasks').update(dbTask).eq('id', t.id).eq('user_id', session.user.id);
+        if (error) console.error('Erro ao atualizar tarefa:', error);
+      }
+    } catch (e) {
+      console.error('updateTask failed', e);
+    }
     setState(prev => ({
       ...prev,
       tasks: prev.tasks.map(task => (task.id === t.id ? t : task))
     }));
-  const toggleTask = (id: string) =>
+  };
+  const toggleTask = async (id: string) => {
+    const task = state.tasks.find(t => t.id === id);
+    if (!task) return;
+    const newCompleted = !task.isCompleted;
+    try {
+      if (!supabaseUnavailable && session?.user?.id) {
+        const { error } = await supabase.from('tasks').update({ is_completed: newCompleted }).eq('id', id).eq('user_id', session.user.id);
+        if (error) console.error('Erro ao alternar tarefa:', error);
+      }
+    } catch (e) {
+      console.error('toggleTask failed', e);
+    }
     setState(prev => ({
       ...prev,
       tasks: prev.tasks.map(task =>
-        task.id === id ? { ...task, isCompleted: !task.isCompleted } : task
+        task.id === id ? { ...task, isCompleted: newCompleted } : task
       )
     }));
-  const deleteTask = (id: string) =>
+  };
+  const deleteTask = async (id: string) => {
+    try {
+      if (!supabaseUnavailable && session?.user?.id) {
+        const { error } = await supabase.from('tasks').update({ deleted_at: new Date().toISOString() }).eq('id', id).eq('user_id', session.user.id);
+        if (error) console.error('Erro ao deletar tarefa:', error);
+      }
+    } catch (e) {
+      console.error('deleteTask failed', e);
+    }
     setState(prev => {
       const found = prev.tasks.find(t => t.id === id);
       if (!found) return prev;
@@ -743,6 +1144,7 @@ const App: React.FC = () => {
         deletedTasks: [...(prev.deletedTasks || []), { ...found, deletedAt: new Date().toISOString() }]
       };
     });
+  };
   const restoreTask = (id: string) =>
     setState(prev => {
       const found = (prev.deletedTasks || []).find(t => t.id === id);
@@ -757,14 +1159,74 @@ const App: React.FC = () => {
     setState(prev => ({ ...prev, deletedTasks: (prev.deletedTasks || []).filter(t => t.id !== id) }));
 
   // Tournaments
-  const addEvent = (e: TournamentEvent) =>
+  const addEvent = async (e: TournamentEvent) => {
+    if (!e.title) {
+      console.warn('addEvent validation failed: title é obrigatório');
+      return;
+    }
+    try {
+      if (!supabaseUnavailable && session?.user?.id) {
+        const dbEvent = {
+          id: e.id,
+          user_id: session.user.id,
+          title: e.title,
+          date: e.date,
+          location: e.location,
+          type: e.type,
+          category: e.category,
+          notes: e.notes,
+          organizer: e.organizer,
+          result: e.result,
+          trophy: e.trophy,
+          score: e.score,
+          participating_birds: e.participatingBirds,
+          preparation_checklist: e.preparationChecklist
+        };
+        const { error } = await supabase.from('tournaments').insert(dbEvent);
+        if (error) console.error('Erro ao salvar evento:', error);
+      }
+    } catch (e) {
+      console.error('addEvent failed', e);
+    }
     setState(prev => ({ ...prev, tournaments: [...prev.tournaments, e] }));
-  const updateEvent = (e: TournamentEvent) =>
+  };
+  const updateEvent = async (e: TournamentEvent) => {
+    try {
+      if (!supabaseUnavailable && session?.user?.id) {
+        const dbEvent = {
+          title: e.title,
+          date: e.date,
+          location: e.location,
+          type: e.type,
+          category: e.category,
+          notes: e.notes,
+          organizer: e.organizer,
+          result: e.result,
+          trophy: e.trophy,
+          score: e.score,
+          participating_birds: e.participatingBirds,
+          preparation_checklist: e.preparationChecklist
+        };
+        const { error } = await supabase.from('tournaments').update(dbEvent).eq('id', e.id).eq('user_id', session.user.id);
+        if (error) console.error('Erro ao atualizar evento:', error);
+      }
+    } catch (e) {
+      console.error('updateEvent failed', e);
+    }
     setState(prev => ({
       ...prev,
       tournaments: prev.tournaments.map(ev => (ev.id === e.id ? e : ev))
     }));
-  const deleteEvent = (id: string) =>
+  };
+  const deleteEvent = async (id: string) => {
+    try {
+      if (!supabaseUnavailable && session?.user?.id) {
+        const { error } = await supabase.from('tournaments').update({ deleted_at: new Date().toISOString() }).eq('id', id).eq('user_id', session.user.id);
+        if (error) console.error('Erro ao deletar evento:', error);
+      }
+    } catch (e) {
+      console.error('deleteEvent failed', e);
+    }
     setState(prev => {
       const found = prev.tournaments.find(ev => ev.id === id);
       if (!found) return prev;
@@ -774,6 +1236,7 @@ const App: React.FC = () => {
         deletedTournaments: [...(prev.deletedTournaments || []), { ...found, deletedAt: new Date().toISOString() }]
       };
     });
+  };
   const restoreEvent = (id: string) =>
     setState(prev => {
       const found = (prev.deletedTournaments || []).find(ev => ev.id === id);
