@@ -412,32 +412,55 @@ const BreedingManager: React.FC<BreedingManagerProps> = ({ state, addPair, updat
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {visiblePairs.length > 0 ? visiblePairs.map(pair => (
-              <div key={pair.id} className={`group bg-white rounded-[32px] border border-slate-100 overflow-hidden shadow-sm hover:shadow-xl transition-all duration-300 ${currentList === 'trash' ? 'opacity-80' : ''}`}>
+            {visiblePairs.length > 0 ? visiblePairs.map(pair => {
+              const hasHatchlings = state.birds.some(b => b.fatherId === pair.maleId || b.motherId === pair.femaleId);
+              return (
+              <div key={pair.id} className={`group bg-white rounded-[32px] border overflow-hidden shadow-sm hover:shadow-xl transition-all duration-300 ${currentList === 'trash' ? 'opacity-80' : ''} ${pair.lastHatchDate ? 'border-emerald-200 bg-gradient-to-br from-white via-white to-emerald-50/20' : 'border-slate-100'}`}>
+                {pair.lastHatchDate && (
+                  <div className="h-1 bg-gradient-to-r from-emerald-400 to-emerald-500" />
+                )}
                 <div className="p-6 flex items-center justify-between bg-slate-50/50">
                   <div className="flex items-center gap-4">
-                    <div className="w-12 h-12 bg-white rounded-2xl flex items-center justify-center text-rose-500 shadow-sm border border-slate-100 group-hover:scale-110 transition-transform">
+                    <div className={`w-12 h-12 bg-white rounded-2xl flex items-center justify-center shadow-sm border group-hover:scale-110 transition-transform ${pair.lastHatchDate ? 'text-emerald-500 border-emerald-200' : 'text-rose-500 border-slate-100'}`}>
                       <Heart size={24} fill={pair.status === 'Ativo' ? 'currentColor' : 'none'} />
                     </div>
                     <div>
-                      <h3 className="font-black text-slate-800 leading-tight">{pair.name}</h3>
+                      <div className="flex items-center gap-2">
+                        <h3 className="font-black text-slate-800 leading-tight">{pair.name}</h3>
+                        {pair.lastHatchDate && (
+                          <span className="px-2 py-0.5 bg-emerald-50 text-emerald-600 text-[8px] font-black uppercase rounded-lg border border-emerald-200">
+                            Com Filhotes
+                          </span>
+                        )}
+                      </div>
                       <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Unido em: {new Date(pair.startDate).toLocaleDateString('pt-BR')}</p>
                       {pair.lastHatchDate && (
                         <p className="text-[10px] text-emerald-600 font-black uppercase tracking-wider">
-                          Ultima ninhada: {new Date(pair.lastHatchDate).toLocaleDateString('pt-BR')}
+                          Última ninhada: {new Date(pair.lastHatchDate).toLocaleDateString('pt-BR')}
                         </p>
                       )}
                     </div>
                   </div>
                   
                   {currentList === 'active' && (
-                    <button 
-                      onClick={() => handleDeleteClick(pair.id)}
-                      className="text-slate-300 hover:text-rose-500 transition-colors p-2"
-                      title="Mover para Lixeira"
-                    >
-                      <Trash2 size={18} />
-                    </button>
+                    <div className="flex items-center gap-2">
+                      {pair.lastHatchDate && (
+                        <button 
+                          onClick={() => handleDeleteClick(pair.id)}
+                          className="text-slate-300 hover:text-amber-500 transition-colors p-2"
+                          title="Arquivar para Histórico"
+                        >
+                          <Archive size={18} />
+                        </button>
+                      )}
+                      <button 
+                        onClick={() => handleDeleteClick(pair.id)}
+                        className="text-slate-300 hover:text-rose-500 transition-colors p-2"
+                        title="Mover para Lixeira"
+                      >
+                        <Trash2 size={18} />
+                      </button>
+                    </div>
                   )}
                 </div>
 
@@ -522,7 +545,8 @@ const BreedingManager: React.FC<BreedingManagerProps> = ({ state, addPair, updat
                   </div>
                 )}
               </div>
-            )) : (
+            );
+            }) : (
               <div className="col-span-full py-20 text-center bg-slate-50/50 border-2 border-dashed border-slate-100 rounded-[40px]">
                  <Heart size={48} className="mx-auto text-slate-200 mb-4" strokeWidth={1} />
                  <p className="text-sm font-bold text-slate-400 uppercase tracking-widest">Nenhum casal {currentList === 'active' ? 'registrado' : 'na lixeira'}</p>
