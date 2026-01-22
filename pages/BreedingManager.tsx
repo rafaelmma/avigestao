@@ -600,11 +600,11 @@ const BreedingManager: React.FC<BreedingManagerProps> = ({ state, addPair, updat
             </div>
             <form onSubmit={handleSavePair} className="p-10 space-y-6">
               <div>
-                <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Identifica├º├úo do Casal / Box</label>
+                <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Identificação do Casal / Box</label>
                 <input 
                   required
                   type="text"
-                  placeholder="Ex: Box 05 - Curi├│s"
+                  placeholder="Ex: Box 05 - Curiós"
                   className="w-full px-6 py-4 bg-slate-50 border border-slate-100 rounded-2xl outline-none focus:border-brand font-bold text-slate-700"
                   value={newPair.name || ''}
                   onChange={e => setNewPair({...newPair, name: e.target.value})}
@@ -615,7 +615,7 @@ const BreedingManager: React.FC<BreedingManagerProps> = ({ state, addPair, updat
               {(selectedMaleBird || selectedFemaleBird) && (
                 <div className="p-3 bg-blue-50 text-blue-700 rounded-xl text-[10px] font-bold border border-blue-100 flex items-center gap-2">
                    <Info size={14} />
-                   Filtrando por esp├®cie: {selectedMaleBird?.species || selectedFemaleBird?.species}
+                   Filtrando por espécie: {selectedMaleBird?.species || selectedFemaleBird?.species}
                 </div>
               )}
 
@@ -631,7 +631,7 @@ const BreedingManager: React.FC<BreedingManagerProps> = ({ state, addPair, updat
                     onChange={e => {
                         const newMaleId = e.target.value;
                         const newMale = males.find(m => m.id === newMaleId);
-                        // Se j├í tem f├¬mea selecionada e a esp├®cie n├úo bate, limpa a f├¬mea
+                        // Se já tem fêmea selecionada e a espécie não bate, limpa a fêmea
                         if (newMale && newPair.femaleId) {
                             const currentFemale = females.find(f => f.id === newPair.femaleId);
                             if (currentFemale && currentFemale.species !== newMale.species) {
@@ -648,7 +648,7 @@ const BreedingManager: React.FC<BreedingManagerProps> = ({ state, addPair, updat
                 </div>
                 <div>
                   <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">
-                    F├¬mea Selecionada {selectedMaleBird ? `(Apenas ${selectedMaleBird.species})` : ''}
+                    Fêmea Selecionada {selectedMaleBird ? `(Apenas ${selectedMaleBird.species})` : ''}
                   </label>
                   <select 
                     required
@@ -657,7 +657,7 @@ const BreedingManager: React.FC<BreedingManagerProps> = ({ state, addPair, updat
                     onChange={e => {
                         const newFemaleId = e.target.value;
                         const newFemale = females.find(f => f.id === newFemaleId);
-                        // Se j├í tem macho selecionado e a esp├®cie n├úo bate, limpa o macho
+                        // Se já tem macho selecionado e a espécie não bate, limpa o macho
                         if (newFemale && newPair.maleId) {
                             const currentMale = males.find(m => m.id === newPair.maleId);
                             if (currentMale && currentMale.species !== newFemale.species) {
@@ -668,7 +668,7 @@ const BreedingManager: React.FC<BreedingManagerProps> = ({ state, addPair, updat
                         setNewPair({...newPair, femaleId: newFemaleId});
                     }}
                   >
-                    <option value="">Selecione uma F├¬mea</option>
+                    <option value="">Selecione uma Fêmea</option>
                     {availableFemales.map(f => <option key={f.id} value={f.id}>{f.name} ({f.ringNumber}) - {f.species}</option>)}
                   </select>
                 </div>
