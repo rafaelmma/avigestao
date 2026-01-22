@@ -31,7 +31,7 @@ import { supabase, SUPABASE_MISSING } from './lib/supabase';
 import { loadInitialData, loadTabData } from './services/dataService';
 
 const STORAGE_KEY = 'avigestao_state';
-const HYDRATE_TIMEOUT_MS = 90000; // 90s - increased to match data fetch timeouts
+const HYDRATE_TIMEOUT_MS = 15000; // 15s - reduced for faster UX
 
 const loadCachedState = (): { state: AppState; hasCache: boolean } => {
   if (typeof localStorage === 'undefined') return { state: defaultState, hasCache: false };
@@ -317,27 +317,36 @@ const App: React.FC = () => {
     lastValidSessionRef.current = newSession;
     setSession(newSession);
 
-    // Mostra cache local se existir; se nao, mantem overlay ate hidratar do Supabase
+    // Mostra cache local imediatamente e libera UI
     const cached = loadCachedState();
     if (cached.hasCache) {
       setState(cached.state);
+      setHasHydratedOnce(true);
+      setIsLoading(false);
+    } else {
+      setHasHydratedOnce(false);
+      setIsLoading(true);
     }
-    setHasHydratedOnce(false);
-    setIsLoading(true);
+    
     setAuthError(null);
     const token = newSession.access_token;
 
-    try {      await Promise.race([
+    // Hidrata dados em background
+    try {
+      await Promise.race([
         Promise.all([checkAdmin(token), hydrateUserData(newSession)]),
         new Promise<never>((_, reject) => setTimeout(() => reject(new Error('timeout hydrate')), HYDRATE_TIMEOUT_MS))
       ]);
     } catch (err: any) {
-      console.error('Erro ao hidratar sessao:', err);      if (err?.message === 'timeout hydrate') {
-        setAuthError('Demorou para carregar seus dados. Tente novamente.');
-      } else {
+      console.error('Erro ao hidratar sessao:', err);
+      if (err?.message === 'timeout hydrate') {
+        // Silently continue with cached data if available
+        if (!cached.hasCache) {
+          setAuthError('Demorou para carregar seus dados. Usando dados locais.');
+        }
+      } else if (!cached.hasCache) {
         setAuthError(err?.message || 'Nao foi possivel carregar seus dados');
       }
-      // mantem estado atual se houver falha para evitar piscar para default
     } finally {
       setHasHydratedOnce(true);
       setIsLoading(false);
