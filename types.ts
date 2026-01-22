@@ -107,7 +107,7 @@ export interface TournamentEvent {
 export interface MovementRecord {
   id: string;
   birdId: string;
-  type: 'Óbito' | 'Fuga' | 'Transporte' | 'Venda';
+  type: 'Óbito' | 'Fuga' | 'Transporte' | 'Venda' | 'Doação';
   date: string;
   notes: string;
   gtrUrl?: string;

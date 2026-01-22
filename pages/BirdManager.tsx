@@ -354,10 +354,17 @@ const BirdManager: React.FC<BirdManagerProps> = ({
       // 2. Se marcado, criar movimentação também
       if (quickStatusData.createMovement && addMovement) {
         const movementId = Math.random().toString(36).substr(2, 9);
+        // Mapear status para tipo de movimentação
+        let movementType: 'Óbito' | 'Fuga' | 'Transporte' | 'Venda' | 'Doação' = 'Óbito';
+        if (quickStatusData.newStatus === 'Fugiu') movementType = 'Fuga';
+        else if (quickStatusData.newStatus === 'Vendido') movementType = 'Venda';
+        else if (quickStatusData.newStatus === 'Doado') movementType = 'Doação';
+        else if (quickStatusData.newStatus === 'Óbito') movementType = 'Óbito';
+        
         const newMovement: MovementRecord = {
           id: movementId,
           birdId: quickStatusBird.id,
-          type: quickStatusData.newStatus,
+          type: movementType,
           date: quickStatusData.date,
           notes: quickStatusData.notes || '',
           gtrUrl: undefined,
@@ -391,10 +398,17 @@ const BirdManager: React.FC<BirdManagerProps> = ({
 
       // 2. Criar movimentação automaticamente baseada no status da ave
       const movementId = Math.random().toString(36).substr(2, 9);
+      // Mapear status para tipo de movimentação
+      let movementType: 'Óbito' | 'Fuga' | 'Transporte' | 'Venda' | 'Doação' = 'Óbito';
+      if (quickIbamaBird.status === 'Fugiu') movementType = 'Fuga';
+      else if (quickIbamaBird.status === 'Vendido') movementType = 'Venda';
+      else if (quickIbamaBird.status === 'Doado') movementType = 'Doação';
+      else if (quickIbamaBird.status === 'Óbito') movementType = 'Óbito';
+      
       const newMovement: MovementRecord = {
         id: movementId,
         birdId: quickIbamaBird.id,
-        type: quickIbamaBird.status, // Usa o status atual da ave (Óbito, Fugiu, Vendido, Doado)
+        type: movementType,
         date: quickIbamaDate, // Usa a data do registro IBAMA
         notes: `Registro IBAMA concluído em ${quickIbamaDate}`,
         gtrUrl: undefined,
