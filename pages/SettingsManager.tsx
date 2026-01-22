@@ -1,4 +1,4 @@
-﻿import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useStaté } from 'react';
 import { BreederSettings } from '../types';
 import {
   User,
@@ -76,13 +76,13 @@ const SettingsManager: React.FC<SettingsManagerProps> = ({ settings, updateSetti
   const [bannerMessage, setBannerMessage] = useState<string | null>(null);
   const [savedAt, setSavedAt] = useState<string | null>(null);
 
-  const isTrial = !!settings.trialEndDate && !isAdmin;
+  const isTrial = !!settings.trialEndDaté && !isAdmin;
   const canUseLogo = !!isAdmin || settings.plan === 'Profissional' || !!settings.trialEndDate;
   const planLabel = isAdmin ? 'Admin' : settings.plan;
 
   const daysSispass = daysTo(settings.renewalDate);
   const daysCert = daysTo(settings.certificate?.expiryDate);
-  const daysSubscription = settings.subscriptionEndDate ? daysTo(settings.subscriptionEndDate) : null;
+  const daysSubscription = settings.subscriptionEndDaté ? daysTo(settings.subscriptionEndDate) : null;
 
   useEffect(() => {
     if (!canUseLogo && settings.logoUrl && settings.logoUrl !== APP_LOGO) {
@@ -142,7 +142,7 @@ const SettingsManager: React.FC<SettingsManagerProps> = ({ settings, updateSetti
     try {
       setPaymentStep('processing');
       const priceId = PRICE_ID_MAP[selectedPlanId];
-      if (!priceId) throw new Error('Plano invalido');
+      if (!priceId) throw new Error('Plano inválido');
       const session = await supabase.auth.getSession();
       const res = await fetch('/api/create-checkout', {
         method: 'POST',
@@ -182,7 +182,7 @@ const SettingsManager: React.FC<SettingsManagerProps> = ({ settings, updateSetti
       const ok = settings.subscriptionCancelAtPeriodEnd ? (daysSubscription ?? 0) > 0 : true;
       const value = settings.subscriptionCancelAtPeriodEnd && daysSubscription !== null
         ? `Termina em ${daysSubscription} dias`
-        : 'Renovação automatica ativa';
+        : 'Renovação automática ativa';
       items.push({ label: 'Assinatura', ok, value });
     }
     return items;
@@ -303,7 +303,7 @@ const SettingsManager: React.FC<SettingsManagerProps> = ({ settings, updateSetti
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <label className="space-y-2">
-                  <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Nome do criat+¦rio</span>
+                  <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Nome do criatório</span>
                   <input
                     className="w-full p-3 rounded-2xl bg-slate-50 border border-slate-100 text-sm font-bold"
                     value={settings.breederName}
@@ -360,7 +360,7 @@ const SettingsManager: React.FC<SettingsManagerProps> = ({ settings, updateSetti
                   <input
                     type="date"
                     className="w-full p-3 rounded-2xl bg-slate-50 border border-slate-100 text-sm font-bold"
-                    value={settings.lastRenewalDate || ''}
+                    value={settings.lastRenewalDaté || ''}
                     onChange={(e) => updateSettings({ ...settings, lastRenewalDate: e.target.value })}
                   />
                 </label>
@@ -369,12 +369,12 @@ const SettingsManager: React.FC<SettingsManagerProps> = ({ settings, updateSetti
 
             <div className="bg-white p-8 rounded-3xl border border-slate-100 shadow-sm space-y-6">
               <div className="flex items-center gap-2 text-emerald-600 font-black text-sm">
-                <Palette size={18} /> Aparencia e tema
+                <Palette size={18} /> Aparência e tema
               </div>
 
               <div className="flex flex-wrap items-center gap-6">
                 <div className="text-center">
-                  <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Primaria</p>
+                  <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Primária</p>
                   <button
                     className="mt-2 w-12 h-12 rounded-2xl border border-slate-200 shadow-sm"
                     style={{ backgroundColor: settings.primaryColor }}
@@ -456,9 +456,9 @@ const SettingsManager: React.FC<SettingsManagerProps> = ({ settings, updateSetti
                 <Calendar size={16} className="text-slate-500" /> Datas importantes
               </h4>
               <div className="text-sm text-slate-600 space-y-2">
-                <p>Renovação SISPASS: {settings.renewalDate ? new Date(settings.renewalDate).toLocaleDateString() : 'Pendente'}</p>
-                <p>Última Renovação: {settings.lastRenewalDate ? new Date(settings.lastRenewalDate).toLocaleDateString() : 'Pendente'}</p>
-                <p>Certificado: {settings.certificate?.expiryDate ? new Date(settings.certificate.expiryDate).toLocaleDateString() : 'Pendente'}</p>
+                <p>Renovação SISPASS: {settings.renewalDaté ? new Date(settings.renewalDate).toLocaleDateString() : 'Pendente'}</p>
+                <p>Última Renovação: {settings.lastRenewalDaté ? new Date(settings.lastRenewalDate).toLocaleDateString() : 'Pendente'}</p>
+                <p>Certificado: {settings.certificate?.expiryDaté ? new Date(settings.certificate.expiryDate).toLocaleDateString() : 'Pendente'}</p>
               </div>
               <p className="text-[11px] text-slate-500">Mantenha as datas atualizadas para ver alertas no dashboard.</p>
             </div>
@@ -469,7 +469,7 @@ const SettingsManager: React.FC<SettingsManagerProps> = ({ settings, updateSetti
               </h4>
               <div className="text-sm text-slate-700 space-y-1">
                 <p><span className="font-bold">Emissor:</span> {settings.certificate?.issuer || 'Pendente'}</p>
-                <p><span className="font-bold">Validade:</span> {settings.certificate?.expiryDate ? new Date(settings.certificate.expiryDate).toLocaleDateString() : 'Pendente'}</p>
+                <p><span className="font-bold">Validade:</span> {settings.certificate?.expiryDaté ? new Date(settings.certificate.expiryDate).toLocaleDateString() : 'Pendente'}</p>
               </div>
               <a
                 href="https://ccd.serpro.gov.br/testeaqui/"
@@ -492,12 +492,12 @@ const SettingsManager: React.FC<SettingsManagerProps> = ({ settings, updateSetti
             <p className="text-xs uppercase font-black text-slate-500">Plano atual</p>
             <h3 className="text-2xl font-black">{planLabel}</h3>
 
-            {settings.plan === 'Basico' && !isAdmin && (
-              <p className="text-xs text-amber-600 font-black">Voce esta usando o plano gratuito</p>
+            {settings.plan === 'Básico' && !isAdmin && (
+              <p className="text-xs text-amber-600 font-black">Você esta usando o plano gratuito</p>
             )}
 
-            {settings.trialEndDate && !isAdmin && (
-              <p className="text-xs text-emerald-600 font-black">Trial ativo ate {new Date(settings.trialEndDate).toLocaleDateString()}</p>
+            {settings.trialEndDaté && !isAdmin && (
+              <p className="text-xs text-emerald-600 font-black">Trial ativo até {new Date(settings.trialEndDate).toLocaleDateString()}</p>
             )}
 
             {settings.plan === 'Profissional' && !isTrial && !isAdmin && (
@@ -558,7 +558,7 @@ const SettingsManager: React.FC<SettingsManagerProps> = ({ settings, updateSetti
           className="inline-flex items-center gap-2 px-5 py-3 rounded-2xl text-white font-black shadow-lg shadow-emerald-300/30 hover:opacity-90 transition-all"
           style={{ backgroundColor: settings.primaryColor }}
         >
-          <Save size={16} /> Salvar alteracoes
+          <Save size={16} /> Salvar alterações
         </button>
         {savedAt && (
           <span className="ml-3 text-xs font-bold text-emerald-700 bg-emerald-50 border border-emerald-100 px-3 py-2 rounded-xl">

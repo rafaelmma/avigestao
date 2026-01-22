@@ -1,4 +1,4 @@
-
+﻿
 import React, { useState, useEffect, useMemo } from 'react';
 import { AppState, Pair, Clutch, Bird } from '../types';
 import { 
@@ -38,7 +38,7 @@ interface BreedingManagerProps {
 interface PendingHatchling {
   name: string;
   ringNumber: string;
-  sex: 'Indeterminado' | 'Macho' | 'Fêmea';
+  sex: 'Indeterminado' | 'Macho' | 'F├¬mea';
 }
 
 const BreedingManager: React.FC<BreedingManagerProps> = ({ state, addPair, updatePair, addBird, addClutch, updateClutch, deletePair, restorePair, permanentlyDeletePair }) => {
@@ -71,9 +71,9 @@ const BreedingManager: React.FC<BreedingManagerProps> = ({ state, addPair, updat
 
   // Listas base de aves ativas
   const males = useMemo(() => state.birds.filter(b => b.sex === 'Macho' && b.status === 'Ativo'), [state.birds]);
-  const females = useMemo(() => state.birds.filter(b => b.sex === 'Fêmea' && b.status === 'Ativo'), [state.birds]);
+  const females = useMemo(() => state.birds.filter(b => b.sex === 'F├¬mea' && b.status === 'Ativo'), [state.birds]);
 
-  // Lógica de Filtragem Cruzada (Mesma Espécie)
+  // L├│gica de Filtragem Cruzada (Mesma Esp├®cie)
   const selectedMaleBird = useMemo(() => males.find(m => m.id === newPair.maleId), [males, newPair.maleId]);
   const selectedFemaleBird = useMemo(() => females.find(f => f.id === newPair.femaleId), [females, newPair.femaleId]);
 
@@ -101,14 +101,14 @@ const BreedingManager: React.FC<BreedingManagerProps> = ({ state, addPair, updat
   const handleSavePair = (e: React.FormEvent) => {
     e.preventDefault();
     
-    // Validação de Espécie Cruzada
+    // Valida├º├úo de Esp├®cie Cruzada
     if (newPair.maleId && newPair.femaleId) {
         const m = males.find(b => b.id === newPair.maleId);
         const f = females.find(b => b.id === newPair.femaleId);
         
         if (m && f && m.species !== f.species) {
             setNotification({ 
-                message: `Erro: Não é permitido acasalar espécies diferentes (${m.species} + ${f.species}).`, 
+                message: `Erro: N├úo ├® permitido acasalar esp├®cies diferentes (${m.species} + ${f.species}).`, 
                 type: 'error' 
             });
             return;
@@ -133,11 +133,11 @@ const BreedingManager: React.FC<BreedingManagerProps> = ({ state, addPair, updat
       const hatchedCount = newClutch.hatchedCount || 0;
       
       if (isEditingClutch && newClutch.id) {
-        // Modo Edição
+        // Modo Edi├º├úo
         updateClutch(newClutch as Clutch);
         setNotification({ message: 'Dados da ninhada atualizados!', type: 'success' });
       } else {
-        // Modo Criação
+        // Modo Cria├º├úo
         const clutchData: Clutch = {
           ...newClutch as Clutch,
           id: makeId(),
@@ -189,12 +189,12 @@ const BreedingManager: React.FC<BreedingManagerProps> = ({ state, addPair, updat
     const pair = state.pairs.find(p => p.id === hatchlingParentPairId);
     if (!pair) return;
 
-    // Busca dados da mãe para herdar espécie
+    // Busca dados da m├úe para herdar esp├®cie
     const mother = state.birds.find(b => b.id === pair.femaleId);
-    const species = mother?.species || 'Espécie Indefinida';
+    const species = mother?.species || 'Esp├®cie Indefinida';
 
     hatchlingsToRegister.forEach(hatchling => {
-      // Se o usuário deixou o nome em branco ou padrão, não cadastra (opcional, aqui vou cadastrar tudo)
+      // Se o usu├írio deixou o nome em branco ou padr├úo, n├úo cadastra (opcional, aqui vou cadastrar tudo)
       const newBird: Bird = {
         id: makeId(),
         name: hatchling.name,
@@ -205,10 +205,10 @@ const BreedingManager: React.FC<BreedingManagerProps> = ({ state, addPair, updat
         status: 'Ativo',
         fatherId: pair.maleId,
         motherId: pair.femaleId,
-        classification: 'Não Definido',
-        songTrainingStatus: 'Não Iniciado',
-        colorMutation: 'Clássico (Filhote)', // Padrão
-        location: pair.name, // Herda localização do casal
+        classification: 'N├úo Definido',
+        songTrainingStatus: 'N├úo Iniciado',
+        colorMutation: 'Cl├íssico (Filhote)', // Padr├úo
+        location: pair.name, // Herda localiza├º├úo do casal
         photoUrl: getDefaultBirdImage(species, hatchling.sex),
         createdAt: new Date().toISOString(),
         isRepeater: false,
@@ -242,7 +242,7 @@ const BreedingManager: React.FC<BreedingManagerProps> = ({ state, addPair, updat
     setShowClutchModal(true);
   };
 
-  // Funções de Lixeira
+  // Fun├º├Áes de Lixeira
   const handleDeleteClick = (id: string) => {
     if (deletePair) deletePair(id);
   };
@@ -260,7 +260,7 @@ const BreedingManager: React.FC<BreedingManagerProps> = ({ state, addPair, updat
   const getBirdName = (id?: string) => state.birds.find(b => b.id === id)?.name || 'N/A';
   const getPairName = (id: string) => state.pairs.find(p => p.id === id)?.name || 'N/A';
 
-  // Helper para obter dias de incubação baseado no casal
+  // Helper para obter dias de incuba├º├úo baseado no casal
   const getIncubationDays = (pairId: string) => {
     const pair = state.pairs.find(p => p.id === pairId);
     if (!pair) return 14;
@@ -268,7 +268,7 @@ const BreedingManager: React.FC<BreedingManagerProps> = ({ state, addPair, updat
     return female ? (SPECIES_INCUBATION_DAYS[female.species] || 14) : 14;
   };
 
-  // Helper para nome da espécie
+  // Helper para nome da esp├®cie
   const getPairSpecies = (pairId?: string) => {
     if (!pairId) return '';
     const pair = state.pairs.find(p => p.id === pairId);
@@ -280,7 +280,7 @@ const BreedingManager: React.FC<BreedingManagerProps> = ({ state, addPair, updat
   // Listagem condicional
   const visiblePairs = currentList === 'active' ? state.pairs : (state.deletedPairs || []);
 
-  // Calcular eclosões futuras com base na espécie
+  // Calcular eclos├Áes futuras com base na esp├®cie
   const incubatorClutches = state.clutches
     .filter(c => c.hatchedCount === 0 && c.fertileCount > 0)
     .map(c => {
@@ -311,7 +311,7 @@ const BreedingManager: React.FC<BreedingManagerProps> = ({ state, addPair, updat
              <Bell size={24} />}
           </div>
           <div>
-            <p className="text-sm font-black uppercase tracking-widest leading-none mb-1">Notificação</p>
+            <p className="text-sm font-black uppercase tracking-widest leading-none mb-1">Notifica├º├úo</p>
             <p className="text-xs font-bold opacity-80">{notification.message}</p>
           </div>
           <button onClick={() => setNotification(null)} className="ml-4 p-1 hover:bg-black/5 rounded-lg">
@@ -322,8 +322,8 @@ const BreedingManager: React.FC<BreedingManagerProps> = ({ state, addPair, updat
 
       <header className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h2 className="text-3xl font-black text-[#0F172A] tracking-tight">Reprodução</h2>
-          <p className="text-slate-400 font-medium text-sm mt-1">Gestão de casais, incubação e nascimentos.</p>
+          <h2 className="text-3xl font-black text-[#0F172A] tracking-tight">Reprodu├º├úo</h2>
+          <p className="text-slate-400 font-medium text-sm mt-1">Gest├úo de casais, incuba├º├úo e nascimentos.</p>
         </div>
         <div className="flex gap-2">
            <div className="flex bg-white p-1 rounded-xl shadow-sm border border-slate-100 mr-2">
@@ -355,7 +355,7 @@ const BreedingManager: React.FC<BreedingManagerProps> = ({ state, addPair, updat
       {currentList === 'trash' && (
          <div className="bg-rose-50 border-l-4 border-rose-500 p-4 rounded-r-xl mb-4">
             <p className="text-rose-700 font-bold text-sm">Lixeira de Casais</p>
-            <p className="text-rose-600 text-xs">Restaure casais desfeitos acidentalmente ou remova o histórico definitivamente.</p>
+            <p className="text-rose-600 text-xs">Restaure casais desfeitos acidentalmente ou remova o hist├│rico definitivamente.</p>
             <p className="text-rose-600 text-xs mt-1">Itens ficam disponiveis por ate 30 dias na lixeira antes de serem removidos automaticamente.</p>
          </div>
       )}
@@ -366,7 +366,7 @@ const BreedingManager: React.FC<BreedingManagerProps> = ({ state, addPair, updat
           <div className="flex items-center justify-between">
             <h3 className="font-black text-slate-800 text-lg flex items-center gap-3">
               <Heart size={20} className="text-rose-500" />
-              {currentList === 'active' ? 'Casais Ativos' : 'Casais Excluídos'}
+              {currentList === 'active' ? 'Casais Ativos' : 'Casais Exclu├¡dos'}
             </h3>
             <span className="px-3 py-1 bg-rose-50 text-rose-500 text-[10px] font-black rounded-lg uppercase">
               {visiblePairs.length} Registros
@@ -422,7 +422,7 @@ const BreedingManager: React.FC<BreedingManagerProps> = ({ state, addPair, updat
                   <div className="p-6 pt-0">
                     <div className="bg-slate-50/50 rounded-2xl p-4 border border-slate-100">
                        <h4 className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-4 flex items-center gap-2">
-                         <ClipboardList size={14} /> Histórico Recente
+                         <ClipboardList size={14} /> Hist├│rico Recente
                        </h4>
                        <div className="space-y-2">
                          {state.clutches.filter(c => c.pairId === pair.id).slice(0, 3).map(clutch => (
@@ -450,7 +450,7 @@ const BreedingManager: React.FC<BreedingManagerProps> = ({ state, addPair, updat
                                  </span>
                                )}
                              </div>
-                             {/* Botão de Edição da Ninhada */}
+                             {/* Bot├úo de Edi├º├úo da Ninhada */}
                              <button 
                                onClick={() => openClutchModal(pair.id, clutch)}
                                className="absolute right-2 top-1/2 -translate-y-1/2 p-2 bg-white rounded-lg border border-slate-100 shadow-sm text-slate-400 hover:text-brand hover:border-brand opacity-0 group-hover/clutch:opacity-100 transition-all"
@@ -495,12 +495,12 @@ const BreedingManager: React.FC<BreedingManagerProps> = ({ state, addPair, updat
           </div>
         </div>
 
-        {/* Lado Direito: Alertas e Previsões (Visível apenas na lista ativa) */}
+        {/* Lado Direito: Alertas e Previs├Áes (Vis├¡vel apenas na lista ativa) */}
         {currentList === 'active' && (
           <div className="space-y-6">
              <h3 className="font-black text-slate-800 text-lg flex items-center gap-3">
                 <Bell size={20} className="text-amber-500" />
-                Previsão de Eclosão
+                Previs├úo de Eclos├úo
              </h3>
 
              <div className="space-y-4">
@@ -523,7 +523,7 @@ const BreedingManager: React.FC<BreedingManagerProps> = ({ state, addPair, updat
                          </div>
                          <div className="text-right">
                             <p className={`text-[10px] font-black uppercase tracking-widest ${isLate ? 'text-rose-500' : 'text-slate-400'}`}>
-                              {isLate ? 'Eclosão Atrasada' : isToday ? 'Previsto para HOJE' : `Em ${diff} dias`}
+                              {isLate ? 'Eclos├úo Atrasada' : isToday ? 'Previsto para HOJE' : `Em ${diff} dias`}
                             </p>
                             <p className="text-xs font-black text-slate-800">{c.hatchDate.toLocaleDateString('pt-BR')}</p>
                          </div>
@@ -537,20 +537,20 @@ const BreedingManager: React.FC<BreedingManagerProps> = ({ state, addPair, updat
                               <span className="px-2 py-0.5 rounded-full text-[9px] font-black uppercase bg-blue-50 text-blue-600 border border-blue-100">
                                 {maleName}
                               </span>
-                              <span className="text-[10px] text-slate-300 font-black">×</span>
+                              <span className="text-[10px] text-slate-300 font-black">├ù</span>
                               <span className="px-2 py-0.5 rounded-full text-[9px] font-black uppercase bg-rose-50 text-rose-600 border border-rose-100">
                                 {femaleName}
                               </span>
                             </div>
                          </div>
                          
-                         {/* Indicador de Espécie e Tempo */}
+                         {/* Indicador de Esp├®cie e Tempo */}
                          <div className="flex items-center gap-2">
                             <span className="text-[9px] px-2 py-0.5 bg-slate-100 text-slate-500 font-bold rounded-md">
                               {getPairSpecies(c.pairId)}
                             </span>
                             <span className="text-[9px] text-slate-400 font-medium">
-                              (Média {c.incubationDays} dias)
+                              (M├®dia {c.incubationDays} dias)
                             </span>
                          </div>
 
@@ -577,12 +577,12 @@ const BreedingManager: React.FC<BreedingManagerProps> = ({ state, addPair, updat
                 }) : (
                   <div className="p-10 bg-slate-50/50 border border-slate-100 rounded-[32px] text-center">
                      <Timer size={32} className="mx-auto text-slate-200 mb-3" />
-                     <p className="text-xs font-black text-slate-300 uppercase tracking-widest">Nenhuma eclosão pendente</p>
+                     <p className="text-xs font-black text-slate-300 uppercase tracking-widest">Nenhuma eclos├úo pendente</p>
                   </div>
                 )}
              </div>
 
-             {/* Carrossel de Dicas de Reprodução */}
+             {/* Carrossel de Dicas de Reprodu├º├úo */}
              <TipCarousel category="breeding" />
           </div>
         )}
@@ -598,22 +598,22 @@ const BreedingManager: React.FC<BreedingManagerProps> = ({ state, addPair, updat
             </div>
             <form onSubmit={handleSavePair} className="p-10 space-y-6">
               <div>
-                <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Identificação do Casal / Box</label>
+                <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Identifica├º├úo do Casal / Box</label>
                 <input 
                   required
                   type="text"
-                  placeholder="Ex: Box 05 - Curiós"
+                  placeholder="Ex: Box 05 - Curi├│s"
                   className="w-full px-6 py-4 bg-slate-50 border border-slate-100 rounded-2xl outline-none focus:border-brand font-bold text-slate-700"
                   value={newPair.name || ''}
                   onChange={e => setNewPair({...newPair, name: e.target.value})}
                 />
               </div>
               
-              {/* Alerta de Filtragem de Espécie */}
+              {/* Alerta de Filtragem de Esp├®cie */}
               {(selectedMaleBird || selectedFemaleBird) && (
                 <div className="p-3 bg-blue-50 text-blue-700 rounded-xl text-[10px] font-bold border border-blue-100 flex items-center gap-2">
                    <Info size={14} />
-                   Filtrando por espécie: {selectedMaleBird?.species || selectedFemaleBird?.species}
+                   Filtrando por esp├®cie: {selectedMaleBird?.species || selectedFemaleBird?.species}
                 </div>
               )}
 
@@ -629,7 +629,7 @@ const BreedingManager: React.FC<BreedingManagerProps> = ({ state, addPair, updat
                     onChange={e => {
                         const newMaleId = e.target.value;
                         const newMale = males.find(m => m.id === newMaleId);
-                        // Se já tem fêmea selecionada e a espécie não bate, limpa a fêmea
+                        // Se j├í tem f├¬mea selecionada e a esp├®cie n├úo bate, limpa a f├¬mea
                         if (newMale && newPair.femaleId) {
                             const currentFemale = females.find(f => f.id === newPair.femaleId);
                             if (currentFemale && currentFemale.species !== newMale.species) {
@@ -646,7 +646,7 @@ const BreedingManager: React.FC<BreedingManagerProps> = ({ state, addPair, updat
                 </div>
                 <div>
                   <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">
-                    Fêmea Selecionada {selectedMaleBird ? `(Apenas ${selectedMaleBird.species})` : ''}
+                    F├¬mea Selecionada {selectedMaleBird ? `(Apenas ${selectedMaleBird.species})` : ''}
                   </label>
                   <select 
                     required
@@ -655,7 +655,7 @@ const BreedingManager: React.FC<BreedingManagerProps> = ({ state, addPair, updat
                     onChange={e => {
                         const newFemaleId = e.target.value;
                         const newFemale = females.find(f => f.id === newFemaleId);
-                        // Se já tem macho selecionado e a espécie não bate, limpa o macho
+                        // Se j├í tem macho selecionado e a esp├®cie n├úo bate, limpa o macho
                         if (newFemale && newPair.maleId) {
                             const currentMale = males.find(m => m.id === newPair.maleId);
                             if (currentMale && currentMale.species !== newFemale.species) {
@@ -666,7 +666,7 @@ const BreedingManager: React.FC<BreedingManagerProps> = ({ state, addPair, updat
                         setNewPair({...newPair, femaleId: newFemaleId});
                     }}
                   >
-                    <option value="">Selecione uma Fêmea</option>
+                    <option value="">Selecione uma F├¬mea</option>
                     {availableFemales.map(f => <option key={f.id} value={f.id}>{f.name} ({f.ringNumber}) - {f.species}</option>)}
                   </select>
                 </div>
@@ -695,11 +695,11 @@ const BreedingManager: React.FC<BreedingManagerProps> = ({ state, addPair, updat
                     Casal: {getPairName(selectedPairId || '')}
                   </p>
                 </div>
-                {/* Info sobre a espécie e incubação */}
+                {/* Info sobre a esp├®cie e incuba├º├úo */}
                 <div className="pl-7">
                    <p className="text-[10px] text-blue-700 font-medium">
-                     Espécie: {getPairSpecies(selectedPairId || '')} • 
-                     Incubação Média: {getIncubationDays(selectedPairId || '')} dias
+                     Esp├®cie: {getPairSpecies(selectedPairId || '')} ÔÇó 
+                     Incuba├º├úo M├®dia: {getIncubationDays(selectedPairId || '')} dias
                    </p>
                 </div>
               </div>
@@ -729,7 +729,7 @@ const BreedingManager: React.FC<BreedingManagerProps> = ({ state, addPair, updat
                 </div>
               </div>
               <div>
-                <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Observações</label>
+                <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Observa├º├Áes</label>
                 <textarea 
                   className="w-full px-6 py-4 bg-slate-50 border border-slate-100 rounded-2xl outline-none h-20 resize-none font-medium text-slate-700"
                   value={newClutch.notes || ''}
@@ -737,7 +737,7 @@ const BreedingManager: React.FC<BreedingManagerProps> = ({ state, addPair, updat
                 />
               </div>
               <button type="submit" className="w-full py-5 bg-brand text-white font-black text-xs uppercase tracking-widest rounded-2xl shadow-xl shadow-brand/20 mt-4">
-                {isEditingClutch ? 'Salvar Alterações' : 'Confirmar Registro'}
+                {isEditingClutch ? 'Salvar Altera├º├Áes' : 'Confirmar Registro'}
               </button>
             </form>
           </div>
@@ -766,9 +766,9 @@ const BreedingManager: React.FC<BreedingManagerProps> = ({ state, addPair, updat
                     <Baby size={24} />
                   </div>
                   <div>
-                    <p className="text-xs font-bold text-emerald-800">Cadastro Automático</p>
+                    <p className="text-xs font-bold text-emerald-800">Cadastro Autom├ítico</p>
                     <p className="text-[10px] text-emerald-600 leading-tight">
-                      A espécie e os pais já foram preenchidos automaticamente com base no casal selecionado.
+                      A esp├®cie e os pais j├í foram preenchidos automaticamente com base no casal selecionado.
                     </p>
                   </div>
                </div>
@@ -836,7 +836,7 @@ const BreedingManager: React.FC<BreedingManagerProps> = ({ state, addPair, updat
                             >
                               <option value="Indeterminado">Indeterminado</option>
                               <option value="Macho">Macho</option>
-                              <option value="Fêmea">Fêmea</option>
+                              <option value="F├¬mea">F├¬mea</option>
                             </select>
                          </div>
                       </div>

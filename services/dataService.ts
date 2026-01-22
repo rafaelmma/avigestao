@@ -15,7 +15,7 @@ import {
   Transaction,
 } from "../types";
 
-const TIMEOUT_MS = 10000;
+const TIMEOUT_MS = 20000;
 const MED_CAT_CACHE_KEY = "avigestao_med_catalog_v1";
 const MED_CAT_CACHE_TTL = 1000 * 60 * 60 * 24; // 24h
 const MED_CAT_PREFETCH_DELAY = 5000; // 5s depois do load inicial
@@ -36,14 +36,16 @@ const safeSelect = async <T>(query: any, mapFn: (row: any) => T): Promise<T[]> =
   }
 };
 
-const safeSingleSettings = async (query: any): Promise<BreederSettings | null> => {
+type SettingsFetchResult = { settings: BreederSettings | null; failed: boolean };
+
+const safeSingleSettings = async (query: any): Promise<SettingsFetchResult> => {
   try {
     const { data, error } = await withTimeout(query);
     if (error) throw error;
-    return data ? mapSettingsFromDb(data) : null;
+    return { settings: data ? mapSettingsFromDb(data) : null, failed: false };
   } catch (err) {
     console.warn("Falha ao carregar settings (ignorado):", err);
-    return null;
+    return { settings: null, failed: true };
   }
 };
 
@@ -76,7 +78,7 @@ export async function loadInitialData(userId: string) {
   );
 
   // Initial data for dashboard and core UI only.
-  const [birds, transactions, tasks, tournaments, clutches, settings] = await Promise.all([
+  const [birds, transactions, tasks, tournaments, clutches, settingsResult] = await Promise.all([
     safeSelect(supabase.from("birds").select("*").eq("user_id", userId), mapBirdFromDb),
     safeSelect(supabase.from("transactions").select("*").eq("user_id", userId), mapTransactionFromDb),
     safeSelect(supabase.from("tasks").select("*").eq("user_id", userId), mapTaskFromDb),
@@ -84,6 +86,8 @@ export async function loadInitialData(userId: string) {
     safeSelect(supabase.from("clutches").select("*").eq("user_id", userId), mapClutchFromDb),
     settingsPromise,
   ]);
+
+  const settings = settingsResult.settings;
 
   return {
     birds,
@@ -98,6 +102,7 @@ export async function loadInitialData(userId: string) {
     treatments: [],
     medicationCatalog: [],
     settings: settings ?? INITIAL_SETTINGS,
+    settingsFailed: settingsResult.failed,
   };
 }
 
@@ -169,8 +174,8 @@ export const mapBirdFromDb = (row: any): Bird => {
     motherId: row.mother_id ?? row.motherId ?? undefined,
     manualAncestors: row.manual_ancestors ?? row.manualAncestors ?? undefined,
     createdAt: row.created_at ?? row.createdAt ?? new Date().toISOString(),
-    classification: (row.classification ?? "NÆo Definido") as any,
-    songTrainingStatus: (row.song_training_status ?? row.songTrainingStatus ?? "NÆo Iniciado") as any,
+    classification: (row.classification ?? "Não Definido") as any,
+    songTrainingStatus: (row.song_training_status ?? row.songTrainingStatus ?? "Não Iniciado") as any,
     songType: row.song_type ?? row.songType ?? "",
     songSource: row.song_source ?? row.songSource ?? undefined,
     trainingStartDate: row.training_start_date ?? row.trainingStartDate ?? undefined,
@@ -210,7 +215,7 @@ export const mapTaskFromDb = (row: any): MaintenanceTask => ({
   title: row.title ?? "",
   dueDate: row.due_date ?? row.dueDate ?? "",
   isCompleted: row.is_completed ?? row.isCompleted ?? false,
-  priority: (row.priority ?? "Media") as any,
+  priority: (row.priority ?? "Média") as any,
   birdId: row.bird_id ?? row.birdId ?? undefined,
   frequency: row.frequency ?? undefined,
   remindMe: row.remind_me ?? row.remindMe ?? undefined,
@@ -296,7 +301,7 @@ export const mapTreatmentFromDb = (row: any): ContinuousTreatment => {
     medicationId: row.medication_id ?? row.medicationId ?? "",
     startDate: row.start_date ?? row.startDate ?? "",
     endDate: row.end_date ?? row.endDate ?? undefined,
-    frequency: (row.frequency ?? "Diario") as any,
+    frequency: (row.frequency ?? "Diário") as any,
     dosage: row.dosage ?? "",
     status: (row.status ?? "Ativo") as any,
     lastApplicationDate: row.last_application_date ?? row.lastApplicationDate ?? undefined,

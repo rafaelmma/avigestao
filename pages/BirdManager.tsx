@@ -1,4 +1,4 @@
-
+﻿
 import React, { useState, useMemo, useRef, useEffect } from 'react';
 import { deleteBird as svcDeleteBird } from '../services/birds';
 import { Bird, AppState, Sex, TrainingStatus, BirdClassification, BirdDocument } from '../types';
@@ -45,7 +45,7 @@ import TipCarousel from '../components/TipCarousel';
 
 interface BirdManagerProps {
   state: AppState;
-  addBird: (bird: Bird) => void;
+  addBird: (bird: Bird) => Promise<boolean>;
   updateBird: (bird: Bird) => void;
   deleteBird: (id: string) => void;
   restoreBird?: (id: string) => void;
@@ -82,7 +82,7 @@ const BirdManager: React.FC<BirdManagerProps> = ({
   const [labForm, setLabForm] = useState({ laboratory: '', sentDate: new Date().toISOString().split('T')[0] });
   const [resultForm, setResultForm] = useState({ birdId: '', resultDate: new Date().toISOString().split('T')[0], sex: 'Macho' as Sex, protocol: '', attachmentUrl: '' });
 
-  // Filtros Avançados
+  // Filtros Avan├ºados
   const [showFilters, setShowFilters] = useState(false);
   const [filterSpecies, setFilterSpecies] = useState('');
   const [filterSex, setFilterSex] = useState('');
@@ -104,8 +104,8 @@ const BirdManager: React.FC<BirdManagerProps> = ({
   // Ref para Upload de Foto da Ave
   const birdPhotoInputRef = useRef<HTMLInputElement>(null);
 
-  // Verificação de Plano
-  const isLimitReached = !isAdmin && state.settings.plan === 'Básico' && state.birds.length >= MAX_FREE_BIRDS;
+  // Verifica├º├úo de Plano
+  const isLimitReached = !isAdmin && state.settings.plan === 'B├ísico' && state.birds.length >= MAX_FREE_BIRDS;
   const isPro = isAdmin || state.settings.plan === 'Profissional' || !!state.settings.trialEndDate;
 
   // New Bird State
@@ -113,8 +113,8 @@ const BirdManager: React.FC<BirdManagerProps> = ({
     sex: 'Indeterminado',
     status: 'Ativo',
     species: BRAZILIAN_SPECIES[0],
-    classification: 'Não Definido',
-    songTrainingStatus: 'Não Iniciado',
+    classification: 'N├úo Definido',
+    songTrainingStatus: 'N├úo Iniciado',
     isRepeater: false,
     photoUrl: getDefaultBirdImage(BRAZILIAN_SPECIES[0], 'Indeterminado'),
     birthDate: new Date().toISOString().split('T')[0],
@@ -143,7 +143,7 @@ const BirdManager: React.FC<BirdManagerProps> = ({
     if (!entry) return [];
     return [
       { label: 'Macho', url: entry.male },
-      { label: 'Fêmea', url: entry.female }
+      { label: 'F├¬mea', url: entry.female }
     ];
   };
 
@@ -194,13 +194,13 @@ const BirdManager: React.FC<BirdManagerProps> = ({
 
         <div className="space-y-3">
           <div className="flex items-center justify-between">
-            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Acervo da espécie</p>
+            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Acervo da esp├®cie</p>
             <button
               type="button"
               onClick={() => applyDefaultIcon(bird, isEditMode)}
               className="text-[10px] font-black uppercase tracking-widest text-slate-500 hover:text-brand transition-colors"
             >
-              Usar ícone padrão
+              Usar ├¡cone padr├úo
             </button>
           </div>
 
@@ -224,7 +224,7 @@ const BirdManager: React.FC<BirdManagerProps> = ({
               })}
             </div>
           ) : (
-            <p className="text-[10px] text-slate-400">Sem imagens desta espécie no acervo.</p>
+            <p className="text-[10px] text-slate-400">Sem imagens desta esp├®cie no acervo.</p>
           )}
 
           <div className="flex items-center gap-2">
@@ -265,11 +265,11 @@ const BirdManager: React.FC<BirdManagerProps> = ({
   
   const [manualAncestorsForm, setManualAncestorsForm] = useState({
     f: '', // Pai
-    ff: '', // Avô Paterno
-    fm: '', // Avó Paterna
-    m: '', // Mãe
-    mf: '', // Avô Materno
-    mm: '' // Avó Materna
+    ff: '', // Av├┤ Paterno
+    fm: '', // Av├│ Paterna
+    m: '', // M├úe
+    mf: '', // Av├┤ Materno
+    mm: '' // Av├│ Materna
   });
 
   // Effect to populate manual ancestors form when editing starts
@@ -322,7 +322,7 @@ const BirdManager: React.FC<BirdManagerProps> = ({
     return months > 0 ? `${years}a ${months}m` : `${years} anos`;
   };
 
-  // Lista dinâmica de espécies para o filtro (Padrão + Cadastradas)
+  // Lista din├ómica de esp├®cies para o filtro (Padr├úo + Cadastradas)
   const availableSpecies = useMemo(() => {
     const registeredSpecies = state.birds.map(b => b.species);
     const uniqueSpecies = Array.from(new Set([...BRAZILIAN_SPECIES, ...registeredSpecies])).sort();
@@ -349,7 +349,7 @@ const BirdManager: React.FC<BirdManagerProps> = ({
   const waitingResultBirds = state.birds.filter(b => b.sexing?.sentDate && !b.sexing?.resultDate);
 
   const males = state.birds.filter(b => b.sex === 'Macho');
-  const females = state.birds.filter(b => b.sex === 'Fêmea');
+  const females = state.birds.filter(b => b.sex === 'F├¬mea');
   const getMedicationName = (id: string) => state.medications.find(m => m.id === id)?.name || 'Medicamento';
   const getMedicationHistoryForBird = (birdId: string) =>
     state.applications
@@ -389,10 +389,10 @@ const BirdManager: React.FC<BirdManagerProps> = ({
         // Process Genealogy
         processGenealogyForSave(birdToSave);
 
-        try {
-          await addBird(birdToSave);
-        } catch (err) {
-          console.error('Erro ao salvar ave:', err);
+        const saved = await addBird(birdToSave);
+        if (!saved) {
+          alert('Erro ao salvar ave. Tente novamente.');
+          return;
         }
 
         setShowModal(false);
@@ -439,17 +439,17 @@ const BirdManager: React.FC<BirdManagerProps> = ({
     setSelectedBird(updatedBird as Bird);
   };
 
-  // Função de Edição Rápida (Sem entrar no modo de edição)
+  // Fun├º├úo de Edi├º├úo R├ípida (Sem entrar no modo de edi├º├úo)
   const handleQuickFieldUpdate = (birdId: string, field: keyof Bird, value: any) => {
     const birdToUpdate = state.birds.find(b => b.id === birdId);
     if (birdToUpdate) {
       const updated = { ...birdToUpdate, [field]: value };
       updateBird(updated);
-      setSelectedBird(updated); // Atualiza o modal aberto também
+      setSelectedBird(updated); // Atualiza o modal aberto tamb├®m
     }
   };
 
-  // --- FUNÇÃO DE UPLOAD DE FOTO (PRO) ---
+  // --- FUN├ç├âO DE UPLOAD DE FOTO (PRO) ---
   const handlePhotoClick = () => {
     if (isPro) {
       birdPhotoInputRef.current?.click();
@@ -462,7 +462,7 @@ const BirdManager: React.FC<BirdManagerProps> = ({
     const file = e.target.files?.[0];
     if (file) {
       if (file.size > 2 * 1024 * 1024) {
-        alert("A imagem deve ter no máximo 2MB.");
+        alert("A imagem deve ter no m├íximo 2MB.");
         return;
       }
       const reader = new FileReader();
@@ -478,7 +478,7 @@ const BirdManager: React.FC<BirdManagerProps> = ({
     }
   };
 
-  // --- FUNÇÕES DE DOCUMENTOS ---
+  // --- FUN├ç├òES DE DOCUMENTOS ---
   
   const handleAddDocument = (e: React.FormEvent) => {
     e.preventDefault();
@@ -552,7 +552,7 @@ const BirdManager: React.FC<BirdManagerProps> = ({
     window.open(url, '_blank', 'noopener,noreferrer');
   };
 
-  // --- FUNÇÕES DA CENTRAL DE SEXAGEM ---
+  // --- FUN├ç├òES DA CENTRAL DE SEXAGEM ---
 
   const handleToggleSelectForSexing = (birdId: string) => {
     if (selectedForSexing.includes(birdId)) {
@@ -572,7 +572,7 @@ const BirdManager: React.FC<BirdManagerProps> = ({
           ...bird,
           sexing: {
             ...bird.sexing,
-            protocol: '', // Será preenchido ou deixado em branco
+            protocol: '', // Ser├í preenchido ou deixado em branco
             laboratory: labForm.laboratory,
             sentDate: labForm.sentDate
           }
@@ -607,7 +607,7 @@ const BirdManager: React.FC<BirdManagerProps> = ({
           date: resultForm.resultDate,
           type: 'Exame',
           url: resultForm.attachmentUrl, // Salva o anexo aqui
-          notes: `Laboratório: ${bird.sexing?.laboratory || 'N/A'}. Resultado: ${resultForm.sex}`
+          notes: `Laborat├│rio: ${bird.sexing?.laboratory || 'N/A'}. Resultado: ${resultForm.sex}`
       };
 
       const existingDocs = bird.documents || [];
@@ -615,10 +615,10 @@ const BirdManager: React.FC<BirdManagerProps> = ({
       updateBird({
         ...bird,
         sex: resultForm.sex, // ATUALIZA O SEXO DA AVE NO PLANTEL
-        documents: [...existingDocs, newSexingDoc], // ADICIONA AO REPOSITÓRIO DE DOCS
+        documents: [...existingDocs, newSexingDoc], // ADICIONA AO REPOSIT├ôRIO DE DOCS
         sexing: {
           ...bird.sexing,
-          // Mantém dados anteriores
+          // Mant├®m dados anteriores
           laboratory: bird.sexing?.laboratory || '',
           sentDate: bird.sexing?.sentDate || '',
           // Novos dados
@@ -633,7 +633,7 @@ const BirdManager: React.FC<BirdManagerProps> = ({
 
   // ------------------------------------
 
-  // Função isolada e direta para DELETAR (Mover para Lixeira)
+  // Fun├º├úo isolada e direta para DELETAR (Mover para Lixeira)
   const handleDeleteClick = (id: string) => {
     (async () => {
       try {
@@ -663,28 +663,28 @@ const BirdManager: React.FC<BirdManagerProps> = ({
       photoUrl: getDefaultBirdImage(BRAZILIAN_SPECIES[0], 'Indeterminado'),
       birthDate: new Date().toISOString().split('T')[0],
       sexing: { protocol: '', laboratory: '', sentDate: '' },
-      songTrainingStatus: 'Não Iniciado',
+      songTrainingStatus: 'N├úo Iniciado',
       songType: '',
       isRepeater: false,
-      classification: 'Não Definido'
+      classification: 'N├úo Definido'
     });
     setGenealogyMode({ father: 'plantel', mother: 'plantel' });
     setManualAncestorsForm({ f: '', ff: '', fm: '', m: '', mf: '', mm: '' });
     setActiveTab('dados');
   };
 
-  // Helpers de Renderização
+  // Helpers de Renderiza├º├úo
   const renderClassificationBadge = (cls: BirdClassification) => {
     switch (cls) {
       case 'Galador': return <span className="flex items-center gap-1 text-[8px] font-black bg-rose-50 text-rose-600 px-2 py-0.5 rounded-full uppercase"><Heart size={8} fill="currentColor" /> Galador</span>;
-      case 'Pássaro de Canto': return <span className="flex items-center gap-1 text-[8px] font-black bg-indigo-50 text-indigo-600 px-2 py-0.5 rounded-full uppercase"><Mic2 size={8} /> Canto</span>;
+      case 'P├íssaro de Canto': return <span className="flex items-center gap-1 text-[8px] font-black bg-indigo-50 text-indigo-600 px-2 py-0.5 rounded-full uppercase"><Mic2 size={8} /> Canto</span>;
       case 'Ambos': return <span className="flex items-center gap-1 text-[8px] font-black bg-purple-50 text-purple-600 px-2 py-0.5 rounded-full uppercase"><Award size={8} /> Ambos</span>;
       default: return null;
     }
   };
 
   const renderTrainingStatusBadge = (status: TrainingStatus) => {
-    if (status === 'Não Iniciado') return null;
+    if (status === 'N├úo Iniciado') return null;
     let color = 'bg-slate-100 text-slate-500';
     let label: string = status;
     let icon = <Music size={8} />;
@@ -707,7 +707,7 @@ const BirdManager: React.FC<BirdManagerProps> = ({
       <header className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <h2 className="text-3xl font-black text-[#0F172A] tracking-tight">{headerTitle}</h2>
-          {currentList === 'plantel' && state.settings.plan === 'Básico' && !isAdmin && (
+          {currentList === 'plantel' && state.settings.plan === 'B├ísico' && !isAdmin && (
             <div className="flex items-center gap-2 mt-1">
               <div className="w-24 h-1.5 bg-slate-100 rounded-full overflow-hidden">
                 <div 
@@ -716,7 +716,7 @@ const BirdManager: React.FC<BirdManagerProps> = ({
                 ></div>
               </div>
               <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
-                {state.birds.length} de {MAX_FREE_BIRDS} aves (Plano Básico)
+                {state.birds.length} de {MAX_FREE_BIRDS} aves (Plano B├ísico)
               </p>
             </div>
           )}
@@ -763,7 +763,7 @@ const BirdManager: React.FC<BirdManagerProps> = ({
               </div>
            </div>
            {/* ... (Existing Sexing Logic remains unchanged) ... */}
-           {/* Seção 1: Pendentes de Envio */}
+           {/* Se├º├úo 1: Pendentes de Envio */}
            <div className="bg-white p-6 rounded-[32px] border border-slate-100 shadow-sm">
               <div className="flex justify-between items-center mb-6">
                  <h3 className="font-black text-slate-800 flex items-center gap-3">
@@ -792,7 +792,7 @@ const BirdManager: React.FC<BirdManagerProps> = ({
                         </div>
                         <div>
                            <p className="font-bold text-slate-800 text-sm">{bird.name}</p>
-                           <p className="text-[10px] text-slate-500 font-mono">{bird.ringNumber} • {bird.species}</p>
+                           <p className="text-[10px] text-slate-500 font-mono">{bird.ringNumber} ÔÇó {bird.species}</p>
                         </div>
                      </div>
                    ))}
@@ -805,7 +805,7 @@ const BirdManager: React.FC<BirdManagerProps> = ({
               )}
            </div>
 
-           {/* Seção 2: Aguardando Resultados */}
+           {/* Se├º├úo 2: Aguardando Resultados */}
            <div className="bg-white p-6 rounded-[32px] border border-slate-100 shadow-sm">
               <h3 className="font-black text-slate-800 flex items-center gap-3 mb-6">
                  <div className="p-2 bg-blue-100 text-blue-600 rounded-xl"><Clock size={20} /></div>
@@ -829,7 +829,7 @@ const BirdManager: React.FC<BirdManagerProps> = ({
                         
                         <div className="space-y-3">
                            <div className="text-[10px] text-slate-500">
-                              <p><span className="font-bold">Laboratório:</span> {bird.sexing?.laboratory}</p>
+                              <p><span className="font-bold">Laborat├│rio:</span> {bird.sexing?.laboratory}</p>
                               <p><span className="font-bold">Enviado em:</span> {new Date(bird.sexing?.sentDate || '').toLocaleDateString('pt-BR')}</p>
                            </div>
                            
@@ -853,7 +853,7 @@ const BirdManager: React.FC<BirdManagerProps> = ({
         </div>
       )}
 
-      {/* --- MODO LISTA DE PLANTEL (PADRÃO) --- */}
+      {/* --- MODO LISTA DE PLANTEL (PADR├âO) --- */}
       {currentList === 'plantel' && (
         <div className="space-y-4">
           {/* ... (Search and filter logic remains the same) ... */}
@@ -904,7 +904,7 @@ const BirdManager: React.FC<BirdManagerProps> = ({
                </div>
                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   <div>
-                     <label className="block text-[10px] font-bold text-slate-400 uppercase mb-1">Espécie</label>
+                     <label className="block text-[10px] font-bold text-slate-400 uppercase mb-1">Esp├®cie</label>
                      <select 
                        value={filterSpecies}
                        onChange={(e) => setFilterSpecies(e.target.value)}
@@ -923,7 +923,7 @@ const BirdManager: React.FC<BirdManagerProps> = ({
                      >
                        <option value="">Todos</option>
                        <option value="Macho">Macho</option>
-                       <option value="Fêmea">Fêmea</option>
+                       <option value="F├¬mea">F├¬mea</option>
                        <option value="Indeterminado">Indeterminado</option>
                      </select>
                   </div>
@@ -935,7 +935,7 @@ const BirdManager: React.FC<BirdManagerProps> = ({
                        className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-700 outline-none focus:border-brand"
                      >
                        <option value="">Todos</option>
-                       <option value="Não Iniciado">Não Iniciado</option>
+                       <option value="N├úo Iniciado">N├úo Iniciado</option>
                        <option value="Pardo (Aprendizado)">Pardo (Aprendizado)</option>
                        <option value="Em Encarte">Em Encarte</option>
                        <option value="Fixado">Mestre (Fixado)</option>
@@ -950,7 +950,7 @@ const BirdManager: React.FC<BirdManagerProps> = ({
       {currentList === 'lixeira' && (
          <div className="bg-rose-50 border-l-4 border-rose-500 p-4 rounded-r-xl">
             <p className="text-rose-700 font-bold text-sm">Aves na Lixeira</p>
-            <p className="text-rose-600 text-xs">Aqui você pode restaurar aves excluídas acidentalmente ou removê-las permanentemente.</p>
+            <p className="text-rose-600 text-xs">Aqui voc├¬ pode restaurar aves exclu├¡das acidentalmente ou remov├¬-las permanentemente.</p>
             <p className="text-rose-600 text-xs mt-1">Itens ficam disponiveis por ate 30 dias na lixeira antes de serem removidos automaticamente.</p>
          </div>
       )}
@@ -958,12 +958,12 @@ const BirdManager: React.FC<BirdManagerProps> = ({
       {currentList !== 'sexagem' && (
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6">
         {filteredBirds.map((bird) => (
-          /* CARTÃO COM ESTRUTURA REVISADA */
+          /* CART├âO COM ESTRUTURA REVISADA */
           <div 
             key={bird.id} 
             className={`group relative bg-white rounded-3xl border overflow-hidden shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300 flex flex-col ${currentList === 'lixeira' ? 'border-rose-100 opacity-90' : 'border-slate-100'}`}
           >
-            {/* CONTEÚDO DO CARTÃO (ABRE MODAL) */}
+            {/* CONTE├ÜDO DO CART├âO (ABRE MODAL) */}
             <div 
               className="flex-1 cursor-pointer w-full h-full flex flex-col"
               onClick={() => { 
@@ -976,7 +976,7 @@ const BirdManager: React.FC<BirdManagerProps> = ({
                   <img src={resolveBirdPhoto(bird)} className={`w-full h-full object-cover ${currentList === 'lixeira' ? 'grayscale opacity-50' : ''}`} />
                   <div className={`absolute top-3 left-3 px-2 py-0.5 rounded-lg text-[8px] font-black uppercase border shadow-sm ${
                       bird.sex === 'Macho' ? 'bg-blue-50 text-blue-600 border-blue-100' : 
-                      bird.sex === 'Fêmea' ? 'bg-pink-50 text-pink-600 border-pink-100' : 
+                      bird.sex === 'F├¬mea' ? 'bg-pink-50 text-pink-600 border-pink-100' : 
                       'bg-slate-50 text-slate-500 border-slate-200'
                   }`}>
                       {bird.sex}
@@ -1027,7 +1027,7 @@ const BirdManager: React.FC<BirdManagerProps> = ({
                 </div>
             </div>
 
-            {/* BARRA DE AÇÕES INFERIOR - SEPARADA DO CORPO */}
+            {/* BARRA DE A├ç├òES INFERIOR - SEPARADA DO CORPO */}
             <div className={`p-2 border-t flex items-center justify-between ${currentList === 'lixeira' ? 'bg-rose-50 border-rose-100' : 'bg-slate-50 border-slate-100'}`}>
                {currentList === 'plantel' ? (
                  <div className="w-full flex justify-end">
@@ -1081,8 +1081,8 @@ const BirdManager: React.FC<BirdManagerProps> = ({
               <div className="flex gap-2">
                 {!isEditing ? (
                   <>
-                    <button onClick={() => setViewMode('details')} className={`px-6 py-2.5 rounded-2xl text-xs font-black uppercase tracking-widest transition-all ${viewMode === 'details' ? 'bg-brand text-white shadow-lg' : 'bg-slate-50 text-slate-400'}`}>Ficha Técnica</button>
-                    <button onClick={() => setViewMode('pedigree')} className={`px-6 py-2.5 rounded-2xl text-xs font-black uppercase tracking-widest transition-all ${viewMode === 'pedigree' ? 'bg-brand text-white shadow-lg' : 'bg-slate-50 text-slate-400'}`}>Árvore Genealógica</button>
+                    <button onClick={() => setViewMode('details')} className={`px-6 py-2.5 rounded-2xl text-xs font-black uppercase tracking-widest transition-all ${viewMode === 'details' ? 'bg-brand text-white shadow-lg' : 'bg-slate-50 text-slate-400'}`}>Ficha T├®cnica</button>
+                    <button onClick={() => setViewMode('pedigree')} className={`px-6 py-2.5 rounded-2xl text-xs font-black uppercase tracking-widest transition-all ${viewMode === 'pedigree' ? 'bg-brand text-white shadow-lg' : 'bg-slate-50 text-slate-400'}`}>├ürvore Geneal├│gica</button>
                   </>
                 ) : (
                   <h3 className="text-lg font-black text-slate-800 flex items-center gap-2">
@@ -1117,7 +1117,7 @@ const BirdManager: React.FC<BirdManagerProps> = ({
                            </div>
                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                <div className="space-y-2">
-                                  <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest">Nome / Identificação</label>
+                                  <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest">Nome / Identifica├º├úo</label>
                                   <input required className="w-full p-4 bg-white border border-slate-200 rounded-2xl font-bold text-slate-700 outline-none focus:border-brand" value={editingBird.name || ''} onChange={e => setEditingBird({...editingBird, name: e.target.value})} />
                                </div>
                                <div className="space-y-2">
@@ -1129,7 +1129,7 @@ const BirdManager: React.FC<BirdManagerProps> = ({
                            <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
                                {/* ... Campos de especie, sexo, data ... */}
                                <div className="space-y-2">
-                                  <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest">Espécie</label>
+                                  <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest">Esp├®cie</label>
                                   <div className="space-y-2">
                                     <select 
                                       className="w-full p-4 bg-white border border-slate-200 rounded-2xl font-bold text-slate-700 outline-none focus:border-brand appearance-none" 
@@ -1148,7 +1148,7 @@ const BirdManager: React.FC<BirdManagerProps> = ({
                                     {!BRAZILIAN_SPECIES.includes(editingBird.species || '') && (
                                       <input 
                                         type="text" 
-                                        placeholder="Digite o nome da espécie..." 
+                                        placeholder="Digite o nome da esp├®cie..." 
                                         className="w-full p-4 bg-slate-50 border border-brand/20 rounded-2xl font-bold text-brand outline-none focus:border-brand animate-in fade-in"
                                         value={editingBird.species || ''}
                                         onChange={e => setEditingBird({...editingBird, species: e.target.value})}
@@ -1161,7 +1161,7 @@ const BirdManager: React.FC<BirdManagerProps> = ({
                                   <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest">Sexo</label>
                                   <select className="w-full p-4 bg-white border border-slate-200 rounded-2xl font-bold text-slate-700 outline-none focus:border-brand appearance-none" value={editingBird.sex} onChange={e => setEditingBird({...editingBird, sex: e.target.value as any})}>
                                     <option value="Macho">Macho</option>
-                                    <option value="Fêmea">Fêmea</option>
+                                    <option value="F├¬mea">F├¬mea</option>
                                     <option value="Indeterminado">Indeterminado</option>
                                   </select>
                                </div>
@@ -1170,18 +1170,18 @@ const BirdManager: React.FC<BirdManagerProps> = ({
                                   <input type="date" className="w-full p-4 bg-white border border-slate-200 rounded-2xl font-bold text-slate-700 outline-none focus:border-brand" value={editingBird.birthDate} onChange={e => setEditingBird({...editingBird, birthDate: e.target.value})} />
                                </div>
                                <div className="space-y-2">
-                                  <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest">Mutação / Cor</label>
+                                  <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest">Muta├º├úo / Cor</label>
                                   <input className="w-full p-4 bg-white border border-slate-200 rounded-2xl font-bold text-slate-700 outline-none focus:border-brand" value={editingBird.colorMutation || ''} onChange={e => setEditingBird({...editingBird, colorMutation: e.target.value})} />
                                </div>
                            </div>
 
                            <div className="grid grid-cols-2 gap-6">
                               <div className="space-y-2">
-                                 <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest">Classificação</label>
+                                 <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest">Classifica├º├úo</label>
                                  <select className="w-full p-4 bg-white border border-slate-200 rounded-2xl font-bold text-slate-700 outline-none focus:border-brand appearance-none" value={editingBird.classification} onChange={e => setEditingBird({...editingBird, classification: e.target.value as any})}>
-                                   <option value="Não Definido">Não Definido</option>
+                                   <option value="N├úo Definido">N├úo Definido</option>
                                    <option value="Galador">Galador</option>
-                                   <option value="Pássaro de Canto">Pássaro de Canto</option>
+                                   <option value="P├íssaro de Canto">P├íssaro de Canto</option>
                                    <option value="Ambos">Ambos</option>
                                  </select>
                               </div>
@@ -1203,7 +1203,7 @@ const BirdManager: React.FC<BirdManagerProps> = ({
                          {/* ... (Existing Genealogy Code) ... */}
                          <div className="p-6 bg-blue-50 rounded-3xl border border-blue-100">
                             <h4 className="text-sm font-black text-blue-800 uppercase tracking-widest mb-4 flex items-center gap-2">
-                              <Dna size={16} /> Filiação Paterna
+                              <Dna size={16} /> Filia├º├úo Paterna
                             </h4>
                             <div className="flex gap-4 mb-4">
                                <button type="button" onClick={() => setGenealogyMode({...genealogyMode, father: 'plantel'})} className={`flex-1 py-2 rounded-xl text-xs font-bold transition-all ${genealogyMode.father === 'plantel' ? 'bg-blue-600 text-white shadow-lg' : 'bg-white text-blue-400'}`}>Do Plantel</button>
@@ -1219,8 +1219,8 @@ const BirdManager: React.FC<BirdManagerProps> = ({
                               <div className="space-y-3">
                                  <input placeholder="Nome do Pai" className="w-full p-3 bg-white border border-blue-200 rounded-xl text-xs font-bold" value={manualAncestorsForm.f} onChange={e => setManualAncestorsForm({...manualAncestorsForm, f: e.target.value})} />
                                  <div className="grid grid-cols-2 gap-3">
-                                   <input placeholder="Avô Paterno" className="w-full p-3 bg-white border border-blue-200 rounded-xl text-xs font-bold" value={manualAncestorsForm.ff} onChange={e => setManualAncestorsForm({...manualAncestorsForm, ff: e.target.value})} />
-                                   <input placeholder="Avó Paterna" className="w-full p-3 bg-white border border-blue-200 rounded-xl text-xs font-bold" value={manualAncestorsForm.fm} onChange={e => setManualAncestorsForm({...manualAncestorsForm, fm: e.target.value})} />
+                                   <input placeholder="Av├┤ Paterno" className="w-full p-3 bg-white border border-blue-200 rounded-xl text-xs font-bold" value={manualAncestorsForm.ff} onChange={e => setManualAncestorsForm({...manualAncestorsForm, ff: e.target.value})} />
+                                   <input placeholder="Av├│ Paterna" className="w-full p-3 bg-white border border-blue-200 rounded-xl text-xs font-bold" value={manualAncestorsForm.fm} onChange={e => setManualAncestorsForm({...manualAncestorsForm, fm: e.target.value})} />
                                  </div>
                               </div>
                             )}
@@ -1228,7 +1228,7 @@ const BirdManager: React.FC<BirdManagerProps> = ({
 
                          <div className="p-6 bg-pink-50 rounded-3xl border border-pink-100">
                             <h4 className="text-sm font-black text-pink-800 uppercase tracking-widest mb-4 flex items-center gap-2">
-                              <Dna size={16} /> Filiação Materna
+                              <Dna size={16} /> Filia├º├úo Materna
                             </h4>
                             <div className="flex gap-4 mb-4">
                                <button type="button" onClick={() => setGenealogyMode({...genealogyMode, mother: 'plantel'})} className={`flex-1 py-2 rounded-xl text-xs font-bold transition-all ${genealogyMode.mother === 'plantel' ? 'bg-pink-600 text-white shadow-lg' : 'bg-white text-pink-400'}`}>Do Plantel</button>
@@ -1237,15 +1237,15 @@ const BirdManager: React.FC<BirdManagerProps> = ({
                             
                             {genealogyMode.mother === 'plantel' ? (
                               <select className="w-full p-4 bg-white border border-pink-200 rounded-2xl font-bold text-slate-700 outline-none" value={editingBird.motherId || ''} onChange={e => setEditingBird({...editingBird, motherId: e.target.value})}>
-                                <option value="">Selecione a Mãe...</option>
+                                <option value="">Selecione a M├úe...</option>
                                 {females.filter(f => f.id !== editingBird.id).map(f => <option key={f.id} value={f.id}>{f.name} - {f.ringNumber}</option>)}
                               </select>
                             ) : (
                               <div className="space-y-3">
-                                 <input placeholder="Nome da Mãe" className="w-full p-3 bg-white border border-pink-200 rounded-xl text-xs font-bold" value={manualAncestorsForm.m} onChange={e => setManualAncestorsForm({...manualAncestorsForm, m: e.target.value})} />
+                                 <input placeholder="Nome da M├úe" className="w-full p-3 bg-white border border-pink-200 rounded-xl text-xs font-bold" value={manualAncestorsForm.m} onChange={e => setManualAncestorsForm({...manualAncestorsForm, m: e.target.value})} />
                                  <div className="grid grid-cols-2 gap-3">
-                                   <input placeholder="Avô Materno" className="w-full p-3 bg-white border border-pink-200 rounded-xl text-xs font-bold" value={manualAncestorsForm.mf} onChange={e => setManualAncestorsForm({...manualAncestorsForm, mf: e.target.value})} />
-                                   <input placeholder="Avó Materna" className="w-full p-3 bg-white border border-pink-200 rounded-xl text-xs font-bold" value={manualAncestorsForm.mm} onChange={e => setManualAncestorsForm({...manualAncestorsForm, mm: e.target.value})} />
+                                   <input placeholder="Av├┤ Materno" className="w-full p-3 bg-white border border-pink-200 rounded-xl text-xs font-bold" value={manualAncestorsForm.mf} onChange={e => setManualAncestorsForm({...manualAncestorsForm, mf: e.target.value})} />
+                                   <input placeholder="Av├│ Materna" className="w-full p-3 bg-white border border-pink-200 rounded-xl text-xs font-bold" value={manualAncestorsForm.mm} onChange={e => setManualAncestorsForm({...manualAncestorsForm, mm: e.target.value})} />
                                  </div>
                               </div>
                             )}
@@ -1255,14 +1255,14 @@ const BirdManager: React.FC<BirdManagerProps> = ({
 
                     {activeTab === 'docs' && (
                         <div className="space-y-8 animate-in fade-in duration-300">
-                            {/* Área de Adicionar Novo Documento */}
+                            {/* ├ürea de Adicionar Novo Documento */}
                             <div className="p-6 bg-slate-50 rounded-3xl border border-slate-100">
                                 <h4 className="text-sm font-black text-slate-700 uppercase tracking-widest mb-4 flex items-center gap-2">
                                     <FolderOpen size={16} /> Adicionar Documento
                                 </h4>
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                     <input 
-                                        placeholder="Título (ex: Exame de Fezes)" 
+                                        placeholder="T├¡tulo (ex: Exame de Fezes)" 
                                         className="w-full p-3 bg-white border border-slate-200 rounded-xl text-xs font-bold" 
                                         value={newDocForm.title || ''} 
                                         onChange={e => setNewDocForm({...newDocForm, title: e.target.value})} 
@@ -1333,7 +1333,7 @@ const BirdManager: React.FC<BirdManagerProps> = ({
                                                     </div>
                                                     <div>
                                                         <p className="text-sm font-bold text-slate-800">{doc.title}</p>
-                                                        <p className="text-[10px] text-slate-400 font-bold uppercase">{new Date(doc.date).toLocaleDateString('pt-BR')} • {doc.type}</p>
+                                                        <p className="text-[10px] text-slate-400 font-bold uppercase">{new Date(doc.date).toLocaleDateString('pt-BR')} ÔÇó {doc.type}</p>
                                                         {doc.notes && <p className="text-[10px] text-slate-500 mt-1 max-w-xs truncate">{doc.notes}</p>}
                                                     </div>
                                                 </div>
@@ -1379,10 +1379,10 @@ const BirdManager: React.FC<BirdManagerProps> = ({
 
                     <div className="grid grid-cols-2 gap-4 pt-6 border-t border-slate-100">
                         <button type="button" onClick={() => { setIsEditing(false); setEditingBird(selectedBird); }} className="w-full py-4 bg-slate-100 text-slate-500 rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-slate-200">
-                          Cancelar Edição
+                          Cancelar Edi├º├úo
                         </button>
                         <button type="submit" className="w-full py-4 bg-brand text-white rounded-2xl font-black text-xs uppercase tracking-widest flex items-center justify-center gap-2 shadow-lg shadow-brand/20">
-                          <Save size={18} /> Salvar Alterações
+                          <Save size={18} /> Salvar Altera├º├Áes
                         </button>
                     </div>
                  </form>
@@ -1408,7 +1408,7 @@ const BirdManager: React.FC<BirdManagerProps> = ({
                          {/* ... (Existing Details Card) ... */}
                          <div className="bg-white p-10 rounded-[32px] border border-slate-100 shadow-sm space-y-8">
                             <div className="flex justify-between">
-                               <h3 className="text-xl font-black text-slate-800">Dados Básicos</h3>
+                               <h3 className="text-xl font-black text-slate-800">Dados B├ísicos</h3>
                                <span className={`px-3 py-1 rounded-lg text-xs font-black uppercase ${selectedBird.status === 'Ativo' ? 'bg-emerald-50 text-emerald-600' : 'bg-slate-100 text-slate-500'}`}>{selectedBird.status}</span>
                             </div>
                             
@@ -1422,7 +1422,7 @@ const BirdManager: React.FC<BirdManagerProps> = ({
                                  <p className="text-lg font-bold text-slate-800 mt-1">{selectedBird.ringNumber}</p>
                                </div>
                                <div>
-                                 <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Espécie</p>
+                                 <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Esp├®cie</p>
                                  <p className="text-sm font-bold text-slate-800 mt-1">{selectedBird.species}</p>
                                </div>
                                <div>
@@ -1436,7 +1436,7 @@ const BirdManager: React.FC<BirdManagerProps> = ({
                             </div>
                          </div>
 
-                         {/* Seção Resumida de Documentos (Visualização Rápida) */}
+                         {/* Se├º├úo Resumida de Documentos (Visualiza├º├úo R├ípida) */}
                          <div className="bg-white p-8 rounded-[32px] border border-slate-100 shadow-sm">
                             <div className="flex justify-between items-center mb-6">
                                <h3 className="text-sm font-black text-slate-700 uppercase tracking-widest flex items-center gap-2">
@@ -1487,7 +1487,7 @@ const BirdManager: React.FC<BirdManagerProps> = ({
                          <div className="bg-white p-8 rounded-[32px] border border-slate-100 shadow-sm">
                             <div className="flex justify-between items-center mb-6">
                                <h3 className="text-sm font-black text-slate-700 uppercase tracking-widest flex items-center gap-2">
-                                 <Syringe size={16} className="text-emerald-500" /> Histórico de Medicações
+                                 <Syringe size={16} className="text-emerald-500" /> Hist├│rico de Medica├º├Áes
                                </h3>
                                <span className="text-[10px] font-black text-slate-400 bg-slate-50 px-2 py-1 rounded-lg uppercase">
                                  {selectedBirdMedHistory.length}
@@ -1501,39 +1501,39 @@ const BirdManager: React.FC<BirdManagerProps> = ({
                                         <div className="min-w-0">
                                            <p className="text-xs font-bold text-slate-800 truncate">{getMedicationName(app.medicationId)}</p>
                                            <p className="text-[10px] text-slate-400 font-bold uppercase mt-1">
-                                             {new Date(app.date).toLocaleDateString('pt-BR')} • {app.dosage}
+                                             {new Date(app.date).toLocaleDateString('pt-BR')} ÔÇó {app.dosage}
                                            </p>
                                            {app.notes && <p className="text-[10px] text-slate-500 mt-1 truncate">{app.notes}</p>}
                                         </div>
-                                        <span className="text-[9px] font-black text-emerald-500 uppercase">Aplicação</span>
+                                        <span className="text-[9px] font-black text-emerald-500 uppercase">Aplica├º├úo</span>
                                      </div>
                                   ))}
                                   {selectedBirdMedHistory.length > 5 && (
-                                     <p className="text-[10px] text-slate-400 font-bold">+{selectedBirdMedHistory.length - 5} aplicações</p>
+                                     <p className="text-[10px] text-slate-400 font-bold">+{selectedBirdMedHistory.length - 5} aplica├º├Áes</p>
                                   )}
                                </div>
                             ) : (
-                               <p className="text-xs text-slate-400 italic">Nenhuma aplicação registrada para esta ave.</p>
+                               <p className="text-xs text-slate-400 italic">Nenhuma aplica├º├úo registrada para esta ave.</p>
                             )}
                          </div>
 
-                         {/* NOVA SEÇÃO: Gestão Rápida de Status */}
+                         {/* NOVA SE├ç├âO: Gest├úo R├ípida de Status */}
                          <div className="bg-slate-50 p-8 rounded-[32px] border border-slate-100 shadow-inner space-y-6">
                             <h3 className="text-sm font-black text-slate-700 uppercase tracking-widest flex items-center gap-2">
-                              <Zap size={16} className="text-amber-500" /> Gestão Rápida
+                              <Zap size={16} className="text-amber-500" /> Gest├úo R├ípida
                             </h3>
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                <div>
-                                  <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Classificação</label>
+                                  <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Classifica├º├úo</label>
                                   <div className="relative">
                                     <select 
                                       className="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl font-bold text-slate-700 appearance-none outline-none focus:border-brand shadow-sm cursor-pointer"
                                       value={selectedBird.classification}
                                       onChange={(e) => handleQuickFieldUpdate(selectedBird.id, 'classification', e.target.value)}
                                     >
-                                      <option value="Não Definido">Não Definido</option>
+                                      <option value="N├úo Definido">N├úo Definido</option>
                                       <option value="Galador">Galador</option>
-                                      <option value="Pássaro de Canto">Pássaro de Canto</option>
+                                      <option value="P├íssaro de Canto">P├íssaro de Canto</option>
                                       <option value="Ambos">Ambos</option>
                                     </select>
                                     <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400">
@@ -1550,7 +1550,7 @@ const BirdManager: React.FC<BirdManagerProps> = ({
                                       value={selectedBird.songTrainingStatus}
                                       onChange={(e) => handleQuickFieldUpdate(selectedBird.id, 'songTrainingStatus', e.target.value)}
                                     >
-                                      <option value="Não Iniciado">Não Iniciado</option>
+                                      <option value="N├úo Iniciado">N├úo Iniciado</option>
                                       <option value="Pardo (Aprendizado)">Pardo (Aprendizado)</option>
                                       <option value="Em Encarte">Em Encarte / Andamento</option>
                                       <option value="Fixado">Mestre (Fixado)</option>
@@ -1568,7 +1568,7 @@ const BirdManager: React.FC<BirdManagerProps> = ({
                    /* ... (Genealogy Tree View) ... */
                    <div className="flex flex-col lg:flex-row gap-12">
                        <div className="w-full lg:w-72 space-y-6 no-print">
-                          <div className="bg-white p-8 rounded-[32px] border border-slate-100 shadow-sm"><h4 className="text-[10px] font-black text-slate-300 uppercase tracking-[0.2em] mb-6">Informações</h4></div>
+                          <div className="bg-white p-8 rounded-[32px] border border-slate-100 shadow-sm"><h4 className="text-[10px] font-black text-slate-300 uppercase tracking-[0.2em] mb-6">Informa├º├Áes</h4></div>
                           <button onClick={() => window.print()} className="w-full py-4 bg-brand text-white rounded-2xl font-black text-xs uppercase tracking-widest flex items-center justify-center gap-2 shadow-lg">Imprimir</button>
                        </div>
                        <div id="printable-pedigree" className="flex-1 bg-white rounded-[40px] border border-slate-100 p-8 shadow-sm">
@@ -1582,7 +1582,7 @@ const BirdManager: React.FC<BirdManagerProps> = ({
         </div>
       )}
 
-      {/* ... (Modal de Nova Ave - Código existente) ... */}
+      {/* ... (Modal de Nova Ave - C├│digo existente) ... */}
       {showModal && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4 animate-in fade-in zoom-in-95 duration-200">
           <div className="bg-white rounded-[40px] w-full max-w-4xl shadow-2xl overflow-hidden flex flex-col max-h-[95vh]">
@@ -1595,7 +1595,7 @@ const BirdManager: React.FC<BirdManagerProps> = ({
             </div>
             
             <form onSubmit={handleSaveBird} className="flex-1 overflow-y-auto bg-[#FBFCFD]">
-               {/* ... (Tabs de Nova Ave e Conteúdo de Dados/Genealogia - inalterado) ... */}
+               {/* ... (Tabs de Nova Ave e Conte├║do de Dados/Genealogia - inalterado) ... */}
                <div className="flex border-b border-slate-100 px-8 bg-white sticky top-0 z-10">
                   <button type="button" onClick={() => setActiveTab('dados')} className={`px-6 py-4 text-xs font-black uppercase tracking-widest border-b-2 transition-all ${activeTab === 'dados' ? 'border-brand text-brand' : 'border-transparent text-slate-400 hover:text-slate-600'}`}>Dados Cadastrais</button>
                   <button type="button" onClick={() => setActiveTab('genealogia')} className={`px-6 py-4 text-xs font-black uppercase tracking-widest border-b-2 transition-all ${activeTab === 'genealogia' ? 'border-brand text-brand' : 'border-transparent text-slate-400 hover:text-slate-600'}`}>Genealogia</button>
@@ -1611,7 +1611,7 @@ const BirdManager: React.FC<BirdManagerProps> = ({
                       </div>
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                           <div className="space-y-2">
-                             <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest">Nome / Identificação</label>
+                             <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest">Nome / Identifica├º├úo</label>
                              <input required placeholder="Ex: Mestre Cantor" className="w-full p-4 bg-white border border-slate-200 rounded-2xl font-bold text-slate-700 outline-none focus:border-brand" value={newBird.name || ''} onChange={e => setNewBird({...newBird, name: e.target.value})} />
                           </div>
                           <div className="space-y-2">
@@ -1622,29 +1622,29 @@ const BirdManager: React.FC<BirdManagerProps> = ({
                       <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
                           {/* ... Selects de Especie, Sexo, Data ... */}
                           <div className="space-y-2">
-                             <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest">Espécie</label>
+                             <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest">Esp├®cie</label>
                              <div className="space-y-2">
                               <select className="w-full p-4 bg-white border border-slate-200 rounded-2xl font-bold text-slate-700 outline-none focus:border-brand appearance-none" value={BRAZILIAN_SPECIES.includes(newBird.species || '') ? newBird.species : 'custom'} onChange={e => { if (e.target.value === 'custom') { updateNewBirdWithDefaultPhoto({ species: '' }); } else { updateNewBirdWithDefaultPhoto({ species: e.target.value }); } }}> {BRAZILIAN_SPECIES.map(s => <option key={s} value={s}>{s}</option>)} <option value="custom">Outra (Digitar Nova)...</option> </select>
-                               {(!BRAZILIAN_SPECIES.includes(newBird.species || '')) && (<input type="text" placeholder="Digite o nome da nova espécie" className="w-full p-4 bg-slate-50 border border-brand/20 rounded-2xl font-bold text-brand outline-none focus:border-brand animate-in fade-in" value={newBird.species || ''} onChange={e => updateNewBirdWithDefaultPhoto({ species: e.target.value })} autoFocus />)}
+                               {(!BRAZILIAN_SPECIES.includes(newBird.species || '')) && (<input type="text" placeholder="Digite o nome da nova esp├®cie" className="w-full p-4 bg-slate-50 border border-brand/20 rounded-2xl font-bold text-brand outline-none focus:border-brand animate-in fade-in" value={newBird.species || ''} onChange={e => updateNewBirdWithDefaultPhoto({ species: e.target.value })} autoFocus />)}
                              </div>
                           </div>
                           <div className="space-y-2">
                              <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest">Sexo</label>
-                             <select className="w-full p-4 bg-white border border-slate-200 rounded-2xl font-bold text-slate-700 outline-none focus:border-brand appearance-none" value={newBird.sex} onChange={e => updateNewBirdWithDefaultPhoto({ sex: e.target.value as Sex })}> <option value="Macho">Macho</option> <option value="Fêmea">Fêmea</option> <option value="Indeterminado">Indeterminado</option> </select>
+                             <select className="w-full p-4 bg-white border border-slate-200 rounded-2xl font-bold text-slate-700 outline-none focus:border-brand appearance-none" value={newBird.sex} onChange={e => updateNewBirdWithDefaultPhoto({ sex: e.target.value as Sex })}> <option value="Macho">Macho</option> <option value="F├¬mea">F├¬mea</option> <option value="Indeterminado">Indeterminado</option> </select>
                           </div>
                           <div className="space-y-2">
                              <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest">Data Nasc.</label>
                              <input type="date" className="w-full p-4 bg-white border border-slate-200 rounded-2xl font-bold text-slate-700 outline-none focus:border-brand" value={newBird.birthDate} onChange={e => setNewBird({...newBird, birthDate: e.target.value})} />
                           </div>
                           <div className="space-y-2">
-                             <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest">Mutação / Cor</label>
-                             <input placeholder="Ex: Clássico" className="w-full p-4 bg-white border border-slate-200 rounded-2xl font-bold text-slate-700 outline-none focus:border-brand" value={newBird.colorMutation || ''} onChange={e => setNewBird({...newBird, colorMutation: e.target.value})} />
+                             <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest">Muta├º├úo / Cor</label>
+                             <input placeholder="Ex: Cl├íssico" className="w-full p-4 bg-white border border-slate-200 rounded-2xl font-bold text-slate-700 outline-none focus:border-brand" value={newBird.colorMutation || ''} onChange={e => setNewBird({...newBird, colorMutation: e.target.value})} />
                           </div>
                       </div>
                       <div className="grid grid-cols-2 gap-6">
                           <div className="space-y-2">
-                             <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest">Classificação</label>
-                             <select className="w-full p-4 bg-white border border-slate-200 rounded-2xl font-bold text-slate-700 outline-none focus:border-brand appearance-none" value={newBird.classification} onChange={e => setNewBird({...newBird, classification: e.target.value as any})}> <option value="Não Definido">Não Definido</option> <option value="Galador">Galador</option> <option value="Pássaro de Canto">Pássaro de Canto</option> <option value="Ambos">Ambos</option> </select>
+                             <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest">Classifica├º├úo</label>
+                             <select className="w-full p-4 bg-white border border-slate-200 rounded-2xl font-bold text-slate-700 outline-none focus:border-brand appearance-none" value={newBird.classification} onChange={e => setNewBird({...newBird, classification: e.target.value as any})}> <option value="N├úo Definido">N├úo Definido</option> <option value="Galador">Galador</option> <option value="P├íssaro de Canto">P├íssaro de Canto</option> <option value="Ambos">Ambos</option> </select>
                           </div>
                           <div className="space-y-2">
                              <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest">Status</label>
@@ -1652,7 +1652,7 @@ const BirdManager: React.FC<BirdManagerProps> = ({
                           </div>
                           <div className="space-y-2">
                              <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest">Fase de Canto</label>
-                             <select className="w-full p-4 bg-white border border-slate-200 rounded-2xl font-bold text-slate-700 outline-none focus:border-brand appearance-none" value={newBird.songTrainingStatus} onChange={e => setNewBird({...newBird, songTrainingStatus: e.target.value as any})}> <option value="Não Iniciado">Não Iniciado</option> <option value="Pardo (Aprendizado)">Pardo (Aprendizado)</option> <option value="Em Encarte">Em Encarte / Andamento</option> <option value="Fixado">Mestre (Fixado)</option> </select>
+                             <select className="w-full p-4 bg-white border border-slate-200 rounded-2xl font-bold text-slate-700 outline-none focus:border-brand appearance-none" value={newBird.songTrainingStatus} onChange={e => setNewBird({...newBird, songTrainingStatus: e.target.value as any})}> <option value="N├úo Iniciado">N├úo Iniciado</option> <option value="Pardo (Aprendizado)">Pardo (Aprendizado)</option> <option value="Em Encarte">Em Encarte / Andamento</option> <option value="Fixado">Mestre (Fixado)</option> </select>
                           </div>
                       </div>
                    </div>
@@ -1662,14 +1662,14 @@ const BirdManager: React.FC<BirdManagerProps> = ({
                    /* ... (Genealogy in New Modal - same as previous) ... */
                    <div className="space-y-8">
                       <div className="p-6 bg-blue-50 rounded-3xl border border-blue-100">
-                         <h4 className="text-sm font-black text-blue-800 uppercase tracking-widest mb-4 flex items-center gap-2"> <Dna size={16} /> Filiação Paterna </h4>
+                         <h4 className="text-sm font-black text-blue-800 uppercase tracking-widest mb-4 flex items-center gap-2"> <Dna size={16} /> Filia├º├úo Paterna </h4>
                          <div className="flex gap-4 mb-4"> <button type="button" onClick={() => setGenealogyMode({...genealogyMode, father: 'plantel'})} className={`flex-1 py-2 rounded-xl text-xs font-bold transition-all ${genealogyMode.father === 'plantel' ? 'bg-blue-600 text-white shadow-lg' : 'bg-white text-blue-400'}`}>Do Plantel</button> <button type="button" onClick={() => setGenealogyMode({...genealogyMode, father: 'manual'})} className={`flex-1 py-2 rounded-xl text-xs font-bold transition-all ${genealogyMode.father === 'manual' ? 'bg-blue-600 text-white shadow-lg' : 'bg-white text-blue-400'}`}>Externo / Manual</button> </div>
-                         {genealogyMode.father === 'plantel' ? ( <select className="w-full p-4 bg-white border border-blue-200 rounded-2xl font-bold text-slate-700 outline-none" value={newBird.fatherId || ''} onChange={e => setNewBird({...newBird, fatherId: e.target.value})}> <option value="">Selecione o Pai...</option> {males.map(m => <option key={m.id} value={m.id}>{m.name} - {m.ringNumber}</option>)} </select> ) : ( <div className="space-y-3"> <input placeholder="Nome do Pai" className="w-full p-3 bg-white border border-blue-200 rounded-xl text-xs font-bold" value={manualAncestorsForm.f} onChange={e => setManualAncestorsForm({...manualAncestorsForm, f: e.target.value})} /> <div className="grid grid-cols-2 gap-3"> <input placeholder="Avô Paterno" className="w-full p-3 bg-white border border-blue-200 rounded-xl text-xs font-bold" value={manualAncestorsForm.ff} onChange={e => setManualAncestorsForm({...manualAncestorsForm, ff: e.target.value})} /> <input placeholder="Avó Paterna" className="w-full p-3 bg-white border border-blue-200 rounded-xl text-xs font-bold" value={manualAncestorsForm.fm} onChange={e => setManualAncestorsForm({...manualAncestorsForm, fm: e.target.value})} /> </div> </div> )}
+                         {genealogyMode.father === 'plantel' ? ( <select className="w-full p-4 bg-white border border-blue-200 rounded-2xl font-bold text-slate-700 outline-none" value={newBird.fatherId || ''} onChange={e => setNewBird({...newBird, fatherId: e.target.value})}> <option value="">Selecione o Pai...</option> {males.map(m => <option key={m.id} value={m.id}>{m.name} - {m.ringNumber}</option>)} </select> ) : ( <div className="space-y-3"> <input placeholder="Nome do Pai" className="w-full p-3 bg-white border border-blue-200 rounded-xl text-xs font-bold" value={manualAncestorsForm.f} onChange={e => setManualAncestorsForm({...manualAncestorsForm, f: e.target.value})} /> <div className="grid grid-cols-2 gap-3"> <input placeholder="Av├┤ Paterno" className="w-full p-3 bg-white border border-blue-200 rounded-xl text-xs font-bold" value={manualAncestorsForm.ff} onChange={e => setManualAncestorsForm({...manualAncestorsForm, ff: e.target.value})} /> <input placeholder="Av├│ Paterna" className="w-full p-3 bg-white border border-blue-200 rounded-xl text-xs font-bold" value={manualAncestorsForm.fm} onChange={e => setManualAncestorsForm({...manualAncestorsForm, fm: e.target.value})} /> </div> </div> )}
                       </div>
                       <div className="p-6 bg-pink-50 rounded-3xl border border-pink-100">
-                         <h4 className="text-sm font-black text-pink-800 uppercase tracking-widest mb-4 flex items-center gap-2"> <Dna size={16} /> Filiação Materna </h4>
+                         <h4 className="text-sm font-black text-pink-800 uppercase tracking-widest mb-4 flex items-center gap-2"> <Dna size={16} /> Filia├º├úo Materna </h4>
                          <div className="flex gap-4 mb-4"> <button type="button" onClick={() => setGenealogyMode({...genealogyMode, mother: 'plantel'})} className={`flex-1 py-2 rounded-xl text-xs font-bold transition-all ${genealogyMode.mother === 'plantel' ? 'bg-pink-600 text-white shadow-lg' : 'bg-white text-pink-400'}`}>Do Plantel</button> <button type="button" onClick={() => setGenealogyMode({...genealogyMode, mother: 'manual'})} className={`flex-1 py-2 rounded-xl text-xs font-bold transition-all ${genealogyMode.mother === 'manual' ? 'bg-pink-600 text-white shadow-lg' : 'bg-white text-pink-400'}`}>Externa / Manual</button> </div>
-                         {genealogyMode.mother === 'plantel' ? ( <select className="w-full p-4 bg-white border border-pink-200 rounded-2xl font-bold text-slate-700 outline-none" value={newBird.motherId || ''} onChange={e => setNewBird({...newBird, motherId: e.target.value})}> <option value="">Selecione a Mãe...</option> {females.map(f => <option key={f.id} value={f.id}>{f.name} - {f.ringNumber}</option>)} </select> ) : ( <div className="space-y-3"> <input placeholder="Nome da Mãe" className="w-full p-3 bg-white border border-pink-200 rounded-xl text-xs font-bold" value={manualAncestorsForm.m} onChange={e => setManualAncestorsForm({...manualAncestorsForm, m: e.target.value})} /> <div className="grid grid-cols-2 gap-3"> <input placeholder="Avô Materno" className="w-full p-3 bg-white border border-pink-200 rounded-xl text-xs font-bold" value={manualAncestorsForm.mf} onChange={e => setManualAncestorsForm({...manualAncestorsForm, mf: e.target.value})} /> <input placeholder="Avó Materna" className="w-full p-3 bg-white border border-pink-200 rounded-xl text-xs font-bold" value={manualAncestorsForm.mm} onChange={e => setManualAncestorsForm({...manualAncestorsForm, mm: e.target.value})} /> </div> </div> )}
+                         {genealogyMode.mother === 'plantel' ? ( <select className="w-full p-4 bg-white border border-pink-200 rounded-2xl font-bold text-slate-700 outline-none" value={newBird.motherId || ''} onChange={e => setNewBird({...newBird, motherId: e.target.value})}> <option value="">Selecione a M├úe...</option> {females.map(f => <option key={f.id} value={f.id}>{f.name} - {f.ringNumber}</option>)} </select> ) : ( <div className="space-y-3"> <input placeholder="Nome da M├úe" className="w-full p-3 bg-white border border-pink-200 rounded-xl text-xs font-bold" value={manualAncestorsForm.m} onChange={e => setManualAncestorsForm({...manualAncestorsForm, m: e.target.value})} /> <div className="grid grid-cols-2 gap-3"> <input placeholder="Av├┤ Materno" className="w-full p-3 bg-white border border-pink-200 rounded-xl text-xs font-bold" value={manualAncestorsForm.mf} onChange={e => setManualAncestorsForm({...manualAncestorsForm, mf: e.target.value})} /> <input placeholder="Av├│ Materna" className="w-full p-3 bg-white border border-pink-200 rounded-xl text-xs font-bold" value={manualAncestorsForm.mm} onChange={e => setManualAncestorsForm({...manualAncestorsForm, mm: e.target.value})} /> </div> </div> )}
                       </div>
                    </div>
                  )}
@@ -1698,7 +1698,7 @@ const BirdManager: React.FC<BirdManagerProps> = ({
                    <div className="bg-blue-100 p-2 rounded-xl text-blue-600"><TestTube size={24} /></div>
                    <div>
                       <p className="text-xs font-bold text-blue-800">Resultado Definitivo</p>
-                      <p className="text-[10px] text-blue-600">O sexo da ave será atualizado e o arquivo salvo em documentos.</p>
+                      <p className="text-[10px] text-blue-600">O sexo da ave ser├í atualizado e o arquivo salvo em documentos.</p>
                    </div>
                 </div>
 
@@ -1710,10 +1710,10 @@ const BirdManager: React.FC<BirdManagerProps> = ({
                       <span className="font-black text-sm uppercase">Macho</span>
                    </button>
                    <button 
-                     onClick={() => setResultForm({...resultForm, sex: 'Fêmea'})}
-                     className={`py-4 rounded-xl border-2 flex flex-col items-center justify-center gap-2 transition-all ${resultForm.sex === 'Fêmea' ? 'border-pink-500 bg-pink-50 text-pink-600' : 'border-slate-100 text-slate-400 hover:border-slate-200'}`}
+                     onClick={() => setResultForm({...resultForm, sex: 'F├¬mea'})}
+                     className={`py-4 rounded-xl border-2 flex flex-col items-center justify-center gap-2 transition-all ${resultForm.sex === 'F├¬mea' ? 'border-pink-500 bg-pink-50 text-pink-600' : 'border-slate-100 text-slate-400 hover:border-slate-200'}`}
                    >
-                      <span className="font-black text-sm uppercase">Fêmea</span>
+                      <span className="font-black text-sm uppercase">F├¬mea</span>
                    </button>
                 </div>
 
@@ -1778,18 +1778,18 @@ const BirdManager: React.FC<BirdManagerProps> = ({
         </div>
       )}
 
-      {/* Modal de Remessa e Upgrade mantidos, sem alterações necessárias */}
+      {/* Modal de Remessa e Upgrade mantidos, sem altera├º├Áes necess├írias */}
       {showSendLabModal && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4 animate-in fade-in zoom-in-95 duration-200">
           <div className="bg-white rounded-[40px] w-full max-w-md shadow-2xl overflow-hidden">
              <div className="p-8 border-b border-slate-100 flex justify-between items-center bg-slate-50">
-               <h3 className="text-xl font-black text-slate-800">Enviar para Laboratório</h3>
+               <h3 className="text-xl font-black text-slate-800">Enviar para Laborat├│rio</h3>
                <button onClick={() => setShowSendLabModal(false)} className="text-slate-400 hover:text-slate-600"><X size={24} /></button>
              </div>
              <div className="p-8 space-y-6">
-                <p className="text-sm text-slate-500">Você está enviando <strong>{selectedForSexing.length} amostras</strong> para sexagem.</p>
+                <p className="text-sm text-slate-500">Voc├¬ est├í enviando <strong>{selectedForSexing.length} amostras</strong> para sexagem.</p>
                 <div>
-                   <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Laboratório</label>
+                   <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Laborat├│rio</label>
                    <input 
                      type="text" 
                      placeholder="Ex: Ampligen, Unigen..."
@@ -1824,9 +1824,9 @@ const BirdManager: React.FC<BirdManagerProps> = ({
               </div>
               <h3 className="text-3xl font-black text-slate-800 tracking-tight leading-tight">Limite Atingido!</h3>
               <p className="text-slate-500 font-medium mt-4 max-w-sm mx-auto leading-relaxed">
-                {state.settings.plan === 'Básico' && state.birds.length >= MAX_FREE_BIRDS && !isAdmin
-                  ? `Você atingiu o limite de ${MAX_FREE_BIRDS} aves do plano básico. Migre para o profissional e tenha gestão ilimitada.`
-                  : "O upload de fotos personalizadas é exclusivo do Plano Profissional."
+                {state.settings.plan === 'B├ísico' && state.birds.length >= MAX_FREE_BIRDS && !isAdmin
+                  ? `Voc├¬ atingiu o limite de ${MAX_FREE_BIRDS} aves do plano b├ísico. Migre para o profissional e tenha gest├úo ilimitada.`
+                  : "O upload de fotos personalizadas ├® exclusivo do Plano Profissional."
                 }
               </p>
               <div className="mt-10 space-y-3">

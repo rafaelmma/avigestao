@@ -101,6 +101,7 @@ const App: React.FC = () => {
   const sessionRetryRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const sessionRetryCountRef = useRef(0);
   const loadedTabsRef = useRef(new Set<string>());
+  const sessionClearRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const fetchSession = async () => {
     const resp: any = await supabase.auth.getSession();
@@ -126,7 +127,7 @@ const App: React.FC = () => {
         return;
       }
     } catch (err: any) {
-      console.warn('Falha ao revalidar sess“o', err);
+      console.warn('Falha ao revalidar sess√£o', err);
     }
     sessionRetryCountRef.current += 1;
     if (sessionRetryCountRef.current <= SESSION_RETRY_LIMIT) {
@@ -175,7 +176,7 @@ const App: React.FC = () => {
         await handleSession(session);
       } catch (err: any) {
         if (!mounted) return;
-        setAuthError(err?.message || 'Erro ao iniciar sess“o');
+        setAuthError(err?.message || 'Erro ao iniciar sess√£o');
         setIsLoading(false);
       }
     };
@@ -195,7 +196,7 @@ const App: React.FC = () => {
     };
   }, [supabaseUnavailable]);
 
-  // Revalida sess“o ao voltar de outra aba/janela (ex: portal Stripe)
+  // Revalida sess√£o ao voltar de outra aba/janela (ex: portal Stripe)
   useEffect(() => {
     if (supabaseUnavailable) return;
     const onVisibility = () => {
@@ -241,20 +242,41 @@ const App: React.FC = () => {
   }, [activeTab, session, supabaseUnavailable]);
   const handleSession = async (newSession: any) => {
     if (!newSession) {
-      if (lastValidSessionRef.current) {
-        console.info('Sessao temporariamente indisponivel, mantendo o ultimo estado valido');
-        setAuthError(null);
-        setHasHydratedOnce(true);
-        setIsLoading(false);
-        return;
+      // Don't clear immediately ‚Äî sometimes returning from external pages (Stripe)
+      // causes a transient missing session. Wait briefly and re-check before
+      // clearing state to avoid flashing default profile or infinite loading.
+      if (sessionClearRef.current) {
+        clearTimeout(sessionClearRef.current);
       }
-      lastValidSessionRef.current = null;
-      loadedTabsRef.current = new Set();
-      setSession(null);
-      setIsAdmin(false);
-      setState(defaultState);
-      setHasHydratedOnce(false);
-      setIsLoading(false);
+      sessionClearRef.current = setTimeout(async () => {
+        try {
+          const s = await fetchSession();
+          if (s) {
+            // session recovered, hydrate normally
+            await handleSession(s);
+            return;
+          }
+        } catch (e) {
+          console.warn('Re-check session failed', e);
+        }
+
+        if (lastValidSessionRef.current) {
+          console.info('Sessao temporariamente indisponivel, mantendo o ultimo estado valido');
+          setAuthError(null);
+          setHasHydratedOnce(true);
+          setIsLoading(false);
+          return;
+        }
+
+        lastValidSessionRef.current = null;
+        loadedTabsRef.current = new Set();
+        setSession(null);
+        setIsAdmin(false);
+        setState(defaultState);
+        setHasHydratedOnce(false);
+        setIsLoading(false);
+      }, 2000);
+
       return;
     }
 
@@ -311,7 +333,7 @@ const App: React.FC = () => {
 
     const userId = currentSession.user.id as string;
 
-    // Migra˛“o local desativada para evitar chamadas extras ao Supabase
+    // Migra√ß√£o local desativada para evitar chamadas extras ao Supabase
     try { localStorage.setItem('avigestao_migrated', 'true'); } catch {}
 
     const ensureTrial = async (settings: BreederSettings): Promise<BreederSettings> => {
@@ -320,7 +342,7 @@ const App: React.FC = () => {
       const trialDate = new Date();
       trialDate.setDate(trialDate.getDate() + 7);
       const trialIso = trialDate.toISOString().split('T')[0];
-      const updated = { ...settings, trialEndDate: trialIso, plan: settings.plan || 'Bﬂsico' };
+      const updated = { ...settings, trialEndDate: trialIso, plan: settings.plan || 'B√°sico' };
 
       try {
         if (supabase) {
@@ -335,20 +357,24 @@ const App: React.FC = () => {
     };
 
     try {
-      // Sem timeout para n“o abortar hidrata˛“o
+      // Sem timeout para n√£o abortar hidrata√ß√£o
       const data = await loadInitialData(userId);
-      let subscriptionEndDate = data.settings?.subscriptionEndDate;
-      let subscriptionCancelAtPeriodEnd = data.settings?.subscriptionCancelAtPeriodEnd;
-      let subscriptionStatus = data.settings?.subscriptionStatus;
+      const settingsFailed = data.settingsFailed;
+      const cachedSettings = loadCachedState().state.settings;
+      let workingSettings = settingsFailed ? cachedSettings : (data.settings || defaultState.settings);
 
-      const hasSettingsRow = !!data.settings?.userId;
-      if (!hasSettingsRow) {
+      let subscriptionEndDate = workingSettings?.subscriptionEndDate;
+      let subscriptionCancelAtPeriodEnd = workingSettings?.subscriptionCancelAtPeriodEnd;
+      let subscriptionStatus = workingSettings?.subscriptionStatus;
+
+      const hasSettingsRow = !settingsFailed && !!workingSettings?.userId;
+      if (!hasSettingsRow && !settingsFailed) {
         const fallbackSettings: BreederSettings = {
-          ...(data.settings || defaultState.settings),
+          ...(workingSettings || defaultState.settings),
           breederName: currentSession.user?.email || defaultState.settings.breederName,
-          plan: data.settings?.plan || defaultState.settings.plan,
+          plan: workingSettings?.plan || defaultState.settings.plan,
         };
-        data.settings = fallbackSettings;
+        workingSettings = fallbackSettings;
         try {
           await supabase
             .from('settings')
@@ -359,10 +385,10 @@ const App: React.FC = () => {
               trial_end_date: fallbackSettings.trialEndDate || null,
             } as any, { onConflict: 'user_id' });
         } catch (e) {
-          console.warn('Falha ao salvar settings m›nimos', e);
+          console.warn('Falha ao salvar settings m√≠nimos', e);
         }
-      } else if (!data.settings.breederName && currentSession.user?.email) {
-        data.settings.breederName = currentSession.user.email;
+      } else if (!settingsFailed && !workingSettings?.breederName && currentSession.user?.email) {
+        workingSettings = { ...(workingSettings || {}), breederName: currentSession.user.email };
       }
       // Checa status da assinatura no backend e forca plano PRO se estiver ativo
       if (supabase) {
@@ -382,15 +408,15 @@ const App: React.FC = () => {
             const isActive = !!sub?.isActive;
             const isTrialSub = !!sub?.isTrial;
             if (isActive || isTrialSub) {
-              data.settings = {
-                ...(data.settings || {}),
+              workingSettings = {
+                ...(workingSettings || {}),
                 plan: 'Profissional',
                 trialEndDate: undefined
               } as BreederSettings;
             } else if (!isAdmin) {
-              data.settings = {
-                ...(data.settings || {}),
-                plan: data.settings?.trialEndDate ? data.settings.plan : 'Bﬂsico'
+              workingSettings = {
+                ...(workingSettings || {}),
+                plan: workingSettings?.trialEndDate ? workingSettings.plan : 'B√°sico'
               } as BreederSettings;
             }
           }
@@ -400,13 +426,16 @@ const App: React.FC = () => {
       }
 
       // Se nao tem plano PRO nem trial, aplica trial de 7 dias e persiste
-      data.settings = await ensureTrial(data.settings || defaultState.settings);
+      if (!settingsFailed) {
+        workingSettings = await ensureTrial(workingSettings || defaultState.settings);
+      }
+      data.settings = workingSettings || defaultState.settings;
 
       const normalizedSettings: BreederSettings = {
         ...defaultState.settings,
-        ...(data.settings || {}),
+        ...(workingSettings || {}),
         userId,
-        trialEndDate: normalizeTrialEndDate(data.settings?.trialEndDate),
+        trialEndDate: normalizeTrialEndDate(workingSettings?.trialEndDate),
         subscriptionEndDate,
         subscriptionCancelAtPeriodEnd,
         subscriptionStatus
@@ -419,7 +448,7 @@ const App: React.FC = () => {
     } catch (err: any) {
       console.error('Erro ao carregar dados:', err);
       setAuthError(err?.message || 'Erro ao carregar dados');
-      // mant⁄m estado atual para evitar voltar ao perfil default
+      // mant√©m estado atual para evitar voltar ao perfil default
     }
   };
 
@@ -926,7 +955,7 @@ const App: React.FC = () => {
   };
 
   if (!session && !supabaseUnavailable) {
-    return <Auth onLogin={() => { /* sess“o serﬂ tratada via supabase listener */ }} />;
+    return <Auth onLogin={() => { /* sess√£o ser√° tratada via supabase listener */ }} />;
   }
 
   return (
