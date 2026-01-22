@@ -280,7 +280,7 @@ const BreedingManager: React.FC<BreedingManagerProps> = ({ state, addPair, updat
   // Listagem condicional
   const visiblePairs = currentList === 'active' ? state.pairs : (state.deletedPairs || []);
 
-  // Calcular eclos├Áes futuras com base na esp├®cie
+  // Calcular eclosões futuras com base na espécie
   const incubatorClutches = state.clutches
     .filter(c => c.hatchedCount === 0 && c.fertileCount > 0)
     .map(c => {
@@ -322,8 +322,8 @@ const BreedingManager: React.FC<BreedingManagerProps> = ({ state, addPair, updat
 
       <header className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h2 className="text-3xl font-black text-[#0F172A] tracking-tight">Reprodu├º├úo</h2>
-          <p className="text-slate-400 font-medium text-sm mt-1">Gest├úo de casais, incuba├º├úo e nascimentos.</p>
+          <h2 className="text-3xl font-black text-[#0F172A] tracking-tight">Reprodução</h2>
+          <p className="text-slate-400 font-medium text-sm mt-1">Gestão de casais, incubação e nascimentos.</p>
         </div>
         <div className="flex gap-2">
            <div className="flex bg-white p-1 rounded-xl shadow-sm border border-slate-100 mr-2">
@@ -495,12 +495,12 @@ const BreedingManager: React.FC<BreedingManagerProps> = ({ state, addPair, updat
           </div>
         </div>
 
-        {/* Lado Direito: Alertas e Previs├Áes (Vis├¡vel apenas na lista ativa) */}
+        {/* Lado Direito: Alertas e Previsões (Visível apenas na lista ativa) */}
         {currentList === 'active' && (
           <div className="space-y-6">
              <h3 className="font-black text-slate-800 text-lg flex items-center gap-3">
                 <Bell size={20} className="text-amber-500" />
-                Previs├úo de Eclos├úo
+                Previsão de Eclosão
              </h3>
 
              <div className="space-y-4">
@@ -523,7 +523,7 @@ const BreedingManager: React.FC<BreedingManagerProps> = ({ state, addPair, updat
                          </div>
                          <div className="text-right">
                             <p className={`text-[10px] font-black uppercase tracking-widest ${isLate ? 'text-rose-500' : 'text-slate-400'}`}>
-                              {isLate ? 'Eclos├úo Atrasada' : isToday ? 'Previsto para HOJE' : `Em ${diff} dias`}
+                              {isLate ? 'Eclosão Atrasada' : isToday ? 'Previsto para HOJE' : `Em ${diff} dias`}
                             </p>
                             <p className="text-xs font-black text-slate-800">{c.hatchDate.toLocaleDateString('pt-BR')}</p>
                          </div>
@@ -577,12 +577,12 @@ const BreedingManager: React.FC<BreedingManagerProps> = ({ state, addPair, updat
                 }) : (
                   <div className="p-10 bg-slate-50/50 border border-slate-100 rounded-[32px] text-center">
                      <Timer size={32} className="mx-auto text-slate-200 mb-3" />
-                     <p className="text-xs font-black text-slate-300 uppercase tracking-widest">Nenhuma eclos├úo pendente</p>
+                     <p className="text-xs font-black text-slate-300 uppercase tracking-widest">Nenhuma eclosão pendente</p>
                   </div>
                 )}
              </div>
 
-             {/* Carrossel de Dicas de Reprodu├º├úo */}
+             {/* Carrossel de Dicas de Reprodução */}
              <Suspense fallback={<div />}>
                <TipCarousel category="breeding" />
              </Suspense>
