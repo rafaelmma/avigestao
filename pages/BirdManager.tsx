@@ -700,7 +700,7 @@ const BirdManager: React.FC<BirdManagerProps> = ({
     );
   };
 
-  const headerTitle = titleOverride || (currentList === 'sexagem' ? 'Central Sexagem' : 'Plantel');
+  const headerTitle = titleOverride || (currentList === 'sexagem' ? 'Central de Sexagem' : 'Plantel');
 
   return (
     <div className="space-y-6 animate-in fade-in duration-500">
@@ -734,7 +734,7 @@ const BirdManager: React.FC<BirdManagerProps> = ({
                onClick={() => setCurrentList('sexagem')}
                className={`px-4 py-2 text-xs font-black uppercase rounded-lg transition-all flex items-center gap-2 whitespace-nowrap ${currentList === 'sexagem' ? 'bg-blue-600 text-white shadow' : 'text-slate-400 hover:text-slate-600'}`}
              >
-               <Dna size={14} /> Central Sexagem
+               <Dna size={14} /> Central de Sexagem
                {waitingResultBirds.length > 0 && (
                  <span className="bg-white/20 px-1.5 rounded text-[9px]">{waitingResultBirds.length}</span>
                )}
