@@ -73,7 +73,12 @@ const BirdManager: React.FC<BirdManagerProps> = ({
   const [searchTerm, setSearchTerm] = useState('');
   const [showModal, setShowModal] = useState(false);
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
-  const [currentList, setCurrentList] = useState<'plantel' | 'lixeira' | 'sexagem'>(initialList);
+  const [currentList, setCurrentList] = useState<'plantel' | 'lixeira' | 'sexagem' | 'ibama-pendentes'>(initialList);
+  
+  // Modal de Registro Rápido IBAMA
+  const [showQuickIbamaModal, setShowQuickIbamaModal] = useState(false);
+  const [quickIbamaBird, setQuickIbamaBird] = useState<Bird | null>(null);
+  const [quickIbamaDate, setQuickIbamaDate] = useState(new Date().toISOString().split('T')[0]);
   
   // States da Central de Sexagem
   const [selectedForSexing, setSelectedForSexing] = useState<string[]>([]);
@@ -323,6 +328,21 @@ const BirdManager: React.FC<BirdManagerProps> = ({
     return months > 0 ? `${years}a ${months}m` : `${years} anos`;
   };
 
+  // --- Função de Registro Rápido IBAMA ---
+  const handleQuickIbamaRegister = () => {
+    if (quickIbamaBird) {
+      const updatedBird = {
+        ...quickIbamaBird,
+        ibamaBaixaPendente: false,
+        ibamaBaixaData: quickIbamaDate
+      };
+      updateBird(updatedBird);
+      setShowQuickIbamaModal(false);
+      setQuickIbamaBird(null);
+      setQuickIbamaDate(new Date().toISOString().split('T')[0]);
+    }
+  };
+
   // Lista dinâmica de espécies para o filtro (Padrão + Cadastradas)
   const availableSpecies = useMemo(() => {
     const registeredSpecies = state.birds.map(b => b.species);
@@ -332,6 +352,9 @@ const BirdManager: React.FC<BirdManagerProps> = ({
 
   const filteredBirds = useMemo(() => {
     if (currentList === 'sexagem') return []; // Handled separately
+    if (currentList === 'ibama-pendentes') {
+      return state.birds.filter(b => b.ibamaBaixaPendente && (b.status === 'Óbito' || b.status === 'Fugiu' || b.status === 'Vendido' || b.status === 'Doado'));
+    }
     const list = currentList === 'plantel' ? state.birds : (state.deletedBirds || []);
     return list.filter(bird => {
       const matchesSearch = bird.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -748,6 +771,16 @@ const BirdManager: React.FC<BirdManagerProps> = ({
            >
              <Trash2 size={14} /> Lixeira
            </button>
+           <button 
+             onClick={() => setCurrentList('ibama-pendentes')}
+             className={`px-4 py-2 text-xs font-black uppercase rounded-lg transition-all flex items-center gap-2 whitespace-nowrap ${currentList === 'ibama-pendentes' ? 'bg-amber-500 text-white shadow' : 'text-slate-400 hover:text-slate-600'}`}
+           >
+             <Zap size={14} /> 
+             {state.birds.filter(b => b.ibamaBaixaPendente).length > 0 && (
+               <span className="px-1.5 rounded text-[9px]">{state.birds.filter(b => b.ibamaBaixaPendente).length}</span>
+             )}
+             IBAMA
+           </button>
         </div>
         )}
       </header>
@@ -1050,9 +1083,39 @@ const BirdManager: React.FC<BirdManagerProps> = ({
             </div>
 
             {/* BARRA DE AÇÕES INFERIOR - SEPARADA DO CORPO */}
-            <div className={`p-2 border-t flex items-center justify-between ${currentList === 'lixeira' ? 'bg-rose-50 border-rose-100' : 'bg-slate-50 border-slate-100'}`}>
-               {currentList === 'plantel' ? (
-                 <div className="w-full flex justify-end">
+            <div className={`p-2 border-t flex items-center justify-between gap-2 ${
+              currentList === 'lixeira' ? 'bg-rose-50 border-rose-100' : 
+              currentList === 'ibama-pendentes' ? 'bg-amber-50 border-amber-100' :
+              'bg-slate-50 border-slate-100'
+            }`}>
+               {currentList === 'ibama-pendentes' ? (
+                 <div className="w-full flex gap-2">
+                    <button 
+                      type="button"
+                      onClick={(e) => { e.stopPropagation(); setQuickIbamaBird(bird); setShowQuickIbamaModal(true); setQuickIbamaDate(new Date().toISOString().split('T')[0]); }}
+                      className="flex-1 flex items-center justify-center gap-1 px-2 py-2 bg-amber-500 text-white text-[10px] font-bold uppercase rounded-lg shadow-sm hover:bg-amber-600 transition-all"
+                    >
+                      <CheckCircle2 size={12} /> Registrar IBAMA
+                    </button>
+                    <button 
+                      type="button"
+                      onClick={(e) => { e.stopPropagation(); setSelectedBird(bird); setEditingBird(bird); setViewMode('details'); setIsEditing(true); }}
+                      className="flex items-center gap-1 px-3 py-2 text-[10px] font-bold uppercase text-slate-400 hover:text-brand hover:bg-white rounded-lg transition-all"
+                    >
+                      <Edit size={12} />
+                    </button>
+                 </div>
+               ) : currentList === 'plantel' ? (
+                 <div className="w-full flex gap-2">
+                    {bird.ibamaBaixaPendente && (
+                      <button 
+                        type="button"
+                        onClick={(e) => { e.stopPropagation(); setQuickIbamaBird(bird); setShowQuickIbamaModal(true); setQuickIbamaDate(new Date().toISOString().split('T')[0]); }}
+                        className="flex items-center gap-1 px-2 py-1.5 text-[10px] font-bold uppercase text-amber-600 bg-amber-50 hover:bg-amber-100 rounded-lg transition-all border border-amber-200"
+                      >
+                        <Zap size={12} /> IBAMA
+                      </button>
+                    )}
                     <button 
                       type="button"
                       onClick={(e) => { e.stopPropagation(); handleDeleteClick(bird.id); }}
@@ -1903,8 +1966,74 @@ const BirdManager: React.FC<BirdManagerProps> = ({
            </div>
         </div>
       )}
+
+      {/* Modal de Registro Rápido IBAMA */}
+      {showQuickIbamaModal && quickIbamaBird && (
+        <div className="fixed inset-0 z-[200] flex items-center justify-center bg-slate-900/60 backdrop-blur-md p-4 animate-in fade-in duration-300">
+           <div className="bg-white rounded-[40px] w-full max-w-md shadow-2xl overflow-hidden">
+              <div className="p-8 bg-gradient-to-r from-amber-500 to-orange-500">
+                 <div className="flex items-center gap-3">
+                    <div className="w-12 h-12 bg-white/20 rounded-2xl flex items-center justify-center">
+                       <Zap size={24} className="text-white" />
+                    </div>
+                    <div className="flex-1">
+                       <h3 className="text-xl font-black text-white tracking-tight">Registrar IBAMA</h3>
+                       <p className="text-white/80 text-xs font-bold uppercase tracking-widest">{quickIbamaBird.status}</p>
+                    </div>
+                    <button onClick={() => setShowQuickIbamaModal(false)} className="text-white/60 hover:text-white transition-colors">
+                       <X size={24} />
+                    </button>
+                 </div>
+              </div>
+              
+              <div className="p-8 space-y-6">
+                 <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100">
+                    <p className="text-xs font-bold text-slate-600 uppercase tracking-widest mb-2">Ave</p>
+                    <p className="text-lg font-black text-slate-800">{quickIbamaBird.name}</p>
+                    <p className="text-[10px] text-slate-500 font-mono">{quickIbamaBird.ringNumber}</p>
+                 </div>
+
+                 <div className="p-4 bg-amber-50 rounded-2xl border border-amber-200">
+                    <p className="text-xs font-bold text-amber-700 uppercase tracking-widest mb-2">Instruções</p>
+                    <p className="text-xs text-amber-700 font-bold leading-relaxed">
+                       {quickIbamaBird.status === 'Óbito' && 'Acesse o sistema IBAMA e registre a baixa do animal falecido.'}
+                       {quickIbamaBird.status === 'Fugiu' && 'Acesse o sistema IBAMA e registre o evento de fuga.'}
+                       {quickIbamaBird.status === 'Vendido' && 'Acesse o sistema IBAMA e registre a transferência com o SISPASS do comprador.'}
+                       {quickIbamaBird.status === 'Doado' && 'Acesse o sistema IBAMA e registre a doação com o SISPASS do destinatário.'}
+                    </p>
+                 </div>
+
+                 <div className="space-y-2">
+                    <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest">Data do Registro</label>
+                    <input 
+                       type="date" 
+                       className="w-full p-4 bg-white border border-slate-200 rounded-2xl font-bold text-slate-700 outline-none focus:border-amber-500" 
+                       value={quickIbamaDate}
+                       onChange={(e) => setQuickIbamaDate(e.target.value)}
+                    />
+                 </div>
+
+                 <div className="grid grid-cols-2 gap-3">
+                    <button 
+                       onClick={() => setShowQuickIbamaModal(false)}
+                       className="py-3 bg-slate-100 text-slate-600 rounded-2xl font-bold text-xs uppercase tracking-widest hover:bg-slate-200 transition-all"
+                    >
+                       Cancelar
+                    </button>
+                    <button 
+                       onClick={handleQuickIbamaRegister}
+                       className="py-3 bg-amber-500 text-white rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-amber-600 transition-all shadow-lg shadow-amber-200 flex items-center justify-center gap-2"
+                    >
+                       <CheckCircle2 size={16} /> Concluído
+                    </button>
+                 </div>
+              </div>
+           </div>
+        </div>
+      )}
     </div>
   );
+
 };
 
 export default BirdManager;
