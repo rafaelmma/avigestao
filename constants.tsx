@@ -24,7 +24,12 @@ export const SPECIES_INCUBATION_DAYS: Record<string, number> = {
 
 // Logo Oficial AviGestão (Design Vetorial Nítido)
 export const APP_LOGO = `data:image/svg+xml;utf8,${encodeURIComponent(`
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 500 500" fill="none">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 500 500" fill="none" shape-rendering="crispEdges">
+  <defs>
+    <filter id="antialiasFilter">
+      <feTurbulence type="fractalNoise" baseFrequency="0.05" numOctaves="1" result="noise" seed="1"/>
+    </filter>
+  </defs>
   <!-- Fundo Circular Suave (Opcional) -->
   <circle cx="250" cy="230" r="180" fill="#ffffff" opacity="0"/>
 
@@ -84,13 +89,13 @@ export const APP_LOGO = `data:image/svg+xml;utf8,${encodeURIComponent(`
   <path d="M220 300 L220 320" stroke="#FB8C00" stroke-width="4" stroke-linecap="round"/>
   <path d="M250 290 L250 310" stroke="#FB8C00" stroke-width="4" stroke-linecap="round"/>
 
-  <!-- Texto Principal -->
-  <text x="250" y="420" text-anchor="middle" font-family="Arial, sans-serif" font-weight="900" font-size="65">
+  <!-- Texto Principal (Aumentado e Melhorado) -->
+  <text x="250" y="420" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-weight="900" font-size="72" letter-spacing="-2">
     <tspan fill="#2E7D32">Avi</tspan><tspan fill="#F57C00">Gestão</tspan>
   </text>
   
-  <!-- Subtítulo -->
-  <text x="250" y="455" text-anchor="middle" font-family="Arial, sans-serif" font-weight="bold" font-size="16" letter-spacing="4" fill="#546E7A">
+  <!-- Subtítulo (Aumentado e com Melhor Renderização) -->
+  <text x="250" y="460" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-weight="bold" font-size="18" letter-spacing="3" fill="#37474F" opacity="0.95">
     CONTROLE DE CRIATÓRIO
   </text>
 </svg>

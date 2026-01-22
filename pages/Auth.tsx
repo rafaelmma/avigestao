@@ -48,8 +48,8 @@ const Auth: React.FC<AuthProps> = ({ onLogin }) => {
         <div className="absolute bottom-0 left-0 w-[500px] h-[500px] bg-amber-500/10 rounded-full blur-[100px] -translate-x-1/2 translate-y-1/2"></div>
         
         <div className="relative z-10">
-          <div className="w-20 h-20 bg-white/10 backdrop-blur-md rounded-2xl flex items-center justify-center border border-white/20 mb-8 p-3">
-            <img src={APP_LOGO} className="w-full h-full object-contain" alt="AviGestão Logo" />
+          <div className="w-24 h-24 bg-white/10 backdrop-blur-md rounded-2xl flex items-center justify-center border border-white/20 mb-8 p-2 shadow-lg shadow-black/20">
+            <img src={APP_LOGO} className="w-full h-full object-contain drop-shadow-sm" alt="AviGestão Logo" />
           </div>
           <h1 className="text-5xl font-black tracking-tight leading-tight mb-6">
             Gestão profissional <br/>

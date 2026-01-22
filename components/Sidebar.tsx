@@ -88,11 +88,11 @@ const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab, logoUrl, bre
         <div className="p-6 pb-8 flex items-center justify-between">
           <div className="flex items-center gap-4">
             <div className="relative group">
-              <div className="w-16 h-16 bg-slate-50 rounded-2xl p-3 border border-slate-100 shadow-sm flex items-center justify-center">
+              <div className="w-20 h-20 bg-gradient-to-br from-slate-50 to-white rounded-2xl p-2 border-2 border-slate-200 shadow-lg shadow-slate-200/50 flex items-center justify-center hover:shadow-xl transition-shadow">
                 <img 
                   src={logoUrl || APP_LOGO} 
                   alt="Logo" 
-                  className="w-full h-full object-contain" 
+                  className="w-full h-full object-contain drop-shadow-sm" 
                 />
               </div>
               <div className={`absolute -bottom-1 -right-1 w-4 h-4 border-2 border-white rounded-full ${isAdmin ? 'bg-rose-500' : plan === 'Profissional' ? 'bg-amber-500' : 'bg-emerald-500'}`}></div>
