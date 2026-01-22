@@ -767,6 +767,19 @@ const BirdManager: React.FC<BirdManagerProps> = ({
     if (restoreBird) restoreBird(id);
   };
 
+  const handleRestoreToActive = (e: React.MouseEvent, id: string) => {
+    e.stopPropagation(); // Impede borbulhamento
+    // Encontra a ave no histórico e restaura seu status para Ativo
+    const birdToRestore = state.birds.find(b => b.id === id);
+    if (birdToRestore) {
+      updateBird({
+        ...birdToRestore,
+        status: 'Ativo',
+        ibamaBaixaPendente: false // Limpa também o pendente IBAMA
+      });
+    }
+  };
+
   const handlePermanentDelete = (e: React.MouseEvent, id: string) => {
     e.stopPropagation(); // Impede borbulhamento
     if (permanentlyDeleteBird) permanentlyDeleteBird(id);
@@ -1259,6 +1272,23 @@ const BirdManager: React.FC<BirdManagerProps> = ({
                       className="ml-auto flex items-center gap-2 px-2 py-1.5 text-[9px] font-bold text-slate-400 hover:text-rose-500 hover:bg-white rounded-lg transition-all"
                     >
                       <Trash2 size={12} />
+                    </button>
+                 </div>
+               ) : currentList === 'histórico' ? (
+                 <div className="w-full flex gap-2">
+                    <button 
+                      type="button"
+                      onClick={(e) => handleRestoreToActive(e, bird.id)}
+                      className="flex-1 flex items-center justify-center gap-1 px-2 py-2 bg-emerald-500 text-white text-[10px] font-bold uppercase rounded-lg shadow-sm hover:bg-emerald-600 transition-all"
+                    >
+                      <RefreshCcw size={12} /> Restaurar
+                    </button>
+                    <button 
+                      type="button"
+                      onClick={(e) => { e.stopPropagation(); handleDeleteClick(bird.id); }}
+                      className="flex-1 flex items-center justify-center gap-1 px-2 py-2 bg-rose-500 text-white text-[10px] font-bold uppercase rounded-lg shadow-sm hover:bg-rose-600 transition-all"
+                    >
+                      <Trash2 size={12} /> Deletar
                     </button>
                  </div>
                ) : (
