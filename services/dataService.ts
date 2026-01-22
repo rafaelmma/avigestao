@@ -71,7 +71,7 @@ export async function loadInitialData(userId: string) {
   );
 
   // Initial data for dashboard and core UI only.
-  const [birds, transactions, tasks, tournaments, clutches, pairs, archivedPairs, settingsResult] = await Promise.all([
+  const [birds, transactions, tasks, tournaments, clutches, pairs, archivedPairs, movements, settingsResult] = await Promise.all([
     safeSelect(supabase.from("birds").select("*").eq("user_id", userId), mapBirdFromDb),
     safeSelect(supabase.from("transactions").select("*").eq("user_id", userId), mapTransactionFromDb),
     safeSelect(supabase.from("tasks").select("*").eq("user_id", userId), mapTaskFromDb),
@@ -79,6 +79,7 @@ export async function loadInitialData(userId: string) {
     safeSelect(supabase.from("clutches").select("*").eq("user_id", userId), mapClutchFromDb),
     safeSelect(supabase.from("pairs").select("*").eq("user_id", userId).is("deleted_at", null).is("archived_at", null), mapPairFromDb),
     safeSelect(supabase.from("pairs").select("*").eq("user_id", userId).not("archived_at", "is", null).is("deleted_at", null), mapPairFromDb),
+    safeSelect(supabase.from("movements").select("*").eq("user_id", userId).is("deleted_at", null), mapMovementFromDb),
     settingsPromise,
   ]);
 
@@ -86,7 +87,7 @@ export async function loadInitialData(userId: string) {
 
   return {
     birds,
-    movements: [],
+    movements,
     transactions,
     tasks,
     tournaments,
@@ -106,7 +107,7 @@ export async function loadTabData(userId: string, tab: string) {
   switch (tab) {
     case "movements":
       return {
-        movements: await safeSelect(supabase.from("movements").select("*").eq("user_id", userId), mapMovementFromDb),
+        movements: await safeSelect(supabase.from("movements").select("*").eq("user_id", userId).is("deleted_at", null), mapMovementFromDb),
       };
     case "breeding":
       return {

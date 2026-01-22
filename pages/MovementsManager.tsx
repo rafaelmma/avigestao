@@ -112,13 +112,13 @@ const MovementsManager: React.FC<MovementsManagerProps> = ({ state, addMovement,
     setShowModal(true);
   };
 
-  const handleSave = (e: React.FormEvent) => {
+  const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
     if (newMov.birdId && newMov.type && newMov.date) {
       if (isEditing && newMov.id) {
-        updateMovement(newMov as MovementRecord);
+        await updateMovement(newMov as MovementRecord);
       } else {
-        addMovement({
+        await addMovement({
           ...newMov as MovementRecord,
           id: makeId()
         });
