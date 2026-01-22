@@ -343,6 +343,8 @@ const BirdManager: React.FC<BirdManagerProps> = ({
   // --- Função de Status Rápido ---
   const handleQuickStatusConfirm = async () => {
     if (quickStatusBird) {
+      console.log('handleQuickStatusConfirm:', { createMovement: quickStatusData.createMovement, hasAddMovement: !!addMovement });
+      
       // 1. Atualizar status da ave
       const updatedBird = {
         ...quickStatusBird,
@@ -353,6 +355,7 @@ const BirdManager: React.FC<BirdManagerProps> = ({
 
       // 2. Se marcado, criar movimentação também
       if (quickStatusData.createMovement && addMovement) {
+        console.log('Criando movimentação para:', quickStatusBird.name);
         const movementId = Math.random().toString(36).substr(2, 9);
         // Mapear status para tipo de movimentação
         let movementType: 'Óbito' | 'Fuga' | 'Transporte' | 'Venda' | 'Doação' = 'Óbito';
