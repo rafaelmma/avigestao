@@ -378,6 +378,22 @@ const BirdManager: React.FC<BirdManagerProps> = ({
     }
   };
 
+  // --- Função de Registro Rápido IBAMA ---
+  const handleQuickIbamaRegister = async () => {
+    if (quickIbamaBird) {
+      const updatedBird = {
+        ...quickIbamaBird,
+        ibamaBaixaPendente: false, // Marca como não pendente
+        ibamaBaixaData: quickIbamaDate // Armazena data de registro
+      };
+      updateBird(updatedBird);
+
+      setShowQuickIbamaModal(false);
+      setQuickIbamaBird(null);
+      setQuickIbamaDate(new Date().toISOString().split('T')[0]);
+    }
+  };
+
   // Lista dinâmica de espécies para o filtro (Padrão + Cadastradas)
   const availableSpecies = useMemo(() => {
     const registeredSpecies = state.birds.map(b => b.species);
