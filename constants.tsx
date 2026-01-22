@@ -23,10 +23,10 @@ export const SPECIES_INCUBATION_DAYS: Record<string, number> = {
 };
 
 // Logo Completa (imagem real do usuário)
-export const APP_LOGO = '/birds/Logo.png';
+export const APP_LOGO = '/logo.png';
 
 // Logo Icon (mesma imagem para sidebar - será redimensionada via CSS)
-export const APP_LOGO_ICON = '/birds/Logo.png';
+export const APP_LOGO_ICON = '/logo.png';
 
 const buildDefaultBirdIcon = (accent: string, bg: string) => `data:image/svg+xml;utf8,${encodeURIComponent(`
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" fill="none">
