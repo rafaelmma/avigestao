@@ -75,7 +75,7 @@ const BirdManager: React.FC<BirdManagerProps> = ({
   const [searchTerm, setSearchTerm] = useState('');
   const [showModal, setShowModal] = useState(false);
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
-  const [currentList, setCurrentList] = useState<'plantel' | 'lixeira' | 'sexagem' | 'ibama-pendentes'>(initialList);
+  const [currentList, setCurrentList] = useState<'plantel' | 'histórico' | 'lixeira' | 'sexagem' | 'ibama-pendentes'>(initialList);
   
   // Modal de Registro Rápido IBAMA
   const [showQuickIbamaModal, setShowQuickIbamaModal] = useState(false);
@@ -435,7 +435,19 @@ const BirdManager: React.FC<BirdManagerProps> = ({
     if (currentList === 'ibama-pendentes') {
       return state.birds.filter(b => b.ibamaBaixaPendente && (b.status === 'Óbito' || b.status === 'Fuga' || b.status === 'Vendido' || b.status === 'Doado'));
     }
-    const list = currentList === 'plantel' ? state.birds : (state.deletedBirds || []);
+    
+    let list: Bird[] = [];
+    if (currentList === 'plantel') {
+      // Plantel mostra apenas aves Ativas
+      list = state.birds.filter(b => b.status === 'Ativo');
+    } else if (currentList === 'histórico') {
+      // Histórico mostra aves com status não-ativo (Óbito, Fuga, Vendido, Doado)
+      list = state.birds.filter(b => b.status !== 'Ativo');
+    } else if (currentList === 'lixeira') {
+      // Lixeira mostra aves deletadas
+      list = state.deletedBirds || [];
+    }
+    
     return list.filter(bird => {
       const matchesSearch = bird.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
                             bird.ringNumber.toLowerCase().includes(searchTerm.toLowerCase());
@@ -833,6 +845,15 @@ const BirdManager: React.FC<BirdManagerProps> = ({
              className={`px-4 py-2 text-xs font-black uppercase rounded-lg transition-all whitespace-nowrap ${currentList === 'plantel' ? 'bg-[#0F172A] text-white shadow' : 'text-slate-400 hover:text-slate-600'}`}
            >
              Aves Ativas
+           </button>
+           <button 
+             onClick={() => setCurrentList('histórico')}
+             className={`px-4 py-2 text-xs font-black uppercase rounded-lg transition-all flex items-center gap-2 whitespace-nowrap ${currentList === 'histórico' ? 'bg-slate-600 text-white shadow' : 'text-slate-400 hover:text-slate-600'}`}
+           >
+             📋 Histórico
+             {state.birds.filter(b => b.status !== 'Ativo').length > 0 && (
+               <span className="bg-white/20 px-1.5 rounded text-[9px]">{state.birds.filter(b => b.status !== 'Ativo').length}</span>
+             )}
            </button>
            {includeSexingTab && (
              <button 
