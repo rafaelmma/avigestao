@@ -38,7 +38,7 @@ const TaskManager: React.FC<TaskManagerProps> = ({ state, addTask, updateTask, t
   const [currentList, setCurrentList] = useState<'active' | 'trash'>('active');
   const [filterMode, setFilterMode] = useState<'all' | 'general' | 'specific' | 'late'>('all');
   
-  // State do FormulÃ¡rio
+  // State do Formulário
   const [newTask, setNewTask] = useState<Partial<MaintenanceTask>>({
     priority: 'Média',
     dueDate: new Date().toISOString().split('T')[0],
@@ -171,7 +171,7 @@ const TaskManager: React.FC<TaskManagerProps> = ({ state, addTask, updateTask, t
 
     addTask(repeatedTask);
   };
-  // FunÃ§Ãµes de Lixeira
+  // Funções de Lixeira
   const handleDeleteClick = (id: string) => {
     deleteTask(id);
   };
@@ -228,7 +228,7 @@ const TaskManager: React.FC<TaskManagerProps> = ({ state, addTask, updateTask, t
         </div>
       </header>
 
-      {/* Filtros RÃ¡pidos */}
+      {/* Filtros Rápidos */}
       {currentList === 'active' && (
         <div className="flex flex-wrap gap-2 pb-2">
            <button 
@@ -315,7 +315,7 @@ const TaskManager: React.FC<TaskManagerProps> = ({ state, addTask, updateTask, t
                         <p className={`text-sm font-bold ${overdue ? 'text-rose-700' : 'text-slate-700'}`}>
                           {t.title}
                         </p>
-                        {/* Aviso Visual "NÃ£o Chato" */}
+                        {/* Aviso Visual "Não Chato" */}
                         {t.remindMe && (
                           <Bell size={12} className={`${overdue ? 'text-rose-500 animate-pulse' : 'text-amber-400'} fill-current`} />
                         )}
@@ -411,7 +411,7 @@ const TaskManager: React.FC<TaskManagerProps> = ({ state, addTask, updateTask, t
           </div>
         </div>
 
-        {/* ConcluÃ­das */}
+        {/* Concluídas */}
         <div className="space-y-6">
           <div className="flex items-center justify-between mb-4">
              <h3 className="font-black text-slate-400 text-lg flex items-center gap-3">
@@ -503,7 +503,7 @@ const TaskManager: React.FC<TaskManagerProps> = ({ state, addTask, updateTask, t
                    onClick={() => setTargetType('specific')}
                    className={`flex-1 py-3 rounded-xl text-xs font-black uppercase tracking-widest flex items-center justify-center gap-2 transition-all ${targetType === 'specific' ? 'bg-white text-brand shadow-sm' : 'text-slate-400 hover:text-slate-600'}`}
                  >
-                   <BirdIcon size={14} /> Ave EspecÃ­fica
+                   <BirdIcon size={14} /> Ave Específica
                  </button>
               </div>
 
@@ -512,7 +512,7 @@ const TaskManager: React.FC<TaskManagerProps> = ({ state, addTask, updateTask, t
                 <input required type="text" placeholder="Ex: Fornecer Farinhada Especial" className="w-full px-6 py-4 bg-slate-50 border border-slate-100 rounded-2xl outline-none focus:border-brand font-bold text-slate-700" value={newTask.title || ''} onChange={e => setNewTask({...newTask, title: e.target.value})} />
               </div>
 
-              {/* SeleÃ§Ã£o de PÃ¡ssaro (Condicional) */}
+              {/* Seleção de Pássaro (Condicional) */}
               {targetType === 'specific' && (
                 <div className="animate-in fade-in slide-in-from-top-2">
                   <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Selecione a Ave</label>
@@ -554,7 +554,7 @@ const TaskManager: React.FC<TaskManagerProps> = ({ state, addTask, updateTask, t
                   <input type="date" className="w-full px-6 py-4 bg-slate-50 border border-slate-100 rounded-2xl outline-none font-bold text-slate-700" value={newTask.dueDate} onChange={e => setNewTask({...newTask, dueDate: e.target.value})} />
               </div>
 
-              {/* BotÃ£o de Lembrete */}
+              {/* Botão de Lembrete */}
               <div 
                 className={`p-4 rounded-2xl border flex items-center justify-between cursor-pointer transition-all ${newTask.remindMe ? 'bg-amber-50 border-amber-200' : 'bg-slate-50 border-slate-100'}`}
                 onClick={() => setNewTask({ ...newTask, remindMe: !newTask.remindMe })}
@@ -574,7 +574,7 @@ const TaskManager: React.FC<TaskManagerProps> = ({ state, addTask, updateTask, t
               </div>
 
               <button type="submit" className="w-full py-5 bg-[#0F172A] text-white font-black text-xs uppercase tracking-widest rounded-2xl shadow-xl hover:bg-slate-800 transition-all mt-2">
-                {isEditing ? 'Salvar AlteraÃ§Ãµes' : 'Confirmar Agendamento'}
+                {isEditing ? 'Salvar Alterações' : 'Confirmar Agendamento'}
               </button>
             </form>
           </div>
