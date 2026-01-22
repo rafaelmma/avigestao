@@ -539,7 +539,7 @@ const TaskManager: React.FC<TaskManagerProps> = ({ state, addTask, updateTask, t
                   </select>
                 </div>
                 <div>
-                  <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">FrequÃªncia</label>
+                  <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Frequência</label>
                   <select className="w-full px-6 py-4 bg-slate-50 border border-slate-100 rounded-2xl outline-none font-bold text-slate-700" value={newTask.frequency} onChange={e => setNewTask({...newTask, frequency: e.target.value as any})}>
                     <option value="Única">Única vez</option>
                     <option value="Diária">Diária</option>
@@ -550,7 +550,7 @@ const TaskManager: React.FC<TaskManagerProps> = ({ state, addTask, updateTask, t
               </div>
 
               <div>
-                  <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Data / InÃ­cio</label>
+                  <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Data / Início</label>
                   <input type="date" className="w-full px-6 py-4 bg-slate-50 border border-slate-100 rounded-2xl outline-none font-bold text-slate-700" value={newTask.dueDate} onChange={e => setNewTask({...newTask, dueDate: e.target.value})} />
               </div>
 
