@@ -1,7 +1,7 @@
 ﻿
 import React, { useState, useMemo, useRef, useEffect, Suspense } from 'react';
 import { deleteBird as svcDeleteBird } from '../services/birds';
-import { Bird, AppState, Sex, TrainingStatus, BirdClassification, BirdDocument } from '../types';
+import { Bird, AppState, Sex, TrainingStatus, BirdClassification, BirdDocument, MovementRecord } from '../types';
 import { 
   Plus, 
   Search, 
@@ -79,6 +79,16 @@ const BirdManager: React.FC<BirdManagerProps> = ({
   const [showQuickIbamaModal, setShowQuickIbamaModal] = useState(false);
   const [quickIbamaBird, setQuickIbamaBird] = useState<Bird | null>(null);
   const [quickIbamaDate, setQuickIbamaDate] = useState(new Date().toISOString().split('T')[0]);
+  
+  // Modal de Status Rápido
+  const [showQuickStatusModal, setShowQuickStatusModal] = useState(false);
+  const [quickStatusBird, setQuickStatusBird] = useState<Bird | null>(null);
+  const [quickStatusData, setQuickStatusData] = useState({
+    newStatus: 'Óbito' as 'Óbito' | 'Fugiu' | 'Vendido' | 'Doado',
+    date: new Date().toISOString().split('T')[0],
+    createMovement: true,
+    notes: ''
+  });
   
   // States da Central de Sexagem
   const [selectedForSexing, setSelectedForSexing] = useState<string[]>([]);
@@ -328,18 +338,41 @@ const BirdManager: React.FC<BirdManagerProps> = ({
     return months > 0 ? `${years}a ${months}m` : `${years} anos`;
   };
 
-  // --- Função de Registro Rápido IBAMA ---
-  const handleQuickIbamaRegister = () => {
-    if (quickIbamaBird) {
+  // --- Função de Status Rápido ---
+  const handleQuickStatusConfirm = () => {
+    if (quickStatusBird) {
+      // 1. Atualizar status da ave
       const updatedBird = {
-        ...quickIbamaBird,
-        ibamaBaixaPendente: false,
-        ibamaBaixaData: quickIbamaDate
+        ...quickStatusBird,
+        status: quickStatusData.newStatus,
+        ibamaBaixaPendente: true // Sempre marca como pendente IBAMA
       };
       updateBird(updatedBird);
-      setShowQuickIbamaModal(false);
-      setQuickIbamaBird(null);
-      setQuickIbamaDate(new Date().toISOString().split('T')[0]);
+
+      // 2. Se marcado, criar movimentação também
+      if (quickStatusData.createMovement && addMovement) {
+        const movementId = Math.random().toString(36).substr(2, 9);
+        const newMovement: MovementRecord = {
+          id: movementId,
+          birdId: quickStatusBird.id,
+          type: quickStatusData.newStatus,
+          date: quickStatusData.date,
+          notes: quickStatusData.notes || '',
+          gtrUrl: undefined,
+          destination: undefined,
+          buyerSispass: undefined
+        };
+        addMovement(newMovement);
+      }
+
+      setShowQuickStatusModal(false);
+      setQuickStatusBird(null);
+      setQuickStatusData({
+        newStatus: 'Óbito',
+        date: new Date().toISOString().split('T')[0],
+        createMovement: true,
+        notes: ''
+      });
     }
   };
 
@@ -1107,6 +1140,48 @@ const BirdManager: React.FC<BirdManagerProps> = ({
                  </div>
                ) : currentList === 'plantel' ? (
                  <div className="w-full flex gap-2">
+                    {bird.status === 'Ativo' && (
+                      <div className="flex-1 group relative">
+                        <button 
+                          type="button"
+                          onClick={(e) => { e.stopPropagation(); }}
+                          className="w-full flex items-center justify-center gap-1 px-2 py-1.5 text-[10px] font-bold uppercase text-slate-600 bg-slate-50 hover:bg-slate-100 rounded-lg transition-all border border-slate-200"
+                          title="Marcar evento rápido"
+                        >
+                          ⚡ Status
+                        </button>
+                        <div className="absolute bottom-full left-0 mb-2 w-40 bg-white border border-slate-200 rounded-2xl shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-50 overflow-hidden">
+                          <button 
+                            type="button"
+                            onClick={(e) => { e.stopPropagation(); setQuickStatusBird(bird); setQuickStatusData({newStatus: 'Óbito', date: new Date().toISOString().split('T')[0], createMovement: true, notes: ''}); setShowQuickStatusModal(true); }}
+                            className="w-full px-4 py-2.5 text-xs font-bold text-left text-red-600 hover:bg-red-50 transition-colors border-b border-slate-100 flex items-center gap-2"
+                          >
+                            🔴 Óbito
+                          </button>
+                          <button 
+                            type="button"
+                            onClick={(e) => { e.stopPropagation(); setQuickStatusBird(bird); setQuickStatusData({newStatus: 'Fugiu', date: new Date().toISOString().split('T')[0], createMovement: true, notes: ''}); setShowQuickStatusModal(true); }}
+                            className="w-full px-4 py-2.5 text-xs font-bold text-left text-orange-600 hover:bg-orange-50 transition-colors border-b border-slate-100 flex items-center gap-2"
+                          >
+                            🟠 Fugiu
+                          </button>
+                          <button 
+                            type="button"
+                            onClick={(e) => { e.stopPropagation(); setQuickStatusBird(bird); setQuickStatusData({newStatus: 'Vendido', date: new Date().toISOString().split('T')[0], createMovement: true, notes: ''}); setShowQuickStatusModal(true); }}
+                            className="w-full px-4 py-2.5 text-xs font-bold text-left text-blue-600 hover:bg-blue-50 transition-colors border-b border-slate-100 flex items-center gap-2"
+                          >
+                            🔵 Vendido
+                          </button>
+                          <button 
+                            type="button"
+                            onClick={(e) => { e.stopPropagation(); setQuickStatusBird(bird); setQuickStatusData({newStatus: 'Doado', date: new Date().toISOString().split('T')[0], createMovement: true, notes: ''}); setShowQuickStatusModal(true); }}
+                            className="w-full px-4 py-2.5 text-xs font-bold text-left text-purple-600 hover:bg-purple-50 transition-colors flex items-center gap-2"
+                          >
+                            🟣 Doado
+                          </button>
+                        </div>
+                      </div>
+                    )}
                     {bird.ibamaBaixaPendente && (
                       <button 
                         type="button"
@@ -2031,9 +2106,96 @@ const BirdManager: React.FC<BirdManagerProps> = ({
            </div>
         </div>
       )}
+
+      {/* Modal de Status Rápido */}
+      {showQuickStatusModal && quickStatusBird && (
+        <div className="fixed inset-0 z-[200] flex items-center justify-center bg-slate-900/60 backdrop-blur-md p-4 animate-in fade-in duration-300">
+           <div className="bg-white rounded-[40px] w-full max-w-md shadow-2xl overflow-hidden">
+              <div className={`p-8 bg-gradient-to-r ${
+                quickStatusData.newStatus === 'Óbito' ? 'from-red-500 to-rose-500' :
+                quickStatusData.newStatus === 'Fugiu' ? 'from-orange-500 to-amber-500' :
+                quickStatusData.newStatus === 'Vendido' ? 'from-blue-500 to-cyan-500' :
+                'from-purple-500 to-pink-500'
+              }`}>
+                 <div className="flex items-center gap-3">
+                    <div className="w-12 h-12 bg-white/20 rounded-2xl flex items-center justify-center text-2xl">
+                       {quickStatusData.newStatus === 'Óbito' && '🔴'}
+                       {quickStatusData.newStatus === 'Fugiu' && '🟠'}
+                       {quickStatusData.newStatus === 'Vendido' && '🔵'}
+                       {quickStatusData.newStatus === 'Doado' && '🟣'}
+                    </div>
+                    <div className="flex-1">
+                       <h3 className="text-xl font-black text-white tracking-tight">Marcar como {quickStatusData.newStatus}</h3>
+                       <p className="text-white/80 text-xs font-bold uppercase tracking-widest">{quickStatusBird.name}</p>
+                    </div>
+                    <button onClick={() => setShowQuickStatusModal(false)} className="text-white/60 hover:text-white transition-colors">
+                       <X size={24} />
+                    </button>
+                 </div>
+              </div>
+
+              <div className="p-8 space-y-6">
+                 <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100">
+                    <p className="text-xs font-bold text-slate-600 uppercase tracking-widest mb-2">Ave</p>
+                    <p className="text-lg font-black text-slate-800">{quickStatusBird.name}</p>
+                    <p className="text-[10px] text-slate-500 font-mono">{quickStatusBird.ringNumber}</p>
+                 </div>
+
+                 <div className="space-y-2">
+                    <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest">Data do Evento</label>
+                    <input 
+                       type="date" 
+                       className="w-full p-4 bg-white border border-slate-200 rounded-2xl font-bold text-slate-700 outline-none focus:border-brand" 
+                       value={quickStatusData.date}
+                       onChange={(e) => setQuickStatusData({...quickStatusData, date: e.target.value})}
+                    />
+                 </div>
+
+                 <div className="space-y-2">
+                    <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest">Notas (Opcional)</label>
+                    <textarea 
+                       className="w-full p-4 bg-white border border-slate-200 rounded-2xl font-bold text-slate-700 outline-none focus:border-brand min-h-20 resize-none" 
+                       placeholder="Ex: Detalhes sobre o evento..."
+                       value={quickStatusData.notes}
+                       onChange={(e) => setQuickStatusData({...quickStatusData, notes: e.target.value})}
+                    />
+                 </div>
+
+                 <label className="flex items-center gap-3 cursor-pointer p-4 bg-blue-50 border border-blue-200 rounded-2xl hover:bg-blue-100 transition-colors">
+                    <input 
+                       type="checkbox" 
+                       checked={quickStatusData.createMovement}
+                       onChange={(e) => setQuickStatusData({...quickStatusData, createMovement: e.target.checked})}
+                       className="w-5 h-5 rounded border-blue-300 text-blue-600 focus:ring-blue-500"
+                    />
+                    <span className="text-sm font-bold text-blue-800">Criar movimentação também</span>
+                 </label>
+
+                 <div className="grid grid-cols-2 gap-3">
+                    <button 
+                       onClick={() => setShowQuickStatusModal(false)}
+                       className="py-3 bg-slate-100 text-slate-600 rounded-2xl font-bold text-xs uppercase tracking-widest hover:bg-slate-200 transition-all"
+                    >
+                       Cancelar
+                    </button>
+                    <button 
+                       onClick={handleQuickStatusConfirm}
+                       className={`py-3 text-white rounded-2xl font-black text-xs uppercase tracking-widest shadow-lg flex items-center justify-center gap-2 transition-all ${
+                         quickStatusData.newStatus === 'Óbito' ? 'bg-red-500 hover:bg-red-600 shadow-red-200' :
+                         quickStatusData.newStatus === 'Fugiu' ? 'bg-orange-500 hover:bg-orange-600 shadow-orange-200' :
+                         quickStatusData.newStatus === 'Vendido' ? 'bg-blue-500 hover:bg-blue-600 shadow-blue-200' :
+                         'bg-purple-500 hover:bg-purple-600 shadow-purple-200'
+                       }`}
+                    >
+                       <CheckCircle2 size={16} /> Confirmar
+                    </button>
+                 </div>
+              </div>
+           </div>
+        </div>
+      )}
     </div>
   );
-
 };
 
 export default BirdManager;
