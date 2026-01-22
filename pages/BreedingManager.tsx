@@ -48,6 +48,7 @@ const BreedingManager: React.FC<BreedingManagerProps> = ({ state, addPair, updat
   const [showPairModal, setShowPairModal] = useState(false);
   const [showClutchModal, setShowClutchModal] = useState(false);
   const [showHatchlingModal, setShowHatchlingModal] = useState(false);
+  const [showReactivateModal, setShowReactivateModal] = useState(false);
   const [selectedPairId, setSelectedPairId] = useState<string | null>(null);
   const [notification, setNotification] = useState<{message: string, type: 'success' | 'info' | 'error'} | null>(null);
   const [currentList, setCurrentList] = useState<'active' | 'archived' | 'trash'>('active');
@@ -55,6 +56,12 @@ const BreedingManager: React.FC<BreedingManagerProps> = ({ state, addPair, updat
   const [newPair, setNewPair] = useState<Partial<Pair>>({ status: 'Ativo' });
   const [newClutch, setNewClutch] = useState<Partial<Clutch>>({ eggCount: 0, fertileCount: 0, hatchedCount: 0 });
   const [isEditingClutch, setIsEditingClutch] = useState(false);
+
+  // State para reativação de casais
+  const [reactivateData, setReactivateData] = useState<{ startDate: string; clearHistory: boolean }>({ 
+    startDate: new Date().toISOString().split('T')[0],
+    clearHistory: true 
+  });
 
   // State para registro de filhotes
   const [hatchlingsToRegister, setHatchlingsToRegister] = useState<PendingHatchling[]>([]);
@@ -305,12 +312,51 @@ const BreedingManager: React.FC<BreedingManagerProps> = ({ state, addPair, updat
 
   const handleUnarchiveClick = (e: React.MouseEvent, id: string) => {
     e.stopPropagation();
-    if (unarchivePair) unarchivePair(id);
+    handleReactivate(id);
   };
 
   const handleArchiveFromTrashClick = (e: React.MouseEvent, id: string) => {
     e.stopPropagation();
     if (archiveFromTrashToPairs) archiveFromTrashToPairs(id);
+  };
+
+  // Reativar casal com atualização de datas
+  const handleReactivate = (pairId: string) => {
+    const pair = (state.archivedPairs || []).find(p => p.id === pairId);
+    if (!pair) return;
+
+    setSelectedPairId(pairId);
+    setReactivateData({
+      startDate: reactivateData.startDate,
+      clearHistory: true
+    });
+    setShowReactivateModal(true);
+  };
+
+  const confirmReactivate = async () => {
+    if (!selectedPairId) return;
+
+    const pair = (state.archivedPairs || []).find(p => p.id === selectedPairId);
+    if (!pair) return;
+
+    const updatedPair: Pair = {
+      ...pair,
+      startDate: reactivateData.startDate,
+      lastHatchDate: reactivateData.clearHistory ? undefined : pair.lastHatchDate,
+      archivedAt: undefined
+    };
+
+    if (unarchivePair) {
+      await unarchivePair(selectedPairId);
+      // Atualizar dados do casal com novas datas
+      await updatePair(updatedPair);
+    }
+
+    setShowReactivateModal(false);
+    setNotification({ 
+      message: `${pair.name} reativado com sucesso!`, 
+      type: 'success' 
+    });
   };
 
   const getBirdName = (id?: string) => state.birds.find(b => b.id === id)?.name || 'N/A';
@@ -982,6 +1028,71 @@ const BreedingManager: React.FC<BreedingManagerProps> = ({ state, addPair, updat
                >
                  <Save size={18} /> Confirmar Filhotes no Plantel
                </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal de Reativação de Casal */}
+      {showReactivateModal && selectedPairId && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-3xl shadow-2xl p-8 max-w-md w-full mx-4 border border-slate-100">
+            <div className="flex items-center justify-between mb-6">
+              <h2 className="text-xl font-black text-slate-800 flex items-center gap-2">
+                <RefreshCcw size={24} className="text-amber-500" /> Reativar Casal
+              </h2>
+              <button 
+                onClick={() => setShowReactivateModal(false)}
+                className="text-slate-400 hover:text-slate-600 transition-colors"
+              >
+                <X size={24} />
+              </button>
+            </div>
+
+            <div className="space-y-4">
+              <div>
+                <label className="block text-[9px] font-black text-slate-400 uppercase tracking-widest mb-2">
+                  Nova Data de Início
+                </label>
+                <input 
+                  type="date"
+                  className="w-full p-3 bg-white border border-slate-200 rounded-xl text-sm font-bold text-slate-700 outline-none focus:border-brand"
+                  value={reactivateData.startDate}
+                  onChange={(e) => setReactivateData({ ...reactivateData, startDate: e.target.value })}
+                />
+              </div>
+
+              <div className="flex items-center gap-3 p-3 bg-amber-50 border border-amber-200 rounded-xl">
+                <input 
+                  type="checkbox"
+                  id="clearHistory"
+                  checked={reactivateData.clearHistory}
+                  onChange={(e) => setReactivateData({ ...reactivateData, clearHistory: e.target.checked })}
+                  className="w-4 h-4"
+                />
+                <label htmlFor="clearHistory" className="text-xs font-bold text-amber-700 cursor-pointer">
+                  Limpar histórico de ninhadas (começar do zero)
+                </label>
+              </div>
+
+              <p className="text-xs text-slate-500 p-3 bg-slate-50 rounded-xl">
+                ℹ️ Se desmarcar, o histórico de ninhadas será mantido.
+              </p>
+            </div>
+
+            <div className="flex gap-3 mt-6">
+              <button 
+                onClick={() => setShowReactivateModal(false)}
+                className="flex-1 py-3 px-4 bg-slate-100 text-slate-700 font-bold text-sm uppercase rounded-xl hover:bg-slate-200 transition-colors"
+              >
+                Cancelar
+              </button>
+              <button 
+                onClick={confirmReactivate}
+                className="flex-1 py-3 px-4 bg-emerald-500 text-white font-bold text-sm uppercase rounded-xl hover:bg-emerald-600 transition-colors flex items-center justify-center gap-2"
+              >
+                <RefreshCcw size={16} /> Reativar
+              </button>
             </div>
           </div>
         </div>
