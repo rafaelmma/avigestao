@@ -341,7 +341,7 @@ const BirdManager: React.FC<BirdManagerProps> = ({
   };
 
   // --- Função de Status Rápido ---
-  const handleQuickStatusConfirm = () => {
+  const handleQuickStatusConfirm = async () => {
     if (quickStatusBird) {
       // 1. Atualizar status da ave
       const updatedBird = {
@@ -371,7 +371,7 @@ const BirdManager: React.FC<BirdManagerProps> = ({
           destination: undefined,
           buyerSispass: undefined
         };
-        addMovement(newMovement);
+        await addMovement(newMovement); // Espera a promessa resolver
       }
 
       setShowQuickStatusModal(false);
