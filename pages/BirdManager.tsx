@@ -1117,7 +1117,7 @@ const BirdManager: React.FC<BirdManagerProps> = ({
                            </div>
                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                <div className="space-y-2">
-                                  <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest">Nome / Identifica├º├úo</label>
+                                  <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest">Nome / Identificação</label>
                                   <input required className="w-full p-4 bg-white border border-slate-200 rounded-2xl font-bold text-slate-700 outline-none focus:border-brand" value={editingBird.name || ''} onChange={e => setEditingBird({...editingBird, name: e.target.value})} />
                                </div>
                                <div className="space-y-2">
@@ -1129,7 +1129,7 @@ const BirdManager: React.FC<BirdManagerProps> = ({
                            <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
                                {/* ... Campos de especie, sexo, data ... */}
                                <div className="space-y-2">
-                                  <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest">Esp├®cie</label>
+                                  <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest">Espécie</label>
                                   <div className="space-y-2">
                                     <select 
                                       className="w-full p-4 bg-white border border-slate-200 rounded-2xl font-bold text-slate-700 outline-none focus:border-brand appearance-none" 
@@ -1148,7 +1148,7 @@ const BirdManager: React.FC<BirdManagerProps> = ({
                                     {!BRAZILIAN_SPECIES.includes(editingBird.species || '') && (
                                       <input 
                                         type="text" 
-                                        placeholder="Digite o nome da esp├®cie..." 
+                                        placeholder="Digite o nome da espécie..." 
                                         className="w-full p-4 bg-slate-50 border border-brand/20 rounded-2xl font-bold text-brand outline-none focus:border-brand animate-in fade-in"
                                         value={editingBird.species || ''}
                                         onChange={e => setEditingBird({...editingBird, species: e.target.value})}
@@ -1170,14 +1170,14 @@ const BirdManager: React.FC<BirdManagerProps> = ({
                                   <input type="date" className="w-full p-4 bg-white border border-slate-200 rounded-2xl font-bold text-slate-700 outline-none focus:border-brand" value={editingBird.birthDate} onChange={e => setEditingBird({...editingBird, birthDate: e.target.value})} />
                                </div>
                                <div className="space-y-2">
-                                  <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest">Muta├º├úo / Cor</label>
+                                  <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest">Mutação / Cor</label>
                                   <input className="w-full p-4 bg-white border border-slate-200 rounded-2xl font-bold text-slate-700 outline-none focus:border-brand" value={editingBird.colorMutation || ''} onChange={e => setEditingBird({...editingBird, colorMutation: e.target.value})} />
                                </div>
                            </div>
 
                            <div className="grid grid-cols-2 gap-6">
                               <div className="space-y-2">
-                                 <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest">Classifica├º├úo</label>
+                                 <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest">Classificação</label>
                                  <select className="w-full p-4 bg-white border border-slate-200 rounded-2xl font-bold text-slate-700 outline-none focus:border-brand appearance-none" value={editingBird.classification} onChange={e => setEditingBird({...editingBird, classification: e.target.value as any})}>
                                    <option value="Não Definido">Não Definido</option>
                                    <option value="Galador">Galador</option>
