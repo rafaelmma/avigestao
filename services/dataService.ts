@@ -71,12 +71,13 @@ export async function loadInitialData(userId: string) {
   );
 
   // Initial data for dashboard and core UI only.
-  const [birds, transactions, tasks, tournaments, clutches, settingsResult] = await Promise.all([
+  const [birds, transactions, tasks, tournaments, clutches, pairs, settingsResult] = await Promise.all([
     safeSelect(supabase.from("birds").select("*").eq("user_id", userId), mapBirdFromDb),
     safeSelect(supabase.from("transactions").select("*").eq("user_id", userId), mapTransactionFromDb),
     safeSelect(supabase.from("tasks").select("*").eq("user_id", userId), mapTaskFromDb),
     safeSelect(supabase.from("tournaments").select("*").eq("user_id", userId), mapTournamentFromDb),
     safeSelect(supabase.from("clutches").select("*").eq("user_id", userId), mapClutchFromDb),
+    safeSelect(supabase.from("pairs").select("*").eq("user_id", userId).is("deleted_at", null), mapPairFromDb),
     settingsPromise,
   ]);
 
@@ -89,7 +90,7 @@ export async function loadInitialData(userId: string) {
     tasks,
     tournaments,
     medications: [],
-    pairs: [],
+    pairs,
     clutches,
     applications: [],
     treatments: [],
@@ -107,7 +108,7 @@ export async function loadTabData(userId: string, tab: string) {
       };
     case "breeding":
       return {
-        pairs: await safeSelect(supabase.from("pairs").select("*").eq("user_id", userId), mapPairFromDb),
+        pairs: await safeSelect(supabase.from("pairs").select("*").eq("user_id", userId).is("deleted_at", null), mapPairFromDb),
         clutches: await safeSelect(supabase.from("clutches").select("*").eq("user_id", userId), mapClutchFromDb),
       };
     case "meds": {
@@ -146,6 +147,16 @@ export async function loadTabData(userId: string, tab: string) {
       return {};
   }
 }
+
+export async function loadDeletedPairs(userId: string) {
+  return {
+    deletedPairs: await safeSelect(
+      supabase.from("pairs").select("*").eq("user_id", userId).not("deleted_at", "is", null),
+      mapPairFromDb
+    ),
+  };
+}
+
 export const mapBirdFromDb = (row: any): Bird => {
   const species = row.species ?? "";
   const sex = row.sex ?? "Indeterminado";

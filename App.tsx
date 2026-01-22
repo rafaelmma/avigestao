@@ -28,7 +28,7 @@ const HelpCenter = lazy(() => import('./pages/HelpCenter'));
 const DocumentsManager = lazy(() => import('./pages/DocumentsManager'));
 const Auth = lazy(() => import('./pages/Auth'));
 import { supabase, SUPABASE_MISSING } from './lib/supabase';
-import { loadInitialData, loadTabData } from './services/dataService';
+import { loadInitialData, loadTabData, loadDeletedPairs } from './services/dataService';
 
 const STORAGE_KEY = 'avigestao_state';
 const HYDRATE_TIMEOUT_MS = 15000; // 15s - reduced for faster UX
@@ -488,6 +488,16 @@ const App: React.FC = () => {
         ...data,
         settings: normalizedSettings
       });
+
+      // Carrega pares deletados em background
+      if (!supabaseUnavailable) {
+        try {
+          const deletedData = await loadDeletedPairs(userId);
+          setState(prev => ({ ...prev, ...deletedData }));
+        } catch (err) {
+          console.warn('Falha ao carregar pares deletados:', err);
+        }
+      }
     } catch (err: any) {
       console.error('Erro ao carregar dados:', err);
       setAuthError(err?.message || 'Erro ao carregar dados');
