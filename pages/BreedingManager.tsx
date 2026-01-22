@@ -133,11 +133,11 @@ const BreedingManager: React.FC<BreedingManagerProps> = ({ state, addPair, updat
       const hatchedCount = newClutch.hatchedCount || 0;
       
       if (isEditingClutch && newClutch.id) {
-        // Modo Edi├º├úo
+        // Modo Edição
         updateClutch(newClutch as Clutch);
         setNotification({ message: 'Dados da ninhada atualizados!', type: 'success' });
       } else {
-        // Modo Cria├º├úo
+        // Modo Criação
         const clutchData: Clutch = {
           ...newClutch as Clutch,
           id: makeId(),
@@ -697,11 +697,11 @@ const BreedingManager: React.FC<BreedingManagerProps> = ({ state, addPair, updat
                     Casal: {getPairName(selectedPairId || '')}
                   </p>
                 </div>
-                {/* Info sobre a esp├®cie e incuba├º├úo */}
+                {/* Info sobre a espécie e incubação */}
                 <div className="pl-7">
                    <p className="text-[10px] text-blue-700 font-medium">
-                     Esp├®cie: {getPairSpecies(selectedPairId || '')} ÔÇó 
-                     Incuba├º├úo M├®dia: {getIncubationDays(selectedPairId || '')} dias
+                     Espécie: {getPairSpecies(selectedPairId || '')} • 
+                     Incubação Média: {getIncubationDays(selectedPairId || '')} dias
                    </p>
                 </div>
               </div>
@@ -731,7 +731,7 @@ const BreedingManager: React.FC<BreedingManagerProps> = ({ state, addPair, updat
                 </div>
               </div>
               <div>
-                <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Observa├º├Áes</label>
+                <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Observações</label>
                 <textarea 
                   className="w-full px-6 py-4 bg-slate-50 border border-slate-100 rounded-2xl outline-none h-20 resize-none font-medium text-slate-700"
                   value={newClutch.notes || ''}
@@ -739,7 +739,7 @@ const BreedingManager: React.FC<BreedingManagerProps> = ({ state, addPair, updat
                 />
               </div>
               <button type="submit" className="w-full py-5 bg-brand text-white font-black text-xs uppercase tracking-widest rounded-2xl shadow-xl shadow-brand/20 mt-4">
-                {isEditingClutch ? 'Salvar Altera├º├Áes' : 'Confirmar Registro'}
+                {isEditingClutch ? 'Salvar Alterações' : 'Confirmar Registro'}
               </button>
             </form>
           </div>
