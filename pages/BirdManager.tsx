@@ -2154,7 +2154,7 @@ const BirdManager: React.FC<BirdManagerProps> = ({
            <div className="bg-white rounded-[40px] w-full max-w-md shadow-2xl overflow-hidden">
               <div className={`p-8 bg-gradient-to-r ${
                 quickStatusData.newStatus === 'Óbito' ? 'from-red-500 to-rose-500' :
-                quickStatusData.newStatus === 'Fugiu' ? 'from-orange-500 to-amber-500' :
+                quickStatusData.newStatus === 'Fuga' ? 'from-orange-500 to-amber-500' :
                 quickStatusData.newStatus === 'Vendido' ? 'from-blue-500 to-cyan-500' :
                 'from-purple-500 to-pink-500'
               }`}>
