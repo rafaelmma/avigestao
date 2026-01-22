@@ -123,6 +123,7 @@ export interface Pair {
   status: 'Ativo' | 'Inativo';
   name: string;
   lastHatchDate?: string;
+  archivedAt?: string;
   deletedAt?: string;
 }
 
@@ -217,6 +218,7 @@ export interface AppState {
   deletedBirds?: Bird[];
 
   pairs: Pair[];
+  archivedPairs?: Pair[];
   deletedPairs?: Pair[];
 
   clutches: Clutch[];

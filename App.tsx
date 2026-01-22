@@ -61,6 +61,7 @@ const defaultState: AppState = {
   birds: MOCK_BIRDS,
   deletedBirds: [],
   pairs: [],
+  archivedPairs: [],
   deletedPairs: [],
   clutches: [],
   medications: MOCK_MEDS,
@@ -762,6 +763,67 @@ const App: React.FC = () => {
   const permanentlyDeletePair = (id: string) =>
     setState(prev => ({ ...prev, deletedPairs: (prev.deletedPairs || []).filter(p => p.id !== id) }));
 
+  // Archive/Unarchive Pairs
+  const archivePair = async (id: string) => {
+    try {
+      if (!supabaseUnavailable && session?.user?.id) {
+        const { error } = await supabase.from('pairs').update({ archived_at: new Date().toISOString() }).eq('id', id).eq('user_id', session.user.id);
+        if (error) console.error('Erro ao arquivar casal:', error);
+      }
+    } catch (e) {
+      console.error('archivePair failed', e);
+    }
+    setState(prev => {
+      const found = prev.pairs.find(p => p.id === id);
+      if (!found) return prev;
+      return {
+        ...prev,
+        pairs: prev.pairs.filter(p => p.id !== id),
+        archivedPairs: [...(prev.archivedPairs || []), { ...found, archivedAt: new Date().toISOString() }]
+      };
+    });
+  };
+
+  const unarchivePair = async (id: string) => {
+    try {
+      if (!supabaseUnavailable && session?.user?.id) {
+        const { error } = await supabase.from('pairs').update({ archived_at: null }).eq('id', id).eq('user_id', session.user.id);
+        if (error) console.error('Erro ao reativar casal:', error);
+      }
+    } catch (e) {
+      console.error('unarchivePair failed', e);
+    }
+    setState(prev => {
+      const found = (prev.archivedPairs || []).find(p => p.id === id);
+      if (!found) return prev;
+      return {
+        ...prev,
+        pairs: [...prev.pairs, { ...found, archivedAt: undefined }],
+        archivedPairs: (prev.archivedPairs || []).filter(p => p.id !== id)
+      };
+    });
+  };
+
+  const archiveFromTrashToPairs = async (id: string) => {
+    try {
+      if (!supabaseUnavailable && session?.user?.id) {
+        const { error } = await supabase.from('pairs').update({ archived_at: new Date().toISOString(), deleted_at: null }).eq('id', id).eq('user_id', session.user.id);
+        if (error) console.error('Erro ao mover para arquivo:', error);
+      }
+    } catch (e) {
+      console.error('archiveFromTrashToPairs failed', e);
+    }
+    setState(prev => {
+      const found = (prev.deletedPairs || []).find(p => p.id === id);
+      if (!found) return prev;
+      return {
+        ...prev,
+        deletedPairs: (prev.deletedPairs || []).filter(p => p.id !== id),
+        archivedPairs: [...(prev.archivedPairs || []), { ...found, deletedAt: undefined, archivedAt: new Date().toISOString() }]
+      };
+    });
+  };
+
   const addClutch = async (clutch: Clutch) => {
     if (!clutch.pairId || !clutch.layDate) {
       console.warn('addClutch validation failed: pairId e layDate são obrigatórios');
@@ -1392,6 +1454,9 @@ const App: React.FC = () => {
             deletePair={deletePair}
             restorePair={restorePair}
             permanentlyDeletePair={permanentlyDeletePair}
+            archivePair={archivePair}
+            unarchivePair={unarchivePair}
+            archiveFromTrashToPairs={archiveFromTrashToPairs}
           />
         );
       case 'meds':

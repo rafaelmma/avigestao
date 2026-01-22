@@ -71,13 +71,14 @@ export async function loadInitialData(userId: string) {
   );
 
   // Initial data for dashboard and core UI only.
-  const [birds, transactions, tasks, tournaments, clutches, pairs, settingsResult] = await Promise.all([
+  const [birds, transactions, tasks, tournaments, clutches, pairs, archivedPairs, settingsResult] = await Promise.all([
     safeSelect(supabase.from("birds").select("*").eq("user_id", userId), mapBirdFromDb),
     safeSelect(supabase.from("transactions").select("*").eq("user_id", userId), mapTransactionFromDb),
     safeSelect(supabase.from("tasks").select("*").eq("user_id", userId), mapTaskFromDb),
     safeSelect(supabase.from("tournaments").select("*").eq("user_id", userId), mapTournamentFromDb),
     safeSelect(supabase.from("clutches").select("*").eq("user_id", userId), mapClutchFromDb),
-    safeSelect(supabase.from("pairs").select("*").eq("user_id", userId).is("deleted_at", null), mapPairFromDb),
+    safeSelect(supabase.from("pairs").select("*").eq("user_id", userId).is("deleted_at", null).is("archived_at", null), mapPairFromDb),
+    safeSelect(supabase.from("pairs").select("*").eq("user_id", userId).not("archived_at", "is", null).is("deleted_at", null), mapPairFromDb),
     settingsPromise,
   ]);
 
@@ -91,6 +92,7 @@ export async function loadInitialData(userId: string) {
     tournaments,
     medications: [],
     pairs,
+    archivedPairs,
     clutches,
     applications: [],
     treatments: [],
@@ -273,6 +275,7 @@ export const mapPairFromDb = (row: any): Pair => ({
   status: row.status ?? "Ativo",
   name: row.name ?? "",
   lastHatchDate: row.last_hatch_date ?? row.lastHatchDate ?? undefined,
+  archivedAt: row.archived_at ?? row.archivedAt ?? undefined,
   deletedAt: row.deleted_at ?? row.deletedAt ?? undefined,
 });
 

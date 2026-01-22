@@ -33,6 +33,9 @@ interface BreedingManagerProps {
   deletePair?: (id: string) => void;
   restorePair?: (id: string) => void;
   permanentlyDeletePair?: (id: string) => void;
+  archivePair?: (id: string) => void;
+  unarchivePair?: (id: string) => void;
+  archiveFromTrashToPairs?: (id: string) => void;
 }
 
 interface PendingHatchling {
@@ -41,13 +44,13 @@ interface PendingHatchling {
   sex: 'Indeterminado' | 'Macho' | 'Fêmea';
 }
 
-const BreedingManager: React.FC<BreedingManagerProps> = ({ state, addPair, updatePair, addBird, addClutch, updateClutch, deletePair, restorePair, permanentlyDeletePair }) => {
+const BreedingManager: React.FC<BreedingManagerProps> = ({ state, addPair, updatePair, addBird, addClutch, updateClutch, deletePair, restorePair, permanentlyDeletePair, archivePair, unarchivePair, archiveFromTrashToPairs }) => {
   const [showPairModal, setShowPairModal] = useState(false);
   const [showClutchModal, setShowClutchModal] = useState(false);
   const [showHatchlingModal, setShowHatchlingModal] = useState(false);
   const [selectedPairId, setSelectedPairId] = useState<string | null>(null);
   const [notification, setNotification] = useState<{message: string, type: 'success' | 'info' | 'error'} | null>(null);
-  const [currentList, setCurrentList] = useState<'active' | 'trash'>('active');
+  const [currentList, setCurrentList] = useState<'active' | 'archived' | 'trash'>('active');
 
   const [newPair, setNewPair] = useState<Partial<Pair>>({ status: 'Ativo' });
   const [newClutch, setNewClutch] = useState<Partial<Clutch>>({ eggCount: 0, fertileCount: 0, hatchedCount: 0 });
@@ -295,6 +298,21 @@ const BreedingManager: React.FC<BreedingManagerProps> = ({ state, addPair, updat
     if (permanentlyDeletePair) permanentlyDeletePair(id);
   };
 
+  // Funções de Arquivo
+  const handleArchiveClick = (id: string) => {
+    if (archivePair) archivePair(id);
+  };
+
+  const handleUnarchiveClick = (e: React.MouseEvent, id: string) => {
+    e.stopPropagation();
+    if (unarchivePair) unarchivePair(id);
+  };
+
+  const handleArchiveFromTrashClick = (e: React.MouseEvent, id: string) => {
+    e.stopPropagation();
+    if (archiveFromTrashToPairs) archiveFromTrashToPairs(id);
+  };
+
   const getBirdName = (id?: string) => state.birds.find(b => b.id === id)?.name || 'N/A';
   const getPairName = (id: string) => state.pairs.find(p => p.id === id)?.name || 'N/A';
 
@@ -316,7 +334,11 @@ const BreedingManager: React.FC<BreedingManagerProps> = ({ state, addPair, updat
   }
 
   // Listagem condicional
-  const visiblePairs = currentList === 'active' ? state.pairs : (state.deletedPairs || []);
+  const visiblePairs = currentList === 'active' 
+    ? state.pairs 
+    : currentList === 'archived' 
+    ? (state.archivedPairs || []) 
+    : (state.deletedPairs || []);
 
   // Calcular eclosões futuras com base na espécie
   const incubatorClutches = state.clutches
@@ -369,7 +391,13 @@ const BreedingManager: React.FC<BreedingManagerProps> = ({ state, addPair, updat
                onClick={() => setCurrentList('active')} 
                className={`px-4 py-2 text-xs font-black uppercase rounded-lg transition-all ${currentList === 'active' ? 'bg-[#0F172A] text-white shadow' : 'text-slate-400'}`}
              >
-               Casais Ativos
+               Ativos
+             </button>
+             <button 
+               onClick={() => setCurrentList('archived')} 
+               className={`px-4 py-2 text-xs font-black uppercase rounded-lg transition-all flex items-center gap-2 ${currentList === 'archived' ? 'bg-amber-500 text-white shadow' : 'text-slate-400'}`}
+             >
+               <Archive size={12} /> Histórico
              </button>
              <button 
                onClick={() => setCurrentList('trash')} 
@@ -390,10 +418,17 @@ const BreedingManager: React.FC<BreedingManagerProps> = ({ state, addPair, updat
         </div>
       </header>
 
+      {currentList === 'archived' && (
+         <div className="bg-amber-50 border-l-4 border-amber-500 p-4 rounded-r-xl mb-4">
+            <p className="text-amber-700 font-bold text-sm">Histórico de Casais</p>
+            <p className="text-amber-600 text-xs">Casais que já produziram filhotes. Reative para voltar aos ativos ou envie para lixeira.</p>
+         </div>
+      )}
+
       {currentList === 'trash' && (
          <div className="bg-rose-50 border-l-4 border-rose-500 p-4 rounded-r-xl mb-4">
             <p className="text-rose-700 font-bold text-sm">Lixeira de Casais</p>
-            <p className="text-rose-600 text-xs">Restaure casais desfeitos acidentalmente ou remova o histórico definitivamente.</p>
+            <p className="text-rose-600 text-xs">Restaure casais desfeitos acidentalmente, mova para histórico, ou remova definitivamente.</p>
             <p className="text-rose-600 text-xs mt-1">Itens ficam disponiveis por ate 30 dias na lixeira antes de serem removidos automaticamente.</p>
          </div>
       )}
@@ -403,8 +438,8 @@ const BreedingManager: React.FC<BreedingManagerProps> = ({ state, addPair, updat
         <div className="lg:col-span-2 space-y-6">
           <div className="flex items-center justify-between">
             <h3 className="font-black text-slate-800 text-lg flex items-center gap-3">
-              <Heart size={20} className="text-rose-500" />
-              {currentList === 'active' ? 'Casais Ativos' : 'Casais Excluídos'}
+              <Heart size={20} className={currentList === 'archived' ? 'text-amber-500' : currentList === 'trash' ? 'text-rose-500' : 'text-[#0F172A]'} />
+              {currentList === 'active' ? 'Casais Ativos' : currentList === 'archived' ? 'Histórico de Casais' : 'Casais Excluídos'}
             </h3>
             <span className="px-3 py-1 bg-rose-50 text-rose-500 text-[10px] font-black rounded-lg uppercase">
               {visiblePairs.length} Registros
@@ -446,7 +481,7 @@ const BreedingManager: React.FC<BreedingManagerProps> = ({ state, addPair, updat
                     <div className="flex items-center gap-2">
                       {pair.lastHatchDate && (
                         <button 
-                          onClick={() => handleDeleteClick(pair.id)}
+                          onClick={() => handleArchiveClick(pair.id)}
                           className="text-slate-300 hover:text-amber-500 transition-colors p-2"
                           title="Arquivar para Histórico"
                         >
@@ -528,6 +563,21 @@ const BreedingManager: React.FC<BreedingManagerProps> = ({ state, addPair, updat
                        </div>
                     </div>
                   </div>
+                ) : currentList === 'archived' ? (
+                  <div className="p-4 bg-amber-50 border-t border-amber-100 flex gap-2">
+                     <button 
+                        onClick={(e) => handleUnarchiveClick(e, pair.id)}
+                        className="flex-1 py-2 bg-emerald-500 text-white rounded-lg font-bold text-xs uppercase flex items-center justify-center gap-2 hover:bg-emerald-600"
+                     >
+                       <RefreshCcw size={14} /> Reativar
+                     </button>
+                     <button 
+                        onClick={() => handleDeleteClick(pair.id)}
+                        className="flex-1 py-2 bg-rose-500 text-white rounded-lg font-bold text-xs uppercase flex items-center justify-center gap-2 hover:bg-rose-600"
+                     >
+                       <Trash2 size={14} /> Lixeira
+                     </button>
+                  </div>
                 ) : (
                   <div className="p-4 bg-rose-50 border-t border-rose-100 flex gap-2">
                      <button 
@@ -535,6 +585,12 @@ const BreedingManager: React.FC<BreedingManagerProps> = ({ state, addPair, updat
                         className="flex-1 py-2 bg-emerald-500 text-white rounded-lg font-bold text-xs uppercase flex items-center justify-center gap-2 hover:bg-emerald-600"
                      >
                        <RefreshCcw size={14} /> Restaurar
+                     </button>
+                     <button 
+                        onClick={(e) => handleArchiveFromTrashClick(e, pair.id)}
+                        className="flex-1 py-2 bg-amber-500 text-white rounded-lg font-bold text-xs uppercase flex items-center justify-center gap-2 hover:bg-amber-600"
+                     >
+                       <Archive size={14} /> Histórico
                      </button>
                      <button 
                         onClick={(e) => handlePermanentDelete(e, pair.id)}
@@ -549,7 +605,13 @@ const BreedingManager: React.FC<BreedingManagerProps> = ({ state, addPair, updat
             }) : (
               <div className="col-span-full py-20 text-center bg-slate-50/50 border-2 border-dashed border-slate-100 rounded-[40px]">
                  <Heart size={48} className="mx-auto text-slate-200 mb-4" strokeWidth={1} />
-                 <p className="text-sm font-bold text-slate-400 uppercase tracking-widest">Nenhum casal {currentList === 'active' ? 'registrado' : 'na lixeira'}</p>
+                 <p className="text-sm font-bold text-slate-400 uppercase tracking-widest">
+                   {currentList === 'active' 
+                     ? 'Nenhum casal registrado' 
+                     : currentList === 'archived'
+                     ? 'Nenhum casal no histórico'
+                     : 'Nenhum casal na lixeira'}
+                 </p>
               </div>
             )}
           </div>
