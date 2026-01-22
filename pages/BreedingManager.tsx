@@ -633,7 +633,7 @@ const BreedingManager: React.FC<BreedingManagerProps> = ({ state, addPair, updat
                 />
               </div>
               
-              {/* Alerta de Filtragem de Esp├®cie */}
+              {/* Alerta de Filtragem de Espécie */}
               {(selectedMaleBird || selectedFemaleBird) && (
                 <div className="p-3 bg-blue-50 text-blue-700 rounded-xl text-[10px] font-bold border border-blue-100 flex items-center gap-2">
                    <Info size={14} />

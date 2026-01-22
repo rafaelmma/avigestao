@@ -618,7 +618,7 @@ const BirdManager: React.FC<BirdManagerProps> = ({
         documents: [...existingDocs, newSexingDoc], // ADICIONA AO REPOSITÓRIO DE DOCS
         sexing: {
           ...bird.sexing,
-          // Mant├®m dados anteriores
+          // Mantém dados anteriores
           laboratory: bird.sexing?.laboratory || '',
           sentDate: bird.sexing?.sentDate || '',
           // Novos dados
@@ -1595,7 +1595,7 @@ const BirdManager: React.FC<BirdManagerProps> = ({
             </div>
             
             <form onSubmit={handleSaveBird} className="flex-1 overflow-y-auto bg-[#FBFCFD]">
-               {/* ... (Tabs de Nova Ave e Conte├║do de Dados/Genealogia - inalterado) ... */}
+               {/* ... (Tabs de Nova Ave e Conteúdo de Dados/Genealogia - inalterado) ... */}
                <div className="flex border-b border-slate-100 px-8 bg-white sticky top-0 z-10">
                   <button type="button" onClick={() => setActiveTab('dados')} className={`px-6 py-4 text-xs font-black uppercase tracking-widest border-b-2 transition-all ${activeTab === 'dados' ? 'border-brand text-brand' : 'border-transparent text-slate-400 hover:text-slate-600'}`}>Dados Cadastrais</button>
                   <button type="button" onClick={() => setActiveTab('genealogia')} className={`px-6 py-4 text-xs font-black uppercase tracking-widest border-b-2 transition-all ${activeTab === 'genealogia' ? 'border-brand text-brand' : 'border-transparent text-slate-400 hover:text-slate-600'}`}>Genealogia</button>
