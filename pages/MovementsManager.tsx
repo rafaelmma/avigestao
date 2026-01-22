@@ -150,7 +150,7 @@ const MovementsManager: React.FC<MovementsManagerProps> = ({ state, addMovement,
       <header className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <h2 className="text-3xl font-black text-[#0F172A] tracking-tight">Movimentações</h2>
-          <p className="text-slate-400 font-medium text-sm mt-1">Óbitos, fugas e guias de transporte (GTR)</p>
+          <p className="text-slate-400 font-medium text-sm mt-1">Óbitos, fugas, vendas, doações e guias de transporte (GTR)</p>
         </div>
         <div className="flex gap-2">
            <div className="flex bg-white p-1 rounded-xl shadow-sm border border-slate-100 mr-2">
@@ -384,8 +384,7 @@ const MovementsManager: React.FC<MovementsManagerProps> = ({ state, addMovement,
                     <option value="Transporte">Transporte (GTR)</option>
                     <option value="Óbito">Óbito</option>
                     <option value="Fuga">Fuga</option>
-                    <option value="Venda">Venda</option>
-                  </select>
+                    <option value="Venda">Venda</option>                    <option value="Doação">Doação</option>                  </select>
                 </div>
                 <div>
                   <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Data</label>
