@@ -48,8 +48,9 @@ const Auth: React.FC<AuthProps> = ({ onLogin }) => {
         <div className="absolute bottom-0 left-0 w-[500px] h-[500px] bg-amber-500/10 rounded-full blur-[100px] -translate-x-1/2 translate-y-1/2"></div>
         
         <div className="relative z-10">
-          <div className="w-24 h-24 bg-white/10 backdrop-blur-md rounded-2xl flex items-center justify-center border border-white/20 mb-8 p-2 shadow-lg shadow-black/20">
-            <img src={APP_LOGO} className="w-full h-full object-contain drop-shadow-sm" alt="AviGestão Logo" />
+          {/* Logo Grande e Destacada */}
+          <div className="w-48 h-48 bg-white rounded-3xl flex items-center justify-center mb-8 p-4 shadow-2xl shadow-black/40 border-4 border-white/20">
+            <img src={APP_LOGO} className="w-full h-full object-contain" alt="AviGestão Logo" />
           </div>
           <h1 className="text-5xl font-black tracking-tight leading-tight mb-6">
             Gestão profissional <br/>
@@ -77,6 +78,13 @@ const Auth: React.FC<AuthProps> = ({ onLogin }) => {
       {/* Lado Direito - Formulário */}
       <div className="w-full lg:w-1/2 flex items-center justify-center p-8">
         <div className="w-full max-w-md space-y-8">
+          {/* Logo para Mobile (visível apenas em telas pequenas) */}
+          <div className="lg:hidden flex justify-center mb-8">
+            <div className="w-32 h-32 bg-white rounded-3xl flex items-center justify-center p-3 shadow-xl border-2 border-slate-200">
+              <img src={APP_LOGO} className="w-full h-full object-contain" alt="AviGestão Logo" />
+            </div>
+          </div>
+          
           <div className="text-center lg:text-left">
             <h2 className="text-3xl font-black text-slate-900 tracking-tight">
               {isLogin ? 'Bem-vindo de volta!' : 'Teste grátis por 7 dias'}
