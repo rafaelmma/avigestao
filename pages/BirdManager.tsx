@@ -415,7 +415,7 @@ const BirdManager: React.FC<BirdManagerProps> = ({
         destination: undefined,
         buyerSispass: undefined
       };
-      addMovement(newMovement);
+      await addMovement(newMovement); // Espera a promessa resolver
 
       setShowQuickIbamaModal(false);
       setQuickIbamaBird(null);
