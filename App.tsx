@@ -1453,6 +1453,7 @@ const App: React.FC = () => {
           <BirdManager
             state={state}
             addBird={addBird}
+            addMovement={addMovement}
             updateBird={updateBird}
             deleteBird={deleteBird}
             restoreBird={restoreBird}
@@ -1465,6 +1466,7 @@ const App: React.FC = () => {
           <BirdManager
             state={state}
             addBird={addBird}
+            addMovement={addMovement}
             updateBird={updateBird}
             deleteBird={deleteBird}
             restoreBird={restoreBird}

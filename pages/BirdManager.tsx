@@ -48,6 +48,7 @@ interface BirdManagerProps {
   addBird: (bird: Bird) => Promise<boolean>;
   updateBird: (bird: Bird) => void;
   deleteBird: (id: string) => void;
+  addMovement?: (mov: MovementRecord) => Promise<void>;
   restoreBird?: (id: string) => void;
   permanentlyDeleteBird?: (id: string) => void;
   isAdmin?: boolean;
@@ -62,6 +63,7 @@ const BirdManager: React.FC<BirdManagerProps> = ({
   addBird,
   updateBird,
   deleteBird,
+  addMovement,
   restoreBird,
   permanentlyDeleteBird,
   isAdmin,
@@ -1139,64 +1141,58 @@ const BirdManager: React.FC<BirdManagerProps> = ({
                     </button>
                  </div>
                ) : currentList === 'plantel' ? (
-                 <div className="w-full flex gap-2">
+                 <div className="w-full flex gap-1 flex-wrap">
                     {bird.status === 'Ativo' && (
-                      <div className="flex-1 group relative">
+                      <>
                         <button 
                           type="button"
-                          onClick={(e) => { e.stopPropagation(); }}
-                          className="w-full flex items-center justify-center gap-1 px-2 py-1.5 text-[10px] font-bold uppercase text-slate-600 bg-slate-50 hover:bg-slate-100 rounded-lg transition-all border border-slate-200"
-                          title="Marcar evento rápido"
+                          onClick={(e) => { e.stopPropagation(); setQuickStatusBird(bird); setQuickStatusData({newStatus: 'Óbito', date: new Date().toISOString().split('T')[0], createMovement: true, notes: ''}); setShowQuickStatusModal(true); }}
+                          className="px-2 py-1.5 text-[9px] font-bold text-red-700 bg-red-50 hover:bg-red-100 rounded-lg transition-all border border-red-200"
+                          title="Marcar como Óbito"
                         >
-                          ⚡ Status
+                          🔴 Óbito
                         </button>
-                        <div className="absolute bottom-full left-0 mb-2 w-40 bg-white border border-slate-200 rounded-2xl shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-50 overflow-hidden">
-                          <button 
-                            type="button"
-                            onClick={(e) => { e.stopPropagation(); setQuickStatusBird(bird); setQuickStatusData({newStatus: 'Óbito', date: new Date().toISOString().split('T')[0], createMovement: true, notes: ''}); setShowQuickStatusModal(true); }}
-                            className="w-full px-4 py-2.5 text-xs font-bold text-left text-red-600 hover:bg-red-50 transition-colors border-b border-slate-100 flex items-center gap-2"
-                          >
-                            🔴 Óbito
-                          </button>
-                          <button 
-                            type="button"
-                            onClick={(e) => { e.stopPropagation(); setQuickStatusBird(bird); setQuickStatusData({newStatus: 'Fugiu', date: new Date().toISOString().split('T')[0], createMovement: true, notes: ''}); setShowQuickStatusModal(true); }}
-                            className="w-full px-4 py-2.5 text-xs font-bold text-left text-orange-600 hover:bg-orange-50 transition-colors border-b border-slate-100 flex items-center gap-2"
-                          >
-                            🟠 Fugiu
-                          </button>
-                          <button 
-                            type="button"
-                            onClick={(e) => { e.stopPropagation(); setQuickStatusBird(bird); setQuickStatusData({newStatus: 'Vendido', date: new Date().toISOString().split('T')[0], createMovement: true, notes: ''}); setShowQuickStatusModal(true); }}
-                            className="w-full px-4 py-2.5 text-xs font-bold text-left text-blue-600 hover:bg-blue-50 transition-colors border-b border-slate-100 flex items-center gap-2"
-                          >
-                            🔵 Vendido
-                          </button>
-                          <button 
-                            type="button"
-                            onClick={(e) => { e.stopPropagation(); setQuickStatusBird(bird); setQuickStatusData({newStatus: 'Doado', date: new Date().toISOString().split('T')[0], createMovement: true, notes: ''}); setShowQuickStatusModal(true); }}
-                            className="w-full px-4 py-2.5 text-xs font-bold text-left text-purple-600 hover:bg-purple-50 transition-colors flex items-center gap-2"
-                          >
-                            🟣 Doado
-                          </button>
-                        </div>
-                      </div>
+                        <button 
+                          type="button"
+                          onClick={(e) => { e.stopPropagation(); setQuickStatusBird(bird); setQuickStatusData({newStatus: 'Fugiu', date: new Date().toISOString().split('T')[0], createMovement: true, notes: ''}); setShowQuickStatusModal(true); }}
+                          className="px-2 py-1.5 text-[9px] font-bold text-orange-700 bg-orange-50 hover:bg-orange-100 rounded-lg transition-all border border-orange-200"
+                          title="Marcar como Fugiu"
+                        >
+                          🟠 Fugiu
+                        </button>
+                        <button 
+                          type="button"
+                          onClick={(e) => { e.stopPropagation(); setQuickStatusBird(bird); setQuickStatusData({newStatus: 'Vendido', date: new Date().toISOString().split('T')[0], createMovement: true, notes: ''}); setShowQuickStatusModal(true); }}
+                          className="px-2 py-1.5 text-[9px] font-bold text-blue-700 bg-blue-50 hover:bg-blue-100 rounded-lg transition-all border border-blue-200"
+                          title="Marcar como Vendido"
+                        >
+                          🔵 Vendido
+                        </button>
+                        <button 
+                          type="button"
+                          onClick={(e) => { e.stopPropagation(); setQuickStatusBird(bird); setQuickStatusData({newStatus: 'Doado', date: new Date().toISOString().split('T')[0], createMovement: true, notes: ''}); setShowQuickStatusModal(true); }}
+                          className="px-2 py-1.5 text-[9px] font-bold text-purple-700 bg-purple-50 hover:bg-purple-100 rounded-lg transition-all border border-purple-200"
+                          title="Marcar como Doado"
+                        >
+                          🟣 Doado
+                        </button>
+                      </>
                     )}
                     {bird.ibamaBaixaPendente && (
                       <button 
                         type="button"
                         onClick={(e) => { e.stopPropagation(); setQuickIbamaBird(bird); setShowQuickIbamaModal(true); setQuickIbamaDate(new Date().toISOString().split('T')[0]); }}
-                        className="flex items-center gap-1 px-2 py-1.5 text-[10px] font-bold uppercase text-amber-600 bg-amber-50 hover:bg-amber-100 rounded-lg transition-all border border-amber-200"
+                        className="flex items-center gap-1 px-2 py-1.5 text-[9px] font-bold text-amber-700 bg-amber-50 hover:bg-amber-100 rounded-lg transition-all border border-amber-200"
                       >
-                        <Zap size={12} /> IBAMA
+                        ⚡ IBAMA
                       </button>
                     )}
                     <button 
                       type="button"
                       onClick={(e) => { e.stopPropagation(); handleDeleteClick(bird.id); }}
-                      className="flex items-center gap-2 px-3 py-1.5 text-[10px] font-bold uppercase text-slate-400 hover:text-rose-500 hover:bg-white rounded-lg transition-all"
+                      className="ml-auto flex items-center gap-2 px-2 py-1.5 text-[9px] font-bold text-slate-400 hover:text-rose-500 hover:bg-white rounded-lg transition-all"
                     >
-                      <Trash2 size={14} /> Excluir
+                      <Trash2 size={12} />
                     </button>
                  </div>
                ) : (
