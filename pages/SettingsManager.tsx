@@ -39,7 +39,7 @@ const PRICE_ID_MAP: Record<string, string> = {
   annual: 'price_1Sp8uG0btEoqllHfuRKfN0oK',
 };
 
-const LOGO_BUCKET = 'assets';
+const LOGO_BUCKET = (import.meta as any)?.env?.VITE_SUPABASE_LOGO_BUCKET || 'assets';
 
 const maskCpfCnpj = (value: string) => {
   const digits = value.replace(/\D/g, '');
@@ -191,7 +191,12 @@ const SettingsManager: React.FC<SettingsManagerProps> = ({ settings, updateSetti
       const path = `logos/${userId}/criatorio-logo.${ext}`;
 
       const { error: uploadError } = await supabase.storage.from(LOGO_BUCKET).upload(path, file, { upsert: true });
-      if (uploadError) throw uploadError;
+      if (uploadError) {
+        if (uploadError.message?.toLowerCase().includes('bucket')) {
+          throw new Error(`Bucket "${LOGO_BUCKET}" não encontrado. Crie-o no Supabase Storage (público) ou defina VITE_SUPABASE_LOGO_BUCKET.`);
+        }
+        throw uploadError;
+      }
 
       const { data } = supabase.storage.from(LOGO_BUCKET).getPublicUrl(path);
       const publicUrl = data?.publicUrl;
