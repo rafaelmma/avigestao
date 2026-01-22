@@ -380,13 +380,28 @@ const BirdManager: React.FC<BirdManagerProps> = ({
 
   // --- Função de Registro Rápido IBAMA ---
   const handleQuickIbamaRegister = async () => {
-    if (quickIbamaBird) {
+    if (quickIbamaBird && addMovement) {
+      // 1. Atualizar ave com IBAMA registrado
       const updatedBird = {
         ...quickIbamaBird,
         ibamaBaixaPendente: false, // Marca como não pendente
         ibamaBaixaData: quickIbamaDate // Armazena data de registro
       };
       updateBird(updatedBird);
+
+      // 2. Criar movimentação automaticamente baseada no status da ave
+      const movementId = Math.random().toString(36).substr(2, 9);
+      const newMovement: MovementRecord = {
+        id: movementId,
+        birdId: quickIbamaBird.id,
+        type: quickIbamaBird.status, // Usa o status atual da ave (Óbito, Fugiu, Vendido, Doado)
+        date: quickIbamaDate, // Usa a data do registro IBAMA
+        notes: `Registro IBAMA concluído em ${quickIbamaDate}`,
+        gtrUrl: undefined,
+        destination: undefined,
+        buyerSispass: undefined
+      };
+      addMovement(newMovement);
 
       setShowQuickIbamaModal(false);
       setQuickIbamaBird(null);
