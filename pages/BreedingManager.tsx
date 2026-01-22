@@ -98,7 +98,7 @@ const BreedingManager: React.FC<BreedingManagerProps> = ({ state, addPair, updat
     }
   }, [notification]);
 
-  const handleSavePair = (e: React.FormEvent) => {
+  const handleSavePair = async (e: React.FormEvent) => {
     e.preventDefault();
     
     // Validação de campos obrigatórios
@@ -132,20 +132,20 @@ const BreedingManager: React.FC<BreedingManagerProps> = ({ state, addPair, updat
       status: 'Ativo'
     };
 
-    addPair(pairData);
+    await addPair(pairData);
     setShowPairModal(false);
     setNewPair({ status: 'Ativo' });
     setNotification({ message: 'Novo casal registrado com sucesso!', type: 'success' });
   };
 
-  const handleSaveClutch = (e: React.FormEvent) => {
+  const handleSaveClutch = async (e: React.FormEvent) => {
     e.preventDefault();
     if (selectedPairId) {
       const hatchedCount = newClutch.hatchedCount || 0;
       
       if (isEditingClutch && newClutch.id) {
         // Modo Edição
-        updateClutch(newClutch as Clutch);
+        await updateClutch(newClutch as Clutch);
         setNotification({ message: 'Dados da ninhada atualizados!', type: 'success' });
       } else {
         // Modo Criação
@@ -154,7 +154,7 @@ const BreedingManager: React.FC<BreedingManagerProps> = ({ state, addPair, updat
           id: makeId(),
           pairId: selectedPairId
         };
-        addClutch(clutchData);
+        await addClutch(clutchData);
         
         setNotification({ message: 'Postura registrada com sucesso.', type: 'info' });
       }
@@ -194,7 +194,7 @@ const BreedingManager: React.FC<BreedingManagerProps> = ({ state, addPair, updat
     prepareHatchlingRegistration(pairId, count, layDate);
   };
 
-  const confirmHatchlingRegistration = () => {
+  const confirmHatchlingRegistration = async () => {
     // Validações
     if (!hatchlingParentPairId) {
       setNotification({ message: 'Erro: Casal não identificado', type: 'error' });
@@ -222,30 +222,33 @@ const BreedingManager: React.FC<BreedingManagerProps> = ({ state, addPair, updat
     const species = mother?.species || 'Espécie Indefinida';
 
     try {
-      hatchlingsToRegister.forEach(hatchling => {
-        const newBird: Bird = {
-          id: makeId(),
-          name: hatchling.name,
-          ringNumber: hatchling.ringNumber || 'S/A', // Sem Anilha
-          species: species,
-          sex: hatchling.sex,
-          birthDate: hatchlingBirthDate,
-          status: 'Ativo',
-          fatherId: pair.maleId,
-          motherId: pair.femaleId,
-          classification: 'Não Definido',
-          songTrainingStatus: 'Não Iniciado',
-          colorMutation: 'Clássico (Filhote)', // Padrão
-          location: pair.name, // Herda localização do casal
-          photoUrl: getDefaultBirdImage(species, hatchling.sex),
-          createdAt: new Date().toISOString(),
-          isRepeater: false,
-          songType: ''
-        };
-        addBird(newBird);
-      });
+      // Aguarda o salvamento de todos os filhotes
+      await Promise.all(
+        hatchlingsToRegister.map(hatchling => {
+          const newBird: Bird = {
+            id: makeId(),
+            name: hatchling.name,
+            ringNumber: hatchling.ringNumber || 'S/A', // Sem Anilha
+            species: species,
+            sex: hatchling.sex,
+            birthDate: hatchlingBirthDate,
+            status: 'Ativo',
+            fatherId: pair.maleId,
+            motherId: pair.femaleId,
+            classification: 'Não Definido',
+            songTrainingStatus: 'Não Iniciado',
+            colorMutation: 'Clássico (Filhote)', // Padrão
+            location: pair.name, // Herda localização do casal
+            photoUrl: getDefaultBirdImage(species, hatchling.sex),
+            createdAt: new Date().toISOString(),
+            isRepeater: false,
+            songType: ''
+          };
+          return addBird(newBird);
+        })
+      );
 
-      updatePair({ ...pair, lastHatchDate: hatchlingBirthDate });
+      await updatePair({ ...pair, lastHatchDate: hatchlingBirthDate });
 
       setNotification({ 
         message: `${hatchlingsToRegister.length} filhotes foram adicionados ao plantel!`, 
