@@ -19,7 +19,7 @@ import {
   Clock
 } from 'lucide-react';
 import { SubscriptionPlan } from '../types';
-import { APP_LOGO } from '../constants';
+import { APP_LOGO_ICON } from '../constants';
 
 interface SidebarProps {
   activeTab: string;
@@ -90,7 +90,7 @@ const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab, logoUrl, bre
             <div className="relative group">
               <div className="w-20 h-20 bg-gradient-to-br from-slate-50 to-white rounded-2xl p-2 border-2 border-slate-200 shadow-lg shadow-slate-200/50 flex items-center justify-center hover:shadow-xl transition-shadow">
                 <img 
-                  src={logoUrl || APP_LOGO} 
+                  src={logoUrl || APP_LOGO_ICON} 
                   alt="Logo" 
                   className="w-full h-full object-contain drop-shadow-sm" 
                 />

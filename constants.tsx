@@ -22,7 +22,7 @@ export const SPECIES_INCUBATION_DAYS: Record<string, number> = {
   'Mandarin': 13       // 12-14 dias
 };
 
-// Logo Oficial AviGestão (Design Vetorial Nítido)
+// Logo Completa (com texto - para Auth e áreas com mais espaço)
 export const APP_LOGO = `data:image/svg+xml;utf8,${encodeURIComponent(`
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 500 500" fill="none" shape-rendering="crispEdges">
   <defs>
@@ -98,6 +98,56 @@ export const APP_LOGO = `data:image/svg+xml;utf8,${encodeURIComponent(`
   <text x="250" y="460" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-weight="bold" font-size="18" letter-spacing="3" fill="#37474F" opacity="0.95">
     CONTROLE DE CRIATÓRIO
   </text>
+</svg>
+`)}`;
+
+// Logo Icon (apenas ícone - SEM texto - para Sidebar e favicons)
+export const APP_LOGO_ICON = `data:image/svg+xml;utf8,${encodeURIComponent(`
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" fill="none">
+  <!-- Fundo branco suave -->
+  <rect width="200" height="200" fill="#f8fafc" rx="20"/>
+  
+  <!-- Folhas decorativas (simplificadas) -->
+  <ellipse cx="60" cy="80" rx="12" ry="18" transform="rotate(-25 60 80)" fill="#66BB6A" opacity="0.8"/>
+  <ellipse cx="140" cy="80" rx="12" ry="18" transform="rotate(25 140 80)" fill="#66BB6A" opacity="0.8"/>
+  <ellipse cx="50" cy="120" rx="10" ry="15" transform="rotate(-15 50 120)" fill="#43A047" opacity="0.7"/>
+  <ellipse cx="150" cy="120" rx="10" ry="15" transform="rotate(15 150 120)" fill="#43A047" opacity="0.7"/>
+  
+  <!-- Detalhes amarelos -->
+  <circle cx="65" cy="70" r="4" fill="#FDD835"/>
+  <circle cx="135" cy="70" r="4" fill="#FDD835"/>
+  
+  <!-- Galho -->
+  <path d="M60 130 Q100 115 140 130" stroke="#795548" stroke-width="10" stroke-linecap="round"/>
+  
+  <!-- Pássaro Principal -->
+  <!-- Cauda -->
+  <path d="M70 120 L55 155 L80 140 Z" fill="#00897B"/>
+  
+  <!-- Corpo amarelo grande -->
+  <ellipse cx="100" cy="100" rx="35" ry="40" fill="#FDD835"/>
+  
+  <!-- Asa verde -->
+  <ellipse cx="90" cy="95" rx="25" ry="35" transform="rotate(-20 90 95)" fill="#43A047" opacity="0.9"/>
+  <path d="M85 85 Q95 90 90 110" stroke="#2E7D32" stroke-width="2" fill="none" opacity="0.4"/>
+  
+  <!-- Cabeça laranja -->
+  <circle cx="115" cy="80" r="28" fill="#FB8C00"/>
+  
+  <!-- Olho -->
+  <circle cx="122" cy="75" r="3.5" fill="#212121"/>
+  <circle cx="124" cy="73" r="1.2" fill="white"/>
+  
+  <!-- Bico -->
+  <path d="M135 78 L148 82 L135 88 Z" fill="#3E2723"/>
+  
+  <!-- Pés -->
+  <path d="M95 135 L95 150" stroke="#E65100" stroke-width="3.5" stroke-linecap="round"/>
+  <path d="M115 135 L115 150" stroke="#E65100" stroke-width="3.5" stroke-linecap="round"/>
+  
+  <!-- Pequenos detalhes nas patas -->
+  <path d="M90 150 L95 150 L100 150" stroke="#E65100" stroke-width="2" stroke-linecap="round"/>
+  <path d="M110 150 L115 150 L120 150" stroke="#E65100" stroke-width="2" stroke-linecap="round"/>
 </svg>
 `)}`;
 
