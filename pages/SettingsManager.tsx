@@ -39,6 +39,8 @@ const PRICE_ID_MAP: Record<string, string> = {
   annual: 'price_1Sp8uG0btEoqllHfuRKfN0oK',
 };
 
+const LOGO_BUCKET = 'assets';
+
 const maskCpfCnpj = (value: string) => {
   const digits = value.replace(/\D/g, '');
   if (digits.length <= 11) {
@@ -75,6 +77,8 @@ const SettingsManager: React.FC<SettingsManagerProps> = ({ settings, updateSetti
   const [hasStripeCustomer, setHasStripeCustomer] = useState(false);
   const [bannerMessage, setBannerMessage] = useState<string | null>(null);
   const [savedAt, setSavedAt] = useState<string | null>(null);
+  const [isUploadingLogo, setIsUploadingLogo] = useState(false);
+  const [logoUploadError, setLogoUploadError] = useState<string | null>(null);
 
   const isTrial = !!settings.trialEndDaté && !isAdmin;
   const canUseLogo = !!isAdmin || settings.plan === 'Profissional' || !!settings.trialEndDate;
@@ -163,12 +167,46 @@ const SettingsManager: React.FC<SettingsManagerProps> = ({ settings, updateSetti
     }
   };
 
-  const handleLogoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    const reader = new FileReader();
-    reader.onloadend = () => updateSettings({ ...settings, logoUrl: reader.result as string });
-    reader.readAsDataURL(file);
+    if (!canUseLogo) {
+      alert('Disponível apenas no plano PRO.');
+      return;
+    }
+    if (!supabase) {
+      alert('Envio de logo indisponível no momento.');
+      return;
+    }
+
+    setLogoUploadError(null);
+    setIsUploadingLogo(true);
+
+    try {
+      const session = await supabase.auth.getSession();
+      const userId = session?.data?.session?.user?.id;
+      if (!userId) throw new Error('Faça login novamente para enviar a logo.');
+
+      const ext = file.name.split('.').pop() || 'png';
+      const path = `logos/${userId}/criatorio-logo.${ext}`;
+
+      const { error: uploadError } = await supabase.storage.from(LOGO_BUCKET).upload(path, file, { upsert: true });
+      if (uploadError) throw uploadError;
+
+      const { data } = supabase.storage.from(LOGO_BUCKET).getPublicUrl(path);
+      const publicUrl = data?.publicUrl;
+      if (!publicUrl) throw new Error('Não foi possível gerar o link da logo.');
+
+      updateSettings({ ...settings, logoUrl: publicUrl });
+    } catch (err: any) {
+      console.error('Erro ao enviar logo', err);
+      const message = err?.message || 'Falha ao enviar a logo. Tente novamente.';
+      setLogoUploadError(message);
+      alert(message);
+    } finally {
+      setIsUploadingLogo(false);
+      if (fileInputRef.current) fileInputRef.current.value = '';
+    }
   };
 
   const statusItems = useMemo(() => {
@@ -282,10 +320,12 @@ const SettingsManager: React.FC<SettingsManagerProps> = ({ settings, updateSetti
                   {canUseLogo ? (
                     <>
                       <button
-                        onClick={() => fileInputRef.current?.click()}
-                        className="mt-4 inline-flex items-center gap-2 px-4 py-2 border rounded-xl text-xs font-black"
+                        onClick={() => !isUploadingLogo && fileInputRef.current?.click()}
+                        className="mt-4 inline-flex items-center gap-2 px-4 py-2 border rounded-xl text-xs font-black disabled:opacity-60"
+                        disabled={isUploadingLogo}
                       >
-                        <Upload size={14} /> Carregar nova logo
+                        {isUploadingLogo ? <Loader2 size={14} className="animate-spin" /> : <Upload size={14} />}
+                        {isUploadingLogo ? 'Enviando logo...' : 'Carregar nova logo'}
                       </button>
                       <input
                         type="file"
@@ -294,6 +334,9 @@ const SettingsManager: React.FC<SettingsManagerProps> = ({ settings, updateSetti
                         accept="image/*"
                         onChange={handleLogoUpload}
                       />
+                      {logoUploadError && (
+                        <p className="mt-2 text-[11px] text-rose-600 font-bold">{logoUploadError}</p>
+                      )}
                     </>
                   ) : (
                     <div className="mt-4 inline-flex items-center gap-2 text-amber-600 text-xs font-black">
