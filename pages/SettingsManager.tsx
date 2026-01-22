@@ -202,7 +202,9 @@ const SettingsManager: React.FC<SettingsManagerProps> = ({ settings, updateSetti
       const publicUrl = data?.publicUrl;
       if (!publicUrl) throw new Error('Não foi possível gerar o link da logo.');
 
+      console.log('Logo URL:', publicUrl);
       updateSettings({ ...settings, logoUrl: publicUrl });
+      alert('Logo enviada com sucesso! Clique em "Salvar alterações" para confirmar.');
     } catch (err: any) {
       console.error('Erro ao enviar logo', err);
       const message = err?.message || 'Falha ao enviar a logo. Tente novamente.';
