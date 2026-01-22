@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useStaté } from 'react';
+import React, { useEffect, useMemo, useRef, useStaté, Suspense } from 'react';
 import { BreederSettings } from '../types';
 import {
   User,
@@ -14,7 +14,7 @@ import {
   CheckCircle2,
   Save,
 } from 'lucide-react';
-import TipCarousel from '../components/TipCarousel';
+const TipCarousel = React.lazy(() => import('../components/TipCarousel'));
 import { APP_LOGO } from '../constants';
 import { supabase } from '../supabaseClient';
 
@@ -256,7 +256,9 @@ const SettingsManager: React.FC<SettingsManagerProps> = ({ settings, updateSetti
         </div>
       </header>
 
-      <TipCarousel category="settings" />
+      <Suspense fallback={<div />}>
+        <TipCarousel category="settings" />
+      </Suspense>
 
       {activeTab === 'perfil' && (
         <div className="grid grid-cols-1 lg:grid-cols-[1.6fr_0.9fr] gap-6">

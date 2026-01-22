@@ -1,5 +1,5 @@
 ﻿
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, Suspense } from 'react';
 import { AppState, Pair, Clutch, Bird } from '../types';
 import { 
   Plus, 
@@ -20,7 +20,7 @@ import {
   Save,
   AlertTriangle
 } from 'lucide-react';
-import TipCarousel from '../components/TipCarousel';
+const TipCarousel = React.lazy(() => import('../components/TipCarousel'));
 import { SPECIES_INCUBATION_DAYS, getDefaultBirdImage } from '../constants';
 
 interface BreedingManagerProps {
@@ -583,7 +583,9 @@ const BreedingManager: React.FC<BreedingManagerProps> = ({ state, addPair, updat
              </div>
 
              {/* Carrossel de Dicas de Reprodu├º├úo */}
-             <TipCarousel category="breeding" />
+             <Suspense fallback={<div />}>
+               <TipCarousel category="breeding" />
+             </Suspense>
           </div>
         )}
       </div>

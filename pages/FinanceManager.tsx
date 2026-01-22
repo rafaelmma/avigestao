@@ -1,5 +1,5 @@
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, Suspense } from 'react';
 import { AppState, Transaction, TransactionCategory } from '../types';
 import { 
   Plus, 
@@ -15,7 +15,7 @@ import {
   RefreshCcw,
   X
 } from 'lucide-react';
-import TipCarousel from '../components/TipCarousel';
+const TipCarousel = React.lazy(() => import('../components/TipCarousel'));
 
 interface FinanceManagerProps {
   state: AppState;
@@ -160,7 +160,9 @@ const FinanceManager: React.FC<FinanceManagerProps> = ({ state, addTransaction, 
       </header>
       
       {/* Carrossel de Dicas Financeiras */}
-      <TipCarousel category="finance" />
+      <Suspense fallback={<div />}>
+        <TipCarousel category="finance" />
+      </Suspense>
 
       {/* Cards de Resumo - Visíveis apenas na lista ativa para não confundir */}
       {currentList === 'active' && (

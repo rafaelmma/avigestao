@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, Suspense } from 'react';
 import { AppState, Medication, MedicationApplication, ContinuousTreatment } from '../types';
 import { 
   Plus, 
@@ -29,7 +29,7 @@ import {
   Zap,
   Lock
 } from 'lucide-react';
-import TipCarousel from '../components/TipCarousel';
+const TipCarousel = React.lazy(() => import('../components/TipCarousel'));
 
 interface MedsManagerProps {
   state: AppState;
@@ -319,7 +319,9 @@ const MedsManager: React.FC<MedsManagerProps> = ({
       </header>
       
       {/* Carrossel de Dicas */}
-      <TipCarousel category="meds" />
+      <Suspense fallback={<div />}>
+        <TipCarousel category="meds" />
+      </Suspense>
 
       {/* --- ABA DE ESTOQUE --- */}
       {activeTab === 'inventory' && (

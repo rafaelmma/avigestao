@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, Suspense } from 'react';
 import { AppState, TournamentEvent, Bird } from '../types';
 import { 
   Plus, 
@@ -21,7 +21,7 @@ import {
   Clock,
   ArrowRight
 } from 'lucide-react';
-import TipCarousel from '../components/TipCarousel';
+const TipCarousel = React.lazy(() => import('../components/TipCarousel'));
 
 interface TournamentCalendarProps {
   state: AppState;
@@ -220,7 +220,9 @@ const TournamentCalendar: React.FC<TournamentCalendarProps> = ({ state, addEvent
       </header>
 
       {/* Carrossel de Dicas */}
-      <TipCarousel category="tournaments" />
+      <Suspense fallback={<div />}>
+        <TipCarousel category="tournaments" />
+      </Suspense>
 
       {currentList === 'trash' && (
          <div className="bg-rose-50 border-l-4 border-rose-500 p-4 rounded-r-xl">

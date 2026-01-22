@@ -1,5 +1,5 @@
 
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, Suspense } from 'react';
 import { AppState, MovementRecord, Bird } from '../types';
 import { 
   Skull, 
@@ -21,7 +21,7 @@ import {
   X,
   Edit
 } from 'lucide-react';
-import TipCarousel from '../components/TipCarousel';
+const TipCarousel = React.lazy(() => import('../components/TipCarousel'));
 
 interface MovementsManagerProps {
   state: AppState;
@@ -180,7 +180,9 @@ const MovementsManager: React.FC<MovementsManagerProps> = ({ state, addMovement,
       </header>
 
       {/* Carrossel de Dicas de Movimentação */}
-      <TipCarousel category="movements" />
+      <Suspense fallback={<div />}>
+        <TipCarousel category="movements" />
+      </Suspense>
 
       {currentList === 'trash' && (
          <div className="bg-rose-50 border-l-4 border-rose-500 p-4 rounded-r-xl">

@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { Suspense, lazy, useEffect, useRef, useState } from 'react';
 import {
   AppState,
   Bird,
@@ -15,18 +15,18 @@ import {
 } from './types';
 import { INITIAL_SETTINGS, MOCK_BIRDS, MOCK_MEDS } from './constants';
 import Sidebar from './components/Sidebar';
-import Dashboard from './pages/Dashboard';
-import BirdManager from './pages/BirdManager';
-import BreedingManager from './pages/BreedingManager';
-import MedsManager from './pages/MedsManager';
-import SettingsManager from './pages/SettingsManager';
-import MovementsManager from './pages/MovementsManager';
-import FinanceManager from './pages/FinanceManager';
-import TaskManager from './pages/TaskManager';
-import TournamentCalendar from './pages/TournamentCalendar';
-import HelpCenter from './pages/HelpCenter';
-import DocumentsManager from './pages/DocumentsManager';
-import Auth from './pages/Auth';
+const Dashboard = lazy(() => import('./pages/Dashboard'));
+const BirdManager = lazy(() => import('./pages/BirdManager'));
+const BreedingManager = lazy(() => import('./pages/BreedingManager'));
+const MedsManager = lazy(() => import('./pages/MedsManager'));
+const SettingsManager = lazy(() => import('./pages/SettingsManager'));
+const MovementsManager = lazy(() => import('./pages/MovementsManager'));
+const FinanceManager = lazy(() => import('./pages/FinanceManager'));
+const TaskManager = lazy(() => import('./pages/TaskManager'));
+const TournamentCalendar = lazy(() => import('./pages/TournamentCalendar'));
+const HelpCenter = lazy(() => import('./pages/HelpCenter'));
+const DocumentsManager = lazy(() => import('./pages/DocumentsManager'));
+const Auth = lazy(() => import('./pages/Auth'));
 import { supabase, SUPABASE_MISSING } from './lib/supabase';
 import { loadInitialData, loadTabData } from './services/dataService';
 
@@ -455,7 +455,15 @@ const App: React.FC = () => {
   const navigateTo = (tab: string) => setActiveTab(tab);
 
   // Birds
-  const addBird = (bird: Bird) => setState(prev => ({ ...prev, birds: [...prev.birds, bird] }));
+  const addBird = async (bird: Bird): Promise<boolean> => {
+    try {
+      setState(prev => ({ ...prev, birds: [...prev.birds, bird] }));
+      return true;
+    } catch (e) {
+      console.error('addBird failed', e);
+      return false;
+    }
+  };
   const updateBird = (bird: Bird) => setState(prev => ({
     ...prev,
     birds: prev.birds.map(b => (b.id === bird.id ? bird : b))
@@ -955,7 +963,11 @@ const App: React.FC = () => {
   };
 
   if (!session && !supabaseUnavailable) {
-    return <Auth onLogin={() => { /* sessão será tratada via supabase listener */ }} />;
+    return (
+      <Suspense fallback={<div className="min-h-screen flex items-center justify-center">Carregando…</div>}>
+        <Auth onLogin={() => { /* sessão será tratada via supabase listener */ }} />
+      </Suspense>
+    );
   }
 
   return (
@@ -983,7 +995,9 @@ const App: React.FC = () => {
             {authError}
           </div>
         )}
-        {renderContent()}
+        <Suspense fallback={<div className="py-12 text-center">Carregando a página…</div>}>
+          {renderContent()}
+        </Suspense>
       </main>
 
       <style>{`

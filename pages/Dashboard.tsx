@@ -1,5 +1,5 @@
 
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, Suspense } from 'react';
 import { AppState, BreederSettings } from '../types';
 import { 
   Users, 
@@ -22,7 +22,7 @@ import {
   Zap
 } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
-import TipCarousel from '../components/TipCarousel';
+const TipCarousel = React.lazy(() => import('../components/TipCarousel'));
 
 interface DashboardProps {
   state: AppState;
@@ -188,7 +188,11 @@ const Dashboard: React.FC<DashboardProps> = ({ state, updateSettings, navigateTo
         );
       
       case 'tips':
-        return <TipCarousel category="dashboard" />;
+        return (
+          <Suspense fallback={<div />}> 
+            <TipCarousel category="dashboard" />
+          </Suspense>
+        );
 
       case 'tournaments':
         return (

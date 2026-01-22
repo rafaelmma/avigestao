@@ -1,5 +1,5 @@
 ﻿
-import React, { useState, useMemo, useRef, useEffect } from 'react';
+import React, { useState, useMemo, useRef, useEffect, Suspense } from 'react';
 import { deleteBird as svcDeleteBird } from '../services/birds';
 import { Bird, AppState, Sex, TrainingStatus, BirdClassification, BirdDocument } from '../types';
 import { 
@@ -41,7 +41,7 @@ import {
 } from 'lucide-react';
 import { BRAZILIAN_SPECIES, MAX_FREE_BIRDS, SPECIES_IMAGES, getDefaultBirdImage, isDefaultBirdImage } from '../constants';
 import PedigreeTree from '../components/PedigreeTree';
-import TipCarousel from '../components/TipCarousel';
+const TipCarousel = React.lazy(() => import('../components/TipCarousel'));
 
 interface BirdManagerProps {
   state: AppState;
