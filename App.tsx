@@ -650,7 +650,7 @@ const App: React.FC = () => {
           ibamaBaixaPendente = true; // Precisa dar baixa no IBAMA
           break;
         case 'Fuga':
-          newStatus = 'Fugiu';
+          newStatus = 'Fuga';
           ibamaBaixaPendente = true; // Precisa registrar fuga no IBAMA
           break;
         case 'Venda':

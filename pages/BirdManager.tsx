@@ -86,7 +86,7 @@ const BirdManager: React.FC<BirdManagerProps> = ({
   const [showQuickStatusModal, setShowQuickStatusModal] = useState(false);
   const [quickStatusBird, setQuickStatusBird] = useState<Bird | null>(null);
   const [quickStatusData, setQuickStatusData] = useState({
-    newStatus: 'Óbito' as 'Óbito' | 'Fugiu' | 'Vendido' | 'Doado',
+    newStatus: 'Óbito' as 'Óbito' | 'Fuga' | 'Vendido' | 'Doado',
     date: new Date().toISOString().split('T')[0],
     createMovement: true,
     notes: ''
@@ -356,7 +356,7 @@ const BirdManager: React.FC<BirdManagerProps> = ({
         const movementId = Math.random().toString(36).substr(2, 9);
         // Mapear status para tipo de movimentação
         let movementType: 'Óbito' | 'Fuga' | 'Transporte' | 'Venda' | 'Doação' = 'Óbito';
-        if (quickStatusData.newStatus === 'Fugiu') movementType = 'Fuga';
+        if (quickStatusData.newStatus === 'Fuga') movementType = 'Fuga';
         else if (quickStatusData.newStatus === 'Vendido') movementType = 'Venda';
         else if (quickStatusData.newStatus === 'Doado') movementType = 'Doação';
         else if (quickStatusData.newStatus === 'Óbito') movementType = 'Óbito';
@@ -400,7 +400,7 @@ const BirdManager: React.FC<BirdManagerProps> = ({
       const movementId = Math.random().toString(36).substr(2, 9);
       // Mapear status para tipo de movimentação
       let movementType: 'Óbito' | 'Fuga' | 'Transporte' | 'Venda' | 'Doação' = 'Óbito';
-      if (quickIbamaBird.status === 'Fugiu') movementType = 'Fuga';
+      if (quickIbamaBird.status === 'Fuga') movementType = 'Fuga';
       else if (quickIbamaBird.status === 'Vendido') movementType = 'Venda';
       else if (quickIbamaBird.status === 'Doado') movementType = 'Doação';
       else if (quickIbamaBird.status === 'Óbito') movementType = 'Óbito';
@@ -433,7 +433,7 @@ const BirdManager: React.FC<BirdManagerProps> = ({
   const filteredBirds = useMemo(() => {
     if (currentList === 'sexagem') return []; // Handled separately
     if (currentList === 'ibama-pendentes') {
-      return state.birds.filter(b => b.ibamaBaixaPendente && (b.status === 'Óbito' || b.status === 'Fugiu' || b.status === 'Vendido' || b.status === 'Doado'));
+      return state.birds.filter(b => b.ibamaBaixaPendente && (b.status === 'Óbito' || b.status === 'Fuga' || b.status === 'Vendido' || b.status === 'Doado'));
     }
     const list = currentList === 'plantel' ? state.birds : (state.deletedBirds || []);
     return list.filter(bird => {
@@ -1052,7 +1052,7 @@ const BirdManager: React.FC<BirdManagerProps> = ({
                        <option value="">Todos</option>
                        <option value="Ativo">Ativo</option>
                        <option value="Óbito">Óbito</option>
-                       <option value="Fugiu">Fugiu</option>
+                       <option value="Fuga">Fuga</option>
                        <option value="Vendido">Vendido</option>
                        <option value="Doado">Doado</option>
                      </select>
@@ -1124,7 +1124,7 @@ const BirdManager: React.FC<BirdManagerProps> = ({
                     <span className={`px-2 py-0.5 rounded-full text-[9px] font-black uppercase ${
                       bird.status === 'Ativo' ? 'bg-emerald-50 text-emerald-600' :
                       bird.status === 'Óbito' ? 'bg-red-100 text-red-700' :
-                      bird.status === 'Fugiu' ? 'bg-orange-100 text-orange-700' :
+                      bird.status === 'Fuga' ? 'bg-orange-100 text-orange-700' :
                       bird.status === 'Vendido' ? 'bg-blue-100 text-blue-700' :
                       bird.status === 'Doado' ? 'bg-purple-100 text-purple-700' :
                       'bg-slate-100 text-slate-500'
@@ -1199,11 +1199,11 @@ const BirdManager: React.FC<BirdManagerProps> = ({
                         </button>
                         <button 
                           type="button"
-                          onClick={(e) => { e.stopPropagation(); setQuickStatusBird(bird); setQuickStatusData({newStatus: 'Fugiu', date: new Date().toISOString().split('T')[0], createMovement: true, notes: ''}); setShowQuickStatusModal(true); }}
+                          onClick={(e) => { e.stopPropagation(); setQuickStatusBird(bird); setQuickStatusData({newStatus: 'Fuga', date: new Date().toISOString().split('T')[0], createMovement: true, notes: ''}); setShowQuickStatusModal(true); }}
                           className="px-2 py-1.5 text-[9px] font-bold text-orange-700 bg-orange-50 hover:bg-orange-100 rounded-lg transition-all border border-orange-200"
-                          title="Marcar como Fugiu"
+                          title="Marcar como Fuga"
                         >
-                          🟠 Fugiu
+                          🟠 Fuga
                         </button>
                         <button 
                           type="button"
@@ -1391,7 +1391,7 @@ const BirdManager: React.FC<BirdManagerProps> = ({
                                  <select className="w-full p-4 bg-white border border-slate-200 rounded-2xl font-bold text-slate-700 outline-none focus:border-brand appearance-none" value={editingBird.status} onChange={e => setEditingBird({...editingBird, status: e.target.value as any})}>
                                    <option value="Ativo">Ativo</option>
                                    <option value="Óbito">Óbito</option>
-                                   <option value="Fugiu">Fugiu</option>
+                                   <option value="Fuga">Fuga</option>
                                    <option value="Vendido">Vendido</option>
                                    <option value="Doado">Doado</option>
                                  </select>
@@ -1399,7 +1399,7 @@ const BirdManager: React.FC<BirdManagerProps> = ({
                           </div>
 
                           {/* Controle de Registro IBAMA */}
-                          {(editingBird.status === 'Óbito' || editingBird.status === 'Fugiu' || editingBird.status === 'Vendido' || editingBird.status === 'Doado') && (
+                          {(editingBird.status === 'Óbito' || editingBird.status === 'Fuga' || editingBird.status === 'Vendido' || editingBird.status === 'Doado') && (
                             <div className="p-6 bg-amber-50 border-2 border-amber-200 rounded-2xl space-y-4">
                               <div className="flex items-center gap-2 text-amber-700">
                                 <Zap size={18} />
@@ -1408,7 +1408,7 @@ const BirdManager: React.FC<BirdManagerProps> = ({
                               <div className="p-3 bg-white border border-amber-200 rounded-xl mb-4">
                                 <p className="text-xs font-bold text-amber-800">
                                   {editingBird.status === 'Óbito' && '⚠️ Óbito: Necessário dar baixa no sistema IBAMA'}
-                                  {editingBird.status === 'Fugiu' && '⚠️ Fuga: Necessário registrar a fuga no sistema IBAMA'}
+                                  {editingBird.status === 'Fuga' && '⚠️ Fuga: Necessário registrar a fuga no sistema IBAMA'}
                                   {editingBird.status === 'Vendido' && '⚠️ Venda: Necessário registrar a transferência no IBAMA (com SISPASS do comprador)'}
                                   {editingBird.status === 'Doado' && '⚠️ Doação: Necessário registrar a doação no IBAMA (com SISPASS do destinatário)'}
                                 </p>
@@ -2113,7 +2113,7 @@ const BirdManager: React.FC<BirdManagerProps> = ({
                     <p className="text-xs font-bold text-amber-700 uppercase tracking-widest mb-2">Instruções</p>
                     <p className="text-xs text-amber-700 font-bold leading-relaxed">
                        {quickIbamaBird.status === 'Óbito' && 'Acesse o sistema IBAMA e registre a baixa do animal falecido.'}
-                       {quickIbamaBird.status === 'Fugiu' && 'Acesse o sistema IBAMA e registre o evento de fuga.'}
+                       {quickIbamaBird.status === 'Fuga' && 'Acesse o sistema IBAMA e registre o evento de fuga.'}
                        {quickIbamaBird.status === 'Vendido' && 'Acesse o sistema IBAMA e registre a transferência com o SISPASS do comprador.'}
                        {quickIbamaBird.status === 'Doado' && 'Acesse o sistema IBAMA e registre a doação com o SISPASS do destinatário.'}
                     </p>
@@ -2161,7 +2161,7 @@ const BirdManager: React.FC<BirdManagerProps> = ({
                  <div className="flex items-center gap-3">
                     <div className="w-12 h-12 bg-white/20 rounded-2xl flex items-center justify-center text-2xl">
                        {quickStatusData.newStatus === 'Óbito' && '🔴'}
-                       {quickStatusData.newStatus === 'Fugiu' && '🟠'}
+                       {quickStatusData.newStatus === 'Fuga' && '🟠'}
                        {quickStatusData.newStatus === 'Vendido' && '🔵'}
                        {quickStatusData.newStatus === 'Doado' && '🟣'}
                     </div>
@@ -2223,7 +2223,7 @@ const BirdManager: React.FC<BirdManagerProps> = ({
                        onClick={handleQuickStatusConfirm}
                        className={`py-3 text-white rounded-2xl font-black text-xs uppercase tracking-widest shadow-lg flex items-center justify-center gap-2 transition-all ${
                          quickStatusData.newStatus === 'Óbito' ? 'bg-red-500 hover:bg-red-600 shadow-red-200' :
-                         quickStatusData.newStatus === 'Fugiu' ? 'bg-orange-500 hover:bg-orange-600 shadow-orange-200' :
+                         quickStatusData.newStatus === 'Fuga' ? 'bg-orange-500 hover:bg-orange-600 shadow-orange-200' :
                          quickStatusData.newStatus === 'Vendido' ? 'bg-blue-500 hover:bg-blue-600 shadow-blue-200' :
                          'bg-purple-500 hover:bg-purple-600 shadow-purple-200'
                        }`}

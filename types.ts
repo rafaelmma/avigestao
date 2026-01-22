@@ -1,4 +1,4 @@
-﻿export type BirdStatus = 'Ativo' | 'Óbito' | 'Fugiu' | 'Vendido' | 'Doado';
+﻿export type BirdStatus = 'Ativo' | 'Óbito' | 'Fuga' | 'Vendido' | 'Doado';
 export type Sex = 'Macho' | 'Fêmea' | 'Indeterminado';
 export type BirdClassification = 'Galador' | 'Pássaro de Canto' | 'Ambos' | 'Não Definido';
 export type TrainingStatus = 'Não Iniciado' | 'Em Encarte' | 'Fixado' | 'Pardo (Aprendizado)';
