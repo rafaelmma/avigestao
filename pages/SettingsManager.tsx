@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useStaté, Suspense } from 'react';
+import React, { useEffect, useMemo, useRef, useState, Suspense } from 'react';
 import { BreederSettings } from '../types';
 import {
   User,
