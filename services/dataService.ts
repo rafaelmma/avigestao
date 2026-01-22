@@ -15,7 +15,7 @@ import {
   Transaction,
 } from "../types";
 
-const TIMEOUT_MS = 20000;
+const TIMEOUT_MS = 60000; // 60s - increased for slow connections/Stripe returns
 const MED_CAT_CACHE_KEY = "avigestao_med_catalog_v1";
 const MED_CAT_CACHE_TTL = 1000 * 60 * 60 * 24; // 24h
 const MED_CAT_PREFETCH_DELAY = 5000; // 5s depois do load inicial

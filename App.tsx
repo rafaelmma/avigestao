@@ -31,7 +31,7 @@ import { supabase, SUPABASE_MISSING } from './lib/supabase';
 import { loadInitialData, loadTabData } from './services/dataService';
 
 const STORAGE_KEY = 'avigestao_state';
-const HYDRATE_TIMEOUT_MS = 45000;
+const HYDRATE_TIMEOUT_MS = 90000; // 90s - increased to match data fetch timeouts
 
 const loadCachedState = (): { state: AppState; hasCache: boolean } => {
   if (typeof localStorage === 'undefined') return { state: defaultState, hasCache: false };
