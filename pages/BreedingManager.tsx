@@ -184,50 +184,74 @@ const BreedingManager: React.FC<BreedingManagerProps> = ({ state, addPair, updat
   };
 
   const confirmHatchlingRegistration = () => {
-    if (!hatchlingParentPairId) return;
+    // Validações
+    if (!hatchlingParentPairId) {
+      setNotification({ message: 'Erro: Casal não identificado', type: 'error' });
+      return;
+    }
+
+    if (!hatchlingBirthDate) {
+      setNotification({ message: 'Por favor, insira a data do nascimento', type: 'error' });
+      return;
+    }
+
+    if (hatchlingsToRegister.length === 0) {
+      setNotification({ message: 'Nenhum filhote para registrar', type: 'error' });
+      return;
+    }
 
     const pair = state.pairs.find(p => p.id === hatchlingParentPairId);
-    if (!pair) return;
+    if (!pair) {
+      setNotification({ message: 'Erro: Casal não encontrado', type: 'error' });
+      return;
+    }
 
     // Busca dados da mãe para herdar espécie
     const mother = state.birds.find(b => b.id === pair.femaleId);
     const species = mother?.species || 'Espécie Indefinida';
 
-    hatchlingsToRegister.forEach(hatchling => {
-      // Se o usuário deixou o nome em branco ou padrão, não cadastra (opcional, aqui vou cadastrar tudo)
-      const newBird: Bird = {
-        id: makeId(),
-        name: hatchling.name,
-        ringNumber: hatchling.ringNumber || 'S/A', // Sem Anilha
-        species: species,
-        sex: hatchling.sex,
-        birthDate: hatchlingBirthDate,
-        status: 'Ativo',
-        fatherId: pair.maleId,
-        motherId: pair.femaleId,
-        classification: 'Não Definido',
-        songTrainingStatus: 'Não Iniciado',
-        colorMutation: 'Clássico (Filhote)', // Padrão
-        location: pair.name, // Herda localização do casal
-        photoUrl: getDefaultBirdImage(species, hatchling.sex),
-        createdAt: new Date().toISOString(),
-        isRepeater: false,
-        songType: ''
-      };
-      addBird(newBird);
-    });
+    try {
+      hatchlingsToRegister.forEach(hatchling => {
+        const newBird: Bird = {
+          id: makeId(),
+          name: hatchling.name,
+          ringNumber: hatchling.ringNumber || 'S/A', // Sem Anilha
+          species: species,
+          sex: hatchling.sex,
+          birthDate: hatchlingBirthDate,
+          status: 'Ativo',
+          fatherId: pair.maleId,
+          motherId: pair.femaleId,
+          classification: 'Não Definido',
+          songTrainingStatus: 'Não Iniciado',
+          colorMutation: 'Clássico (Filhote)', // Padrão
+          location: pair.name, // Herda localização do casal
+          photoUrl: getDefaultBirdImage(species, hatchling.sex),
+          createdAt: new Date().toISOString(),
+          isRepeater: false,
+          songType: ''
+        };
+        addBird(newBird);
+      });
 
-    updatePair({ ...pair, lastHatchDate: hatchlingBirthDate });
+      updatePair({ ...pair, lastHatchDate: hatchlingBirthDate });
 
-    setNotification({ 
-      message: `${hatchlingsToRegister.length} filhotes foram adicionados ao plantel!`, 
-      type: 'success' 
-    });
-    
-    // Reset e fecha
-    setShowHatchlingModal(false);
-    setNewClutch({ eggCount: 0, fertileCount: 0, hatchedCount: 0 });
-    setIsEditingClutch(false);
+      setNotification({ 
+        message: `${hatchlingsToRegister.length} filhotes foram adicionados ao plantel!`, 
+        type: 'success' 
+      });
+      
+      // Reset e fecha
+      setShowHatchlingModal(false);
+      setHatchlingsToRegister([]);
+      setHatchlingParentPairId('');
+      setHatchlingBirthDate('');
+      setNewClutch({ eggCount: 0, fertileCount: 0, hatchedCount: 0 });
+      setIsEditingClutch(false);
+    } catch (error) {
+      console.error('Erro ao registrar filhotes:', error);
+      setNotification({ message: 'Erro ao registrar filhotes', type: 'error' });
+    }
   };
 
   const openClutchModal = (pairId: string, clutchToEdit?: Clutch) => {
@@ -431,25 +455,23 @@ const BreedingManager: React.FC<BreedingManagerProps> = ({ state, addPair, updat
                                 <Calendar size={14} className="text-slate-300" />
                                 <span className="text-xs font-bold text-slate-700">{new Date(clutch.layDate).toLocaleDateString('pt-BR')}</span>
                              </div>
-                             <div className="flex flex-col items-end gap-2">
-                               <div className="flex gap-3">
-                                 <span className="text-[10px] font-black text-brand uppercase">{clutch.eggCount} ovos</span>
+                             <div className="flex items-center gap-4">
+                                 <span className="text-[10px] font-black text-brand uppercase whitespace-nowrap">{clutch.eggCount} OVOS</span>
                                  {clutch.hatchedCount > 0 ? (
-                                   <span className="text-[10px] font-black text-emerald-500 uppercase flex items-center gap-1">
+                                   <span className="text-[10px] font-black text-emerald-500 uppercase flex items-center gap-1 whitespace-nowrap">
                                      <Baby size={10} /> {clutch.hatchedCount}
                                    </span>
                                  ) : (
-                                   <span className="text-[10px] font-black text-amber-500 uppercase flex items-center gap-1">
-                                     <Timer size={10} /> Incubando
+                                   <span className="text-[10px] font-black text-amber-500 uppercase flex items-center gap-1 whitespace-nowrap">
+                                     <Timer size={10} /> INCUBANDO
                                    </span>
                                  )}
-                               </div>
+                             </div>
                                {clutch.hatchedCount > 0 && (
-                                 <span className="px-2 py-1 bg-emerald-50 text-emerald-600 rounded-lg text-[9px] font-black uppercase tracking-widest">
+                                 <span className="px-2 py-1 bg-emerald-50 text-emerald-600 rounded-lg text-[9px] font-black uppercase tracking-widest whitespace-nowrap">
                                    Nascidos: {clutch.hatchedCount}
                                  </span>
                                )}
-                             </div>
                              {/* Botão de Edição da Ninhada */}
                              <button 
                                onClick={() => openClutchModal(pair.id, clutch)}
@@ -768,9 +790,9 @@ const BreedingManager: React.FC<BreedingManagerProps> = ({ state, addPair, updat
                     <Baby size={24} />
                   </div>
                   <div>
-                    <p className="text-xs font-bold text-emerald-800">Cadastro Autom├ítico</p>
+                    <p className="text-xs font-bold text-emerald-800">Cadastro Automático</p>
                     <p className="text-[10px] text-emerald-600 leading-tight">
-                      A esp├®cie e os pais j├í foram preenchidos automaticamente com base no casal selecionado.
+                      A espécie e os pais já foram preenchidos automaticamente com base no casal selecionado.
                     </p>
                   </div>
                </div>
@@ -783,7 +805,7 @@ const BreedingManager: React.FC<BreedingManagerProps> = ({ state, addPair, updat
                     value={hatchlingBirthDate}
                     onChange={(e) => setHatchlingBirthDate(e.target.value)}
                   />
-                  <p className="text-[10px] text-slate-400">Se nasceu antes da previsao, ajuste a data aqui.</p>
+                  <p className="text-[10px] text-slate-400">Se nasceu antes da previsão, ajuste a data aqui.</p>
                </div>
 
                <div className="space-y-4">
