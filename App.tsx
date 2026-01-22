@@ -55,6 +55,7 @@ const loadCachedState = (): { state: AppState; hasCache: boolean } => {
 const DEFAULT_SESSION_TIMEOUT_MS = 8000;
 const SESSION_RETRY_DELAY_MS = 2000;
 const SESSION_RETRY_LIMIT = 3;
+const SESSION_RETRY_MAX_DELAY_MS = 10000;
 
 const defaultState: AppState = {
   birds: MOCK_BIRDS,
@@ -118,6 +119,17 @@ const App: React.FC = () => {
     }, SESSION_RETRY_DELAY_MS);
   };
 
+  const scheduleSessionRetryWithDelay = (fn: () => void, delayMs?: number) => {
+    if (sessionRetryRef.current) {
+      clearTimeout(sessionRetryRef.current);
+    }
+    const d = typeof delayMs === 'number' ? delayMs : SESSION_RETRY_DELAY_MS;
+    sessionRetryRef.current = setTimeout(() => {
+      sessionRetryRef.current = null;
+      fn();
+    }, d);
+  };
+
   const revalidateSession = async () => {
     try {
       const session = await fetchSession();
@@ -131,7 +143,22 @@ const App: React.FC = () => {
     }
     sessionRetryCountRef.current += 1;
     if (sessionRetryCountRef.current <= SESSION_RETRY_LIMIT) {
-      scheduleSessionRetry(revalidateSession);
+      const exp = Math.pow(2, sessionRetryCountRef.current - 1);
+      const delay = Math.min(SESSION_RETRY_DELAY_MS * exp, SESSION_RETRY_MAX_DELAY_MS);
+      scheduleSessionRetryWithDelay(revalidateSession, delay);
+    }
+  };
+
+  const isLikelyStripeReturn = () => {
+    try {
+      if (typeof window === 'undefined') return false;
+      const params = new URLSearchParams(window.location.search);
+      if (params.has('session_id') || params.has('checkout_session_id') || params.has('stripe')) return true;
+      const ref = document.referrer || '';
+      if (/stripe\.com/.test(ref)) return true;
+      return false;
+    } catch {
+      return false;
     }
   };
   const persistState = (value: AppState) => {
@@ -242,12 +269,17 @@ const App: React.FC = () => {
   }, [activeTab, session, supabaseUnavailable]);
   const handleSession = async (newSession: any) => {
     if (!newSession) {
-      // Don't clear immediately — sometimes returning from external pages (Stripe)
-      // causes a transient missing session. Wait briefly and re-check before
-      // clearing state to avoid flashing default profile or infinite loading.
+      // Don't clear immediately — returning from external pages (Stripe)
+      // can cause a transient missing session. Revalidate immediately and
+      // only clear after a short grace period if the session is still null.
       if (sessionClearRef.current) {
         clearTimeout(sessionClearRef.current);
       }
+      // trigger a quick revalidation right away (focus/visibility handlers also do this)
+      revalidateSession();
+
+      // fallback: if session not recovered after grace period, clear state
+      const GRACE_MS = isLikelyStripeReturn() ? 10000 : 4000;
       sessionClearRef.current = setTimeout(async () => {
         try {
           const s = await fetchSession();
@@ -261,6 +293,7 @@ const App: React.FC = () => {
         }
 
         if (lastValidSessionRef.current) {
+          // keep last valid state to avoid UI flash
           console.info('Sessao temporariamente indisponivel, mantendo o ultimo estado valido');
           setAuthError(null);
           setHasHydratedOnce(true);
@@ -268,6 +301,7 @@ const App: React.FC = () => {
           return;
         }
 
+        // truly signed out — clear local state
         lastValidSessionRef.current = null;
         loadedTabsRef.current = new Set();
         setSession(null);
@@ -275,7 +309,7 @@ const App: React.FC = () => {
         setState(defaultState);
         setHasHydratedOnce(false);
         setIsLoading(false);
-      }, 2000);
+      }, GRACE_MS);
 
       return;
     }
