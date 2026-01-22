@@ -190,6 +190,8 @@ export const mapBirdFromDb = (row: any): Bird => {
     isRepeater: row.is_repeater ?? row.isRepeater ?? false,
     sexing: row.sexing ?? undefined,
     documents: row.documents ?? undefined,
+    ibamaBaixaPendente: row.ibama_baixa_pendente ?? row.ibamaBaixaPendente ?? false,
+    ibamaBaixaData: row.ibama_baixa_data ?? row.ibamaBaixaData ?? undefined,
     deletedAt: row.deleted_at ?? row.deletedAt ?? undefined,
   };
 };

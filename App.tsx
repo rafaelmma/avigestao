@@ -536,6 +536,8 @@ const App: React.FC = () => {
           is_repeater: bird.isRepeater,
           sexing: bird.sexing,
           documents: bird.documents,
+          ibama_baixa_pendente: bird.ibamaBaixaPendente ?? false,
+          ibama_baixa_data: bird.ibamaBaixaData,
           created_at: bird.createdAt || new Date().toISOString()
         };
         const { error } = await supabase.from('birds').insert(dbBird);
@@ -575,7 +577,9 @@ const App: React.FC = () => {
           training_notes: bird.trainingNotes,
           is_repeater: bird.isRepeater,
           sexing: bird.sexing,
-          documents: bird.documents
+          documents: bird.documents,
+          ibama_baixa_pendente: bird.ibamaBaixaPendente ?? false,
+          ibama_baixa_data: bird.ibamaBaixaData
         };
         const { error } = await supabase.from('birds').update(dbBird).eq('id', bird.id).eq('user_id', session.user.id);
         if (error) console.error('Erro ao atualizar ave:', error);
@@ -633,6 +637,33 @@ const App: React.FC = () => {
       console.error('addMovement failed', e);
     }
     setState(prev => ({ ...prev, movements: [mov, ...prev.movements] }));
+    
+    // Atualizar status da ave baseado no tipo de movimentação
+    const bird = state.birds.find(b => b.id === mov.birdId);
+    if (bird) {
+      let newStatus = bird.status;
+      let ibamaBaixaPendente = bird.ibamaBaixaPendente || false;
+      
+      switch (mov.type) {
+        case 'Óbito':
+          newStatus = 'Óbito';
+          ibamaBaixaPendente = true;
+          break;
+        case 'Fuga':
+          newStatus = 'Fugiu';
+          break;
+        case 'Venda':
+          newStatus = 'Vendido';
+          break;
+        case 'Doação':
+          newStatus = 'Doado';
+          break;
+      }
+      
+      if (newStatus !== bird.status || ibamaBaixaPendente !== bird.ibamaBaixaPendente) {
+        updateBird({ ...bird, status: newStatus, ibamaBaixaPendente });
+      }
+    }
   };
   const updateMovement = async (mov: MovementRecord) => {
     try {

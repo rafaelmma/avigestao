@@ -1,4 +1,4 @@
-﻿export type BirdStatus = 'Ativo' | 'Falecido' | 'Vendido' | 'Transferido' | 'Fugido';
+﻿export type BirdStatus = 'Ativo' | 'Óbito' | 'Fugiu' | 'Vendido' | 'Doado';
 export type Sex = 'Macho' | 'Fêmea' | 'Indeterminado';
 export type BirdClassification = 'Galador' | 'Pássaro de Canto' | 'Ambos' | 'Não Definido';
 export type TrainingStatus = 'Não Iniciado' | 'Em Encarte' | 'Fixado' | 'Pardo (Aprendizado)';
@@ -46,6 +46,8 @@ export interface Bird {
   isRepeater: boolean;
   sexing?: SexingData; 
   documents?: BirdDocument[]; // Novo campo: Repositório de documentos da ave
+  ibamaBaixaPendente?: boolean; // Controle de baixa IBAMA para óbitos
+  ibamaBaixaData?: string; // Data de conclusão da baixa IBAMA
   deletedAt?: string;
 }
 

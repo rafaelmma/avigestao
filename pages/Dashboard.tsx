@@ -389,6 +389,31 @@ const Dashboard: React.FC<DashboardProps> = ({ state, updateSettings, navigateTo
         </button>
       </header>
 
+      {/* Alerta de Baixa IBAMA Pendente */}
+      {state.birds.some(b => b.ibamaBaixaPendente) && (
+        <div className="bg-amber-50 border-2 border-amber-300 rounded-3xl p-6 shadow-sm animate-in slide-in-from-top-2">
+          <div className="flex items-start gap-4">
+            <div className="p-3 bg-amber-100 rounded-2xl">
+              <Zap size={24} className="text-amber-700" />
+            </div>
+            <div className="flex-1">
+              <h3 className="text-sm font-black text-amber-800 uppercase tracking-widest mb-1">
+                ⚠️ Baixa IBAMA Pendente
+              </h3>
+              <p className="text-sm text-amber-700 font-bold mb-3">
+                {state.birds.filter(b => b.ibamaBaixaPendente).length} {state.birds.filter(b => b.ibamaBaixaPendente).length === 1 ? 'ave necessita' : 'aves necessitam'} de baixa no sistema IBAMA por óbito.
+              </p>
+              <button 
+                onClick={() => navigateTo('birds')}
+                className="px-4 py-2 bg-amber-600 text-white rounded-xl font-bold text-xs uppercase tracking-widest hover:bg-amber-700 transition-all shadow-md"
+              >
+                Ver Aves
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Dynamic Grid Layout */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {visibleWidgets.map((widgetId, index) => (

@@ -87,6 +87,7 @@ const BirdManager: React.FC<BirdManagerProps> = ({
   const [filterSpecies, setFilterSpecies] = useState('');
   const [filterSex, setFilterSex] = useState('');
   const [filterTraining, setFilterTraining] = useState('');
+  const [filterStatus, setFilterStatus] = useState('');
 
   // State for Add/Edit Tabs
   const [activeTab, setActiveTab] = useState<'dados' | 'genealogia' | 'docs'>('dados');
@@ -339,10 +340,11 @@ const BirdManager: React.FC<BirdManagerProps> = ({
       const matchesSpecies = filterSpecies ? bird.species === filterSpecies : true;
       const matchesSex = filterSex ? bird.sex === filterSex : true;
       const matchesTraining = filterTraining ? bird.songTrainingStatus === filterTraining : true;
+      const matchesStatus = filterStatus ? bird.status === filterStatus : true;
 
-      return matchesSearch && matchesSpecies && matchesSex && matchesTraining;
+      return matchesSearch && matchesSpecies && matchesSex && matchesTraining && matchesStatus;
     });
-  }, [state.birds, state.deletedBirds, searchTerm, currentList, filterSpecies, filterSex, filterTraining]);
+  }, [state.birds, state.deletedBirds, searchTerm, currentList, filterSpecies, filterSex, filterTraining, filterStatus]);
 
   // Listas para a Central de Sexagem
   const pendingSexingBirds = state.birds.filter(b => b.sex === 'Indeterminado' && (!b.sexing?.sentDate));
@@ -893,16 +895,16 @@ const BirdManager: React.FC<BirdManagerProps> = ({
                   <h4 className="text-xs font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
                     <Filter size={14} /> Filtrar Resultados
                   </h4>
-                  {(filterSpecies || filterSex || filterTraining) && (
+                  {(filterSpecies || filterSex || filterTraining || filterStatus) && (
                     <button 
-                      onClick={() => { setFilterSpecies(''); setFilterSex(''); setFilterTraining(''); }}
+                      onClick={() => { setFilterSpecies(''); setFilterSex(''); setFilterTraining(''); setFilterStatus(''); }}
                       className="text-[10px] font-bold text-rose-500 hover:underline"
                     >
                       Limpar Filtros
                     </button>
                   )}
                </div>
-               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+               <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                   <div>
                      <label className="block text-[10px] font-bold text-slate-400 uppercase mb-1">Espécie</label>
                      <select 
@@ -925,6 +927,21 @@ const BirdManager: React.FC<BirdManagerProps> = ({
                        <option value="Macho">Macho</option>
                        <option value="Fêmea">Fêmea</option>
                        <option value="Indeterminado">Indeterminado</option>
+                     </select>
+                  </div>
+                  <div>
+                     <label className="block text-[10px] font-bold text-slate-400 uppercase mb-1">Status</label>
+                     <select 
+                       value={filterStatus}
+                       onChange={(e) => setFilterStatus(e.target.value)}
+                       className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-700 outline-none focus:border-brand"
+                     >
+                       <option value="">Todos</option>
+                       <option value="Ativo">Ativo</option>
+                       <option value="Óbito">Óbito</option>
+                       <option value="Fugiu">Fugiu</option>
+                       <option value="Vendido">Vendido</option>
+                       <option value="Doado">Doado</option>
                      </select>
                   </div>
                   <div>
@@ -993,14 +1010,19 @@ const BirdManager: React.FC<BirdManagerProps> = ({
                     <h3 className="font-bold text-slate-800 text-sm truncate pr-2">{bird.name}</h3>
                     <span className={`px-2 py-0.5 rounded-full text-[9px] font-black uppercase ${
                       bird.status === 'Ativo' ? 'bg-emerald-50 text-emerald-600' :
-                      bird.status === 'Transferido' ? 'bg-blue-50 text-blue-600' :
-                      bird.status === 'Vendido' ? 'bg-amber-50 text-amber-600' :
-                      bird.status === 'Falecido' ? 'bg-slate-100 text-slate-500' :
-                      bird.status === 'Fugido' ? 'bg-rose-50 text-rose-600' :
+                      bird.status === 'Óbito' ? 'bg-red-100 text-red-700' :
+                      bird.status === 'Fugiu' ? 'bg-orange-100 text-orange-700' :
+                      bird.status === 'Vendido' ? 'bg-blue-100 text-blue-700' :
+                      bird.status === 'Doado' ? 'bg-purple-100 text-purple-700' :
                       'bg-slate-100 text-slate-500'
                     }`}>
                       {bird.status}
                     </span>
+                    {bird.ibamaBaixaPendente && (
+                      <span className="px-2 py-0.5 rounded-full text-[9px] font-black uppercase bg-amber-100 text-amber-700 animate-pulse" title="Baixa IBAMA Pendente">
+                        ⚠️ IBAMA
+                      </span>
+                    )}
                   </div>
                   <div className="flex flex-col gap-0.5 mt-0.5">
                     <p className="text-[10px] text-slate-400 font-bold uppercase">{bird.ringNumber}</p>
@@ -1189,12 +1211,45 @@ const BirdManager: React.FC<BirdManagerProps> = ({
                                  <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest">Status</label>
                                  <select className="w-full p-4 bg-white border border-slate-200 rounded-2xl font-bold text-slate-700 outline-none focus:border-brand appearance-none" value={editingBird.status} onChange={e => setEditingBird({...editingBird, status: e.target.value as any})}>
                                    <option value="Ativo">Ativo</option>
+                                   <option value="Óbito">Óbito</option>
+                                   <option value="Fugiu">Fugiu</option>
                                    <option value="Vendido">Vendido</option>
-                                   <option value="Falecido">Falecido</option>
-                                   <option value="Transferido">Transferido</option>
+                                   <option value="Doado">Doado</option>
                                  </select>
                               </div>
                           </div>
+
+                          {/* Controle de Baixa IBAMA */}
+                          {editingBird.status === 'Óbito' && (
+                            <div className="p-6 bg-amber-50 border-2 border-amber-200 rounded-2xl space-y-4">
+                              <div className="flex items-center gap-2 text-amber-700">
+                                <Syringe size={18} />
+                                <h4 className="text-sm font-black uppercase tracking-widest">Controle de Baixa IBAMA</h4>
+                              </div>
+                              <div className="space-y-4">
+                                <label className="flex items-center gap-3 cursor-pointer">
+                                  <input 
+                                    type="checkbox" 
+                                    checked={!editingBird.ibamaBaixaPendente} 
+                                    onChange={e => setEditingBird({...editingBird, ibamaBaixaPendente: !e.target.checked, ibamaBaixaData: e.target.checked ? new Date().toISOString().split('T')[0] : undefined})}
+                                    className="w-5 h-5 rounded border-amber-300 text-amber-600 focus:ring-amber-500"
+                                  />
+                                  <span className="text-sm font-bold text-amber-800">Baixa IBAMA concluída</span>
+                                </label>
+                                {!editingBird.ibamaBaixaPendente && (
+                                  <div className="space-y-2 animate-in fade-in">
+                                    <label className="block text-[10px] font-black text-amber-700 uppercase tracking-widest">Data da Baixa</label>
+                                    <input 
+                                      type="date" 
+                                      className="w-full p-4 bg-white border border-amber-300 rounded-2xl font-bold text-slate-700 outline-none focus:border-amber-500" 
+                                      value={editingBird.ibamaBaixaData || ''} 
+                                      onChange={e => setEditingBird({...editingBird, ibamaBaixaData: e.target.value})} 
+                                    />
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                          )}
                        </div>
                     )}
 
