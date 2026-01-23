@@ -203,8 +203,17 @@ const SettingsManager: React.FC<SettingsManagerProps> = ({ settings, updateSetti
       if (!publicUrl) throw new Error('Não foi possível gerar o link da logo.');
 
       console.log('Logo URL:', publicUrl);
-      updateSettings({ ...settings, logoUrl: publicUrl });
-      alert('Logo enviada com sucesso! Clique em "Salvar alterações" para confirmar.');
+      const nextSettings = { ...settings, logoUrl: publicUrl };
+      updateSettings(nextSettings);
+
+      // salva automaticamente para evitar perder a logo ao recarregar
+      try {
+        await onSave(nextSettings);
+        setSavedAt(new Date().toLocaleTimeString());
+      } catch (saveErr) {
+        console.warn('Falha ao salvar logo', saveErr);
+      }
+      alert('Logo enviada e salva com sucesso.');
     } catch (err: any) {
       console.error('Erro ao enviar logo', err);
       const message = err?.message || 'Falha ao enviar a logo. Tente novamente.';
