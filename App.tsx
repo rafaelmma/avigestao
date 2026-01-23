@@ -1727,7 +1727,7 @@ const App: React.FC = () => {
           />
         );
       case 'documents':
-        return <DocumentsManager settings={state.settings} updateSettings={updateSettings} onSave={saveSettings} />;
+        return <DocumentsManager settings={state.settings} updateSettings={updateSettings} onSave={persistSettings} />;
       case 'settings':
         return (
           <SettingsManager
