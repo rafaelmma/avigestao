@@ -105,7 +105,6 @@ const App: React.FC = () => {
   const sessionRetryRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const sessionRetryCountRef = useRef(0);
   const loadedTabsRef = useRef(new Set<string>());
-  const loadedTabsRef = useRef(new Set<string>());
   const realtimeChannelsRef = useRef<any[]>([]);
   const sessionClearRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
