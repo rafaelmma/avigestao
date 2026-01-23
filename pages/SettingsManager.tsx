@@ -153,6 +153,28 @@ const SettingsManager: React.FC<SettingsManagerProps> = ({ settings, updateSetti
     }
   };
 
+  const syncSubscription = async () => {
+    try {
+      const session = await supabase.auth.getSession();
+      const res = await fetch('/api/sync-subscription', {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${session.data.session?.access_token}` },
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        alert(err?.error || 'Erro ao sincronizar assinatura');
+        return;
+      }
+      const result = await res.json();
+      alert('✅ Assinatura sincronizada! Recarregue a página.');
+      console.log('Sync result:', result);
+      window.location.reload();
+    } catch (err) {
+      console.error(err);
+      alert('Erro ao sincronizar assinatura');
+    }
+  };
+
   const startCheckout = async () => {
     try {
       setPaymentStep('processing');
@@ -581,12 +603,21 @@ const SettingsManager: React.FC<SettingsManagerProps> = ({ settings, updateSetti
                       Gerencie cobranças, upgrade/downgrade ou cancele a renovação automática.
                     </p>
                   </div>
-                  <button
-                    onClick={openBillingPortal}
-                    className="px-4 py-2 bg-slate-900 text-white rounded-xl text-xs font-black uppercase tracking-widest hover:bg-slate-800 transition-all"
-                  >
-                    Abrir portal
-                  </button>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={syncSubscription}
+                      className="px-3 py-2 bg-emerald-600 text-white rounded-xl text-xs font-black uppercase tracking-widest hover:bg-emerald-700 transition-all"
+                      title="Sincronizar dados do Stripe"
+                    >
+                      🔄 Sync
+                    </button>
+                    <button
+                      onClick={openBillingPortal}
+                      className="px-4 py-2 bg-slate-900 text-white rounded-xl text-xs font-black uppercase tracking-widest hover:bg-slate-800 transition-all"
+                    >
+                      Abrir portal
+                    </button>
+                  </div>
                 </div>
                 <p className="text-[11px] text-slate-500">
                   No portal você pode trocar período (mensal/anual), atualizar cartão e cancelar a recorrência.
