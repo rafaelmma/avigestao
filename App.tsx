@@ -1525,7 +1525,10 @@ const App: React.FC = () => {
     setState(prev => ({ ...prev, settings: { ...prev.settings, ...settings } }));
 
   const persistSettings = async (settings: BreederSettings) => {
-    if (supabaseUnavailable || !session?.user?.id) return;
+    if (supabaseUnavailable || !session?.user?.id) {
+      console.warn('Sessão inválida, não é possível salvar configurações');
+      return;
+    }
     const userId = session.user.id;
     const fullPayload = {
       user_id: userId,
@@ -1572,7 +1575,12 @@ const App: React.FC = () => {
         console.warn('Falha ao persistir settings (completo)', error);
         await supabase.from('settings').upsert(minimalPayload as any, { onConflict: 'user_id' });
       }
-    } catch (err) {
+    } catch (err: any) {
+      // Ignora erros 401 silenciosamente (sessão expirada)
+      if (err?.message?.includes('401') || err?.code === '401') {
+        console.warn('Sessão expirada, configurações serão salvas após próximo login');
+        return;
+      }
       console.warn('Falha ao persistir settings', err);
       try {
         await supabase.from('settings').upsert(minimalPayload as any, { onConflict: 'user_id' });

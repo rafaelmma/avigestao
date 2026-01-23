@@ -402,7 +402,7 @@ const calculateProgress = (startDateStr?: string, endDateStr?: string) => {
                       placeholder="Ex: Serasa"
                       className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl font-bold text-slate-700 outline-none text-xs focus:border-emerald-500"
                       value={certificateIssuerValue}
-                      onChange={(e) => {
+                      onBlur={(e) => {
                         const newSettings = {
                           ...settings, 
                           certificate: { 
@@ -415,6 +415,17 @@ const calculateProgress = (startDateStr?: string, endDateStr?: string) => {
                         updateSettings(newSettings);
                         onSave?.(newSettings);
                       }}
+                      onChange={(e) => {
+                        updateSettings({
+                          ...settings, 
+                          certificate: { 
+                            issuer: e.target.value, 
+                            expiryDate: settings.certificate?.expiryDate || '', 
+                            installed: true,
+                            type: settings.certificate?.type || 'A1 (Arquivo)'
+                          }
+                        });
+                      }}
                     />
                  </div>
                  <div>
@@ -423,7 +434,7 @@ const calculateProgress = (startDateStr?: string, endDateStr?: string) => {
                       type="date"
                       className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl font-bold text-slate-700 outline-none text-xs focus:border-emerald-500"
                       value={certificateExpiryValue}
-                      onChange={(e) => {
+                      onBlur={(e) => {
                         const newSettings = {
                           ...settings, 
                           certificate: { 
@@ -435,6 +446,17 @@ const calculateProgress = (startDateStr?: string, endDateStr?: string) => {
                         };
                         updateSettings(newSettings);
                         onSave?.(newSettings);
+                      }}
+                      onChange={(e) => {
+                        updateSettings({
+                          ...settings, 
+                          certificate: { 
+                            issuer: settings.certificate?.issuer || '', 
+                            expiryDate: e.target.value, 
+                            installed: true,
+                            type: settings.certificate?.type || 'A1 (Arquivo)'
+                          }
+                        });
                       }}
                     />
                  </div>
