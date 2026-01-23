@@ -116,8 +116,12 @@ const SettingsManager: React.FC<SettingsManagerProps> = ({ settings, updateSetti
     const critical: string[] = [];
     if (daysSispass !== null && daysSispass <= 30) critical.push(`SISPASS vence em ${daysSispass} dias`);
     if (daysCert !== null && daysCert <= 30) critical.push(`Certificado vence em ${daysCert} dias`);
-    if (settings.plan === 'Profissional' && settings.subscriptionCancelAtPeriodEnd && daysSubscription !== null) {
-      critical.push(`Assinatura PRO termina em ${daysSubscription} dias (renovação cancelada)`);
+    if (settings.plan === 'Profissional' && settings.subscriptionCancelAtPeriodEnd) {
+      if (daysSubscription !== null) {
+        critical.push(`Assinatura PRO termina em ${daysSubscription} dias (renovação cancelada)`);
+      } else {
+        critical.push('Assinatura PRO com renovação cancelada. Reative para manter o plano.');
+      }
     }
     setBannerMessage(critical.length ? critical.join(' | ') : null);
   }, [daysSispass, daysCert, daysSubscription, settings.plan, settings.subscriptionCancelAtPeriodEnd]);
@@ -580,6 +584,19 @@ const SettingsManager: React.FC<SettingsManagerProps> = ({ settings, updateSetti
                 <p className="text-[11px] text-slate-500">
                   No portal você pode trocar período (mensal/anual), atualizar cartão e cancelar a recorrência.
                 </p>
+                {settings.subscriptionCancelAtPeriodEnd && (
+                  <div className="flex items-start gap-2 rounded-xl bg-amber-50 border border-amber-200 px-3 py-2">
+                    <AlertTriangle size={14} className="text-amber-600 mt-0.5" />
+                    <div>
+                      <p className="text-xs font-black text-amber-700">Renovação cancelada</p>
+                      <p className="text-[11px] text-amber-700">
+                        {daysSubscription !== null
+                          ? `Seu acesso PRO expira em ${daysSubscription} dias. Reative para manter o plano.`
+                          : 'Sua assinatura está sem renovação automática. Reative para manter o plano ao fim do período atual.'}
+                      </p>
+                    </div>
+                  </div>
+                )}
               </div>
             )}
           </div>
