@@ -504,6 +504,21 @@ const App: React.FC = () => {
         settings: normalizedSettings
       });
 
+      // Auto-save subscription data to Supabase if it came from the API
+      if ((subscriptionEndDate || subscriptionCancelAtPeriodEnd || subscriptionStatus) && !supabaseUnavailable) {
+        try {
+          const payload = {
+            user_id: userId,
+            subscription_end_date: subscriptionEndDate || null,
+            subscription_cancel_at_period_end: subscriptionCancelAtPeriodEnd ?? null,
+            subscription_status: subscriptionStatus || null
+          };
+          await supabase.from('settings').upsert(payload as any, { onConflict: 'user_id' });
+        } catch (err) {
+          console.warn('Falha ao auto-salvar dados de assinatura:', err);
+        }
+      }
+
       // Carrega pares deletados em background
       if (!supabaseUnavailable) {
         try {
