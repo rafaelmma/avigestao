@@ -26,7 +26,7 @@ export default async function handler(req: any, res: any) {
 
   const { data, error } = await supabase
     .from("subscriptions")
-    .select("status, current_period_end")
+    .select("status, current_period_end, cancel_at_period_end")
     .eq("user_id", user_id)
     .order('created_at', { ascending: false })
     .limit(1)
@@ -42,6 +42,7 @@ export default async function handler(req: any, res: any) {
     isActive,
     status: data.status,
     current_period_end: data.current_period_end,
+    cancel_at_period_end: data.cancel_at_period_end,
     isTrial: data.status === "trialing",
   });
 }

@@ -449,7 +449,7 @@ const App: React.FC = () => {
             const sub = await res.json();
             const end = sub?.currentPeriodEnd || sub?.current_period_end;
             subscriptionEndDate = end ? new Date(end).toISOString().split('T')[0] : subscriptionEndDate;
-            subscriptionCancelAtPeriodEnd = sub?.cancelAtPeriodEnd ?? subscriptionCancelAtPeriodEnd;
+            subscriptionCancelAtPeriodEnd = sub?.cancelAtPeriodEnd ?? sub?.cancel_at_period_end ?? subscriptionCancelAtPeriodEnd;
             subscriptionStatus = sub?.status ?? subscriptionStatus;
 
             const isActive = !!sub?.isActive;

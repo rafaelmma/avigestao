@@ -425,7 +425,7 @@ const SettingsManager: React.FC<SettingsManagerProps> = ({ settings, updateSetti
                   <input
                     type="date"
                     className="w-full p-3 rounded-2xl bg-slate-50 border border-slate-100 text-sm font-bold"
-                    value={settings.lastRenewalDaté || ''}
+                    value={settings.lastRenewalDate || ''}
                     onChange={(e) => updateSettings({ ...settings, lastRenewalDate: e.target.value })}
                   />
                 </label>
@@ -534,7 +534,7 @@ const SettingsManager: React.FC<SettingsManagerProps> = ({ settings, updateSetti
               </h4>
               <div className="text-sm text-slate-700 space-y-1">
                 <p><span className="font-bold">Emissor:</span> {settings.certificate?.issuer || 'Pendente'}</p>
-                <p><span className="font-bold">Validade:</span> {settings.certificate?.expiryDaté ? new Date(settings.certificate.expiryDate).toLocaleDateString() : 'Pendente'}</p>
+                <p><span className="font-bold">Validade:</span> {settings.certificate?.expiryDate ? new Date(settings.certificate.expiryDate).toLocaleDateString() : 'Pendente'}</p>
               </div>
               <a
                 href="https://ccd.serpro.gov.br/testeaqui/"

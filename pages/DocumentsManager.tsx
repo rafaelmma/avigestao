@@ -113,21 +113,23 @@ const calculateProgress = (startDateStr?: string, endDateStr?: string) => {
   const handleConfirmRenewal = (e: React.FormEvent) => {
     e.preventDefault();
     if (renewingItem === 'sispass') {
-      updateSettings({
+      const updatedSettings = {
         ...settings,
         lastRenewalDate: renewalForm.renewalDate,
         renewalDate: renewalForm.newExpiryDate
-      });
+      };
+      updateSettings(updatedSettings);
+      onSave?.(updatedSettings);
     } else if (renewingItem === 'certificate') {
-      updateSettings({
+      const updatedSettings = {
         ...settings,
         certificate: {
           ...settings.certificate!,
           expiryDate: renewalForm.newExpiryDate
-          // Nota: O tipo DigitalCertificateData atualmente não armazena a data de emissão,
-          // apenas a de validade. Se necessário, poderíamos adicionar ao type.ts
         }
-      });
+      };
+      updateSettings(updatedSettings);
+      onSave?.(updatedSettings);
     }
     setRenewingItem(null);
   };
