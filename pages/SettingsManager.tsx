@@ -75,7 +75,7 @@ const SettingsManager: React.FC<SettingsManagerProps> = ({ settings, updateSetti
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [paymentStep, setPaymentStep] = useState<'method' | 'processing'>('method');
   const [hasStripeCustomer, setHasStripeCustomer] = useState(false);
-  const [bannerMessage, setBannerMessage] = useState<string | null>(null);
+  const [bannerMessage, setBannerMessage] = useState<Array<{message: string; action?: () => void; actionLabel?: string}> | null>(null);
   const [savedAt, setSavedAt] = useState<string | null>(null);
   const [isUploadingLogo, setIsUploadingLogo] = useState(false);
   const [logoUploadError, setLogoUploadError] = useState<string | null>(null);
@@ -113,17 +113,48 @@ const SettingsManager: React.FC<SettingsManagerProps> = ({ settings, updateSetti
   }, []);
 
   useEffect(() => {
-    const critical: string[] = [];
-    if (daysSispass !== null && daysSispass <= 30) critical.push(`SISPASS vence em ${daysSispass} dias`);
-    if (daysCert !== null && daysCert <= 30) critical.push(`Certificado vence em ${daysCert} dias`);
+    const critical: Array<{message: string; action?: () => void; actionLabel?: string}> = [];
+    
+    if (daysSispass !== null && daysSispass <= 30) {
+      critical.push({
+        message: `SISPASS vence em ${daysSispass} dias`,
+        action: () => setActiveTab('perfil'),
+        actionLabel: 'Renovar'
+      });
+    }
+    
+    if (daysCert !== null && daysCert <= 30) {
+      critical.push({
+        message: `Certificado vence em ${daysCert} dias`,
+        action: () => setActiveTab('perfil'),
+        actionLabel: 'Atualizar'
+      });
+    }
+    
     if (settings.plan === 'Profissional' && settings.subscriptionCancelAtPeriodEnd) {
       if (daysSubscription !== null) {
-        critical.push(`Assinatura PRO termina em ${daysSubscription} dias (renovação cancelada)`);
+        critical.push({
+          message: `Assinatura PRO termina em ${daysSubscription} dias (renovação cancelada)`,
+          action: () => {
+            setActiveTab('plano');
+            // Auto-scroll to subscription section after tab change
+            setTimeout(() => {
+              const element = document.querySelector('[data-subscription-section]');
+              element?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }, 100);
+          },
+          actionLabel: 'Reativar'
+        });
       } else {
-        critical.push('Assinatura PRO com renovação cancelada. Reative para manter o plano.');
+        critical.push({
+          message: 'Assinatura PRO com renovação cancelada. Reative para manter o plano.',
+          action: () => setActiveTab('plano'),
+          actionLabel: 'Ver Plano'
+        });
       }
     }
-    setBannerMessage(critical.length ? critical.join(' | ') : null);
+    
+    setBannerMessage(critical.length > 0 ? critical : null);
   }, [daysSispass, daysCert, daysSubscription, settings.plan, settings.subscriptionCancelAtPeriodEnd]);
 
   const openBillingPortal = async () => {
@@ -259,26 +290,24 @@ const SettingsManager: React.FC<SettingsManagerProps> = ({ settings, updateSetti
 
   return (
     <div className="space-y-8 max-w-6xl pb-14 animate-in fade-in">
-      {bannerMessage && (
-        <div className="flex items-center justify-between p-4 rounded-2xl border border-amber-200 bg-amber-50 text-amber-800 text-sm font-bold shadow-sm">
-          <div className="flex items-center gap-2">
-            <AlertTriangle size={18} className="text-amber-500" />
-            <span>{bannerMessage}</span>
-          </div>
-          <a
-            href="#"
-            onClick={(e) => {
-              e.preventDefault();
-              setActiveTab('perfil');
-              setTimeout(() => {
-                renewalDateRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                renewalDateRef.current?.focus({ preventScroll: true });
-              }, 50);
-            }}
-            className="text-[11px] uppercase tracking-widest font-black text-amber-700"
-          >
-            Atualizar datas
-          </a>
+      {bannerMessage && bannerMessage.length > 0 && (
+        <div className="space-y-3">
+          {bannerMessage.map((banner, idx) => (
+            <div key={idx} className="flex items-center justify-between p-4 rounded-2xl border border-amber-200 bg-amber-50 text-amber-800 text-sm font-bold shadow-sm">
+              <div className="flex items-center gap-2">
+                <AlertTriangle size={18} className="text-amber-500" />
+                <span>{banner.message}</span>
+              </div>
+              {banner.action && banner.actionLabel && (
+                <button
+                  onClick={banner.action}
+                  className="text-[11px] uppercase tracking-widest font-black text-amber-700 hover:text-amber-900 transition-colors"
+                >
+                  {banner.actionLabel}
+                </button>
+              )}
+            </div>
+          ))}
         </div>
       )}
 
@@ -566,7 +595,7 @@ const SettingsManager: React.FC<SettingsManagerProps> = ({ settings, updateSetti
             )}
 
             {settings.plan === 'Profissional' && !isTrial && !isAdmin && (
-              <div className="mt-4 bg-slate-50 border border-slate-200 rounded-xl p-4 space-y-3">
+              <div data-subscription-section className="mt-4 bg-slate-50 border border-slate-200 rounded-xl p-4 space-y-3">
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-xs font-black uppercase text-slate-500">Assinatura ativa</p>

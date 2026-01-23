@@ -32,7 +32,7 @@ import { supabase, SUPABASE_MISSING } from './lib/supabase';
 import { loadInitialData, loadTabData, loadDeletedPairs } from './services/dataService';
 
 const STORAGE_KEY = 'avigestao_state';
-const HYDRATE_TIMEOUT_MS = 15000; // 15s - reduced for faster UX
+const HYDRATE_TIMEOUT_MS = 60000; // 60s - increased for admin accounts with more data
 
 const loadCachedState = (): { state: AppState; hasCache: boolean } => {
   if (typeof localStorage === 'undefined') return { state: defaultState, hasCache: false };
@@ -1539,12 +1539,31 @@ const App: React.FC = () => {
   const updateSettings = (settings: BreederSettings) =>
     setState(prev => ({ ...prev, settings: { ...prev.settings, ...settings } }));
 
+  // Add flag to prevent concurrent saves
+  (persistSettings as any).inProgress = false;
+
   const persistSettings = async (settings: BreederSettings) => {
-    if (supabaseUnavailable || !session?.user?.id) {
-      console.warn('Sessão inválida, não é possível salvar configurações');
+    if (supabaseUnavailable) {
+      console.warn('Supabase unavailable');
       return;
     }
-    const userId = session.user.id;
+    
+    // Revalidate session before saving
+    const { data: { session: currentSession } } = await supabase.auth.getSession();
+    if (!currentSession?.user?.id) {
+      console.warn('Sessão inválida ou expirada, aguarde revalidação');
+      return;
+    }
+    
+    // Prevent multiple concurrent saves
+    if (persistSettings.inProgress) {
+      console.warn('Save already in progress, skipping duplicate');
+      return;
+    }
+    
+    persistSettings.inProgress = true;
+    
+    const userId = currentSession.user.id;
     const fullPayload = {
       user_id: userId,
       breeder_name: settings.breederName,
@@ -1592,8 +1611,18 @@ const App: React.FC = () => {
       }
     } catch (err: any) {
       // Ignora erros 401 silenciosamente (sessão expirada)
-      if (err?.message?.includes('401') || err?.code === '401') {
+      if (err?.message?.includes('401') || err?.code === '401' || err?.message?.includes('Unauthorized')) {
         console.warn('Sessão expirada, configurações serão salvas após próximo login');
+        return;
+      }
+      // Ignora AbortError silenciosamente
+      if (err?.message?.includes('AbortError') || err?.message?.includes('aborted')) {
+        console.warn('Request was aborted, will retry on next save');
+        return;
+      }
+      // Ignora RLS policy violations (requer revalidação de sessão)
+      if (err?.code === '42501' || err?.message?.includes('row-level security')) {
+        console.warn('RLS policy violation - sessão requer revalidação');
         return;
       }
       console.warn('Falha ao persistir settings', err);
@@ -1602,6 +1631,8 @@ const App: React.FC = () => {
       } catch (fallbackErr) {
         console.warn('Falha ao persistir settings (fallback)', fallbackErr);
       }
+    } finally {
+      persistSettings.inProgress = false;
     }
   };
   const handleLogout = async () => {
