@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { Lightbulb, Info, Sparkles, Zap, Heart, ShieldCheck, TrendingUp, MapPin } from 'lucide-react';
+import { Lightbulb, Info, Sparkles, Zap, Heart, ShieldCheck, TrendingUp, MapPin, AlertTriangle, CalendarCheck } from 'lucide-react';
 
 type TipCategory = 'dashboard' | 'birds' | 'breeding' | 'meds' | 'finance' | 'movements' | 'tasks' | 'tournaments' | 'settings';
 
@@ -59,8 +59,6 @@ const TIPS_DB: Record<TipCategory, Tip[]> = {
     { text: "Personalize as cores do sistema para tornar o uso diário mais agradável aos seus olhos.", icon: <Sparkles />, color: "bg-pink-500" }
   ]
 };
-
-import { AlertTriangle, CalendarCheck } from 'lucide-react';
 
 interface TipCarouselProps {
   category: TipCategory;

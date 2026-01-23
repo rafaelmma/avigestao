@@ -86,7 +86,7 @@ const defaultState: AppState = {
 const normalizeTrialEndDate = (value?: string) => {
   if (!value) return undefined;
   const parsed = new Date(value);
-  if (isNaN(parsed.getTime())) return undefined;
+  if (Number.isNaN(parsed.getTime())) return undefined;
   return parsed.getTime() >= Date.now() ? parsed.toISOString().split('T')[0] : undefined;
 };
 
@@ -623,7 +623,7 @@ const App: React.FC = () => {
       const subscriptionActiveFromDate = (() => {
         if (!normalizedSettings.subscriptionEndDate) return false;
         const ts = new Date(normalizedSettings.subscriptionEndDate).getTime();
-        return !isNaN(ts) && ts >= Date.now();
+        return !Number.isNaN(ts) && ts >= Date.now();
       })();
       const subscriptionStatusActive = normalizedSettings.subscriptionStatus === 'active' || normalizedSettings.subscriptionStatus === 'trialing';
       const effectivePlan = isAdmin
