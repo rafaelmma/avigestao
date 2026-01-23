@@ -88,13 +88,6 @@ const SettingsManager: React.FC<SettingsManagerProps> = ({ settings, updateSetti
   const daysCert = daysTo(settings.certificate?.expiryDate);
   const daysSubscription = settings.subscriptionEndDate ? daysTo(settings.subscriptionEndDate) : null;
 
-  console.log('🔢 Days calculation:', {
-    subscriptionEndDate: settings.subscriptionEndDate,
-    daysSubscription,
-    subscriptionCancelAtPeriodEnd: settings.subscriptionCancelAtPeriodEnd,
-    plan: settings.plan
-  });
-
   useEffect(() => {
     if (!canUseLogo && settings.logoUrl && settings.logoUrl !== APP_LOGO) {
       updateSettings({ ...settings, logoUrl: APP_LOGO });
