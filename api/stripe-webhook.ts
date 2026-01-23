@@ -149,6 +149,7 @@ export default async function handler(req: VercelReq, res: VercelRes) {
     if (event.type === "customer.subscription.updated") {
       const subscription = event.data.object as Stripe.Subscription;
       const currentPeriodEnd = (subscription as any)?.current_period_end ?? null;
+      const cancelAtPeriodEnd = (subscription as any)?.cancel_at_period_end ?? null;
 
       await supabase
         .from("subscriptions")
@@ -157,6 +158,7 @@ export default async function handler(req: VercelReq, res: VercelRes) {
           current_period_end: currentPeriodEnd
             ? new Date(currentPeriodEnd * 1000)
             : null,
+          cancel_at_period_end: cancelAtPeriodEnd,
         })
         .eq("stripe_subscription_id", subscription.id);
 
