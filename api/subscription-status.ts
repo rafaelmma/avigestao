@@ -33,10 +33,19 @@ export default async function handler(req: any, res: any) {
     .single();
 
   if (error || !data) {
+    console.log('⚠️ No subscription data found for user:', user_id);
     return res.status(200).json({ isActive: false });
   }
 
   const isActive = data.status === "active" || data.status === "trialing";
+  
+  console.log('✅ Subscription data returned:', {
+    user_id,
+    status: data.status,
+    current_period_end: data.current_period_end,
+    cancel_at_period_end: data.cancel_at_period_end,
+    isActive
+  });
 
   return res.status(200).json({
     isActive,

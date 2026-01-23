@@ -451,6 +451,14 @@ const App: React.FC = () => {
             subscriptionEndDate = end ? new Date(end).toISOString().split('T')[0] : subscriptionEndDate;
             subscriptionCancelAtPeriodEnd = sub?.cancelAtPeriodEnd ?? sub?.cancel_at_period_end ?? subscriptionCancelAtPeriodEnd;
             subscriptionStatus = sub?.status ?? subscriptionStatus;
+            
+            console.log('📊 Subscription data from API:', {
+              end,
+              subscriptionEndDate,
+              subscriptionCancelAtPeriodEnd,
+              subscriptionStatus,
+              rawSub: sub
+            });
 
             const isActive = !!sub?.isActive;
             const isTrialSub = !!sub?.isTrial;
@@ -487,6 +495,14 @@ const App: React.FC = () => {
         subscriptionCancelAtPeriodEnd,
         subscriptionStatus
       };
+      
+      console.log('💾 Normalized settings:', {
+        subscriptionEndDate,
+        subscriptionCancelAtPeriodEnd,
+        subscriptionStatus,
+        plan: normalizedSettings.plan
+      });
+      
       const trialActive = !!normalizedSettings.trialEndDate;
       const subscriptionActiveFromDate = (() => {
         if (!normalizedSettings.subscriptionEndDate) return false;
