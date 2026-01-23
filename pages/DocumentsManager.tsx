@@ -403,7 +403,12 @@ const calculateProgress = (startDateStr?: string, endDateStr?: string) => {
                       value={certificateIssuerValue}
                       onChange={(e) => updateSettings({
                         ...settings, 
-                        certificate: { ...settings.certificate!, issuer: e.target.value, installed: true }
+                        certificate: { 
+                          issuer: e.target.value, 
+                          expiryDate: settings.certificate?.expiryDate || '', 
+                          installed: true,
+                          type: settings.certificate?.type || 'A1 (Arquivo)'
+                        }
                       })}
                     />
                  </div>
@@ -415,7 +420,12 @@ const calculateProgress = (startDateStr?: string, endDateStr?: string) => {
                       value={certificateExpiryValue}
                       onChange={(e) => updateSettings({
                         ...settings, 
-                        certificate: { ...settings.certificate!, expiryDate: e.target.value, installed: true }
+                        certificate: { 
+                          issuer: settings.certificate?.issuer || '', 
+                          expiryDate: e.target.value, 
+                          installed: true,
+                          type: settings.certificate?.type || 'A1 (Arquivo)'
+                        }
                       })}
                     />
                  </div>
