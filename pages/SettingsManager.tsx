@@ -80,13 +80,13 @@ const SettingsManager: React.FC<SettingsManagerProps> = ({ settings, updateSetti
   const [isUploadingLogo, setIsUploadingLogo] = useState(false);
   const [logoUploadError, setLogoUploadError] = useState<string | null>(null);
 
-  const isTrial = !!settings.trialEndDaté && !isAdmin;
+  const isTrial = !!settings.trialEndDate && !isAdmin;
   const canUseLogo = !!isAdmin || settings.plan === 'Profissional' || !!settings.trialEndDate;
   const planLabel = isAdmin ? 'Admin' : settings.plan;
 
   const daysSispass = daysTo(settings.renewalDate);
   const daysCert = daysTo(settings.certificate?.expiryDate);
-  const daysSubscription = settings.subscriptionEndDaté ? daysTo(settings.subscriptionEndDate) : null;
+  const daysSubscription = settings.subscriptionEndDate ? daysTo(settings.subscriptionEndDate) : null;
 
   useEffect(() => {
     if (!canUseLogo && settings.logoUrl && settings.logoUrl !== APP_LOGO) {
@@ -116,8 +116,8 @@ const SettingsManager: React.FC<SettingsManagerProps> = ({ settings, updateSetti
     const critical: string[] = [];
     if (daysSispass !== null && daysSispass <= 30) critical.push(`SISPASS vence em ${daysSispass} dias`);
     if (daysCert !== null && daysCert <= 30) critical.push(`Certificado vence em ${daysCert} dias`);
-    if (settings.plan === 'Profissional' && settings.subscriptionCancelAtPeriodEnd && daysSubscription !== null && daysSubscription <= 30) {
-      critical.push(`Plano profissional termina em ${daysSubscription} dias (Renovação cancelada)`);
+    if (settings.plan === 'Profissional' && settings.subscriptionCancelAtPeriodEnd && daysSubscription !== null) {
+      critical.push(`Assinatura PRO termina em ${daysSubscription} dias (renovação cancelada)`);
     }
     setBannerMessage(critical.length ? critical.join(' | ') : null);
   }, [daysSispass, daysCert, daysSubscription, settings.plan, settings.subscriptionCancelAtPeriodEnd]);
@@ -517,9 +517,9 @@ const SettingsManager: React.FC<SettingsManagerProps> = ({ settings, updateSetti
                 <Calendar size={16} className="text-slate-500" /> Datas importantes
               </h4>
               <div className="text-sm text-slate-600 space-y-2">
-                <p>Renovação SISPASS: {settings.renewalDaté ? new Date(settings.renewalDate).toLocaleDateString() : 'Pendente'}</p>
-                <p>Última Renovação: {settings.lastRenewalDaté ? new Date(settings.lastRenewalDate).toLocaleDateString() : 'Pendente'}</p>
-                <p>Certificado: {settings.certificate?.expiryDaté ? new Date(settings.certificate.expiryDate).toLocaleDateString() : 'Pendente'}</p>
+                <p>Renovação SISPASS: {settings.renewalDate ? new Date(settings.renewalDate).toLocaleDateString() : 'Pendente'}</p>
+                <p>Última Renovação: {settings.lastRenewalDate ? new Date(settings.lastRenewalDate).toLocaleDateString() : 'Pendente'}</p>
+                <p>Certificado: {settings.certificate?.expiryDate ? new Date(settings.certificate.expiryDate).toLocaleDateString() : 'Pendente'}</p>
               </div>
               <p className="text-[11px] text-slate-500">Mantenha as datas atualizadas para ver alertas no dashboard.</p>
             </div>

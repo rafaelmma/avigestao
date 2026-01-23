@@ -470,7 +470,7 @@ const App: React.FC = () => {
       }
 
       // Se nao tem plano PRO nem trial, aplica trial de 7 dias e persiste
-      if (!settingsFailed) {
+      if (!settingsFailed && !hasSettingsRow) {
         workingSettings = await ensureTrial(workingSettings || defaultState.settings);
       }
       data.settings = workingSettings || defaultState.settings;
@@ -484,6 +484,17 @@ const App: React.FC = () => {
         subscriptionCancelAtPeriodEnd,
         subscriptionStatus
       };
+      const trialActive = !!normalizedSettings.trialEndDate;
+      const subscriptionActiveFromDate = (() => {
+        if (!normalizedSettings.subscriptionEndDate) return false;
+        const ts = new Date(normalizedSettings.subscriptionEndDate).getTime();
+        return !isNaN(ts) && ts >= Date.now();
+      })();
+      const subscriptionStatusActive = normalizedSettings.subscriptionStatus === 'active' || normalizedSettings.subscriptionStatus === 'trialing';
+      const effectivePlan = isAdmin
+        ? 'Profissional'
+        : (subscriptionActiveFromDate || subscriptionStatusActive || trialActive ? 'Profissional' : 'Básico');
+      normalizedSettings.plan = effectivePlan;
       setState({
         ...defaultState,
         ...data,
