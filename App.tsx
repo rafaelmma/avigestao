@@ -357,15 +357,38 @@ const App: React.FC = () => {
       setIsLoading(false);
     }
   };
-  const checkAdmin = async (token: string) => {
+  const getValidAccessToken = async (): Promise<string | null> => {
     try {
+      const { data } = await supabase.auth.getSession();
+      return data?.session?.access_token || null;
+    } catch {
+      return null;
+    }
+  };
+
+  const checkAdmin = async (tokenFromCaller?: string) => {
+    try {
+      const token = tokenFromCaller || (await getValidAccessToken());
+      if (!token) {
+        setIsAdmin(false);
+        return;
+      }
+
       const res = await fetch('/api/admin/check', {
         headers: { Authorization: `Bearer ${token}` }
       });
+
+      if (res.status === 401) {
+        // Sessão expirada para esta chamada; aguarda próxima hidratação
+        setIsAdmin(false);
+        return;
+      }
+
       if (!res.ok) {
         setIsAdmin(false);
         return;
       }
+
       const json = await res.json();
       setIsAdmin(!!json?.isAdmin);
     } catch {
@@ -441,11 +464,21 @@ const App: React.FC = () => {
       // Checa status da assinatura no backend e forca plano PRO se estiver ativo
       if (supabase) {
         try {
-          const token = currentSession.access_token;
+          const token = currentSession.access_token || (await getValidAccessToken());
+          if (!token) {
+            console.warn('Sem token para verificar assinatura, pulando');
+            return;
+          }
+
           const res = await fetch('/api/subscription-status', {
             method: 'POST',
             headers: { Authorization: `Bearer ${token}` }
           });
+
+          if (res.status === 401) {
+            console.warn('Token expirado ao consultar assinatura; tentar na próxima sessão');
+            return;
+          }
           if (res.ok) {
             const sub = await res.json();
             const end = sub?.currentPeriodEnd || sub?.current_period_end;
