@@ -107,6 +107,7 @@ const App: React.FC = () => {
   const loadedTabsRef = useRef(new Set<string>());
   const realtimeChannelsRef = useRef<any[]>([]);
   const sessionClearRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const persistSettingsInProgressRef = useRef(false);
 
   const fetchSession = async () => {
     const resp: any = await supabase.auth.getSession();
@@ -1539,9 +1540,6 @@ const App: React.FC = () => {
   const updateSettings = (settings: BreederSettings) =>
     setState(prev => ({ ...prev, settings: { ...prev.settings, ...settings } }));
 
-  // Add flag to prevent concurrent saves
-  (persistSettings as any).inProgress = false;
-
   const persistSettings = async (settings: BreederSettings) => {
     if (supabaseUnavailable) {
       console.warn('Supabase unavailable');
@@ -1556,12 +1554,12 @@ const App: React.FC = () => {
     }
     
     // Prevent multiple concurrent saves
-    if (persistSettings.inProgress) {
+    if (persistSettingsInProgressRef.current) {
       console.warn('Save already in progress, skipping duplicate');
       return;
     }
     
-    persistSettings.inProgress = true;
+    persistSettingsInProgressRef.current = true;
     
     const userId = currentSession.user.id;
     const fullPayload = {
@@ -1632,7 +1630,7 @@ const App: React.FC = () => {
         console.warn('Falha ao persistir settings (fallback)', fallbackErr);
       }
     } finally {
-      persistSettings.inProgress = false;
+      persistSettingsInProgressRef.current = false;
     }
   };
   const handleLogout = async () => {
