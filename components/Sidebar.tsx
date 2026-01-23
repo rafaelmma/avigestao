@@ -16,7 +16,8 @@ import {
   LogOut,
   X,
   FileBadge,
-  Clock
+  Clock,
+  RefreshCw
 } from 'lucide-react';
 import { SubscriptionPlan } from '../types';
 import { APP_LOGO_ICON } from '../constants';
@@ -31,10 +32,12 @@ interface SidebarProps {
   isAdmin?: boolean;
   onLogout: () => void;
   isOpen?: boolean; 
-  onClose?: () => void; 
+  onClose?: () => void;
+  onRefresh?: () => void;
+  isRefreshing?: boolean;
 }
 
-const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab, logoUrl, breederName, plan, trialEndDate, isAdmin, onLogout, isOpen = true, onClose }) => {
+const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab, logoUrl, breederName, plan, trialEndDate, isAdmin, onLogout, isOpen = true, onClose, onRefresh, isRefreshing }) => {
   const menuItems = [
     { id: 'dashboard', label: 'Dashboard', icon: <LayoutDashboard size={20} /> },
     { id: 'birds', label: 'Plantel', icon: <BirdIcon size={20} /> },
@@ -175,6 +178,16 @@ const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab, logoUrl, bre
             <Settings size={20} />
             <span className="font-bold text-sm">Configurações</span>
           </button>
+          {onRefresh && (
+            <button
+              onClick={onRefresh}
+              disabled={isRefreshing}
+              className="w-full flex items-center gap-4 px-4 py-3 rounded-2xl transition-all text-emerald-600 hover:bg-emerald-50 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              <RefreshCw size={20} className={isRefreshing ? 'animate-spin' : ''} />
+              <span className="font-bold text-sm">{isRefreshing ? 'Atualizando...' : 'Atualizar Dados'}</span>
+            </button>
+          )}
           <button
             onClick={onLogout}
             className="w-full flex items-center gap-4 px-4 py-3 rounded-2xl transition-all text-rose-500 hover:bg-rose-50"

@@ -1,4 +1,5 @@
 import React, { Suspense, lazy, useEffect, useRef, useState } from 'react';
+import toast, { Toaster } from 'react-hot-toast';
 import {
   AppState,
   Bird,
@@ -97,12 +98,15 @@ const App: React.FC = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [authError, setAuthError] = useState<string | null>(null);
   const [hasHydratedOnce, setHasHydratedOnce] = useState(false);
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
   const supabaseUnavailable = SUPABASE_MISSING || !supabase;
   const lastValidSessionRef = useRef<any>(null);
   const sessionRetryRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const sessionRetryCountRef = useRef(0);
   const loadedTabsRef = useRef(new Set<string>());
+  const loadedTabsRef = useRef(new Set<string>());
+  const realtimeChannelsRef = useRef<any[]>([]);
   const sessionClearRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const fetchSession = async () => {
@@ -510,10 +514,153 @@ const App: React.FC = () => {
           console.warn('Falha ao carregar pares deletados:', err);
         }
       }
+
+      // Setup Realtime subscriptions
+      setupRealtimeSubscriptions(userId);
     } catch (err: any) {
       console.error('Erro ao carregar dados:', err);
       setAuthError(err?.message || 'Erro ao carregar dados');
       // mantém estado atual para evitar voltar ao perfil default
+    }
+  };
+
+  const setupRealtimeSubscriptions = (userId: string) => {
+    if (supabaseUnavailable || !userId) return;
+
+    // Limpa subscriptions antigas
+    realtimeChannelsRef.current.forEach(channel => {
+      supabase.removeChannel(channel);
+    });
+    realtimeChannelsRef.current = [];
+
+    // Subscreve a mudanças em birds
+    const birdsChannel = supabase
+      .channel(`birds:${userId}`)
+      .on('postgres_changes', {
+        event: '*',
+        schema: 'public',
+        table: 'birds',
+        filter: `user_id=eq.${userId}`
+      }, (payload: any) => {
+        handleRealtimeChange('birds', payload);
+      })
+      .subscribe();
+
+    // Subscreve a mudanças em movements
+    const movementsChannel = supabase
+      .channel(`movements:${userId}`)
+      .on('postgres_changes', {
+        event: '*',
+        schema: 'public',
+        table: 'movements',
+        filter: `user_id=eq.${userId}`
+      }, (payload: any) => {
+        handleRealtimeChange('movements', payload);
+      })
+      .subscribe();
+
+    realtimeChannelsRef.current = [birdsChannel, movementsChannel];
+  };
+
+  const handleRealtimeChange = (table: string, payload: any) => {
+    const { eventType, new: newRecord, old: oldRecord } = payload;
+
+    if (table === 'birds') {
+      setState(prev => {
+        let birds = [...prev.birds];
+        if (eventType === 'INSERT') {
+          const exists = birds.some(b => b.id === newRecord.id);
+          if (!exists) {
+            birds.push(mapBirdFromDb(newRecord));
+            toast.success('Nova ave adicionada');
+          }
+        } else if (eventType === 'UPDATE') {
+          const idx = birds.findIndex(b => b.id === newRecord.id);
+          if (idx !== -1) {
+            birds[idx] = mapBirdFromDb(newRecord);
+            toast('Ave atualizada', { icon: '🔄' });
+          }
+        } else if (eventType === 'DELETE') {
+          birds = birds.filter(b => b.id !== oldRecord.id);
+          toast('Ave removida', { icon: '🗑️' });
+        }
+        return { ...prev, birds };
+      });
+    } else if (table === 'movements') {
+      setState(prev => {
+        let movements = [...prev.movements];
+        if (eventType === 'INSERT') {
+          const exists = movements.some(m => m.id === newRecord.id);
+          if (!exists) {
+            movements.push(mapMovementFromDb(newRecord));
+            toast.success('Movimentação registrada');
+          }
+        } else if (eventType === 'UPDATE') {
+          const idx = movements.findIndex(m => m.id === newRecord.id);
+          if (idx !== -1) {
+            movements[idx] = mapMovementFromDb(newRecord);
+          }
+        } else if (eventType === 'DELETE') {
+          movements = movements.filter(m => m.id !== oldRecord.id);
+        }
+        return { ...prev, movements };
+      });
+    }
+  };
+
+  const mapBirdFromDb = (row: any): Bird => ({
+    id: row.id,
+    ringNumber: row.ring ?? '',
+    name: row.name ?? '',
+    species: row.species ?? '',
+    sex: row.sex ?? 'Indeterminado',
+    colorMutation: row.color_mutation ?? '',
+    birthDate: row.birth_date ?? '',
+    status: row.status ?? 'Ativo',
+    location: row.location ?? '',
+    photoUrl: row.photo_url,
+    fatherId: row.father_id,
+    motherId: row.mother_id,
+    manualAncestors: row.manual_ancestors,
+    classification: row.classification ?? 'Não Definido',
+    songTrainingStatus: row.song_training_status ?? 'Não Iniciado',
+    songType: row.song_type ?? '',
+    songSource: row.song_source,
+    trainingStartDate: row.training_start_date,
+    trainingNotes: row.training_notes,
+    isRepeater: row.is_repeater ?? false,
+    sexing: row.sexing,
+    documents: row.documents,
+    ibamaBaixaPendente: row.ibama_baixa_pendente ?? false,
+    ibamaBaixaData: row.ibama_baixa_data,
+    createdAt: row.created_at ?? new Date().toISOString()
+  });
+
+  const mapMovementFromDb = (row: any): MovementRecord => ({
+    id: row.id,
+    birdId: row.bird_id ?? '',
+    type: row.type ?? 'Transporte',
+    date: row.date ?? '',
+    notes: row.notes ?? '',
+    gtrUrl: row.gtr_url,
+    destination: row.destination,
+    buyerSispass: row.buyer_sispass,
+    deletedAt: row.deleted_at
+  });
+
+  const manualRefresh = async () => {
+    if (!session?.user?.id || isRefreshing) return;
+    setIsRefreshing(true);
+    toast.loading('Atualizando dados...', { id: 'refresh' });
+    try {
+      await hydrateUserData(session);
+      loadedTabsRef.current.clear(); // força recarregar todas as abas
+      toast.success('Dados atualizados!', { id: 'refresh' });
+    } catch (err) {
+      console.error('Erro ao atualizar dados:', err);
+      toast.error('Erro ao atualizar', { id: 'refresh' });
+    } finally {
+      setIsRefreshing(false);
     }
   };
 
@@ -554,8 +701,10 @@ const App: React.FC = () => {
         const { error } = await supabase.from('birds').insert(dbBird);
         if (error) {
           console.error('Erro ao salvar ave no Supabase:', error);
+          toast.error('Erro ao salvar ave');
           return false;
         }
+        toast.success('Ave adicionada com sucesso!');
       }
       setState(prev => ({ ...prev, birds: [...prev.birds, bird] }));
       return true;
@@ -1606,6 +1755,8 @@ const App: React.FC = () => {
 
   return (
     <div className="min-h-screen flex bg-slate-50 text-slate-900 font-sans selection:bg-[var(--primary-soft)] selection:text-[var(--primary)]">
+      <Toaster position="top-right" />
+      
       {isLoading && !hasHydratedOnce && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-white/70 backdrop-blur-sm text-slate-600 text-sm font-bold">
           Carregando dados...
@@ -1621,6 +1772,8 @@ const App: React.FC = () => {
         trialEndDate={state.settings.trialEndDate}
         isAdmin={isAdmin}
         onLogout={handleLogout}
+        onRefresh={manualRefresh}
+        isRefreshing={isRefreshing}
       />
 
       <main className="flex-1 ml-64 p-8 max-w-7xl mx-auto w-full">
