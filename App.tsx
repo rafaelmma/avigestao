@@ -109,6 +109,9 @@ const App: React.FC = () => {
   const sessionClearRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const persistSettingsInProgressRef = useRef(false);
 
+  // Declare persistSettings early so it's available to all functions
+  let persistSettings: (settings: BreederSettings) => Promise<void>;
+
   const fetchSession = async () => {
     const resp: any = await supabase.auth.getSession();
     return resp?.data?.session ?? null;
@@ -363,6 +366,101 @@ const App: React.FC = () => {
       return data?.session?.access_token || null;
     } catch {
       return null;
+    }
+  };
+
+  // Define persistSettings immediately so it's available to all functions
+  persistSettings = async (settings: BreederSettings) => {
+    if (supabaseUnavailable) {
+      console.warn('Supabase unavailable');
+      return;
+    }
+    
+    // Revalidate session before saving
+    const { data: { session: currentSession } } = await supabase.auth.getSession();
+    if (!currentSession?.user?.id) {
+      console.warn('Sessão inválida ou expirada, aguarde revalidação');
+      return;
+    }
+    
+    // Prevent multiple concurrent saves
+    if (persistSettingsInProgressRef.current) {
+      console.warn('Save already in progress, skipping duplicate');
+      return;
+    }
+    
+    persistSettingsInProgressRef.current = true;
+    
+    const userId = currentSession.user.id;
+    const fullPayload = {
+      user_id: userId,
+      breeder_name: settings.breederName,
+      cpf_cnpj: settings.cpfCnpj || null,
+      sispass_number: settings.sispassNumber || null,
+      sispass_document_url: settings.sispassDocumentUrl || null,
+      registration_date: settings.registrationDate || null,
+      renewal_date: settings.renewalDate || null,
+      last_renewal_date: settings.lastRenewalDate || null,
+      logo_url: settings.logoUrl || null,
+      primary_color: settings.primaryColor,
+      accent_color: settings.accentColor,
+      plan: settings.plan,
+      trial_end_date: settings.trialEndDate || null,
+      dashboard_layout: settings.dashboardLayout || null,
+      certificate: settings.certificate || null,
+      subscription_end_date: settings.subscriptionEndDate || null,
+      subscription_status: settings.subscriptionStatus || null,
+      subscription_cancel_at_period_end: settings.subscriptionCancelAtPeriodEnd ?? null
+    };
+
+    const minimalPayload = {
+      user_id: userId,
+      breeder_name: settings.breederName,
+      plan: settings.plan,
+      trial_end_date: settings.trialEndDate || null,
+      primary_color: settings.primaryColor,
+      accent_color: settings.accentColor,
+      cpf_cnpj: settings.cpfCnpj || null,
+      sispass_number: settings.sispassNumber || null,
+      sispass_document_url: settings.sispassDocumentUrl || null,
+      registration_date: settings.registrationDate || null,
+      renewal_date: settings.renewalDate || null,
+      last_renewal_date: settings.lastRenewalDate || null,
+      logo_url: settings.logoUrl || null,
+      dashboard_layout: settings.dashboardLayout || null,
+      certificate: settings.certificate || null
+    };
+
+    try {
+      const { error } = await supabase.from('settings').upsert(fullPayload as any, { onConflict: 'user_id' });
+      if (error) {
+        console.warn('Falha ao persistir settings (completo)', error);
+        await supabase.from('settings').upsert(minimalPayload as any, { onConflict: 'user_id' });
+      }
+    } catch (err: any) {
+      // Ignora erros 401 silenciosamente (sessão expirada)
+      if (err?.message?.includes('401') || err?.code === '401' || err?.message?.includes('Unauthorized')) {
+        console.warn('Sessão expirada, configurações serão salvas após próximo login');
+        return;
+      }
+      // Ignora AbortError silenciosamente
+      if (err?.message?.includes('AbortError') || err?.message?.includes('aborted')) {
+        console.warn('Request was aborted, will retry on next save');
+        return;
+      }
+      // Ignora RLS policy violations (requer revalidação de sessão)
+      if (err?.code === '42501' || err?.message?.includes('row-level security')) {
+        console.warn('RLS policy violation - sessão requer revalidação');
+        return;
+      }
+      console.warn('Falha ao persistir settings', err);
+      try {
+        await supabase.from('settings').upsert(minimalPayload as any, { onConflict: 'user_id' });
+      } catch (fallbackErr) {
+        console.warn('Falha ao persistir settings (fallback)', fallbackErr);
+      }
+    } finally {
+      persistSettingsInProgressRef.current = false;
     }
   };
 
@@ -1573,99 +1671,6 @@ const App: React.FC = () => {
   const updateSettings = (settings: BreederSettings) =>
     setState(prev => ({ ...prev, settings: { ...prev.settings, ...settings } }));
 
-  const persistSettings = async (settings: BreederSettings) => {
-    if (supabaseUnavailable) {
-      console.warn('Supabase unavailable');
-      return;
-    }
-    
-    // Revalidate session before saving
-    const { data: { session: currentSession } } = await supabase.auth.getSession();
-    if (!currentSession?.user?.id) {
-      console.warn('Sessão inválida ou expirada, aguarde revalidação');
-      return;
-    }
-    
-    // Prevent multiple concurrent saves
-    if (persistSettingsInProgressRef.current) {
-      console.warn('Save already in progress, skipping duplicate');
-      return;
-    }
-    
-    persistSettingsInProgressRef.current = true;
-    
-    const userId = currentSession.user.id;
-    const fullPayload = {
-      user_id: userId,
-      breeder_name: settings.breederName,
-      cpf_cnpj: settings.cpfCnpj || null,
-      sispass_number: settings.sispassNumber || null,
-      sispass_document_url: settings.sispassDocumentUrl || null,
-      registration_date: settings.registrationDate || null,
-      renewal_date: settings.renewalDate || null,
-      last_renewal_date: settings.lastRenewalDate || null,
-      logo_url: settings.logoUrl || null,
-      primary_color: settings.primaryColor,
-      accent_color: settings.accentColor,
-      plan: settings.plan,
-      trial_end_date: settings.trialEndDate || null,
-      dashboard_layout: settings.dashboardLayout || null,
-      certificate: settings.certificate || null,
-      subscription_end_date: settings.subscriptionEndDate || null,
-      subscription_status: settings.subscriptionStatus || null,
-      subscription_cancel_at_period_end: settings.subscriptionCancelAtPeriodEnd ?? null
-    };
-
-    const minimalPayload = {
-      user_id: userId,
-      breeder_name: settings.breederName,
-      plan: settings.plan,
-      trial_end_date: settings.trialEndDate || null,
-      primary_color: settings.primaryColor,
-      accent_color: settings.accentColor,
-      cpf_cnpj: settings.cpfCnpj || null,
-      sispass_number: settings.sispassNumber || null,
-      sispass_document_url: settings.sispassDocumentUrl || null,
-      registration_date: settings.registrationDate || null,
-      renewal_date: settings.renewalDate || null,
-      last_renewal_date: settings.lastRenewalDate || null,
-      logo_url: settings.logoUrl || null,
-      dashboard_layout: settings.dashboardLayout || null,
-      certificate: settings.certificate || null
-    };
-
-    try {
-      const { error } = await supabase.from('settings').upsert(fullPayload as any, { onConflict: 'user_id' });
-      if (error) {
-        console.warn('Falha ao persistir settings (completo)', error);
-        await supabase.from('settings').upsert(minimalPayload as any, { onConflict: 'user_id' });
-      }
-    } catch (err: any) {
-      // Ignora erros 401 silenciosamente (sessão expirada)
-      if (err?.message?.includes('401') || err?.code === '401' || err?.message?.includes('Unauthorized')) {
-        console.warn('Sessão expirada, configurações serão salvas após próximo login');
-        return;
-      }
-      // Ignora AbortError silenciosamente
-      if (err?.message?.includes('AbortError') || err?.message?.includes('aborted')) {
-        console.warn('Request was aborted, will retry on next save');
-        return;
-      }
-      // Ignora RLS policy violations (requer revalidação de sessão)
-      if (err?.code === '42501' || err?.message?.includes('row-level security')) {
-        console.warn('RLS policy violation - sessão requer revalidação');
-        return;
-      }
-      console.warn('Falha ao persistir settings', err);
-      try {
-        await supabase.from('settings').upsert(minimalPayload as any, { onConflict: 'user_id' });
-      } catch (fallbackErr) {
-        console.warn('Falha ao persistir settings (fallback)', fallbackErr);
-      }
-    } finally {
-      persistSettingsInProgressRef.current = false;
-    }
-  };
   const handleLogout = async () => {
     // Reseta UI imediatamente para evitar travar no logout
     lastValidSessionRef.current = null;
