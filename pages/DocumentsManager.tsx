@@ -6,11 +6,12 @@ import { FileBadge, ShieldCheck, ExternalLink, CreditCard, Cloud, FileKey, Usb, 
 interface DocumentsManagerProps {
   settings: BreederSettings;
   updateSettings: (settings: BreederSettings) => void;
+  onSave?: (settings: BreederSettings) => void;
 }
 
 const CERTIFICATE_TYPES: CertificateType[] = ['A1 (Arquivo)', 'A3 (Token USB)', 'A3 (Cartão)', 'Nuvem (BirdID/Vidaas)'];
 
-const DocumentsManager: React.FC<DocumentsManagerProps> = ({ settings, updateSettings }) => {
+const DocumentsManager: React.FC<DocumentsManagerProps> = ({ settings, updateSettings, onSave }) => {
   
   // State para o Modal de Renovação
   const [renewingItem, setRenewingItem] = useState<'sispass' | 'certificate' | null>(null);
@@ -401,15 +402,19 @@ const calculateProgress = (startDateStr?: string, endDateStr?: string) => {
                       placeholder="Ex: Serasa"
                       className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl font-bold text-slate-700 outline-none text-xs focus:border-emerald-500"
                       value={certificateIssuerValue}
-                      onChange={(e) => updateSettings({
-                        ...settings, 
-                        certificate: { 
-                          issuer: e.target.value, 
-                          expiryDate: settings.certificate?.expiryDate || '', 
-                          installed: true,
-                          type: settings.certificate?.type || 'A1 (Arquivo)'
-                        }
-                      })}
+                      onChange={(e) => {
+                        const newSettings = {
+                          ...settings, 
+                          certificate: { 
+                            issuer: e.target.value, 
+                            expiryDate: settings.certificate?.expiryDate || '', 
+                            installed: true,
+                            type: settings.certificate?.type || 'A1 (Arquivo)'
+                          }
+                        };
+                        updateSettings(newSettings);
+                        onSave?.(newSettings);
+                      }}
                     />
                  </div>
                  <div>
@@ -418,15 +423,19 @@ const calculateProgress = (startDateStr?: string, endDateStr?: string) => {
                       type="date"
                       className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl font-bold text-slate-700 outline-none text-xs focus:border-emerald-500"
                       value={certificateExpiryValue}
-                      onChange={(e) => updateSettings({
-                        ...settings, 
-                        certificate: { 
-                          issuer: settings.certificate?.issuer || '', 
-                          expiryDate: e.target.value, 
-                          installed: true,
-                          type: settings.certificate?.type || 'A1 (Arquivo)'
-                        }
-                      })}
+                      onChange={(e) => {
+                        const newSettings = {
+                          ...settings, 
+                          certificate: { 
+                            issuer: settings.certificate?.issuer || '', 
+                            expiryDate: e.target.value, 
+                            installed: true,
+                            type: settings.certificate?.type || 'A1 (Arquivo)'
+                          }
+                        };
+                        updateSettings(newSettings);
+                        onSave?.(newSettings);
+                      }}
                     />
                  </div>
               </div>
