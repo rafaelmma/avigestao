@@ -584,15 +584,25 @@ const SettingsManager: React.FC<SettingsManagerProps> = ({ settings, updateSetti
                 <p className="text-[11px] text-slate-500">
                   No portal você pode trocar período (mensal/anual), atualizar cartão e cancelar a recorrência.
                 </p>
+                
+                {/* Mostra info de período atual */}
+                {daysSubscription !== null && (
+                  <div className="flex items-center gap-2 rounded-xl bg-slate-100 border border-slate-200 px-3 py-2">
+                    <Calendar size={14} className="text-slate-600" />
+                    <p className="text-[11px] text-slate-700">
+                      Período atual expira em <span className="font-black">{daysSubscription} dias</span> ({settings.subscriptionEndDate ? new Date(settings.subscriptionEndDate).toLocaleDateString() : ''})
+                    </p>
+                  </div>
+                )}
+                
+                {/* Mostra aviso de cancelamento */}
                 {settings.subscriptionCancelAtPeriodEnd && (
                   <div className="flex items-start gap-2 rounded-xl bg-amber-50 border border-amber-200 px-3 py-2">
                     <AlertTriangle size={14} className="text-amber-600 mt-0.5" />
                     <div>
-                      <p className="text-xs font-black text-amber-700">Renovação cancelada</p>
+                      <p className="text-xs font-black text-amber-700">⚠️ Renovação automática cancelada</p>
                       <p className="text-[11px] text-amber-700">
-                        {daysSubscription !== null
-                          ? `Seu acesso PRO expira em ${daysSubscription} dias. Reative para manter o plano.`
-                          : 'Sua assinatura está sem renovação automática. Reative para manter o plano ao fim do período atual.'}
+                        Seu plano PRO não renovará automaticamente. Reative no portal para manter o acesso após o vencimento.
                       </p>
                     </div>
                   </div>
