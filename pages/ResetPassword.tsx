@@ -23,6 +23,7 @@ const ResetPassword: React.FC = () => {
       // Verifica query param (fluxo sem hash, ex: Brevo sem tracker)
       const searchParams = new URLSearchParams(window.location.search);
       const resetToken = searchParams.get('resetToken');
+      const emailFromUrl = searchParams.get('email') || hashParams.get('email');
 
       if (errorCode === 'otp_expired') {
         setError('Link expirado. Solicite um novo link de recuperação.');
@@ -40,7 +41,11 @@ const ResetPassword: React.FC = () => {
 
       // Se tiver resetToken em query, verifica manualmente
       if (resetToken) {
-        const { error: verifyError } = await supabase.auth.verifyOtp({ token: resetToken, type: 'recovery' });
+        const { error: verifyError } = await supabase.auth.verifyOtp({
+          type: 'recovery',
+          token: resetToken,
+          email: emailFromUrl || undefined
+        });
         if (verifyError) {
           setError(verifyError.message || 'Link inválido ou expirado. Solicite um novo link.');
           setTokenError(true);
