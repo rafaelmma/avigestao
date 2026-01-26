@@ -9,14 +9,24 @@ const ResetPassword: React.FC = () => {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [error, setError] = useState('');
   const [success, setSuccess] = useState(false);
+  const [tokenError, setTokenError] = useState(false);
 
   useEffect(() => {
     // Verifica se há um token de recuperação na URL
     const hashParams = new URLSearchParams(window.location.hash.substring(1));
     const type = hashParams.get('type');
+    const errorCode = hashParams.get('error_code');
+    const errorDescription = hashParams.get('error_description');
     
-    if (type !== 'recovery') {
+    if (errorCode === 'otp_expired') {
+      setError('Link expirado. Solicite um novo link de recuperação.');
+      setTokenError(true);
+    } else if (errorDescription) {
+      setError(decodeURIComponent(errorDescription));
+      setTokenError(true);
+    } else if (type !== 'recovery') {
       setError('Link inválido ou expirado. Solicite um novo link de recuperação.');
+      setTokenError(true);
     }
   }, []);
 
@@ -110,6 +120,15 @@ const ResetPassword: React.FC = () => {
           {error && (
             <div className="bg-red-50 border-2 border-red-200 text-red-700 px-4 py-3 rounded-2xl text-sm font-bold">
               {error}
+              {tokenError && (
+                <button 
+                  type="button"
+                  onClick={() => window.location.href = '/'}
+                  className="mt-2 text-xs underline hover:no-underline"
+                >
+                  Voltar para o login e solicitar novo link
+                </button>
+              )}
             </div>
           )}
 
@@ -148,7 +167,7 @@ const ResetPassword: React.FC = () => {
 
             <button 
               type="submit" 
-              disabled={isLoading || !!error}
+              disabled={isLoading || tokenError}
               className="w-full py-4 bg-[#0F172A] text-white font-black uppercase tracking-widest rounded-2xl shadow-xl hover:bg-slate-900 transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {isLoading ? (

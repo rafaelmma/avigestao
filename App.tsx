@@ -1894,8 +1894,9 @@ const App: React.FC = () => {
   };
 
   if (!session && !supabaseUnavailable) {
-    // Verifica se é uma página de reset de senha
-    const isResetPassword = window.location.hash.includes('type=recovery');
+    // Verifica se é uma página de reset de senha (token vem como hash)
+    const hash = window.location.hash;
+    const isResetPassword = hash.includes('type=recovery') || hash.includes('type=magiclink');
     
     if (isResetPassword) {
       return (
@@ -1908,6 +1909,16 @@ const App: React.FC = () => {
     return (
       <Suspense fallback={<div className="min-h-screen flex items-center justify-center">Carregando…</div>}>
         <Auth onLogin={() => { /* sessão será tratada via supabase listener */ }} />
+      </Suspense>
+    );
+  }
+
+  // Verifica reset de senha mesmo com sessão ativa (caso token expire)
+  const hash = window.location.hash;
+  if (hash.includes('type=recovery')) {
+    return (
+      <Suspense fallback={<div className="min-h-screen flex items-center justify-center">Carregando…</div>}>
+        <ResetPassword />
       </Suspense>
     );
   }
