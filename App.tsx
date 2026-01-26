@@ -77,6 +77,20 @@ const clearCachedState = (userId?: string) => {
   }
 };
 
+const clearAllCachedStates = () => {
+  if (typeof localStorage === 'undefined') return;
+  try {
+    const keysToRemove: string[] = [];
+    for (let i = 0; i < localStorage.length; i += 1) {
+      const key = localStorage.key(i) || '';
+      if (key.startsWith(STORAGE_KEY)) keysToRemove.push(key);
+    }
+    keysToRemove.forEach(k => localStorage.removeItem(k));
+  } catch {
+    /* ignore cache cleanup errors */
+  }
+};
+
 const DEFAULT_SESSION_TIMEOUT_MS = 8000;
 const SESSION_RETRY_DELAY_MS = 2000;
 const SESSION_RETRY_LIMIT = 3;
@@ -1784,6 +1798,11 @@ const App: React.FC = () => {
     setActiveTab('dashboard');
     setIsLoading(false);
 
+    // limpa caches (usuário atual e demais chaves com prefixo)
+    const currentUserId = session?.user?.id;
+    clearCachedState(currentUserId);
+    clearAllCachedStates();
+
     // dispara signOut sem bloquear a UI
     if (!supabaseUnavailable) {
       supabase.auth.signOut().catch((err: any) => {
@@ -1792,7 +1811,6 @@ const App: React.FC = () => {
     }
 
     try {
-      localStorage.removeItem(STORAGE_KEY);
       localStorage.removeItem('avigestao_migrated');
     } catch {
       /* ignore */
