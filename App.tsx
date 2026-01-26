@@ -12,7 +12,8 @@ import {
   Transaction,
   MaintenanceTask,
   TournamentEvent,
-  ContinuousTreatment
+  ContinuousTreatment,
+  SubscriptionPlan
 } from './types';
 import { INITIAL_SETTINGS, MOCK_BIRDS, MOCK_MEDS } from './constants';
 import Sidebar from './components/Sidebar';
@@ -494,6 +495,147 @@ const App: React.FC = () => {
     }
   };
 
+  const ensureTrialForNewUser = async (settings: BreederSettings, userId: string): Promise<BreederSettings> => {
+    if (isAdmin) return settings;
+    if (settings.plan === 'Profissional' || settings.trialEndDate) return settings;
+    
+    const trialDate = new Date();
+    trialDate.setDate(trialDate.getDate() + 7);
+    const trialIso = trialDate.toISOString().split('T')[0];
+    const updated = { ...settings, trialEndDate: trialIso, plan: settings.plan || 'Básico' };
+
+    try {
+      if (supabase) {
+        await supabase
+          .from('settings')
+          .upsert({ user_id: userId, plan: updated.plan, trial_end_date: trialIso } as any, { onConflict: 'user_id' });
+      }
+    } catch (e) {
+      console.warn('Falha ao registrar trial default', e);
+    }
+    return updated;
+  };
+
+  const createFallbackSettings = async (
+    workingSettings: BreederSettings | undefined,
+    currentSession: any,
+    userId: string
+  ): Promise<BreederSettings> => {
+    const fallbackSettings: BreederSettings = {
+      ...(workingSettings || defaultState.settings),
+      breederName: currentSession.user?.email || defaultState.settings.breederName,
+      plan: workingSettings?.plan || defaultState.settings.plan,
+    };
+    
+    try {
+      await supabase
+        .from('settings')
+        .upsert({
+          user_id: userId,
+          breeder_name: fallbackSettings.breederName,
+          plan: fallbackSettings.plan,
+          trial_end_date: fallbackSettings.trialEndDate || null,
+        } as any, { onConflict: 'user_id' });
+    } catch (e) {
+      console.warn('Falha ao salvar settings mínimos', e);
+    }
+    
+    return fallbackSettings;
+  };
+
+  const fetchSubscriptionStatus = async (currentSession: any) => {
+    const token = currentSession.access_token || (await getValidAccessToken());
+    if (!token) {
+      console.warn('Sem token para verificar assinatura, pulando');
+      return null;
+    }
+
+    const res = await fetch('/api/subscription-status', {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${token}` }
+    });
+
+    if (res.status === 401) {
+      console.warn('Token expirado ao consultar assinatura; tentar na próxima sessão');
+      return null;
+    }
+
+    if (res.ok) {
+      return await res.json();
+    }
+
+    return null;
+  };
+
+  const applySubscriptionToSettings = (
+    workingSettings: BreederSettings | undefined,
+    sub: any
+  ): { settings: BreederSettings; endDate: string | undefined; cancelAtPeriodEnd: boolean | undefined; status: string | undefined } => {
+    const end = sub?.currentPeriodEnd || sub?.current_period_end;
+    const endDate = end ? new Date(end).toISOString().split('T')[0] : undefined;
+    const cancelAtPeriodEnd = sub?.cancelAtPeriodEnd ?? sub?.cancel_at_period_end;
+    const status = sub?.status;
+
+    const isActive = !!sub?.isActive;
+    const isTrialSub = !!sub?.isTrial;
+
+    let updatedSettings = workingSettings || ({} as BreederSettings);
+
+    if (isActive || isTrialSub) {
+      updatedSettings = {
+        ...updatedSettings,
+        plan: 'Profissional',
+        trialEndDate: undefined
+      } as BreederSettings;
+    } else if (!isAdmin) {
+      updatedSettings = {
+        ...updatedSettings,
+        plan: updatedSettings?.trialEndDate ? updatedSettings.plan : 'Básico'
+      } as BreederSettings;
+    }
+
+    return { settings: updatedSettings, endDate, cancelAtPeriodEnd, status };
+  };
+
+  const computeEffectivePlan = (normalizedSettings: BreederSettings): SubscriptionPlan => {
+    if (isAdmin) return 'Profissional';
+
+    const trialActive = !!normalizedSettings.trialEndDate;
+    const subscriptionActiveFromDate = (() => {
+      if (!normalizedSettings.subscriptionEndDate) return false;
+      const ts = new Date(normalizedSettings.subscriptionEndDate).getTime();
+      return !Number.isNaN(ts) && ts >= Date.now();
+    })();
+    const subscriptionStatusActive = 
+      normalizedSettings.subscriptionStatus === 'active' || 
+      normalizedSettings.subscriptionStatus === 'trialing';
+
+    return (subscriptionActiveFromDate || subscriptionStatusActive || trialActive) ? 'Profissional' : 'Básico';
+  };
+
+  const autoSaveSubscriptionData = async (
+    userId: string,
+    subscriptionEndDate: string | undefined,
+    subscriptionCancelAtPeriodEnd: boolean | undefined,
+    subscriptionStatus: string | undefined
+  ) => {
+    if (!(subscriptionEndDate || subscriptionCancelAtPeriodEnd || subscriptionStatus) || supabaseUnavailable) {
+      return;
+    }
+
+    try {
+      const payload = {
+        user_id: userId,
+        subscription_end_date: subscriptionEndDate || null,
+        subscription_cancel_at_period_end: subscriptionCancelAtPeriodEnd ?? null,
+        subscription_status: subscriptionStatus || null
+      };
+      await supabase.from('settings').upsert(payload as any, { onConflict: 'user_id' });
+    } catch (err) {
+      console.warn('Falha ao auto-salvar dados de assinatura:', err);
+    }
+  };
+
   const hydrateUserData = async (currentSession: any) => {
     if (supabaseUnavailable || !currentSession?.user?.id) {
       setState(defaultState);
@@ -505,28 +647,7 @@ const App: React.FC = () => {
     // Migração local desativada para evitar chamadas extras ao Supabase
     try { localStorage.setItem('avigestao_migrated', 'true'); } catch {}
 
-    const ensureTrial = async (settings: BreederSettings): Promise<BreederSettings> => {
-      if (isAdmin) return settings;
-      if (settings.plan === 'Profissional' || settings.trialEndDate) return settings;
-      const trialDate = new Date();
-      trialDate.setDate(trialDate.getDate() + 7);
-      const trialIso = trialDate.toISOString().split('T')[0];
-      const updated = { ...settings, trialEndDate: trialIso, plan: settings.plan || 'Básico' };
-
-      try {
-        if (supabase) {
-          await supabase
-            .from('settings')
-            .upsert({ user_id: userId, plan: updated.plan, trial_end_date: trialIso } as any, { onConflict: 'user_id' });
-        }
-      } catch (e) {
-        console.warn('Falha ao registrar trial default', e);
-      }
-      return updated;
-    };
-
     try {
-      // Sem timeout para não abortar hidratação
       const data = await loadInitialData(userId);
       const settingsFailed = data.settingsFailed;
       const cachedSettings = loadCachedState().state.settings;
@@ -537,77 +658,35 @@ const App: React.FC = () => {
       let subscriptionStatus = workingSettings?.subscriptionStatus;
 
       const hasSettingsRow = !settingsFailed && !!workingSettings?.userId;
+      
+      // Create fallback settings for new users
       if (!hasSettingsRow && !settingsFailed) {
-        const fallbackSettings: BreederSettings = {
-          ...(workingSettings || defaultState.settings),
-          breederName: currentSession.user?.email || defaultState.settings.breederName,
-          plan: workingSettings?.plan || defaultState.settings.plan,
-        };
-        workingSettings = fallbackSettings;
-        try {
-          await supabase
-            .from('settings')
-            .upsert({
-              user_id: userId,
-              breeder_name: fallbackSettings.breederName,
-              plan: fallbackSettings.plan,
-              trial_end_date: fallbackSettings.trialEndDate || null,
-            } as any, { onConflict: 'user_id' });
-        } catch (e) {
-          console.warn('Falha ao salvar settings mínimos', e);
-        }
+        workingSettings = await createFallbackSettings(workingSettings, currentSession, userId);
       } else if (!settingsFailed && !workingSettings?.breederName && currentSession.user?.email) {
         workingSettings = { ...(workingSettings || {}), breederName: currentSession.user.email };
       }
-      // Checa status da assinatura no backend e forca plano PRO se estiver ativo
+
+      // Check subscription status from backend
       if (supabase) {
         try {
-          const token = currentSession.access_token || (await getValidAccessToken());
-          if (!token) {
-            console.warn('Sem token para verificar assinatura, pulando');
-            return;
-          }
-
-          const res = await fetch('/api/subscription-status', {
-            method: 'POST',
-            headers: { Authorization: `Bearer ${token}` }
-          });
-
-          if (res.status === 401) {
-            console.warn('Token expirado ao consultar assinatura; tentar na próxima sessão');
-            return;
-          }
-          if (res.ok) {
-            const sub = await res.json();
-            const end = sub?.currentPeriodEnd || sub?.current_period_end;
-            subscriptionEndDate = end ? new Date(end).toISOString().split('T')[0] : subscriptionEndDate;
-            subscriptionCancelAtPeriodEnd = sub?.cancelAtPeriodEnd ?? sub?.cancel_at_period_end ?? subscriptionCancelAtPeriodEnd;
-            subscriptionStatus = sub?.status ?? subscriptionStatus;
-
-            const isActive = !!sub?.isActive;
-            const isTrialSub = !!sub?.isTrial;
-            if (isActive || isTrialSub) {
-              workingSettings = {
-                ...(workingSettings || {}),
-                plan: 'Profissional',
-                trialEndDate: undefined
-              } as BreederSettings;
-            } else if (!isAdmin) {
-              workingSettings = {
-                ...(workingSettings || {}),
-                plan: workingSettings?.trialEndDate ? workingSettings.plan : 'Básico'
-              } as BreederSettings;
-            }
+          const sub = await fetchSubscriptionStatus(currentSession);
+          if (sub) {
+            const result = applySubscriptionToSettings(workingSettings, sub);
+            workingSettings = result.settings;
+            subscriptionEndDate = result.endDate || subscriptionEndDate;
+            subscriptionCancelAtPeriodEnd = result.cancelAtPeriodEnd ?? subscriptionCancelAtPeriodEnd;
+            subscriptionStatus = result.status || subscriptionStatus;
           }
         } catch (e) {
           console.warn('Nao foi possivel verificar status da assinatura', e);
         }
       }
 
-      // Se nao tem plano PRO nem trial, aplica trial de 7 dias e persiste
+      // Apply trial for new users without PRO
       if (!settingsFailed && !hasSettingsRow) {
-        workingSettings = await ensureTrial(workingSettings || defaultState.settings);
+        workingSettings = await ensureTrialForNewUser(workingSettings || defaultState.settings, userId);
       }
+      
       data.settings = workingSettings || defaultState.settings;
 
       const normalizedSettings: BreederSettings = {
@@ -619,39 +698,19 @@ const App: React.FC = () => {
         subscriptionCancelAtPeriodEnd,
         subscriptionStatus
       };
-      const trialActive = !!normalizedSettings.trialEndDate;
-      const subscriptionActiveFromDate = (() => {
-        if (!normalizedSettings.subscriptionEndDate) return false;
-        const ts = new Date(normalizedSettings.subscriptionEndDate).getTime();
-        return !Number.isNaN(ts) && ts >= Date.now();
-      })();
-      const subscriptionStatusActive = normalizedSettings.subscriptionStatus === 'active' || normalizedSettings.subscriptionStatus === 'trialing';
-      const effectivePlan = isAdmin
-        ? 'Profissional'
-        : (subscriptionActiveFromDate || subscriptionStatusActive || trialActive ? 'Profissional' : 'Básico');
-      normalizedSettings.plan = effectivePlan;
+
+      normalizedSettings.plan = computeEffectivePlan(normalizedSettings);
+
       setState({
         ...defaultState,
         ...data,
         settings: normalizedSettings
       });
 
-      // Auto-save subscription data to Supabase if it came from the API
-      if ((subscriptionEndDate || subscriptionCancelAtPeriodEnd || subscriptionStatus) && !supabaseUnavailable) {
-        try {
-          const payload = {
-            user_id: userId,
-            subscription_end_date: subscriptionEndDate || null,
-            subscription_cancel_at_period_end: subscriptionCancelAtPeriodEnd ?? null,
-            subscription_status: subscriptionStatus || null
-          };
-          await supabase.from('settings').upsert(payload as any, { onConflict: 'user_id' });
-        } catch (err) {
-          console.warn('Falha ao auto-salvar dados de assinatura:', err);
-        }
-      }
+      // Auto-save subscription data
+      await autoSaveSubscriptionData(userId, subscriptionEndDate, subscriptionCancelAtPeriodEnd, subscriptionStatus);
 
-      // Carrega pares deletados em background
+      // Load deleted pairs in background
       if (!supabaseUnavailable) {
         try {
           const deletedData = await loadDeletedPairs(userId);
@@ -666,7 +725,6 @@ const App: React.FC = () => {
     } catch (err: any) {
       console.error('Erro ao carregar dados:', err);
       setAuthError(err?.message || 'Erro ao carregar dados');
-      // mantém estado atual para evitar voltar ao perfil default
     }
   };
 
