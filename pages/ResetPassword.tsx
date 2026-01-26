@@ -5,6 +5,7 @@ import { supabase } from '../supabaseClient';
 
 const ResetPassword: React.FC = () => {
   const [isLoading, setIsLoading] = useState(false);
+  const [isVerifying, setIsVerifying] = useState(true);
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [error, setError] = useState('');
@@ -12,22 +13,51 @@ const ResetPassword: React.FC = () => {
   const [tokenError, setTokenError] = useState(false);
 
   useEffect(() => {
-    // Verifica se há um token de recuperação na URL
-    const hashParams = new URLSearchParams(window.location.hash.substring(1));
-    const type = hashParams.get('type');
-    const errorCode = hashParams.get('error_code');
-    const errorDescription = hashParams.get('error_description');
-    
-    if (errorCode === 'otp_expired') {
-      setError('Link expirado. Solicite um novo link de recuperação.');
-      setTokenError(true);
-    } else if (errorDescription) {
-      setError(decodeURIComponent(errorDescription));
-      setTokenError(true);
-    } else if (type !== 'recovery') {
-      setError('Link inválido ou expirado. Solicite um novo link de recuperação.');
-      setTokenError(true);
-    }
+    const verifyToken = async () => {
+      // Verifica hash (fluxo padrão Supabase)
+      const hashParams = new URLSearchParams(window.location.hash.substring(1));
+      const type = hashParams.get('type');
+      const errorCode = hashParams.get('error_code');
+      const errorDescription = hashParams.get('error_description');
+
+      // Verifica query param (fluxo sem hash, ex: Brevo sem tracker)
+      const searchParams = new URLSearchParams(window.location.search);
+      const resetToken = searchParams.get('resetToken');
+
+      if (errorCode === 'otp_expired') {
+        setError('Link expirado. Solicite um novo link de recuperação.');
+        setTokenError(true);
+        setIsVerifying(false);
+        return;
+      }
+
+      if (errorDescription) {
+        setError(decodeURIComponent(errorDescription));
+        setTokenError(true);
+        setIsVerifying(false);
+        return;
+      }
+
+      // Se tiver resetToken em query, verifica manualmente
+      if (resetToken) {
+        const { error: verifyError } = await supabase.auth.verifyOtp({ token: resetToken, type: 'recovery' });
+        if (verifyError) {
+          setError(verifyError.message || 'Link inválido ou expirado. Solicite um novo link.');
+          setTokenError(true);
+        }
+        setIsVerifying(false);
+        return;
+      }
+
+      // Sem resetToken, confere se veio hash type=recovery
+      if (type !== 'recovery') {
+        setError('Link inválido ou expirado. Solicite um novo link de recuperação.');
+        setTokenError(true);
+      }
+      setIsVerifying(false);
+    };
+
+    verifyToken();
   }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -74,6 +104,17 @@ const ResetPassword: React.FC = () => {
           </div>
           <h2 className="text-2xl font-black text-slate-900">Senha alterada com sucesso!</h2>
           <p className="text-slate-500">Redirecionando para o login...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (isVerifying) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-slate-50">
+        <div className="text-center space-y-4">
+          <div className="w-16 h-16 border-4 border-brand border-t-transparent rounded-full animate-spin mx-auto"></div>
+          <p className="text-slate-600 font-bold">Validando link de recuperação...</p>
         </div>
       </div>
     );
