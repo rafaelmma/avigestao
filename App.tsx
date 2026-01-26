@@ -1896,7 +1896,9 @@ const App: React.FC = () => {
   if (!session && !supabaseUnavailable) {
     // Verifica se é uma página de reset de senha (token vem como hash)
     const hash = window.location.hash;
-    const isResetPassword = hash.includes('type=recovery') || hash.includes('type=magiclink');
+    const searchParams = new URLSearchParams(window.location.search);
+    const hasResetToken = searchParams.has('resetToken');
+    const isResetPassword = hash.includes('type=recovery') || hash.includes('type=magiclink') || hasResetToken;
     
     if (isResetPassword) {
       return (
@@ -1915,7 +1917,9 @@ const App: React.FC = () => {
 
   // Verifica reset de senha mesmo com sessão ativa (caso token expire)
   const hash = window.location.hash;
-  if (hash.includes('type=recovery')) {
+  const searchParams = new URLSearchParams(window.location.search);
+  const hasResetToken = searchParams.has('resetToken');
+  if (hash.includes('type=recovery') || hasResetToken) {
     return (
       <Suspense fallback={<div className="min-h-screen flex items-center justify-center">Carregando…</div>}>
         <ResetPassword />
@@ -1970,6 +1974,7 @@ const App: React.FC = () => {
 };
 
 export default App;
+
 
 
 
