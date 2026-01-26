@@ -33,25 +33,47 @@ const ResetPassword = lazy(() => import('./pages/ResetPassword'));
 import { supabase, SUPABASE_MISSING } from './lib/supabase';
 import { loadInitialData, loadTabData, loadDeletedPairs } from './services/dataService';
 
-const STORAGE_KEY = 'avigestao_state';
+const STORAGE_KEY = 'avigestao_state_v2';
+const storageKeyForUser = (userId?: string) => (userId ? `${STORAGE_KEY}::${userId}` : STORAGE_KEY);
 const HYDRATE_TIMEOUT_MS = 60000; // 60s - increased for admin accounts with more data
-
-const loadCachedState = (): { state: AppState; hasCache: boolean } => {
+const loadCachedState = (userId?: string): { state: AppState; hasCache: boolean } => {
   if (typeof localStorage === 'undefined') return { state: defaultState, hasCache: false };
   try {
-    const raw = localStorage.getItem(STORAGE_KEY);
+    const raw = localStorage.getItem(storageKeyForUser(userId));
     if (!raw) return { state: defaultState, hasCache: false };
+
     const parsed = JSON.parse(raw);
+    const cachedUserId = parsed?.userId;
+    const data = parsed?.data ?? parsed;
+
+    if (userId && cachedUserId && cachedUserId !== userId) {
+      return { state: defaultState, hasCache: false };
+    }
+
+    // If the cache does not specify a user, ignore it for safety when a userId is provided
+    if (userId && !cachedUserId) {
+      return { state: defaultState, hasCache: false };
+    }
+
     return {
       state: {
         ...defaultState,
-        ...parsed,
-        settings: { ...defaultState.settings, ...(parsed.settings || {}) }
+        ...data,
+        settings: { ...defaultState.settings, ...(data.settings || {}) }
       },
       hasCache: true
     };
   } catch {
     return { state: defaultState, hasCache: false };
+  }
+};
+
+const clearCachedState = (userId?: string) => {
+  if (typeof localStorage === 'undefined') return;
+  try {
+    localStorage.removeItem(storageKeyForUser(userId));
+  } catch {
+    /* ignore cache cleanup errors */
   }
 };
 
@@ -171,9 +193,11 @@ const App: React.FC = () => {
       return false;
     }
   };
-  const persistState = (value: AppState) => {
+  const persistState = (value: AppState, userId?: string) => {
+    if (!userId) return;
     try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(value));
+      const payload = { userId, data: value };
+      localStorage.setItem(storageKeyForUser(userId), JSON.stringify(payload));
     } catch {
       /* ignore storage failures */
     }
@@ -186,8 +210,9 @@ const App: React.FC = () => {
     root.style.setProperty('--primary-hover', state.settings.primaryColor + 'ee');
     root.style.setProperty('--primary-soft', state.settings.primaryColor + '15');
     root.style.setProperty('--accent', state.settings.accentColor);
-    if (!session || !hasHydratedOnce) return;
-    persistState(state);
+    const userId = session?.user?.id;
+    if (!session || !hasHydratedOnce || !userId) return;
+    persistState(state, userId);
   }, [state, session, hasHydratedOnce]);
   // Bootstrap session
   useEffect(() => {
@@ -199,15 +224,20 @@ const App: React.FC = () => {
     let mounted = true;
 
     const init = async () => {
-      const cached = loadCachedState();
-      if (cached.hasCache) {
-        setState(cached.state);
-        setHasHydratedOnce(true);
-        setIsLoading(false);
-      }
       try {
         const session = await fetchSession();
         if (!mounted) return;
+
+        const userId = session?.user?.id;
+        if (userId) {
+          const cached = loadCachedState(userId);
+          if (cached.hasCache) {
+            setState(cached.state);
+            setHasHydratedOnce(true);
+            setIsLoading(false);
+          }
+        }
+
         sessionRetryCountRef.current = 0;
         setAuthError(null);
         await handleSession(session);
@@ -324,11 +354,22 @@ const App: React.FC = () => {
       return;
     }
 
+    const previousUserId = lastValidSessionRef.current?.user?.id;
+    const newUserId = newSession?.user?.id;
+    const userChanged = !!(previousUserId && newUserId && previousUserId !== newUserId);
+
+    if (userChanged) {
+      clearCachedState(previousUserId);
+      loadedTabsRef.current = new Set();
+      setState(defaultState);
+      setHasHydratedOnce(false);
+    }
+
     lastValidSessionRef.current = newSession;
     setSession(newSession);
 
     // Mostra cache local imediatamente e libera UI
-    const cached = loadCachedState();
+    const cached = loadCachedState(newUserId);
     if (cached.hasCache) {
       setState(cached.state);
       setHasHydratedOnce(true);
@@ -651,7 +692,7 @@ const App: React.FC = () => {
     try {
       const data = await loadInitialData(userId);
       const settingsFailed = data.settingsFailed;
-      const cachedSettings = loadCachedState().state.settings;
+      const cachedSettings = loadCachedState(userId).state.settings;
       let workingSettings = settingsFailed ? cachedSettings : (data.settings || defaultState.settings);
 
       let subscriptionEndDate = workingSettings?.subscriptionEndDate;
