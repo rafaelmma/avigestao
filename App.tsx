@@ -29,6 +29,7 @@ const TournamentCalendar = lazy(() => import('./pages/TournamentCalendar'));
 const HelpCenter = lazy(() => import('./pages/HelpCenter'));
 const DocumentsManager = lazy(() => import('./pages/DocumentsManager'));
 const Auth = lazy(() => import('./pages/Auth'));
+const ResetPassword = lazy(() => import('./pages/ResetPassword'));
 import { supabase, SUPABASE_MISSING } from './lib/supabase';
 import { loadInitialData, loadTabData, loadDeletedPairs } from './services/dataService';
 
@@ -1893,6 +1894,17 @@ const App: React.FC = () => {
   };
 
   if (!session && !supabaseUnavailable) {
+    // Verifica se é uma página de reset de senha
+    const isResetPassword = window.location.hash.includes('type=recovery');
+    
+    if (isResetPassword) {
+      return (
+        <Suspense fallback={<div className="min-h-screen flex items-center justify-center">Carregando…</div>}>
+          <ResetPassword />
+        </Suspense>
+      );
+    }
+    
     return (
       <Suspense fallback={<div className="min-h-screen flex items-center justify-center">Carregando…</div>}>
         <Auth onLogin={() => { /* sessão será tratada via supabase listener */ }} />

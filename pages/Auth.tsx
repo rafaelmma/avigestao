@@ -24,7 +24,7 @@ const Auth: React.FC<AuthProps> = ({ onLogin }) => {
     try {
       if (isForgotPassword) {
         const { error } = await supabase.auth.resetPasswordForEmail(email, {
-          redirectTo: `${window.location.origin}/reset-password`,
+          redirectTo: `${window.location.origin}`,
         });
         setIsLoading(false);
         if (error) return alert(error.message);
