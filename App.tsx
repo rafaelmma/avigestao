@@ -254,7 +254,7 @@ const App: React.FC = () => {
 
         sessionRetryCountRef.current = 0;
         setAuthError(null);
-        await handleSession(session);
+        await handleSession(session, 'INIT');
       } catch (err: any) {
         if (!mounted) return;
         setAuthError(err?.message || 'Erro ao iniciar sessão');
@@ -262,9 +262,9 @@ const App: React.FC = () => {
       }
     };
     init();
-    const { data: listener } = supabase.auth.onAuthStateChange(async (_event: any, newSession: any) => {
+    const { data: listener } = supabase.auth.onAuthStateChange(async (event: any, newSession: any) => {
       if (!mounted) return;
-      await handleSession(newSession);
+      await handleSession(newSession, event);
     });
 
     return () => {
@@ -321,48 +321,44 @@ const App: React.FC = () => {
       cancelled = true;
     };
   }, [activeTab, session, supabaseUnavailable]);
-  const handleSession = async (newSession: any) => {
+  const clearAllState = (userId?: string) => {
+    lastValidSessionRef.current = null;
+    loadedTabsRef.current = new Set();
+    setSession(null);
+    setIsAdmin(false);
+    setState(defaultState);
+    setHasHydratedOnce(false);
+    setIsLoading(false);
+    clearCachedState(userId);
+    clearAllCachedStates();
+  };
+
+  const handleSession = async (newSession: any, event?: string) => {
     if (!newSession) {
-      // Don't clear immediately — returning from external pages (Stripe)
-      // can cause a transient missing session. Revalidate immediately and
-      // only clear after a short grace period if the session is still null.
       if (sessionClearRef.current) {
         clearTimeout(sessionClearRef.current);
       }
-      // trigger a quick revalidation right away (focus/visibility handlers also do this)
-      revalidateSession();
 
-      // fallback: if session not recovered after grace period, clear state
-      const GRACE_MS = isLikelyStripeReturn() ? 10000 : 4000;
+      // Se houve SIGNED_OUT explícito ou não parece retorno do Stripe, limpa já para evitar perfil antigo.
+      if (event === 'SIGNED_OUT' || !isLikelyStripeReturn()) {
+        clearAllState(lastValidSessionRef.current?.user?.id);
+        return;
+      }
+
+      // Caso provável de retorno Stripe: dá uma graça curta antes de limpar
+      revalidateSession();
+      const GRACE_MS = 8000;
       sessionClearRef.current = setTimeout(async () => {
         try {
           const s = await fetchSession();
           if (s) {
-            // session recovered, hydrate normally
             await handleSession(s);
             return;
           }
         } catch (e) {
           console.warn('Re-check session failed', e);
         }
-
-        if (lastValidSessionRef.current) {
-          // keep last valid state to avoid UI flash
-          console.info('Sessao temporariamente indisponivel, mantendo o ultimo estado valido');
-          setAuthError(null);
-          setHasHydratedOnce(true);
-          setIsLoading(false);
-          return;
-        }
-
-        // truly signed out — clear local state
-        lastValidSessionRef.current = null;
-        loadedTabsRef.current = new Set();
-        setSession(null);
-        setIsAdmin(false);
-        setState(defaultState);
-        setHasHydratedOnce(false);
-        setIsLoading(false);
+        clearAllState(lastValidSessionRef.current?.user?.id);
       }, GRACE_MS);
 
       return;
