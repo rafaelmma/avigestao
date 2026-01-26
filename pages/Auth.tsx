@@ -11,6 +11,7 @@ interface AuthProps {
 
 const Auth: React.FC<AuthProps> = ({ onLogin }) => {
   const [isLogin, setIsLogin] = useState(true);
+  const [isForgotPassword, setIsForgotPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -21,6 +22,17 @@ const Auth: React.FC<AuthProps> = ({ onLogin }) => {
     setIsLoading(true);
 
     try {
+      if (isForgotPassword) {
+        const { error } = await supabase.auth.resetPasswordForEmail(email, {
+          redirectTo: `${window.location.origin}/reset-password`,
+        });
+        setIsLoading(false);
+        if (error) return alert(error.message);
+        alert('Email de recuperação enviado! Verifique sua caixa de entrada.');
+        setIsForgotPassword(false);
+        return;
+      }
+
       if (isLogin) {
         const { data, error } = await supabase.auth.signInWithPassword({ email, password });
         setIsLoading(false);
@@ -87,15 +99,19 @@ const Auth: React.FC<AuthProps> = ({ onLogin }) => {
           
           <div className="text-center lg:text-left">
             <h2 className="text-3xl font-black text-slate-900 tracking-tight">
-              {isLogin ? 'Bem-vindo de volta!' : 'Teste grátis por 7 dias'}
+              {isForgotPassword ? 'Recuperar senha' : isLogin ? 'Bem-vindo de volta!' : 'Teste grátis por 7 dias'}
             </h2>
             <p className="text-slate-500 mt-2">
-              {isLogin ? 'Acesse o painel para gerenciar suas aves.' : 'Comece com todos os recursos do Plano Profissional liberados.'}
+              {isForgotPassword 
+                ? 'Digite seu email para receber o link de recuperação.' 
+                : isLogin 
+                ? 'Acesse o painel para gerenciar suas aves.' 
+                : 'Comece com todos os recursos do Plano Profissional liberados.'}
             </p>
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-6">
-            {!isLogin && (
+            {!isLogin && !isForgotPassword && (
               <div className="space-y-2">
                 <label className="text-xs font-black uppercase text-slate-400 tracking-widest">Nome do Criatório</label>
                 <div className="relative">
@@ -127,23 +143,34 @@ const Auth: React.FC<AuthProps> = ({ onLogin }) => {
               </div>
             </div>
 
-            <div className="space-y-2">
-              <div className="flex justify-between items-center">
-                <label className="text-xs font-black uppercase text-slate-400 tracking-widest">Senha</label>
-                {!isLogin && <span className="text-[10px] text-slate-400 font-bold flex items-center gap-1"><Star size={10}/> Mínimo 8 caracteres</span>}
+            {!isForgotPassword && (
+              <div className="space-y-2">
+                <div className="flex justify-between items-center">
+                  <label className="text-xs font-black uppercase text-slate-400 tracking-widest">Senha</label>
+                  {isLogin && (
+                    <button 
+                      type="button" 
+                      onClick={() => setIsForgotPassword(true)}
+                      className="text-[10px] text-brand font-bold hover:underline"
+                    >
+                      Esqueci minha senha
+                    </button>
+                  )}
+                  {!isLogin && <span className="text-[10px] text-slate-400 font-bold flex items-center gap-1"><Star size={10}/> Mínimo 8 caracteres</span>}
+                </div>
+                <div className="relative">
+                  <Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={20} />
+                  <input 
+                    required 
+                    type="password" 
+                    placeholder="Digite sua senha" 
+                    className="w-full pl-12 pr-4 py-4 bg-white border border-slate-200 rounded-2xl outline-none focus:border-brand font-bold text-slate-700 transition-all focus:ring-4 focus:ring-brand/5"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                  />
+                </div>
               </div>
-              <div className="relative">
-                <Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={20} />
-                <input 
-                  required 
-                  type="password" 
-                  placeholder="Digite sua senha" 
-                  className="w-full pl-12 pr-4 py-4 bg-white border border-slate-200 rounded-2xl outline-none focus:border-brand font-bold text-slate-700 transition-all focus:ring-4 focus:ring-brand/5"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                />
-              </div>
-            </div>
+            )}
 
             <button 
               type="submit" 
@@ -156,16 +183,27 @@ const Auth: React.FC<AuthProps> = ({ onLogin }) => {
                 </>
               ) : (
                 <>
-                  {isLogin ? 'Entrar' : 'Criar conta'} <ArrowRight size={18} />
+                  {isForgotPassword ? 'Enviar email' : isLogin ? 'Entrar' : 'Criar conta'} <ArrowRight size={18} />
                 </>
               )}
             </button>
 
             <div className="flex items-center justify-center gap-2 text-xs text-slate-500">
-              <span>{isLogin ? 'Ainda não tem conta?' : 'Já tem conta?'}</span>
-              <button type="button" onClick={() => setIsLogin(!isLogin)} className="font-black text-brand uppercase tracking-widest">
-                {isLogin ? 'Criar grátis' : 'Fazer login'}
-              </button>
+              {isForgotPassword ? (
+                <>
+                  <span>Lembrou a senha?</span>
+                  <button type="button" onClick={() => setIsForgotPassword(false)} className="font-black text-brand uppercase tracking-widest">
+                    Fazer login
+                  </button>
+                </>
+              ) : (
+                <>
+                  <span>{isLogin ? 'Ainda não tem conta?' : 'Já tem conta?'}</span>
+                  <button type="button" onClick={() => setIsLogin(!isLogin)} className="font-black text-brand uppercase tracking-widest">
+                    {isLogin ? 'Criar grátis' : 'Fazer login'}
+                  </button>
+                </>
+              )}
             </div>
           </form>
         </div>
