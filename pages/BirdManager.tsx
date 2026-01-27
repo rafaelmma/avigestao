@@ -191,7 +191,7 @@ const BirdManager: React.FC<BirdManagerProps> = ({
             <div className="w-32 h-32 rounded-full border-4 border-white shadow-lg overflow-hidden bg-slate-100">
               <img
                 src={resolveBirdPhoto(bird)}
-                className="w-full h-full object-cover"
+                className="w-full h-full object-cover object-center"
                 alt="Foto da Ave"
               />
             </div>
@@ -237,7 +237,7 @@ const BirdManager: React.FC<BirdManagerProps> = ({
                     className={`rounded-2xl border p-2 text-left transition-all ${isSelected ? 'border-brand ring-2 ring-brand/20' : 'border-slate-200 hover:border-brand/40'}`}
                   >
                     <div className="w-full aspect-square rounded-xl overflow-hidden bg-slate-100">
-                      <img src={item.url} alt={`Foto ${item.label}`} className="w-full h-full object-cover" />
+                      <img src={item.url} alt={`Foto ${item.label}`} className="w-full h-full object-cover object-center" />
                     </div>
                     <span className="mt-2 block text-[10px] font-bold text-slate-600">{item.label}</span>
                   </button>
@@ -268,6 +268,19 @@ const BirdManager: React.FC<BirdManagerProps> = ({
   };
   const updateNewBirdWithDefaultPhoto = (updates: Partial<Bird>) => {
     setNewBird((prev) => {
+      const next = { ...prev, ...updates };
+      if (!isDefaultBirdImage(prev.photoUrl)) {
+        return next;
+      }
+      const species = next.species || '';
+      const sex = next.sex || 'Indeterminado';
+      const birthDate = next.birthDate;
+      return { ...next, photoUrl: getDefaultBirdImage(species, sex, birthDate) };
+    });
+  };
+
+  const updateEditingBirdWithDefaultPhoto = (updates: Partial<Bird>) => {
+    setEditingBird((prev) => {
       const next = { ...prev, ...updates };
       if (!isDefaultBirdImage(prev.photoUrl)) {
         return next;
@@ -1142,7 +1155,7 @@ const BirdManager: React.FC<BirdManagerProps> = ({
               }}
             >
                 <div className="relative aspect-square bg-slate-50 flex items-center justify-center overflow-hidden">
-                  <img src={resolveBirdPhoto(bird)} className={`w-full h-full object-cover ${currentList === 'lixeira' ? 'grayscale opacity-50' : ''}`} />
+                  <img src={resolveBirdPhoto(bird)} className={`w-full h-full object-cover object-center ${currentList === 'lixeira' ? 'grayscale opacity-50' : ''}`} />
                   <div className={`absolute top-3 left-3 px-2 py-0.5 rounded-lg text-[8px] font-black uppercase border shadow-sm ${
                       bird.sex === 'Macho' ? 'bg-blue-50 text-blue-600 border-blue-100' : 
                       bird.sex === 'Fêmea' ? 'bg-pink-50 text-pink-600 border-pink-100' : 
@@ -1393,9 +1406,9 @@ const BirdManager: React.FC<BirdManagerProps> = ({
                                       value={BRAZILIAN_SPECIES.includes(editingBird.species || '') ? editingBird.species : 'custom'} 
                                       onChange={e => {
                                         if (e.target.value === 'custom') {
-                                          setEditingBird({...editingBird, species: ''});
+                                          updateEditingBirdWithDefaultPhoto({species: ''});
                                         } else {
-                                          setEditingBird({...editingBird, species: e.target.value});
+                                          updateEditingBirdWithDefaultPhoto({species: e.target.value});
                                         }
                                       }}
                                     >
@@ -1408,7 +1421,7 @@ const BirdManager: React.FC<BirdManagerProps> = ({
                                         placeholder="Digite o nome da espécie..." 
                                         className="w-full p-4 bg-slate-50 border border-brand/20 rounded-2xl font-bold text-brand outline-none focus:border-brand animate-in fade-in"
                                         value={editingBird.species || ''}
-                                        onChange={e => setEditingBird({...editingBird, species: e.target.value})}
+                                        onChange={e => updateEditingBirdWithDefaultPhoto({species: e.target.value})}
                                         autoFocus
                                       />
                                     )}
@@ -1416,7 +1429,7 @@ const BirdManager: React.FC<BirdManagerProps> = ({
                                </div>
                                <div className="space-y-2">
                                   <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest">Sexo</label>
-                                  <select className="w-full p-4 bg-white border border-slate-200 rounded-2xl font-bold text-slate-700 outline-none focus:border-brand appearance-none" value={editingBird.sex} onChange={e => setEditingBird({...editingBird, sex: e.target.value as any})}>
+                                  <select className="w-full p-4 bg-white border border-slate-200 rounded-2xl font-bold text-slate-700 outline-none focus:border-brand appearance-none" value={editingBird.sex} onChange={e => updateEditingBirdWithDefaultPhoto({...editingBird, sex: e.target.value as any})}>
                                     <option value="Macho">Macho</option>
                                     <option value="Fêmea">Fêmea</option>
                                     <option value="Indeterminado">Indeterminado</option>
@@ -1424,7 +1437,7 @@ const BirdManager: React.FC<BirdManagerProps> = ({
                                </div>
                                <div className="space-y-2">
                                   <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest">Data Nasc.</label>
-                                  <input type="date" className="w-full p-4 bg-white border border-slate-200 rounded-2xl font-bold text-slate-700 outline-none focus:border-brand" value={editingBird.birthDate} onChange={e => setEditingBird({...editingBird, birthDate: e.target.value})} />
+                                  <input type="date" className="w-full p-4 bg-white border border-slate-200 rounded-2xl font-bold text-slate-700 outline-none focus:border-brand" value={editingBird.birthDate} onChange={e => updateEditingBirdWithDefaultPhoto({...editingBird, birthDate: e.target.value})} />
                                </div>
                                <div className="space-y-2">
                                   <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest">Mutação / Cor</label>
@@ -1693,8 +1706,8 @@ const BirdManager: React.FC<BirdManagerProps> = ({
                           <div className="aspect-square rounded-2xl overflow-hidden bg-slate-50 flex items-center justify-center relative">
                              <img 
                               src={resolveBirdPhoto(selectedBird)} 
-                               className="w-full h-full object-cover" 
-                               alt="Foto da Ave" 
+                               className="w-full h-full object-cover object-center"
+                               alt="Foto da Ave"
                              />
                           </div>
                         </div>
