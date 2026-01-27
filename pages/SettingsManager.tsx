@@ -16,6 +16,7 @@ import {
   Eye,
   EyeOff,
   X,
+  HelpCircle,
 } from 'lucide-react';
 const TipCarousel = React.lazy(() => import('../components/TipCarousel'));
 import { APP_LOGO } from '../constants';
@@ -502,16 +503,33 @@ const SettingsManager: React.FC<SettingsManagerProps> = ({ settings, updateSetti
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <label className="space-y-2">
-                  <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Numero SISPASS</span>
+                  <div className="flex items-center gap-2">
+                    <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Numero SISPASS</span>
+                    <div className="group relative cursor-help">
+                      <HelpCircle size={14} className="text-slate-300 hover:text-slate-400" />
+                      <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 hidden group-hover:block bg-slate-800 text-white text-[10px] px-3 py-2 rounded-lg whitespace-nowrap z-50">
+                        Número de registro do SISPASS/CTF junto ao IBAMA
+                      </div>
+                    </div>
+                  </div>
                   <input
                     className="w-full p-3 rounded-2xl bg-slate-50 border border-slate-100 text-sm font-bold"
                     value={settings.sispassNumber}
                     onChange={(e) => updateSettings({ ...settings, sispassNumber: e.target.value })}
-                    placeholder="Informe o numero do SISPASS"
+                    placeholder="Ex: 1234567-8"
                   />
+                  <p className="text-[10px] text-slate-400">Encontre em sua licença SISPASS/CTF</p>
                 </label>
                 <label className="space-y-2">
-                  <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Data de Renovação SISPASS</span>
+                  <div className="flex items-center gap-2">
+                    <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Data de Renovação SISPASS</span>
+                    <div className="group relative cursor-help">
+                      <HelpCircle size={14} className="text-slate-300 hover:text-slate-400" />
+                      <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 hidden group-hover:block bg-slate-800 text-white text-[10px] px-3 py-2 rounded-lg whitespace-nowrap z-50">
+                        Data de vencimento da sua licença SISPASS/CTF
+                      </div>
+                    </div>
+                  </div>
                   <input
                     ref={renewalDateRef}
                     type="date"
@@ -519,27 +537,46 @@ const SettingsManager: React.FC<SettingsManagerProps> = ({ settings, updateSetti
                     value={settings.renewalDate}
                     onChange={(e) => updateSettings({ ...settings, renewalDate: e.target.value })}
                   />
+                  <p className="text-[10px] text-slate-400">Sistema avisa com 30 dias de antecedência</p>
                 </label>
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <label className="space-y-2">
-                  <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Data de registro</span>
+                  <div className="flex items-center gap-2">
+                    <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Data de registro</span>
+                    <div className="group relative cursor-help">
+                      <HelpCircle size={14} className="text-slate-300 hover:text-slate-400" />
+                      <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 hidden group-hover:block bg-slate-800 text-white text-[10px] px-3 py-2 rounded-lg whitespace-nowrap z-50">
+                        Data de primeiro registro do seu criatório
+                      </div>
+                    </div>
+                  </div>
                   <input
                     type="date"
                     className="w-full p-3 rounded-2xl bg-slate-50 border border-slate-100 text-sm font-bold"
                     value={settings.registrationDate}
                     onChange={(e) => updateSettings({ ...settings, registrationDate: e.target.value })}
                   />
+                  <p className="text-[10px] text-slate-400">Data do registro original</p>
                 </label>
                 <label className="space-y-2">
-                  <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Última Renovação</span>
+                  <div className="flex items-center gap-2">
+                    <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Última Renovação</span>
+                    <div className="group relative cursor-help">
+                      <HelpCircle size={14} className="text-slate-300 hover:text-slate-400" />
+                      <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 hidden group-hover:block bg-slate-800 text-white text-[10px] px-3 py-2 rounded-lg whitespace-nowrap z-50">
+                        Última vez que o SISPASS foi renovado
+                      </div>
+                    </div>
+                  </div>
                   <input
                     type="date"
                     className="w-full p-3 rounded-2xl bg-slate-50 border border-slate-100 text-sm font-bold"
                     value={settings.lastRenewalDate || ''}
                     onChange={(e) => updateSettings({ ...settings, lastRenewalDate: e.target.value })}
                   />
+                  <p className="text-[10px] text-slate-400">Data da última renovação</p>
                 </label>
               </div>
 

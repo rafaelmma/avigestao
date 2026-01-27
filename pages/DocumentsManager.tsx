@@ -1,7 +1,7 @@
 ﻿
 import React, { useState, useEffect, useRef } from 'react';
 import { BreederSettings, CertificateType } from '../types';
-import { FileBadge, ShieldCheck, ExternalLink, CreditCard, Cloud, FileKey, Usb, AlertTriangle, CheckCircle2, CalendarClock, Save, X, Calendar, Info } from 'lucide-react';
+import { FileBadge, ShieldCheck, ExternalLink, CreditCard, Cloud, FileKey, Usb, AlertTriangle, CheckCircle2, CalendarClock, Save, X, Calendar, Info, Pencil } from 'lucide-react';
 
 interface DocumentsManagerProps {
   settings: BreederSettings;
@@ -263,24 +263,45 @@ const calculateProgress = (startDateStr?: string, endDateStr?: string) => {
 
               <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100 space-y-4">
   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-    <div>
-      <label className="text-[9px] font-black text-blue-600 uppercase tracking-widest block mb-1">Numero de Registro SISPASS</label>
-      <input
-        className="w-full bg-white border border-blue-200 rounded-xl px-3 py-2 font-mono font-bold text-slate-800 outline-none text-sm focus:border-blue-400"
-        placeholder="Ex: 1234567-8 (numero do registro)"
-        value={sispassNumberValue}
-        onChange={(e) => updateSettings({ ...settings, sispassNumber: e.target.value })}
-        disabled={isSispassConfigured && !editSispassNumber}
-        onBlur={() => { if (isSispassConfigured) setEditSispassNumber(false); }}
-      />
+    <div className="relative">
+      <label className="text-[9px] font-black text-blue-600 uppercase tracking-widest block mb-2 flex items-center gap-2">
+        <span>Numero de Registro SISPASS</span>
+        {isSispassConfigured && !editSispassNumber && (
+          <Pencil size={12} className="text-blue-400" />
+        )}
+      </label>
+      <div className="relative">
+        <input
+          className={`w-full font-mono font-bold text-slate-800 outline-none text-sm rounded-xl px-3 py-2 transition-all ${
+            editSispassNumber 
+              ? 'bg-blue-50 border-2 border-blue-400 focus:border-blue-500' 
+              : 'bg-white border border-blue-200 focus:border-blue-400'
+          } ${isSispassConfigured && !editSispassNumber ? 'cursor-pointer hover:bg-blue-50' : ''}`}
+          placeholder="Ex: 1234567-8 (numero do registro)"
+          value={sispassNumberValue}
+          onChange={(e) => updateSettings({ ...settings, sispassNumber: e.target.value })}
+          disabled={isSispassConfigured && !editSispassNumber}
+          onBlur={() => { if (isSispassConfigured) setEditSispassNumber(false); }}
+        />
+      </div>
       <p className="text-[10px] text-slate-400 mt-1">Digite o numero do registro da sua licenca no SISPASS.</p>
       {isSispassConfigured && !editSispassNumber && (
         <button
           type="button"
           onClick={() => setEditSispassNumber(true)}
-          className="mt-2 text-[9px] font-black uppercase tracking-widest text-blue-600"
+          className="mt-2 inline-flex items-center gap-1 text-[9px] font-black uppercase tracking-widest text-blue-600 hover:text-blue-700 transition-colors"
         >
-          Editar numero
+          <Pencil size={12} /> Editar numero
+        </button>
+      )}
+      {editSispassNumber && (
+        <button
+          type="button"
+          onClick={() => setEditSispassNumber(false)}
+          className="absolute right-3 top-9 text-blue-500 hover:text-blue-700 transition-colors"
+          title="Salvar"
+        >
+          <CheckCircle2 size={20} />
         </button>
       )}
     </div>
