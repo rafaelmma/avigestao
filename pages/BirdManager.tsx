@@ -176,16 +176,21 @@ const BirdManager: React.FC<BirdManagerProps> = ({
   };
 
   // Ajusta o encaixe da imagem: para ícones padrão (PNG) usamos contain para evitar cortes
-  const getImageFitClass = (url?: string) => {
-    if (!url) return 'object-cover object-center';
-    if (isDefaultBirdImage(url)) {
-      const isChick = url.includes('filhote');
-      // Para filhotes, damos um leve zoom e ajustamos o objeto um pouco para cima
-      if (isChick) return 'object-contain object-[50%_45%] scale-[1.08]';
-      // Adultos padrão
-      return 'object-contain object-center';
+  const getImageFitStyle = (url?: string): React.CSSProperties => {
+    if (!url || !isDefaultBirdImage(url)) {
+      return { objectFit: 'cover', objectPosition: 'center' };
     }
-    return 'object-cover object-center';
+    const isChick = url.includes('filhote');
+    if (isChick) {
+      // Para filhotes: contém a imagem sem crop, posiciona levemente acima do centro e faz zoom
+      return {
+        objectFit: 'contain',
+        objectPosition: '50% 40%',
+        transform: 'scale(1.12)'
+      };
+    }
+    // Adultos padrão
+    return { objectFit: 'contain', objectPosition: 'center' };
   };
 
   const applyDefaultIcon = (bird: Partial<Bird>, isEditMode: boolean) => {
@@ -204,7 +209,8 @@ const BirdManager: React.FC<BirdManagerProps> = ({
             <div className="w-32 h-32 rounded-full border-4 border-white shadow-lg overflow-hidden bg-slate-100">
               <img
                 src={resolveBirdPhoto(bird)}
-                className={`w-full h-full ${getImageFitClass(resolveBirdPhoto(bird))}`}
+                style={getImageFitStyle(resolveBirdPhoto(bird))}
+                className="w-full h-full"
                 alt="Foto da Ave"
               />
             </div>
@@ -1173,7 +1179,7 @@ const BirdManager: React.FC<BirdManagerProps> = ({
               }}
             >
                 <div className="relative aspect-square bg-slate-50 flex items-center justify-center overflow-hidden">
-                  <img src={resolveBirdPhoto(bird)} className={`w-full h-full ${getImageFitClass(resolveBirdPhoto(bird))} ${currentList === 'lixeira' ? 'grayscale opacity-50' : ''}`} />
+                  <img src={resolveBirdPhoto(bird)} style={getImageFitStyle(resolveBirdPhoto(bird))} className={`w-full h-full ${currentList === 'lixeira' ? 'grayscale opacity-50' : ''}`} />
                   <div className={`absolute top-3 left-3 px-2 py-0.5 rounded-lg text-[8px] font-black uppercase border shadow-sm ${
                       bird.sex === 'Macho' ? 'bg-blue-50 text-blue-600 border-blue-100' : 
                       bird.sex === 'Fêmea' ? 'bg-pink-50 text-pink-600 border-pink-100' : 
@@ -1724,7 +1730,8 @@ const BirdManager: React.FC<BirdManagerProps> = ({
                           <div className="aspect-square rounded-2xl overflow-hidden bg-slate-50 flex items-center justify-center relative">
                              <img 
                               src={resolveBirdPhoto(selectedBird)} 
-                               className={`w-full h-full ${getImageFitClass(resolveBirdPhoto(selectedBird))}`}
+                               style={getImageFitStyle(resolveBirdPhoto(selectedBird))}
+                               className="w-full h-full"
                                alt="Foto da Ave"
                              />
                           </div>
