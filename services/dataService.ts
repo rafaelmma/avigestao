@@ -23,34 +23,55 @@ const isAbortError = (err: any) => {
   return err?.name === 'AbortError' || msg.includes('AbortError') || msg.includes('aborted');
 };
 
-const safeSelect = async <T>(query: any, mapFn: (row: any) => T): Promise<T[]> => {
-  try {
-    const { data, error } = await query;
-    if (error) throw error;
-    return (data ?? []).map(mapFn);
-  } catch (err) {
-    if (isAbortError(err)) {
-      // Silencia aborts (mudança de tela, unmounts, etc.)
+const isTransientError = (err: any) => {
+  const code = (err?.code || err?.status || '').toString();
+  const msg = (err?.message || err?.details || '').toString().toLowerCase();
+  if (['408','429','500','502','503','504'].includes(code)) return true;
+  if (msg.includes('timeout') || msg.includes('temporarily') || msg.includes('network') || msg.includes('fetch')) return true;
+  return false;
+};
+
+const sleep = (ms: number) => new Promise(res => setTimeout(res, ms));
+
+const safeSelect = async <T>(queryFactory: () => any, mapFn: (row: any) => T, retries = 2): Promise<T[]> => {
+  let attempt = 0;
+  while (true) {
+    try {
+      const { data, error } = await queryFactory();
+      if (error) throw error;
+      return (data ?? []).map(mapFn);
+    } catch (err) {
+      if (isAbortError(err)) return [];
+      if (attempt < retries && isTransientError(err)) {
+        await sleep(300 * Math.pow(2, attempt));
+        attempt++;
+        continue;
+      }
+      if (import.meta?.env?.DEV) console.warn("Falha ao carregar dados:", err);
       return [];
     }
-    if (import.meta?.env?.DEV) console.warn("Falha ao carregar dados:", err);
-    return [];
   }
 };
 
 type SettingsFetchResult = { settings: BreederSettings | null; failed: boolean };
 
-const safeSingleSettings = async (query: any): Promise<SettingsFetchResult> => {
-  try {
-    const { data, error } = await query;
-    if (error) throw error;
-    return { settings: data ? mapSettingsFromDb(data) : null, failed: false };
-  } catch (err) {
-    if (isAbortError(err)) {
+const safeSingleSettings = async (queryFactory: () => any, retries = 2): Promise<SettingsFetchResult> => {
+  let attempt = 0;
+  while (true) {
+    try {
+      const { data, error } = await queryFactory();
+      if (error) throw error;
+      return { settings: data ? mapSettingsFromDb(data) : null, failed: false };
+    } catch (err) {
+      if (isAbortError(err)) return { settings: null, failed: true };
+      if (attempt < retries && isTransientError(err)) {
+        await sleep(300 * Math.pow(2, attempt));
+        attempt++;
+        continue;
+      }
+      if (import.meta?.env?.DEV) console.warn("Falha ao carregar settings:", err);
       return { settings: null, failed: true };
     }
-    if (import.meta?.env?.DEV) console.warn("Falha ao carregar settings:", err);
-    return { settings: null, failed: true };
   }
 };
 
@@ -79,19 +100,19 @@ export const cacheMedicationCatalog = (items: MedicationCatalogItem[]) => {
 
 export async function loadInitialData(userId: string) {
   const settingsPromise = safeSingleSettings(
-    supabase.from("settings").select("*").eq("user_id", userId).maybeSingle()
+    () => supabase.from("settings").select("*").eq("user_id", userId).maybeSingle()
   );
 
   // Initial data for dashboard and core UI only.
   const [birds, transactions, tasks, tournaments, clutches, pairs, archivedPairs, movements, settingsResult] = await Promise.all([
-    safeSelect(supabase.from("birds").select("*").eq("user_id", userId), mapBirdFromDb),
-    safeSelect(supabase.from("transactions").select("*").eq("user_id", userId), mapTransactionFromDb),
-    safeSelect(supabase.from("tasks").select("*").eq("user_id", userId), mapTaskFromDb),
-    safeSelect(supabase.from("tournaments").select("*").eq("user_id", userId), mapTournamentFromDb),
-    safeSelect(supabase.from("clutches").select("*").eq("user_id", userId), mapClutchFromDb),
-    safeSelect(supabase.from("pairs").select("*").eq("user_id", userId).is("deleted_at", null).is("archived_at", null), mapPairFromDb),
-    safeSelect(supabase.from("pairs").select("*").eq("user_id", userId).not("archived_at", "is", null).is("deleted_at", null), mapPairFromDb),
-    safeSelect(supabase.from("movements").select("*").eq("user_id", userId).is("deleted_at", null), mapMovementFromDb),
+    safeSelect(() => supabase.from("birds").select("*").eq("user_id", userId), mapBirdFromDb),
+    safeSelect(() => supabase.from("transactions").select("*").eq("user_id", userId), mapTransactionFromDb),
+    safeSelect(() => supabase.from("tasks").select("*").eq("user_id", userId), mapTaskFromDb),
+    safeSelect(() => supabase.from("tournaments").select("*").eq("user_id", userId), mapTournamentFromDb),
+    safeSelect(() => supabase.from("clutches").select("*").eq("user_id", userId), mapClutchFromDb),
+    safeSelect(() => supabase.from("pairs").select("*").eq("user_id", userId).is("deleted_at", null).is("archived_at", null), mapPairFromDb),
+    safeSelect(() => supabase.from("pairs").select("*").eq("user_id", userId).not("archived_at", "is", null).is("deleted_at", null), mapPairFromDb),
+    safeSelect(() => supabase.from("movements").select("*").eq("user_id", userId).is("deleted_at", null), mapMovementFromDb),
     settingsPromise,
   ]);
 
@@ -119,21 +140,21 @@ export async function loadTabData(userId: string, tab: string) {
   switch (tab) {
     case "movements":
       return {
-        movements: await safeSelect(supabase.from("movements").select("*").eq("user_id", userId).is("deleted_at", null), mapMovementFromDb),
+        movements: await safeSelect(() => supabase.from("movements").select("*").eq("user_id", userId).is("deleted_at", null), mapMovementFromDb),
       };
     case "breeding":
       return {
-        pairs: await safeSelect(supabase.from("pairs").select("*").eq("user_id", userId).is("deleted_at", null), mapPairFromDb),
-        clutches: await safeSelect(supabase.from("clutches").select("*").eq("user_id", userId), mapClutchFromDb),
+        pairs: await safeSelect(() => supabase.from("pairs").select("*").eq("user_id", userId).is("deleted_at", null), mapPairFromDb),
+        clutches: await safeSelect(() => supabase.from("clutches").select("*").eq("user_id", userId), mapClutchFromDb),
       };
     case "meds": {
-      const medications = await safeSelect(supabase.from("medications").select("*").eq("user_id", userId), mapMedicationFromDb);
-      const applications = await safeSelect(supabase.from("applications").select("*").eq("user_id", userId), mapApplicationFromDb);
-      const treatments = await safeSelect(supabase.from("treatments").select("*").eq("user_id", userId), mapTreatmentFromDb);
+      const medications = await safeSelect(() => supabase.from("medications").select("*").eq("user_id", userId), mapMedicationFromDb);
+      const applications = await safeSelect(() => supabase.from("applications").select("*").eq("user_id", userId), mapApplicationFromDb);
+      const treatments = await safeSelect(() => supabase.from("treatments").select("*").eq("user_id", userId), mapTreatmentFromDb);
       let medicationCatalog = getCachedMedicationCatalog() || [];
       if (medicationCatalog.length === 0) {
         const items = await safeSelect(
-          supabase.from("medication_catalog").select("*"),
+          () => supabase.from("medication_catalog").select("*"),
           mapMedicationCatalogFromDb
         );
         medicationCatalog = items;
@@ -144,19 +165,19 @@ export async function loadTabData(userId: string, tab: string) {
     case "birds":
     case "sexing":
       return {
-        birds: await safeSelect(supabase.from("birds").select("*").eq("user_id", userId), mapBirdFromDb),
+        birds: await safeSelect(() => supabase.from("birds").select("*").eq("user_id", userId), mapBirdFromDb),
       };
     case "tasks":
       return {
-        tasks: await safeSelect(supabase.from("tasks").select("*").eq("user_id", userId), mapTaskFromDb),
+        tasks: await safeSelect(() => supabase.from("tasks").select("*").eq("user_id", userId), mapTaskFromDb),
       };
     case "tournaments":
       return {
-        tournaments: await safeSelect(supabase.from("tournaments").select("*").eq("user_id", userId), mapTournamentFromDb),
+        tournaments: await safeSelect(() => supabase.from("tournaments").select("*").eq("user_id", userId), mapTournamentFromDb),
       };
     case "finance":
       return {
-        transactions: await safeSelect(supabase.from("transactions").select("*").eq("user_id", userId), mapTransactionFromDb),
+        transactions: await safeSelect(() => supabase.from("transactions").select("*").eq("user_id", userId), mapTransactionFromDb),
       };
     default:
       return {};
@@ -166,7 +187,7 @@ export async function loadTabData(userId: string, tab: string) {
 export async function loadDeletedPairs(userId: string) {
   return {
     deletedPairs: await safeSelect(
-      supabase.from("pairs").select("*").eq("user_id", userId).not("deleted_at", "is", null),
+      () => supabase.from("pairs").select("*").eq("user_id", userId).not("deleted_at", "is", null),
       mapPairFromDb
     ),
   };

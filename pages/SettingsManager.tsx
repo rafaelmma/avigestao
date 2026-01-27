@@ -736,7 +736,7 @@ const SettingsManager: React.FC<SettingsManagerProps> = ({ settings, updateSetti
               <p className="text-xs text-amber-600 font-black">Você esta usando o plano gratuito</p>
             )}
 
-            {settings.trialEndDaté && !isAdmin && (
+            {settings.trialEndDate && !isAdmin && (
               <p className="text-xs text-emerald-600 font-black">Trial ativo até {new Date(settings.trialEndDate).toLocaleDateString()}</p>
             )}
 

@@ -15,7 +15,7 @@ export const subscribeTable = (
         table,
         filter: `user_id=eq.${userId}`,
       },
-      payload => onChange(payload)
+      (payload: any) => onChange(payload)
     )
     .subscribe();
 };

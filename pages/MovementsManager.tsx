@@ -265,7 +265,7 @@ const MovementsManager: React.FC<MovementsManagerProps> = ({ state, addMovement,
                         <div className="flex flex-col gap-2">
                           <button 
                             type="button"
-                            onClick={() => openAttachment(m.gtrUrl)}
+                            onClick={() => m.gtrUrl && openAttachment(m.gtrUrl)}
                             className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-100 text-slate-600 rounded-lg text-[10px] font-bold hover:bg-slate-200 transition-colors"
                           >
                             <FileText size={14} /> Abrir GTR
