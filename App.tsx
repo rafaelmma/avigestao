@@ -1869,7 +1869,7 @@ const App: React.FC = () => {
   const renderContent = () => {
     switch (activeTab) {
       case 'dashboard':
-        return <Dashboard state={state} updateSettings={updateSettings} navigateTo={navigateTo} isAdmin={isAdmin} />;
+        return <Dashboard state={state} updateSettings={updateSettings} onSave={persistSettings} navigateTo={navigateTo} isAdmin={isAdmin} />;
       case 'birds':
         return (
           <BirdManager
@@ -1997,7 +1997,7 @@ const App: React.FC = () => {
       case 'help':
         return <HelpCenter />;
       default:
-        return <Dashboard state={state} updateSettings={updateSettings} navigateTo={navigateTo} isAdmin={isAdmin} />;
+        return <Dashboard state={state} updateSettings={updateSettings} onSave={persistSettings} navigateTo={navigateTo} isAdmin={isAdmin} />;
     }
   };
 

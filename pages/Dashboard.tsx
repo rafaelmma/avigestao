@@ -27,6 +27,7 @@ const TipCarousel = React.lazy(() => import('../components/TipCarousel'));
 interface DashboardProps {
   state: AppState;
   updateSettings: (s: BreederSettings) => void;
+  onSave?: (s: BreederSettings) => void;
   navigateTo: (tab: string) => void;
   isAdmin?: boolean;
 }
@@ -57,7 +58,7 @@ const StatCard = ({ icon, label, value, subValue, isWarning, isPositive, onClick
   </div>
 );
 
-const Dashboard: React.FC<DashboardProps> = ({ state, updateSettings, navigateTo, isAdmin }) => {
+const Dashboard: React.FC<DashboardProps> = ({ state, updateSettings, onSave, navigateTo, isAdmin }) => {
   const [showCustomizer, setShowCustomizer] = useState(false);
   
   const dragItem = useRef<number | null>(null);
@@ -78,7 +79,9 @@ const Dashboard: React.FC<DashboardProps> = ({ state, updateSettings, navigateTo
     } else {
       newLayout = [...visibleWidgets, id];
     }
-    updateSettings({ ...state.settings, dashboardLayout: newLayout });
+    const updatedSettings = { ...state.settings, dashboardLayout: newLayout };
+    updateSettings(updatedSettings);
+    onSave?.(updatedSettings);
   };
 
   const handleDragStart = (e: React.DragEvent<HTMLDivElement>, position: number) => {
@@ -104,7 +107,9 @@ const Dashboard: React.FC<DashboardProps> = ({ state, updateSettings, navigateTo
       dragItem.current = null;
       dragOverItem.current = null;
       
-      updateSettings({ ...state.settings, dashboardLayout: copyListItems });
+      const updatedSettings = { ...state.settings, dashboardLayout: copyListItems };
+      updateSettings(updatedSettings);
+      onSave?.(updatedSettings);
     }
   };
 
