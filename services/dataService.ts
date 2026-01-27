@@ -164,7 +164,8 @@ export const mapBirdFromDb = (row: any): Bird => {
   const species = row.species ?? "";
   const sex = row.sex ?? "Indeterminado";
   const rawPhotoUrl = row.photo_url ?? row.photoUrl ?? undefined;
-  const photoUrl = isDefaultBirdImage(rawPhotoUrl) ? getDefaultBirdImage(species, sex) : rawPhotoUrl;
+  const birthDate = row.birth_date ?? row.birthDate ?? undefined;
+  const photoUrl = isDefaultBirdImage(rawPhotoUrl) ? getDefaultBirdImage(species, sex, birthDate) : rawPhotoUrl;
 
   return {
     id: row.id,

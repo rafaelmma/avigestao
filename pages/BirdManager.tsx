@@ -135,7 +135,7 @@ const BirdManager: React.FC<BirdManagerProps> = ({
     classification: 'Não Definido',
     songTrainingStatus: 'Não Iniciado',
     isRepeater: false,
-    photoUrl: getDefaultBirdImage(BRAZILIAN_SPECIES[0], 'Indeterminado'),
+    photoUrl: getDefaultBirdImage(BRAZILIAN_SPECIES[0], 'Indeterminado', new Date().toISOString().split('T')[0]),
     birthDate: new Date().toISOString().split('T')[0],
     sexing: {
       protocol: '',
@@ -147,9 +147,10 @@ const BirdManager: React.FC<BirdManagerProps> = ({
   const resolveBirdPhoto = (bird?: Partial<Bird>) => {
     const species = bird?.species || '';
     const sex = bird?.sex || 'Indeterminado';
+    const birthDate = bird?.birthDate;
     return isDefaultBirdImage(bird?.photoUrl)
-      ? getDefaultBirdImage(species, sex)
-      : (bird?.photoUrl || getDefaultBirdImage(species, sex));
+      ? getDefaultBirdImage(species, sex, birthDate)
+      : (bird?.photoUrl || getDefaultBirdImage(species, sex, birthDate));
   };
 
   useEffect(() => {
@@ -177,7 +178,8 @@ const BirdManager: React.FC<BirdManagerProps> = ({
   const applyDefaultIcon = (bird: Partial<Bird>, isEditMode: boolean) => {
     const species = bird?.species || '';
     const sex = (bird?.sex || 'Indeterminado') as Sex;
-    setBirdPhoto(getDefaultBirdImage(species, sex), isEditMode);
+    const birthDate = bird?.birthDate;
+    setBirdPhoto(getDefaultBirdImage(species, sex, birthDate), isEditMode);
   };
 
   const renderPhotoPicker = (bird: Partial<Bird>, isEditMode: boolean) => {
@@ -272,7 +274,8 @@ const BirdManager: React.FC<BirdManagerProps> = ({
       }
       const species = next.species || '';
       const sex = next.sex || 'Indeterminado';
-      return { ...next, photoUrl: getDefaultBirdImage(species, sex) };
+      const birthDate = next.birthDate;
+      return { ...next, photoUrl: getDefaultBirdImage(species, sex, birthDate) };
     });
   };
 
@@ -492,7 +495,7 @@ const BirdManager: React.FC<BirdManagerProps> = ({
         };
 
         const resolvedPhotoUrl = isDefaultBirdImage(newBird.photoUrl)
-          ? getDefaultBirdImage(newBird.species || '', newBird.sex || 'Indeterminado')
+          ? getDefaultBirdImage(newBird.species || '', newBird.sex || 'Indeterminado', newBird.birthDate)
           : newBird.photoUrl;
 
         const birdToSave: Bird = {
@@ -792,7 +795,7 @@ const BirdManager: React.FC<BirdManagerProps> = ({
       sex: 'Indeterminado', 
       status: 'Ativo', 
       species: BRAZILIAN_SPECIES[0],
-      photoUrl: getDefaultBirdImage(BRAZILIAN_SPECIES[0], 'Indeterminado'),
+      photoUrl: getDefaultBirdImage(BRAZILIAN_SPECIES[0], 'Indeterminado', new Date().toISOString().split('T')[0]),
       birthDate: new Date().toISOString().split('T')[0],
       sexing: { protocol: '', laboratory: '', sentDate: '' },
       songTrainingStatus: 'Não Iniciado',

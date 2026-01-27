@@ -250,7 +250,7 @@ const BreedingManager: React.FC<BreedingManagerProps> = ({ state, addPair, updat
             songTrainingStatus: 'Não Iniciado',
             colorMutation: 'Clássico (Filhote)', // Padrão
             location: pair.name, // Herda localização do casal
-            photoUrl: getDefaultBirdImage(species, hatchling.sex),
+            photoUrl: getDefaultBirdImage(species, hatchling.sex, hatchling.birthDate),
             createdAt: new Date().toISOString(),
             isRepeater: false,
             songType: ''

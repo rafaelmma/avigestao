@@ -29,10 +29,22 @@ export const APP_LOGO = '/logo.png';
 export const APP_LOGO_ICON = '/logo.png';
 
 export const DEFAULT_BIRD_ICONS = {
-  male: '/birds/adulto_azul.png',
-  female: '/birds/adulto_rosa.png',
-  indeterminate: '/birds/adulto_azul.png'
+  male: {
+    adulto: '/birds/adulto_azul.png',
+    filhote: '/birds/filhote_azul.png'
+  },
+  female: {
+    adulto: '/birds/adulto_rosa.png',
+    filhote: '/birds/filhote_rosa.png'
+  },
+  indeterminate: {
+    adulto: '/birds/adulto_azul.png',
+    filhote: '/birds/filhote_azul.png'
+  }
 };
+
+// Dias máximos para ser considerado filhote (4 meses)
+export const FLEDGLING_MAX_DAYS = 120;
 
 export const SPECIES_IMAGES: Record<string, { male: string; female: string }> = {
   'Canário Belga': { male: '/birds/canario-belga-macho.jpg', female: '/birds/canario-belga-femea.jpg' },
@@ -53,15 +65,34 @@ export const SPECIES_IMAGES: Record<string, { male: string; female: string }> = 
   'Mandarin': { male: '/birds/mandarin-macho.jpg', female: '/birds/mandarin-femea.jpg' }
 };
 
-export const getDefaultBirdImage = (species: string, sex: Sex | string) => {
-  if (sex === 'Fêmea') return DEFAULT_BIRD_ICONS.female;
-  if (sex === 'Macho') return DEFAULT_BIRD_ICONS.male;
-  return DEFAULT_BIRD_ICONS.indeterminate;
+export const getDefaultBirdImage = (species: string, sex: Sex | string, bornDate?: string) => {
+  // Determinar se é filhote ou adulto baseado na data de nascimento
+  let isFledgling = false;
+  
+  if (bornDate) {
+    const born = new Date(bornDate);
+    const today = new Date();
+    const daysDifference = Math.floor((today.getTime() - born.getTime()) / (1000 * 60 * 60 * 24));
+    isFledgling = daysDifference <= FLEDGLING_MAX_DAYS;
+  }
+  
+  const stage = isFledgling ? 'filhote' : 'adulto';
+  
+  if (sex === 'Fêmea') return DEFAULT_BIRD_ICONS.female[stage];
+  if (sex === 'Macho') return DEFAULT_BIRD_ICONS.male[stage];
+  return DEFAULT_BIRD_ICONS.indeterminate[stage];
 };
 
 export const isDefaultBirdImage = (url?: string) => {
   if (!url) return true;
-  return url === DEFAULT_BIRD_ICONS.male || url === DEFAULT_BIRD_ICONS.female || url === DEFAULT_BIRD_ICONS.indeterminate;
+  return (
+    url === DEFAULT_BIRD_ICONS.male.adulto ||
+    url === DEFAULT_BIRD_ICONS.male.filhote ||
+    url === DEFAULT_BIRD_ICONS.female.adulto ||
+    url === DEFAULT_BIRD_ICONS.female.filhote ||
+    url === DEFAULT_BIRD_ICONS.indeterminate.adulto ||
+    url === DEFAULT_BIRD_ICONS.indeterminate.filhote
+  );
 };
 
 export const BRAZILIAN_SPECIES = Object.keys(SPECIES_IMAGES);
@@ -99,7 +130,7 @@ export const MOCK_BIRDS: Bird[] = [
     birthDate: '2022-10-10',
     status: 'Ativo',
     location: 'Gaiola 01',
-    photoUrl: getDefaultBirdImage('Curió', 'Macho'),
+    photoUrl: getDefaultBirdImage('Curió', 'Macho', '2022-10-10'),
     createdAt: new Date().toISOString(),
     classification: 'Pássaro de Canto',
     songTrainingStatus: 'Fixado',
