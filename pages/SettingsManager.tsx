@@ -15,6 +15,7 @@ import {
   Save,
   Eye,
   EyeOff,
+  X,
 } from 'lucide-react';
 const TipCarousel = React.lazy(() => import('../components/TipCarousel'));
 import { APP_LOGO } from '../constants';
@@ -86,6 +87,7 @@ const SettingsManager: React.FC<SettingsManagerProps> = ({ settings, updateSetti
   const [passwordError, setPasswordError] = useState<string | null>(null);
   const [passwordSuccess, setPasswordSuccess] = useState<string | null>(null);
   const [isChangingPassword, setIsChangingPassword] = useState(false);
+  const [showPasswordModal, setShowPasswordModal] = useState(false);
 
   const isTrial = !!settings.trialEndDate && !isAdmin;
   const canUseLogo = !!isAdmin || settings.plan === 'Profissional' || !!settings.trialEndDate;
@@ -284,7 +286,12 @@ const SettingsManager: React.FC<SettingsManagerProps> = ({ settings, updateSetti
     return items;
   }, [settings, daysSispass, daysCert, daysSubscription]);
 
-  const handleSaveClick = async () => {
+  const closePasswordModal = () => {
+    setShowPasswordModal(false);
+    setPasswordForm({ current: '', new: '', confirm: '' });
+    setPasswordError(null);
+    setPasswordSuccess(null);
+  };
     updateSettings({ ...settings });
     try {
       await onSave(settings);
@@ -533,98 +540,32 @@ const SettingsManager: React.FC<SettingsManagerProps> = ({ settings, updateSetti
                   />
                 </label>
               </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="p-4 rounded-2xl bg-slate-50 border border-slate-100 space-y-1">
+                  <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">SISPASS</p>
+                  <p className="text-sm font-bold text-slate-800">{settings.sispassNumber || 'Não informado'}</p>
+                  <p className="text-[11px] text-slate-500">Número do registro</p>
+                </div>
+                <div className="p-4 rounded-2xl bg-slate-50 border border-slate-100 space-y-1">
+                  <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Renovação SISPASS</p>
+                  <p className="text-sm font-bold text-slate-800">{settings.renewalDate ? new Date(settings.renewalDate).toLocaleDateString() : 'Não informado'}</p>
+                  <p className="text-[11px] text-slate-500">{daysSispass !== null ? `${daysSispass} dias` : ''}</p>
+                </div>
+              </div>
             </div>
 
             <div className="bg-white p-8 rounded-3xl border border-slate-100 shadow-sm space-y-6">
               <h3 className="font-black flex items-center gap-2 text-slate-800">
                 <Lock size={18} /> Segurança
               </h3>
-
-              <div className="space-y-4">
-                <div>
-                  <label className="space-y-2">
-                    <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Senha atual</span>
-                    <div className="relative flex">
-                      <input
-                        type={showPasswords.current ? 'text' : 'password'}
-                        value={passwordForm.current}
-                        onChange={(e) => setPasswordForm({ ...passwordForm, current: e.target.value })}
-                        placeholder="Digite sua senha atual"
-                        className="flex-1 p-3 rounded-l-2xl bg-slate-50 border border-slate-100 text-sm font-bold outline-none"
-                      />
-                      <button
-                        type="button"
-                        onClick={() => setShowPasswords({ ...showPasswords, current: !showPasswords.current })}
-                        className="px-4 border border-l-0 border-slate-100 rounded-r-2xl bg-slate-50 text-slate-400 hover:text-slate-600"
-                      >
-                        {showPasswords.current ? <EyeOff size={16} /> : <Eye size={16} />}
-                      </button>
-                    </div>
-                  </label>
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <label className="space-y-2">
-                    <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Nova senha</span>
-                    <div className="relative flex">
-                      <input
-                        type={showPasswords.new ? 'text' : 'password'}
-                        value={passwordForm.new}
-                        onChange={(e) => setPasswordForm({ ...passwordForm, new: e.target.value })}
-                        placeholder="Mínimo 8 caracteres"
-                        className="flex-1 p-3 rounded-l-2xl bg-slate-50 border border-slate-100 text-sm font-bold outline-none"
-                      />
-                      <button
-                        type="button"
-                        onClick={() => setShowPasswords({ ...showPasswords, new: !showPasswords.new })}
-                        className="px-4 border border-l-0 border-slate-100 rounded-r-2xl bg-slate-50 text-slate-400 hover:text-slate-600"
-                      >
-                        {showPasswords.new ? <EyeOff size={16} /> : <Eye size={16} />}
-                      </button>
-                    </div>
-                  </label>
-
-                  <label className="space-y-2">
-                    <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Confirmar nova senha</span>
-                    <div className="relative flex">
-                      <input
-                        type={showPasswords.confirm ? 'text' : 'password'}
-                        value={passwordForm.confirm}
-                        onChange={(e) => setPasswordForm({ ...passwordForm, confirm: e.target.value })}
-                        placeholder="Repita a nova senha"
-                        className="flex-1 p-3 rounded-l-2xl bg-slate-50 border border-slate-100 text-sm font-bold outline-none"
-                      />
-                      <button
-                        type="button"
-                        onClick={() => setShowPasswords({ ...showPasswords, confirm: !showPasswords.confirm })}
-                        className="px-4 border border-l-0 border-slate-100 rounded-r-2xl bg-slate-50 text-slate-400 hover:text-slate-600"
-                      >
-                        {showPasswords.confirm ? <EyeOff size={16} /> : <Eye size={16} />}
-                      </button>
-                    </div>
-                  </label>
-                </div>
-
-                {passwordError && (
-                  <div className="p-3 rounded-2xl bg-rose-50 border border-rose-100 text-rose-700 text-sm font-bold">
-                    {passwordError}
-                  </div>
-                )}
-
-                {passwordSuccess && (
-                  <div className="p-3 rounded-2xl bg-emerald-50 border border-emerald-100 text-emerald-700 text-sm font-bold">
-                    {passwordSuccess}
-                  </div>
-                )}
-
-                <button
-                  onClick={handleChangePassword}
-                  disabled={isChangingPassword}
-                  className="w-full py-3 bg-slate-900 text-white rounded-2xl font-black uppercase text-sm tracking-widest hover:bg-slate-800 transition-all disabled:opacity-60"
-                >
-                  {isChangingPassword ? 'Alterando...' : 'Alterar Senha'}
-                </button>
-              </div>
+              <p className="text-sm text-slate-600">Proteja sua conta com uma senha segura.</p>
+              <button
+                onClick={() => setShowPasswordModal(true)}
+                className="w-full py-3 bg-slate-900 text-white rounded-2xl font-black uppercase text-sm tracking-widest hover:bg-slate-800 transition-all"
+              >
+                <Lock size={16} className="inline mr-2" /> Trocar Senha
+              </button>
             </div>
 
             <div className="bg-white p-8 rounded-3xl border border-slate-100 shadow-sm space-y-6">
@@ -869,6 +810,118 @@ const SettingsManager: React.FC<SettingsManagerProps> = ({ settings, updateSetti
                 Processando pagamento.
               </div>
             )}
+          </div>
+        </div>
+      )}
+
+      {showPasswordModal && (
+        <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-3xl p-8 w-full max-w-md max-h-[90vh] overflow-y-auto space-y-6">
+            <div className="flex items-center justify-between">
+              <h3 className="text-2xl font-black text-slate-900">Trocar Senha</h3>
+              <button
+                onClick={closePasswordModal}
+                className="text-slate-400 hover:text-slate-600 transition-colors"
+              >
+                <X size={24} />
+              </button>
+            </div>
+
+            <div className="space-y-4">
+              <div>
+                <label className="space-y-2">
+                  <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Senha atual</span>
+                  <div className="relative flex">
+                    <input
+                      type={showPasswords.current ? 'text' : 'password'}
+                      value={passwordForm.current}
+                      onChange={(e) => setPasswordForm({ ...passwordForm, current: e.target.value })}
+                      placeholder="Digite sua senha atual"
+                      className="flex-1 p-3 rounded-l-2xl bg-slate-50 border border-slate-100 text-sm font-bold outline-none"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPasswords({ ...showPasswords, current: !showPasswords.current })}
+                      className="px-4 border border-l-0 border-slate-100 rounded-r-2xl bg-slate-50 text-slate-400 hover:text-slate-600"
+                    >
+                      {showPasswords.current ? <EyeOff size={16} /> : <Eye size={16} />}
+                    </button>
+                  </div>
+                </label>
+              </div>
+
+              <div className="space-y-2">
+                <label className="space-y-2">
+                  <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Nova senha</span>
+                  <div className="relative flex">
+                    <input
+                      type={showPasswords.new ? 'text' : 'password'}
+                      value={passwordForm.new}
+                      onChange={(e) => setPasswordForm({ ...passwordForm, new: e.target.value })}
+                      placeholder="Mínimo 8 caracteres"
+                      className="flex-1 p-3 rounded-l-2xl bg-slate-50 border border-slate-100 text-sm font-bold outline-none"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPasswords({ ...showPasswords, new: !showPasswords.new })}
+                      className="px-4 border border-l-0 border-slate-100 rounded-r-2xl bg-slate-50 text-slate-400 hover:text-slate-600"
+                    >
+                      {showPasswords.new ? <EyeOff size={16} /> : <Eye size={16} />}
+                    </button>
+                  </div>
+                </label>
+              </div>
+
+              <div className="space-y-2">
+                <label className="space-y-2">
+                  <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Confirmar nova senha</span>
+                  <div className="relative flex">
+                    <input
+                      type={showPasswords.confirm ? 'text' : 'password'}
+                      value={passwordForm.confirm}
+                      onChange={(e) => setPasswordForm({ ...passwordForm, confirm: e.target.value })}
+                      placeholder="Repita a nova senha"
+                      className="flex-1 p-3 rounded-l-2xl bg-slate-50 border border-slate-100 text-sm font-bold outline-none"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPasswords({ ...showPasswords, confirm: !showPasswords.confirm })}
+                      className="px-4 border border-l-0 border-slate-100 rounded-r-2xl bg-slate-50 text-slate-400 hover:text-slate-600"
+                    >
+                      {showPasswords.confirm ? <EyeOff size={16} /> : <Eye size={16} />}
+                    </button>
+                  </div>
+                </label>
+              </div>
+
+              {passwordError && (
+                <div className="p-3 rounded-2xl bg-rose-50 border border-rose-100 text-rose-700 text-sm font-bold">
+                  {passwordError}
+                </div>
+              )}
+
+              {passwordSuccess && (
+                <div className="p-3 rounded-2xl bg-emerald-50 border border-emerald-100 text-emerald-700 text-sm font-bold">
+                  {passwordSuccess}
+                </div>
+              )}
+
+              <div className="flex gap-3 pt-4">
+                <button
+                  onClick={closePasswordModal}
+                  className="flex-1 py-3 bg-slate-100 text-slate-900 rounded-2xl font-black uppercase text-sm tracking-widest hover:bg-slate-200 transition-all"
+                >
+                  Cancelar
+                </button>
+                <button
+                  onClick={handleChangePassword}
+                  disabled={isChangingPassword}
+                  className="flex-1 py-3 bg-slate-900 text-white rounded-2xl font-black uppercase text-sm tracking-widest hover:bg-slate-800 transition-all disabled:opacity-60"
+                >
+                  {isChangingPassword ? 'Alterando...' : 'Alterar Senha'}
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       )}
