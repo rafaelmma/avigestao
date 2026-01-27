@@ -175,21 +175,12 @@ const BirdManager: React.FC<BirdManagerProps> = ({
     }
   };
 
-  // Ajusta o encaixe da imagem: para ícones padrão (PNG) usamos contain para evitar cortes
+  // Ajusta o encaixe da imagem: todas as imagens usam contain + center para consistência
   const getImageFitStyle = (url?: string): React.CSSProperties => {
     if (!url || !isDefaultBirdImage(url)) {
-      return { objectFit: 'cover', objectPosition: 'center' };
+      return { objectFit: 'contain', objectPosition: 'center' };
     }
-    const isChick = url.includes('filhote');
-    if (isChick) {
-      // Para filhotes: contém a imagem sem crop, centralizada
-      return {
-        objectFit: 'contain',
-        objectPosition: 'center',
-        transform: 'scale(1.12)'
-      };
-    }
-    // Adultos padrão
+    // Todos os ícones padrão (PNG) usam contain + center para centralização perfeita
     return { objectFit: 'contain', objectPosition: 'center' };
   };
 
@@ -1179,7 +1170,7 @@ const BirdManager: React.FC<BirdManagerProps> = ({
               }}
             >
                 <div className="relative aspect-square bg-slate-50 flex items-center justify-center overflow-hidden">
-                  <img src={resolveBirdPhoto(bird)} style={getImageFitStyle(resolveBirdPhoto(bird))} className={`w-full h-full ${currentList === 'lixeira' ? 'grayscale opacity-50' : ''}`} />
+                  <img src={resolveBirdPhoto(bird)} style={{...getImageFitStyle(resolveBirdPhoto(bird)), width: '100%', height: '100%', maxWidth: '100%', maxHeight: '100%'}} className={`object-contain ${currentList === 'lixeira' ? 'grayscale opacity-50' : ''}`} />
                   <div className={`absolute top-3 left-3 px-2 py-0.5 rounded-lg text-[8px] font-black uppercase border shadow-sm ${
                       bird.sex === 'Macho' ? 'bg-blue-50 text-blue-600 border-blue-100' : 
                       bird.sex === 'Fêmea' ? 'bg-pink-50 text-pink-600 border-pink-100' : 
