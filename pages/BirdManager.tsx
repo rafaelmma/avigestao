@@ -175,6 +175,11 @@ const BirdManager: React.FC<BirdManagerProps> = ({
     }
   };
 
+  // Ajusta o encaixe da imagem: para ícones padrão (PNG) usamos contain para evitar cortes
+  const getImageFitClass = (url?: string) => {
+    return isDefaultBirdImage(url) ? 'object-contain object-center p-1.5' : 'object-cover object-center';
+  };
+
   const applyDefaultIcon = (bird: Partial<Bird>, isEditMode: boolean) => {
     const species = bird?.species || '';
     const sex = (bird?.sex || 'Indeterminado') as Sex;
@@ -191,7 +196,7 @@ const BirdManager: React.FC<BirdManagerProps> = ({
             <div className="w-32 h-32 rounded-full border-4 border-white shadow-lg overflow-hidden bg-slate-100">
               <img
                 src={resolveBirdPhoto(bird)}
-                className="w-full h-full object-cover object-center"
+                className={`w-full h-full ${getImageFitClass(resolveBirdPhoto(bird))}`}
                 alt="Foto da Ave"
               />
             </div>
@@ -1155,7 +1160,7 @@ const BirdManager: React.FC<BirdManagerProps> = ({
               }}
             >
                 <div className="relative aspect-square bg-slate-50 flex items-center justify-center overflow-hidden">
-                  <img src={resolveBirdPhoto(bird)} className={`w-full h-full object-cover object-center ${currentList === 'lixeira' ? 'grayscale opacity-50' : ''}`} />
+                  <img src={resolveBirdPhoto(bird)} className={`w-full h-full ${getImageFitClass(resolveBirdPhoto(bird))} ${currentList === 'lixeira' ? 'grayscale opacity-50' : ''}`} />
                   <div className={`absolute top-3 left-3 px-2 py-0.5 rounded-lg text-[8px] font-black uppercase border shadow-sm ${
                       bird.sex === 'Macho' ? 'bg-blue-50 text-blue-600 border-blue-100' : 
                       bird.sex === 'Fêmea' ? 'bg-pink-50 text-pink-600 border-pink-100' : 
@@ -1706,7 +1711,7 @@ const BirdManager: React.FC<BirdManagerProps> = ({
                           <div className="aspect-square rounded-2xl overflow-hidden bg-slate-50 flex items-center justify-center relative">
                              <img 
                               src={resolveBirdPhoto(selectedBird)} 
-                               className="w-full h-full object-cover object-center"
+                               className={`w-full h-full ${getImageFitClass(resolveBirdPhoto(selectedBird))}`}
                                alt="Foto da Ave"
                              />
                           </div>
