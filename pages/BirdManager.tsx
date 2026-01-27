@@ -182,10 +182,10 @@ const BirdManager: React.FC<BirdManagerProps> = ({
     }
     const isChick = url.includes('filhote');
     if (isChick) {
-      // Para filhotes: contém a imagem sem crop, posiciona levemente acima do centro e faz zoom
+      // Para filhotes: contém a imagem sem crop, centralizada
       return {
         objectFit: 'contain',
-        objectPosition: '50% 40%',
+        objectPosition: 'center',
         transform: 'scale(1.12)'
       };
     }
