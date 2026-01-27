@@ -30,25 +30,20 @@ export const APP_LOGO_ICON = '/logo.png';
 
 const buildDefaultBirdIcon = (accent: string, bg: string) => `data:image/svg+xml;utf8,${encodeURIComponent(`
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" fill="none">
-  <circle cx="256" cy="256" r="240" fill="${bg}"/>
-  <path d="M80 380 C150 400, 350 320, 440 340" stroke="${accent}" stroke-width="12" stroke-linecap="round"/>
-  <path d="M160 385 Q160 410 150 430 M150 385 Q150 410 140 430" stroke="${accent}" stroke-width="4" stroke-linecap="round"/>
-  <path d="M180 350 
-           C160 350, 120 380, 100 420 
-           L140 390
-           C140 390, 150 250, 260 200
-           C320 170, 380 200, 380 260
-           C380 320, 300 360, 180 350" 
-           fill="${accent}"/>
-  <path d="M220 280 
-           C280 260, 320 300, 300 340
-           C280 360, 240 340, 220 280" 
-           fill="${accent}"/>
-  <path d="M375 220 L410 230 L375 245 Z" fill="${accent}"/>
-  <circle cx="340" cy="230" r="12" fill="${accent}"/>
-  <circle cx="344" cy="226" r="4" fill="${bg}"/>
-  <path d="M240 350 L240 380" stroke="${accent}" stroke-width="6" stroke-linecap="round"/>
-  <path d="M270 345 L270 375" stroke="${accent}" stroke-width="6" stroke-linecap="round"/>
+  <circle cx="256" cy="256" r="240" fill="${bg}" opacity="0.4"/>
+  <g transform="translate(100, 120)">
+    <ellipse cx="150" cy="180" rx="90" ry="100" fill="${accent}" opacity="0.95"/>
+    <ellipse cx="150" cy="160" rx="70" ry="75" fill="${accent}"/>
+    <circle cx="135" cy="145" r="8" fill="white"/>
+    <circle cx="137" cy="143" r="4" fill="#1e293b"/>
+    <path d="M 185 135 Q 220 125, 240 135" stroke="${accent}" stroke-width="8" stroke-linecap="round" fill="none"/>
+    <ellipse cx="150" cy="280" rx="40" ry="35" fill="${accent}" opacity="0.8"/>
+    <path d="M 120 300 L 110 330 M 130 300 L 125 330" stroke="${accent}" stroke-width="6" stroke-linecap="round"/>
+    <path d="M 170 300 L 175 330 M 180 300 L 190 330" stroke="${accent}" stroke-width="6" stroke-linecap="round"/>
+    <path d="M 60 200 Q 40 210, 30 230" stroke="${accent}" stroke-width="12" stroke-linecap="round" fill="none" opacity="0.7"/>
+    <path d="M 60 210 Q 35 220, 20 240" stroke="${accent}" stroke-width="10" stroke-linecap="round" fill="none" opacity="0.6"/>
+    <path d="M 60 220 Q 30 235, 15 255" stroke="${accent}" stroke-width="8" stroke-linecap="round" fill="none" opacity="0.5"/>
+  </g>
 </svg>
 `)}`;
 
