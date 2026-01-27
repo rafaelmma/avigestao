@@ -180,13 +180,16 @@ const ResetPassword: React.FC = () => {
 
           <form onSubmit={handleSubmit} className="space-y-6">
             <div className="space-y-2">
-              <label className="text-xs font-black uppercase text-slate-400 tracking-widest">Nova Senha</label>
+              <label htmlFor="newPassword" className="text-xs font-black uppercase text-slate-400 tracking-widest">Nova Senha</label>
               <div className="relative">
                 <Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={20} />
                 <input 
                   required 
                   type="password" 
                   placeholder="Mínimo 8 caracteres" 
+                  id="newPassword"
+                  name="newPassword"
+                  autoComplete="new-password"
                   className="w-full pl-12 pr-4 py-4 bg-white border border-slate-200 rounded-2xl outline-none focus:border-brand font-bold text-slate-700 transition-all focus:ring-4 focus:ring-brand/5"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
@@ -196,13 +199,16 @@ const ResetPassword: React.FC = () => {
             </div>
 
             <div className="space-y-2">
-              <label className="text-xs font-black uppercase text-slate-400 tracking-widest">Confirmar Nova Senha</label>
+              <label htmlFor="confirmNewPassword" className="text-xs font-black uppercase text-slate-400 tracking-widest">Confirmar Nova Senha</label>
               <div className="relative">
                 <Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={20} />
                 <input 
                   required 
                   type="password" 
                   placeholder="Digite a senha novamente" 
+                  id="confirmNewPassword"
+                  name="confirmNewPassword"
+                  autoComplete="new-password"
                   className="w-full pl-12 pr-4 py-4 bg-white border border-slate-200 rounded-2xl outline-none focus:border-brand font-bold text-slate-700 transition-all focus:ring-4 focus:ring-brand/5"
                   value={confirmPassword}
                   onChange={(e) => setConfirmPassword(e.target.value)}

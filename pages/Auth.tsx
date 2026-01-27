@@ -113,13 +113,16 @@ const Auth: React.FC<AuthProps> = ({ onLogin }) => {
           <form onSubmit={handleSubmit} className="space-y-6">
             {!isLogin && !isForgotPassword && (
               <div className="space-y-2">
-                <label className="text-xs font-black uppercase text-slate-400 tracking-widest">Nome do Criatório</label>
+                <label htmlFor="breederName" className="text-xs font-black uppercase text-slate-400 tracking-widest">Nome do Criatório</label>
                 <div className="relative">
                   <User className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={20} />
                   <input 
                     required 
                     type="text" 
                     placeholder="Ex: Criatório Canto Mestre" 
+                    id="breederName"
+                    name="breederName"
+                    autoComplete="organization"
                     className="w-full pl-12 pr-4 py-4 bg-white border border-slate-200 rounded-2xl outline-none focus:border-brand font-bold text-slate-700 transition-all focus:ring-4 focus:ring-brand/5"
                     value={name}
                     onChange={(e) => setName(e.target.value)}
@@ -129,13 +132,16 @@ const Auth: React.FC<AuthProps> = ({ onLogin }) => {
             )}
 
             <div className="space-y-2">
-              <label className="text-xs font-black uppercase text-slate-400 tracking-widest">Email</label>
+              <label htmlFor="email" className="text-xs font-black uppercase text-slate-400 tracking-widest">Email</label>
               <div className="relative">
                 <Mail className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={20} />
                 <input 
                   required 
                   type="email" 
                   placeholder="seu@email.com" 
+                  id="email"
+                  name="email"
+                  autoComplete="email"
                   className="w-full pl-12 pr-4 py-4 bg-white border border-slate-200 rounded-2xl outline-none focus:border-brand font-bold text-slate-700 transition-all focus:ring-4 focus:ring-brand/5"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
@@ -146,7 +152,7 @@ const Auth: React.FC<AuthProps> = ({ onLogin }) => {
             {!isForgotPassword && (
               <div className="space-y-2">
                 <div className="flex justify-between items-center">
-                  <label className="text-xs font-black uppercase text-slate-400 tracking-widest">Senha</label>
+                  <label htmlFor="password" className="text-xs font-black uppercase text-slate-400 tracking-widest">Senha</label>
                   {isLogin && (
                     <button 
                       type="button" 
@@ -164,6 +170,9 @@ const Auth: React.FC<AuthProps> = ({ onLogin }) => {
                     required 
                     type="password" 
                     placeholder="Digite sua senha" 
+                    id="password"
+                    name="password"
+                    autoComplete={isLogin ? 'current-password' : 'new-password'}
                     className="w-full pl-12 pr-4 py-4 bg-white border border-slate-200 rounded-2xl outline-none focus:border-brand font-bold text-slate-700 transition-all focus:ring-4 focus:ring-brand/5"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}

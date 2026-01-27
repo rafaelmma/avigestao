@@ -1032,9 +1032,14 @@ const BirdManager: React.FC<BirdManagerProps> = ({
           <div className="flex gap-2">
              <div className="relative group flex-1">
               <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={20} />
+              <label htmlFor="bird-search" className="sr-only">Pesquisar</label>
               <input 
+                id="bird-search"
+                name="birdSearch"
                 type="text" 
                 placeholder="Pesquisar por nome ou anilha..." 
+                aria-label="Pesquisar por nome ou anilha"
+                autoComplete="off"
                 className="w-full pl-12 pr-4 py-4 bg-white border border-slate-200 rounded-2xl focus:ring-4 focus:ring-brand/5 focus:border-brand outline-none transition-all text-sm font-medium shadow-sm"
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
