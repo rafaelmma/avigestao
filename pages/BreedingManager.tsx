@@ -18,7 +18,8 @@ import {
   Archive,
   Edit2,
   Save,
-  AlertTriangle
+  AlertTriangle,
+  HelpCircle
 } from 'lucide-react';
 const TipCarousel = React.lazy(() => import('../components/TipCarousel'));
 import { SPECIES_INCUBATION_DAYS, getDefaultBirdImage } from '../constants';
@@ -886,15 +887,39 @@ const BreedingManager: React.FC<BreedingManagerProps> = ({ state, addPair, updat
               </div>
               <div className="grid grid-cols-3 gap-4">
                 <div>
-                  <label className="block text-[9px] font-black text-slate-400 uppercase tracking-widest mb-2 text-center">Ovos</label>
+                  <label className="block text-[9px] font-black text-slate-400 uppercase tracking-widest mb-2 text-center flex items-center justify-center gap-1">
+                    <span>Ovos</span>
+                    <div className="group relative cursor-help">
+                      <HelpCircle size={12} className="text-slate-300 hover:text-slate-400" />
+                      <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 hidden group-hover:block bg-slate-800 text-white text-[10px] px-2 py-1 rounded-lg whitespace-nowrap z-50">
+                        Ovos colocados
+                      </div>
+                    </div>
+                  </label>
                   <input type="number" className="w-full px-4 py-4 bg-slate-50 border border-slate-100 rounded-2xl outline-none text-center font-black text-slate-700" value={newClutch.eggCount} onChange={e => setNewClutch({...newClutch, eggCount: parseInt(e.target.value) || 0})}/>
                 </div>
                 <div>
-                  <label className="block text-[9px] font-black text-slate-400 uppercase tracking-widest mb-2 text-center text-brand">Galados</label>
+                  <label className="block text-[9px] font-black text-slate-400 uppercase tracking-widest mb-2 text-center text-brand flex items-center justify-center gap-1">
+                    <span>Galados</span>
+                    <div className="group relative cursor-help">
+                      <HelpCircle size={12} className="text-slate-300 hover:text-slate-400" />
+                      <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 hidden group-hover:block bg-slate-800 text-white text-[10px] px-2 py-1 rounded-lg whitespace-nowrap z-50">
+                        Ovos férteis
+                      </div>
+                    </div>
+                  </label>
                   <input type="number" className="w-full px-4 py-4 bg-emerald-50 border border-emerald-100 rounded-2xl outline-none text-center font-black text-emerald-700" value={newClutch.fertileCount} onChange={e => setNewClutch({...newClutch, fertileCount: parseInt(e.target.value) || 0})}/>
                 </div>
                 <div>
-                  <label className="block text-[9px] font-black text-slate-400 uppercase tracking-widest mb-2 text-center text-rose-500">Nascidos</label>
+                  <label className="block text-[9px] font-black text-slate-400 uppercase tracking-widest mb-2 text-center text-rose-500 flex items-center justify-center gap-1">
+                    <span>Nascidos</span>
+                    <div className="group relative cursor-help">
+                      <HelpCircle size={12} className="text-slate-300 hover:text-slate-400" />
+                      <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 hidden group-hover:block bg-slate-800 text-white text-[10px] px-2 py-1 rounded-lg whitespace-nowrap z-50">
+                        Filhotes nascidos
+                      </div>
+                    </div>
+                  </label>
                   <input type="number" className="w-full px-4 py-4 bg-rose-50 border border-rose-100 rounded-2xl outline-none text-center font-black text-rose-700" value={newClutch.hatchedCount} onChange={e => setNewClutch({...newClutch, hatchedCount: parseInt(e.target.value) || 0})}/>
                 </div>
               </div>

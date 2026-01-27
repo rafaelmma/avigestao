@@ -37,7 +37,8 @@ import {
   Paperclip,
   Camera,
   Lock,
-  Syringe
+  Syringe,
+  HelpCircle
 } from 'lucide-react';
 import { BRAZILIAN_SPECIES, MAX_FREE_BIRDS, SPECIES_IMAGES, getDefaultBirdImage, isDefaultBirdImage } from '../constants';
 import PedigreeTree from '../components/PedigreeTree';
@@ -1905,11 +1906,27 @@ const BirdManager: React.FC<BirdManagerProps> = ({
                       </div>
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                           <div className="space-y-2">
-                             <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest">Nome / Identificação</label>
+                             <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
+                               <span>Nome / Identificação</span>
+                               <div className="group relative cursor-help">
+                                 <HelpCircle size={14} className="text-slate-300 hover:text-slate-400" />
+                                 <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 hidden group-hover:block bg-slate-800 text-white text-[10px] px-3 py-2 rounded-lg whitespace-nowrap z-50">
+                                   Nome ou apelido da ave
+                                 </div>
+                               </div>
+                             </label>
                              <input required placeholder="Ex: Mestre Cantor" className="w-full p-4 bg-white border border-slate-200 rounded-2xl font-bold text-slate-700 outline-none focus:border-brand" value={newBird.name || ''} onChange={e => setNewBird({...newBird, name: e.target.value})} />
                           </div>
                           <div className="space-y-2">
-                             <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest">Anilha</label>
+                             <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
+                               <span>Anilha</span>
+                               <div className="group relative cursor-help">
+                                 <HelpCircle size={14} className="text-slate-300 hover:text-slate-400" />
+                                 <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 hidden group-hover:block bg-slate-800 text-white text-[10px] px-3 py-2 rounded-lg whitespace-nowrap z-50">
+                                   Número da anilha ou SISPASS
+                                 </div>
+                               </div>
+                             </label>
                              <input required placeholder="Ex: SISPASS 123456" className="w-full p-4 bg-white border border-slate-200 rounded-2xl font-bold text-slate-700 outline-none focus:border-brand" value={newBird.ringNumber || ''} onChange={e => setNewBird({...newBird, ringNumber: e.target.value})} />
                           </div>
                       </div>

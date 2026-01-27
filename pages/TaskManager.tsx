@@ -18,7 +18,8 @@ import {
   Repeat,
   Bell,
   BellRing,
-  AlertTriangle
+  AlertTriangle,
+  HelpCircle
 } from 'lucide-react';
 const TipCarousel = React.lazy(() => import('../components/TipCarousel'));
 
@@ -508,7 +509,15 @@ const TaskManager: React.FC<TaskManagerProps> = ({ state, addTask, updateTask, t
               </div>
 
               <div>
-                <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">O que deve ser feito?</label>
+                <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 flex items-center gap-2">
+                  <span>O que deve ser feito?</span>
+                  <div className="group relative cursor-help">
+                    <HelpCircle size={14} className="text-slate-300 hover:text-slate-400" />
+                    <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 hidden group-hover:block bg-slate-800 text-white text-[10px] px-3 py-2 rounded-lg whitespace-nowrap z-50">
+                      Descrição da tarefa ou atividade
+                    </div>
+                  </div>
+                </label>
                 <input required type="text" placeholder="Ex: Fornecer Farinhada Especial" className="w-full px-6 py-4 bg-slate-50 border border-slate-100 rounded-2xl outline-none focus:border-brand font-bold text-slate-700" value={newTask.title || ''} onChange={e => setNewTask({...newTask, title: e.target.value})} />
               </div>
 

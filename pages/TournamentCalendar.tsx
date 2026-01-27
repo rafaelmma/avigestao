@@ -19,7 +19,8 @@ import {
   ListChecks,
   Medal,
   Clock,
-  ArrowRight
+  ArrowRight,
+  HelpCircle
 } from 'lucide-react';
 const TipCarousel = React.lazy(() => import('../components/TipCarousel'));
 
@@ -527,7 +528,15 @@ const TournamentCalendar: React.FC<TournamentCalendarProps> = ({ state, addEvent
                 {activeTab === 'dados' && (
                   <div className="space-y-6 animate-in fade-in slide-in-from-right-4 duration-300">
                     <div>
-                      <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Título do Evento</label>
+                      <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 flex items-center gap-2">
+                        <span>Título do Evento</span>
+                        <div className="group relative cursor-help">
+                          <HelpCircle size={14} className="text-slate-300 hover:text-slate-400" />
+                          <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 hidden group-hover:block bg-slate-800 text-white text-[10px] px-3 py-2 rounded-lg whitespace-nowrap z-50">
+                            Nome do evento/torneio
+                          </div>
+                        </div>
+                      </label>
                       <input required type="text" placeholder="Ex: Torneio Regional de Verão" className="w-full px-6 py-4 bg-white border border-slate-200 rounded-2xl outline-none focus:border-brand font-bold text-slate-700 shadow-sm" value={newEvent.title || ''} onChange={e => setNewEvent({...newEvent, title: e.target.value})} />
                     </div>
 
@@ -547,7 +556,15 @@ const TournamentCalendar: React.FC<TournamentCalendarProps> = ({ state, addEvent
                     </div>
 
                     <div>
-                      <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Local / Clube</label>
+                      <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 flex items-center gap-2">
+                        <span>Local / Clube</span>
+                        <div className="group relative cursor-help">
+                          <HelpCircle size={14} className="text-slate-300 hover:text-slate-400" />
+                          <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 hidden group-hover:block bg-slate-800 text-white text-[10px] px-3 py-2 rounded-lg whitespace-nowrap z-50">
+                            Localização do evento
+                          </div>
+                        </div>
+                      </label>
                       <input required type="text" placeholder="Ex: Clube de Ornitologia BH" className="w-full px-6 py-4 bg-white border border-slate-200 rounded-2xl outline-none focus:border-brand font-bold text-slate-700 shadow-sm" value={newEvent.location || ''} onChange={e => setNewEvent({...newEvent, location: e.target.value})} />
                     </div>
 

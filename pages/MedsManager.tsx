@@ -27,7 +27,8 @@ import {
   Clock,
   CheckSquare,
   Zap,
-  Lock
+  Lock,
+  HelpCircle
 } from 'lucide-react';
 const TipCarousel = React.lazy(() => import('../components/TipCarousel'));
 
@@ -923,25 +924,65 @@ const MedsManager: React.FC<MedsManagerProps> = ({
                 </div>
               )}
               <div>
-                <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Nome Comercial</label>
+                <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 flex items-center gap-2">
+                  <span>Nome Comercial</span>
+                  <div className="group relative cursor-help">
+                    <HelpCircle size={14} className="text-slate-300 hover:text-slate-400" />
+                    <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 hidden group-hover:block bg-slate-800 text-white text-[10px] px-3 py-2 rounded-lg whitespace-nowrap z-50">
+                      Nome comercial do medicamento
+                    </div>
+                  </div>
+                </label>
                 <input required type="text" className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-brand font-bold text-slate-700" value={newMed.name || ''} onChange={e => setNewMed({...newMed, name: e.target.value})} />
               </div>
               <div>
-                <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Tipo / Categoria</label>
+                <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 flex items-center gap-2">
+                  <span>Tipo / Categoria</span>
+                  <div className="group relative cursor-help">
+                    <HelpCircle size={14} className="text-slate-300 hover:text-slate-400" />
+                    <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 hidden group-hover:block bg-slate-800 text-white text-[10px] px-3 py-2 rounded-lg whitespace-nowrap z-50">
+                      Suplemento, Antibiótico, Vitamina, etc.
+                    </div>
+                  </div>
+                </label>
                 <input required type="text" placeholder="Ex: Suplemento, Antibiótico..." className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-brand font-bold text-slate-700" value={newMed.type || ''} onChange={e => setNewMed({...newMed, type: e.target.value})} />
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Lote</label>
+                  <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 flex items-center gap-2">
+                    <span>Lote</span>
+                    <div className="group relative cursor-help">
+                      <HelpCircle size={14} className="text-slate-300 hover:text-slate-400" />
+                      <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 hidden group-hover:block bg-slate-800 text-white text-[10px] px-3 py-2 rounded-lg whitespace-nowrap z-50">
+                        Número do lote da embalagem
+                      </div>
+                    </div>
+                  </label>
                   <input type="text" className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none font-bold text-slate-700" value={newMed.batch || ''} onChange={e => setNewMed({...newMed, batch: e.target.value})} />
                 </div>
                 <div>
-                  <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Estoque Inicial</label>
+                  <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 flex items-center gap-2">
+                    <span>Estoque Inicial</span>
+                    <div className="group relative cursor-help">
+                      <HelpCircle size={14} className="text-slate-300 hover:text-slate-400" />
+                      <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 hidden group-hover:block bg-slate-800 text-white text-[10px] px-3 py-2 rounded-lg whitespace-nowrap z-50">
+                        Quantidade inicial em estoque
+                      </div>
+                    </div>
+                  </label>
                   <input type="number" className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none font-bold text-slate-700" value={newMed.stock ?? ''} onChange={e => setNewMed({...newMed, stock: Number(e.target.value)})} />
                 </div>
               </div>
               <div>
-                <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Validade</label>
+                <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 flex items-center gap-2">
+                  <span>Validade</span>
+                  <div className="group relative cursor-help">
+                    <HelpCircle size={14} className="text-slate-300 hover:text-slate-400" />
+                    <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 hidden group-hover:block bg-slate-800 text-white text-[10px] px-3 py-2 rounded-lg whitespace-nowrap z-50">
+                      Data de vencimento do produto
+                    </div>
+                  </div>
+                </label>
                 <input required type="date" className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none font-bold text-slate-700" value={newMed.expiryDate || ''} onChange={e => setNewMed({...newMed, expiryDate: e.target.value})} />
               </div>
               <button type="submit" className="w-full py-4 bg-[#0F172A] text-white font-black uppercase tracking-widest rounded-2xl shadow-xl mt-4">Salvar Item</button>
