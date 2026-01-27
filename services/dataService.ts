@@ -18,13 +18,22 @@ import {
 const MED_CAT_CACHE_KEY = "avigestao_med_catalog_v1";
 const MED_CAT_CACHE_TTL = 1000 * 60 * 60 * 24; // 24h
 const MED_CAT_PREFETCH_DELAY = 5000; // 5s depois do load inicial
+const isAbortError = (err: any) => {
+  const msg = (err?.message || err?.details || '').toString();
+  return err?.name === 'AbortError' || msg.includes('AbortError') || msg.includes('aborted');
+};
+
 const safeSelect = async <T>(query: any, mapFn: (row: any) => T): Promise<T[]> => {
   try {
     const { data, error } = await query;
     if (error) throw error;
     return (data ?? []).map(mapFn);
   } catch (err) {
-    console.warn("Falha ao carregar dados (ignorado):", err);
+    if (isAbortError(err)) {
+      // Silencia aborts (mudança de tela, unmounts, etc.)
+      return [];
+    }
+    if (import.meta?.env?.DEV) console.warn("Falha ao carregar dados:", err);
     return [];
   }
 };
@@ -37,7 +46,10 @@ const safeSingleSettings = async (query: any): Promise<SettingsFetchResult> => {
     if (error) throw error;
     return { settings: data ? mapSettingsFromDb(data) : null, failed: false };
   } catch (err) {
-    console.warn("Falha ao carregar settings (ignorado):", err);
+    if (isAbortError(err)) {
+      return { settings: null, failed: true };
+    }
+    if (import.meta?.env?.DEV) console.warn("Falha ao carregar settings:", err);
     return { settings: null, failed: true };
   }
 };

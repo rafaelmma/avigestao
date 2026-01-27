@@ -396,8 +396,13 @@ const App: React.FC = () => {
         if (data && Object.keys(data).length > 0) {
           setState(prev => ({ ...prev, ...data }));
         }
-      } catch (err) {
-        console.warn('Falha ao carregar dados da aba', tab, err);
+      } catch (err: any) {
+        const msg = (err?.message || '').toString();
+        if (msg.includes('AbortError') || msg.includes('aborted')) {
+          // navegação/abort controller durante troca de aba: ignora
+        } else if (import.meta?.env?.DEV) {
+          console.warn('Falha ao carregar dados da aba', tab, err);
+        }
       } finally {
         loadedTabsRef.current.add(tab);
       }
