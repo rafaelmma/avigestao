@@ -292,6 +292,8 @@ const SettingsManager: React.FC<SettingsManagerProps> = ({ settings, updateSetti
     setPasswordError(null);
     setPasswordSuccess(null);
   };
+
+  const handleSaveClick = async () => {
     updateSettings({ ...settings });
     try {
       await onSave(settings);
