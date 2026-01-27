@@ -184,8 +184,16 @@ const App: React.FC = () => {
       let accessToken = data?.session?.access_token || null;
 
       if (!accessToken || forceRefresh) {
-        const { data: refreshed } = await supabase.auth.refreshSession();
+        const { data: refreshed, error: refreshError } = await supabase.auth.refreshSession();
         accessToken = refreshed?.session?.access_token || null;
+        
+        // Se o refresh falhou com erro de autenticação, limpar storage corrompido
+        if (refreshError && (refreshError.message?.includes('Invalid') || refreshError.message?.includes('expired'))) {
+          console.warn('Sessão corrompida detectada, limpando storage');
+          clearSupabaseAuthStorage();
+          clearAllState(data?.session?.user?.id);
+          return null;
+        }
       }
 
       if (!accessToken) {
@@ -196,6 +204,7 @@ const App: React.FC = () => {
       return accessToken;
     } catch (err) {
       console.warn('Falha ao obter token válido', err);
+      clearSupabaseAuthStorage();
       return null;
     }
   };
@@ -593,13 +602,17 @@ const App: React.FC = () => {
     try {
       const res = await fetchWithAuth('/api/admin/check', undefined, tokenFromCaller);
       if (!res || res.status === 401 || !res.ok) {
+        if (res?.status === 401) {
+          console.warn('Token inválido ao verificar admin - sessão expirada');
+        }
         setIsAdmin(false);
         return;
       }
 
       const json = await res.json();
       setIsAdmin(!!json?.isAdmin);
-    } catch {
+    } catch (err) {
+      console.warn('Erro ao verificar admin:', err);
       setIsAdmin(false);
     }
   };
