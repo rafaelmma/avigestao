@@ -28,29 +28,10 @@ export const APP_LOGO = '/logo.png';
 // Logo Icon (mesma imagem para sidebar - será redimensionada via CSS)
 export const APP_LOGO_ICON = '/logo.png';
 
-const buildDefaultBirdIcon = (accent: string, bg: string) => `data:image/svg+xml;utf8,${encodeURIComponent(`
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" fill="none">
-  <circle cx="256" cy="256" r="240" fill="${bg}" opacity="0.4"/>
-  <g transform="translate(100, 120)">
-    <ellipse cx="150" cy="180" rx="90" ry="100" fill="${accent}" opacity="0.95"/>
-    <ellipse cx="150" cy="160" rx="70" ry="75" fill="${accent}"/>
-    <circle cx="135" cy="145" r="8" fill="white"/>
-    <circle cx="137" cy="143" r="4" fill="#1e293b"/>
-    <path d="M 185 135 Q 220 125, 240 135" stroke="${accent}" stroke-width="8" stroke-linecap="round" fill="none"/>
-    <ellipse cx="150" cy="280" rx="40" ry="35" fill="${accent}" opacity="0.8"/>
-    <path d="M 120 300 L 110 330 M 130 300 L 125 330" stroke="${accent}" stroke-width="6" stroke-linecap="round"/>
-    <path d="M 170 300 L 175 330 M 180 300 L 190 330" stroke="${accent}" stroke-width="6" stroke-linecap="round"/>
-    <path d="M 60 200 Q 40 210, 30 230" stroke="${accent}" stroke-width="12" stroke-linecap="round" fill="none" opacity="0.7"/>
-    <path d="M 60 210 Q 35 220, 20 240" stroke="${accent}" stroke-width="10" stroke-linecap="round" fill="none" opacity="0.6"/>
-    <path d="M 60 220 Q 30 235, 15 255" stroke="${accent}" stroke-width="8" stroke-linecap="round" fill="none" opacity="0.5"/>
-  </g>
-</svg>
-`)}`;
-
 export const DEFAULT_BIRD_ICONS = {
-  male: buildDefaultBirdIcon('#2563EB', '#DBEAFE'),
-  female: buildDefaultBirdIcon('#EC4899', '#FCE7F3'),
-  indeterminate: buildDefaultBirdIcon('#475569', '#E2E8F0')
+  male: '/birds/adulto_azul.png',
+  female: '/birds/adulto_rosa.png',
+  indeterminate: '/birds/adulto_azul.png'
 };
 
 export const SPECIES_IMAGES: Record<string, { male: string; female: string }> = {
