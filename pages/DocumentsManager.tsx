@@ -27,6 +27,7 @@ const DocumentsManager: React.FC<DocumentsManagerProps> = ({ settings, updateSet
     return Math.ceil(diff / (1000 * 60 * 60 * 24));
   };
   const [editSispassNumber, setEditSispassNumber] = useState(false);
+  const [editCertificateIssuer, setEditCertificateIssuer] = useState(false);
   const sispassFileInputRef = useRef<HTMLInputElement>(null);
 
   const handleSispassFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -161,6 +162,12 @@ const calculateProgress = (startDateStr?: string, endDateStr?: string) => {
       setEditSispassNumber(true);
     }
   }, [isSispassConfigured]);
+
+  useEffect(() => {
+    if (!isCertificateConfigured) {
+      setEditCertificateIssuer(true);
+    }
+  }, [isCertificateConfigured]);
 
   return (
     <div className="space-y-8 animate-in fade-in duration-500 pb-12">
@@ -419,37 +426,69 @@ const calculateProgress = (startDateStr?: string, endDateStr?: string) => {
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                  <div>
-                    <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Emissor</label>
-                    <input 
-                      type="text"
-                      placeholder="Ex: Serasa"
-                      className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl font-bold text-slate-700 outline-none text-xs focus:border-emerald-500"
-                      value={certificateIssuerValue}
-                      onBlur={(e) => {
-                        const newSettings = {
-                          ...settings, 
-                          certificate: { 
-                            issuer: e.target.value, 
-                            expiryDate: settings.certificate?.expiryDate || '', 
-                            installed: true,
-                            type: settings.certificate?.type || 'A1 (Arquivo)'
-                          }
-                        };
-                        updateSettings(newSettings);
-                        onSave?.(newSettings);
-                      }}
-                      onChange={(e) => {
-                        updateSettings({
-                          ...settings, 
-                          certificate: { 
-                            issuer: e.target.value, 
-                            expiryDate: settings.certificate?.expiryDate || '', 
-                            installed: true,
-                            type: settings.certificate?.type || 'A1 (Arquivo)'
-                          }
-                        });
-                      }}
-                    />
+                    <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1 flex items-center gap-2">
+                      <span>Emissor</span>
+                      {isCertificateConfigured && !editCertificateIssuer && (
+                        <Pencil size={12} className="text-emerald-400" />
+                      )}
+                    </label>
+                    <div className="relative">
+                      <input 
+                        type="text"
+                        placeholder="Ex: Serasa"
+                        className={`w-full px-3 py-2 rounded-xl font-bold text-slate-700 outline-none text-xs transition-all ${
+                          editCertificateIssuer
+                            ? 'bg-emerald-50 border-2 border-emerald-400 focus:border-emerald-500'
+                            : 'bg-white border border-slate-200 focus:border-emerald-500'
+                        } ${isCertificateConfigured && !editCertificateIssuer ? 'cursor-pointer hover:bg-emerald-50' : ''}`}
+                        value={certificateIssuerValue}
+                        disabled={isCertificateConfigured && !editCertificateIssuer}
+                        onBlur={(e) => {
+                          if (isCertificateConfigured) setEditCertificateIssuer(false);
+                          const newSettings = {
+                            ...settings, 
+                            certificate: { 
+                              issuer: e.target.value, 
+                              expiryDate: settings.certificate?.expiryDate || '', 
+                              installed: true,
+                              type: settings.certificate?.type || 'A1 (Arquivo)'
+                            }
+                          };
+                          updateSettings(newSettings);
+                          onSave?.(newSettings);
+                        }}
+                        onChange={(e) => {
+                          updateSettings({
+                            ...settings, 
+                            certificate: { 
+                              issuer: e.target.value, 
+                              expiryDate: settings.certificate?.expiryDate || '', 
+                              installed: true,
+                              type: settings.certificate?.type || 'A1 (Arquivo)'
+                            }
+                          });
+                        }}
+                      />
+                      {editCertificateIssuer && (
+                        <button
+                          type="button"
+                          onClick={() => setEditCertificateIssuer(false)}
+                          className="absolute right-3 top-1/2 -translate-y-1/2 text-emerald-500 hover:text-emerald-700"
+                          title="Salvar"
+                        >
+                          <CheckCircle2 size={18} />
+                        </button>
+                      )}
+                    </div>
+                    {isCertificateConfigured && !editCertificateIssuer && (
+                      <button
+                        type="button"
+                        onClick={() => setEditCertificateIssuer(true)}
+                        className="mt-2 inline-flex items-center gap-1 text-[9px] font-black uppercase tracking-widest text-emerald-600 hover:text-emerald-700 transition-colors"
+                      >
+                        <Pencil size={12} /> Editar emissor
+                      </button>
+                    )}
                  </div>
                  <div>
                     <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Validade</label>
