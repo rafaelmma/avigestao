@@ -177,7 +177,15 @@ const BirdManager: React.FC<BirdManagerProps> = ({
 
   // Ajusta o encaixe da imagem: para ícones padrão (PNG) usamos contain para evitar cortes
   const getImageFitClass = (url?: string) => {
-    return isDefaultBirdImage(url) ? 'object-contain object-center p-1.5' : 'object-cover object-center';
+    if (!url) return 'object-cover object-center';
+    if (isDefaultBirdImage(url)) {
+      const isChick = url.includes('filhote');
+      // Para filhotes, damos um leve zoom e ajustamos o objeto um pouco para cima
+      if (isChick) return 'object-contain object-[50%_45%] scale-[1.08]';
+      // Adultos padrão
+      return 'object-contain object-center';
+    }
+    return 'object-cover object-center';
   };
 
   const applyDefaultIcon = (bird: Partial<Bird>, isEditMode: boolean) => {
