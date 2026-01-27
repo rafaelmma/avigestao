@@ -130,7 +130,7 @@ const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab, logoUrl, bre
           </div>
         )}
 
-        <nav className="flex-1 px-4 space-y-1 overflow-y-auto no-scrollbar">
+        <nav className="flex-1 px-4 space-y-1 overflow-y-auto">
           {menuItems.map((item) => (
             <button
               key={item.id}

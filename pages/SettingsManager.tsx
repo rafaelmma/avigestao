@@ -13,6 +13,8 @@ import {
   AlertTriangle,
   CheckCircle2,
   Save,
+  Eye,
+  EyeOff,
 } from 'lucide-react';
 const TipCarousel = React.lazy(() => import('../components/TipCarousel'));
 import { APP_LOGO } from '../constants';
@@ -79,6 +81,11 @@ const SettingsManager: React.FC<SettingsManagerProps> = ({ settings, updateSetti
   const [savedAt, setSavedAt] = useState<string | null>(null);
   const [isUploadingLogo, setIsUploadingLogo] = useState(false);
   const [logoUploadError, setLogoUploadError] = useState<string | null>(null);
+  const [passwordForm, setPasswordForm] = useState({ current: '', new: '', confirm: '' });
+  const [showPasswords, setShowPasswords] = useState({ current: false, new: false, confirm: false });
+  const [passwordError, setPasswordError] = useState<string | null>(null);
+  const [passwordSuccess, setPasswordSuccess] = useState<string | null>(null);
+  const [isChangingPassword, setIsChangingPassword] = useState(false);
 
   const isTrial = !!settings.trialEndDate && !isAdmin;
   const canUseLogo = !!isAdmin || settings.plan === 'Profissional' || !!settings.trialEndDate;
@@ -288,6 +295,73 @@ const SettingsManager: React.FC<SettingsManagerProps> = ({ settings, updateSetti
     }
   };
 
+  const handleChangePassword = async () => {
+    setPasswordError(null);
+    setPasswordSuccess(null);
+
+    if (!passwordForm.current.trim()) {
+      setPasswordError('Digite sua senha atual');
+      return;
+    }
+    if (!passwordForm.new.trim() || passwordForm.new.length < 8) {
+      setPasswordError('Nova senha deve ter no mínimo 8 caracteres');
+      return;
+    }
+    if (passwordForm.new !== passwordForm.confirm) {
+      setPasswordError('As senhas não coincidem');
+      return;
+    }
+    if (passwordForm.new === passwordForm.current) {
+      setPasswordError('A nova senha deve ser diferente da atual');
+      return;
+    }
+
+    setIsChangingPassword(true);
+    try {
+      // Primeiro, valida a senha atual tentando fazer login
+      const session = await supabase.auth.getSession();
+      const email = session?.data?.session?.user?.email;
+      
+      if (!email) {
+        throw new Error('Email não encontrado. Faça login novamente.');
+      }
+
+      // Tenta fazer signin com a senha atual para validar
+      const { error: signInError } = await supabase.auth.signInWithPassword({
+        email,
+        password: passwordForm.current,
+      });
+
+      if (signInError) {
+        throw new Error('Senha atual incorreta');
+      }
+
+      // Se validada, atualiza a senha
+      const { error: updateError } = await supabase.auth.updateUser({
+        password: passwordForm.new,
+      });
+
+      if (updateError) {
+        throw new Error(updateError.message || 'Erro ao atualizar senha');
+      }
+
+      setPasswordSuccess('Senha alterada com sucesso! Faça login novamente com a nova senha.');
+      setPasswordForm({ current: '', new: '', confirm: '' });
+      
+      // Após 2s, faz logout para obrigar novo login com a nova senha
+      setTimeout(async () => {
+        try {
+          await supabase.auth.signOut({ scope: 'global' });
+        } catch {/* ignore */}
+      }, 2000);
+    } catch (err: any) {
+      const msg = err?.message || 'Erro ao alterar senha. Tente novamente.';
+      setPasswordError(msg);
+    } finally {
+      setIsChangingPassword(false);
+    }
+  };
+
   return (
     <div className="space-y-8 max-w-6xl pb-14 animate-in fade-in">
       {bannerMessage && bannerMessage.length > 0 && (
@@ -458,6 +532,98 @@ const SettingsManager: React.FC<SettingsManagerProps> = ({ settings, updateSetti
                     onChange={(e) => updateSettings({ ...settings, lastRenewalDate: e.target.value })}
                   />
                 </label>
+              </div>
+            </div>
+
+            <div className="bg-white p-8 rounded-3xl border border-slate-100 shadow-sm space-y-6">
+              <h3 className="font-black flex items-center gap-2 text-slate-800">
+                <Lock size={18} /> Segurança
+              </h3>
+
+              <div className="space-y-4">
+                <div>
+                  <label className="space-y-2">
+                    <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Senha atual</span>
+                    <div className="relative flex">
+                      <input
+                        type={showPasswords.current ? 'text' : 'password'}
+                        value={passwordForm.current}
+                        onChange={(e) => setPasswordForm({ ...passwordForm, current: e.target.value })}
+                        placeholder="Digite sua senha atual"
+                        className="flex-1 p-3 rounded-l-2xl bg-slate-50 border border-slate-100 text-sm font-bold outline-none"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowPasswords({ ...showPasswords, current: !showPasswords.current })}
+                        className="px-4 border border-l-0 border-slate-100 rounded-r-2xl bg-slate-50 text-slate-400 hover:text-slate-600"
+                      >
+                        {showPasswords.current ? <EyeOff size={16} /> : <Eye size={16} />}
+                      </button>
+                    </div>
+                  </label>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <label className="space-y-2">
+                    <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Nova senha</span>
+                    <div className="relative flex">
+                      <input
+                        type={showPasswords.new ? 'text' : 'password'}
+                        value={passwordForm.new}
+                        onChange={(e) => setPasswordForm({ ...passwordForm, new: e.target.value })}
+                        placeholder="Mínimo 8 caracteres"
+                        className="flex-1 p-3 rounded-l-2xl bg-slate-50 border border-slate-100 text-sm font-bold outline-none"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowPasswords({ ...showPasswords, new: !showPasswords.new })}
+                        className="px-4 border border-l-0 border-slate-100 rounded-r-2xl bg-slate-50 text-slate-400 hover:text-slate-600"
+                      >
+                        {showPasswords.new ? <EyeOff size={16} /> : <Eye size={16} />}
+                      </button>
+                    </div>
+                  </label>
+
+                  <label className="space-y-2">
+                    <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Confirmar nova senha</span>
+                    <div className="relative flex">
+                      <input
+                        type={showPasswords.confirm ? 'text' : 'password'}
+                        value={passwordForm.confirm}
+                        onChange={(e) => setPasswordForm({ ...passwordForm, confirm: e.target.value })}
+                        placeholder="Repita a nova senha"
+                        className="flex-1 p-3 rounded-l-2xl bg-slate-50 border border-slate-100 text-sm font-bold outline-none"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowPasswords({ ...showPasswords, confirm: !showPasswords.confirm })}
+                        className="px-4 border border-l-0 border-slate-100 rounded-r-2xl bg-slate-50 text-slate-400 hover:text-slate-600"
+                      >
+                        {showPasswords.confirm ? <EyeOff size={16} /> : <Eye size={16} />}
+                      </button>
+                    </div>
+                  </label>
+                </div>
+
+                {passwordError && (
+                  <div className="p-3 rounded-2xl bg-rose-50 border border-rose-100 text-rose-700 text-sm font-bold">
+                    {passwordError}
+                  </div>
+                )}
+
+                {passwordSuccess && (
+                  <div className="p-3 rounded-2xl bg-emerald-50 border border-emerald-100 text-emerald-700 text-sm font-bold">
+                    {passwordSuccess}
+                  </div>
+                )}
+
+                <button
+                  onClick={handleChangePassword}
+                  disabled={isChangingPassword}
+                  className="w-full py-3 bg-slate-900 text-white rounded-2xl font-black uppercase text-sm tracking-widest hover:bg-slate-800 transition-all disabled:opacity-60"
+                >
+                  {isChangingPassword ? 'Alterando...' : 'Alterar Senha'}
+                </button>
               </div>
             </div>
 
