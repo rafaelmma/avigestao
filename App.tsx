@@ -91,6 +91,23 @@ const clearAllCachedStates = () => {
   }
 };
 
+// Remove tokens gravados pelo cliente Supabase (sb-*-auth-token)
+const clearSupabaseAuthStorage = () => {
+  if (typeof localStorage === 'undefined') return;
+  try {
+    const keysToRemove: string[] = [];
+    for (let i = 0; i < localStorage.length; i += 1) {
+      const key = localStorage.key(i) || '';
+      if (key.startsWith('sb-') && key.includes('-auth-token')) {
+        keysToRemove.push(key);
+      }
+    }
+    keysToRemove.forEach(k => localStorage.removeItem(k));
+  } catch {
+    /* ignore */
+  }
+};
+
 const DEFAULT_SESSION_TIMEOUT_MS = 8000;
 const SESSION_RETRY_DELAY_MS = 2000;
 const SESSION_RETRY_LIMIT = 3;
@@ -146,6 +163,76 @@ const App: React.FC = () => {
   const realtimeChannelsRef = useRef<any[]>([]);
   const sessionClearRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const persistSettingsInProgressRef = useRef(false);
+
+  const clearAllState = (userId?: string) => {
+    lastValidSessionRef.current = null;
+    loadedTabsRef.current = new Set();
+    setSession(null);
+    setIsAdmin(false);
+    setState(defaultState);
+    setHasHydratedOnce(false);
+    setIsLoading(false);
+    clearCachedState(userId);
+    clearAllCachedStates();
+    clearSupabaseAuthStorage();
+  };
+
+  const getFreshAccessToken = async (forceRefresh = false): Promise<string | null> => {
+    if (supabaseUnavailable) return null;
+    try {
+      let { data } = await supabase.auth.getSession();
+      let accessToken = data?.session?.access_token || null;
+
+      if (!accessToken || forceRefresh) {
+        const { data: refreshed } = await supabase.auth.refreshSession();
+        accessToken = refreshed?.session?.access_token || null;
+      }
+
+      if (!accessToken) {
+        clearAllState(data?.session?.user?.id);
+        return null;
+      }
+
+      return accessToken;
+    } catch (err) {
+      console.warn('Falha ao obter token válido', err);
+      return null;
+    }
+  };
+
+  const fetchWithAuth = async (
+    path: string,
+    init?: RequestInit,
+    tokenOverride?: string
+  ): Promise<Response | null> => {
+    const doFetch = async (token: string) =>
+      fetch(path, {
+        ...init,
+        headers: {
+          ...(init?.headers || {}),
+          Authorization: `Bearer ${token}`
+        }
+      });
+
+    let token = tokenOverride || (await getFreshAccessToken());
+    if (!token) return null;
+
+    let res = await doFetch(token);
+    if (res.status === 401) {
+      token = await getFreshAccessToken(true);
+      if (!token) return res;
+      res = await doFetch(token);
+
+      if (res.status === 401) {
+        try {
+          await supabase.auth.signOut({ scope: 'global' });
+        } catch {/* ignore */}
+        clearAllState();
+      }
+    }
+
+    return res;
+  };
 
   // Declare persistSettings early so it's available to all functions
   let persistSettings: (settings: BreederSettings) => Promise<void>;
@@ -321,18 +408,6 @@ const App: React.FC = () => {
       cancelled = true;
     };
   }, [activeTab, session, supabaseUnavailable]);
-  const clearAllState = (userId?: string) => {
-    lastValidSessionRef.current = null;
-    loadedTabsRef.current = new Set();
-    setSession(null);
-    setIsAdmin(false);
-    setState(defaultState);
-    setHasHydratedOnce(false);
-    setIsLoading(false);
-    clearCachedState(userId);
-    clearAllCachedStates();
-  };
-
   const handleSession = async (newSession: any, event?: string) => {
     if (!newSession) {
       if (sessionClearRef.current) {
@@ -390,6 +465,7 @@ const App: React.FC = () => {
     }
     
     setAuthError(null);
+    // Se o token for inválido, força revalidação imediata
     const token = newSession.access_token;
 
     // Hidrata dados em background
@@ -413,15 +489,6 @@ const App: React.FC = () => {
       setIsLoading(false);
     }
   };
-  const getValidAccessToken = async (): Promise<string | null> => {
-    try {
-      const { data } = await supabase.auth.getSession();
-      return data?.session?.access_token || null;
-    } catch {
-      return null;
-    }
-  };
-
   // Define persistSettings immediately so it's available to all functions
   persistSettings = async (settings: BreederSettings) => {
     if (supabaseUnavailable) {
@@ -519,23 +586,8 @@ const App: React.FC = () => {
 
   const checkAdmin = async (tokenFromCaller?: string) => {
     try {
-      const token = tokenFromCaller || (await getValidAccessToken());
-      if (!token) {
-        setIsAdmin(false);
-        return;
-      }
-
-      const res = await fetch('/api/admin/check', {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-
-      if (res.status === 401) {
-        // Sessão expirada para esta chamada; aguarda próxima hidratação
-        setIsAdmin(false);
-        return;
-      }
-
-      if (!res.ok) {
+      const res = await fetchWithAuth('/api/admin/check', undefined, tokenFromCaller);
+      if (!res || res.status === 401 || !res.ok) {
         setIsAdmin(false);
         return;
       }
@@ -596,18 +648,9 @@ const App: React.FC = () => {
   };
 
   const fetchSubscriptionStatus = async (currentSession: any) => {
-    const token = currentSession.access_token || (await getValidAccessToken());
-    if (!token) {
-      console.warn('Sem token para verificar assinatura, pulando');
-      return null;
-    }
+    const res = await fetchWithAuth('/api/subscription-status', { method: 'POST' }, currentSession?.access_token);
 
-    const res = await fetch('/api/subscription-status', {
-      method: 'POST',
-      headers: { Authorization: `Bearer ${token}` }
-    });
-
-    if (res.status === 401) {
+    if (!res || res.status === 401) {
       console.warn('Token expirado ao consultar assinatura; tentar na próxima sessão');
       return null;
     }
@@ -1798,12 +1841,22 @@ const App: React.FC = () => {
     const currentUserId = session?.user?.id;
     clearCachedState(currentUserId);
     clearAllCachedStates();
+    clearSupabaseAuthStorage();
 
-    // dispara signOut sem bloquear a UI
+    // dispara signOut (escopo global) e aguarda para garantir limpeza de tokens
     if (!supabaseUnavailable) {
-      supabase.auth.signOut().catch((err: any) => {
+      try {
+        await supabase.auth.signOut({ scope: 'global' });
+      } catch (err: any) {
         console.warn('Erro ao deslogar supabase', err);
-      });
+      }
+    }
+
+    // redireciona para login limpo
+    try {
+      window.location.replace('/');
+    } catch {
+      /* ignore */
     }
 
     try {
