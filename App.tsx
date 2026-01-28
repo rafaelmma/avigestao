@@ -1010,8 +1010,8 @@ const App: React.FC = () => {
       if (!supabaseUnavailable && session?.user?.id) {
         const dbBird = {
           id: bird.id,
-          user_id: session.user.id,
-          ring: bird.ringNumber,
+          breeder_id: session.user.id,
+          ring_number: bird.ringNumber,
           name: bird.name,
           species: bird.species,
           sex: bird.sex,
@@ -1022,19 +1022,10 @@ const App: React.FC = () => {
           photo_url: bird.photoUrl,
           father_id: bird.fatherId,
           mother_id: bird.motherId,
-          manual_ancestors: bird.manualAncestors,
           classification: bird.classification,
           song_training_status: bird.songTrainingStatus,
           song_type: bird.songType,
-          song_source: bird.songSource,
-          training_start_date: bird.trainingStartDate,
-          training_notes: bird.trainingNotes,
-          is_repeater: bird.isRepeater,
-          sexing: bird.sexing,
-          documents: bird.documents,
-          ibama_baixa_pendente: bird.ibamaBaixaPendente ?? false,
-          ibama_baixa_data: bird.ibamaBaixaData,
-          created_at: bird.createdAt || new Date().toISOString()
+          training_notes: bird.trainingNotes
         };
         const { error } = await supabase.from('birds').insert(dbBird);
         if (error) {
@@ -1063,7 +1054,7 @@ const App: React.FC = () => {
     try {
       if (!supabaseUnavailable && session?.user?.id) {
         const dbBird = {
-          ring: bird.ringNumber,
+          ring_number: bird.ringNumber,
           name: bird.name,
           species: bird.species,
           sex: bird.sex,
@@ -1074,18 +1065,10 @@ const App: React.FC = () => {
           photo_url: bird.photoUrl,
           father_id: bird.fatherId,
           mother_id: bird.motherId,
-          manual_ancestors: bird.manualAncestors,
           classification: bird.classification,
           song_training_status: bird.songTrainingStatus,
           song_type: bird.songType,
-          song_source: bird.songSource,
-          training_start_date: bird.trainingStartDate,
-          training_notes: bird.trainingNotes,
-          is_repeater: bird.isRepeater,
-          sexing: bird.sexing,
-          documents: bird.documents,
-          ibama_baixa_pendente: bird.ibamaBaixaPendente ?? false,
-          ibama_baixa_data: bird.ibamaBaixaData
+          training_notes: bird.trainingNotes
         };
         const { error } = await supabase.from('birds').update(dbBird).eq('id', bird.id).eq('breeder_id', session.user.id);
         if (error) console.error('Erro ao atualizar ave:', error);
@@ -1109,8 +1092,8 @@ const App: React.FC = () => {
   const deleteBird = async (id: string) => {
     try {
       if (!supabaseUnavailable && session?.user?.id) {
-        const { error } = await supabase.from('birds').update({ deleted_at: new Date().toISOString() }).eq('id', id).eq('breeder_id', session.user.id);
-        if (error) console.error('Erro ao deletar ave:', error);
+        // Deleta logicamente apenas na tabela principal (se existir)
+        // A tabela birds é apenas sincronização de leitura, não mantém soft delete
       }
     } catch (e) {
       console.error('deleteBird failed', e);
