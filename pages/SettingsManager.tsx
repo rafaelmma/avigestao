@@ -434,30 +434,33 @@ const SettingsManager: React.FC<SettingsManagerProps> = ({ settings, updateSetti
       {activeTab === 'perfil' && (
         <div className="grid grid-cols-1 lg:grid-cols-[1.6fr_0.9fr] gap-6">
           <div className="space-y-6">
-            <div className="bg-white p-8 rounded-3xl border border-slate-100 shadow-sm space-y-6">
-              <h3 className="font-black flex items-center gap-2 text-slate-800">
+            <div className="bg-white p-8 rounded-xl border border-slate-100 shadow-sm space-y-6">
+              <h3 className="font-bold flex items-center gap-2 text-slate-900">
                 <User size={18} /> Identidade do criatório
               </h3>
 
-              <div className="bg-slate-50 border border-slate-100 rounded-2xl p-6 flex flex-col sm:flex-row gap-6 items-center sm:items-start">
-                <div className="w-24 h-24 bg-white border rounded-2xl flex items-center justify-center overflow-hidden">
+              <div className="bg-gradient-to-br from-blue-50 to-slate-50 border-2 border-slate-200 rounded-xl p-8 flex flex-col items-center justify-center gap-6 text-center">
+                <div className="w-48 h-48 bg-white border-2 border-slate-300 rounded-xl flex items-center justify-center overflow-hidden shadow-lg hover:shadow-xl transition-shadow">
                   {settings.logoUrl ? (
-                    <img src={settings.logoUrl} className="w-full h-full object-contain p-2" />
+                    <img src={settings.logoUrl} className="w-full h-full object-contain p-3" />
                   ) : (
-                    <ImageIcon className="text-slate-300" />
+                    <div className="flex flex-col items-center gap-2 text-slate-400">
+                      <ImageIcon size={48} />
+                      <p className="text-xs font-medium">Logo do criatório</p>
+                    </div>
                   )}
                 </div>
-                <div className="flex-1">
-                  <p className="font-black text-slate-800">Logomarca do criatório</p>
-                  <p className="text-xs text-slate-500 mt-1">Exibida no menu lateral e em documentos.</p>
+                <div className="flex-1 w-full">
+                  <p className="font-bold text-slate-900 text-lg mb-1">Logomarca do criatório</p>
+                  <p className="text-sm text-slate-600 mb-4">Exibida no menu lateral e em documentos.</p>
                   {canUseLogo ? (
                     <>
                       <button
                         onClick={() => !isUploadingLogo && fileInputRef.current?.click()}
-                        className="mt-4 inline-flex items-center gap-2 px-4 py-2 border rounded-xl text-xs font-black disabled:opacity-60"
+                        className="inline-flex items-center gap-2 px-6 py-3 bg-blue-600 text-white rounded-lg text-sm font-semibold hover:bg-blue-700 transition-all disabled:opacity-60"
                         disabled={isUploadingLogo}
                       >
-                        {isUploadingLogo ? <Loader2 size={14} className="animate-spin" /> : <Upload size={14} />}
+                        {isUploadingLogo ? <Loader2 size={16} className="animate-spin" /> : <Upload size={16} />}
                         {isUploadingLogo ? 'Enviando logo...' : 'Carregar nova logo'}
                       </button>
                       <input
@@ -468,12 +471,12 @@ const SettingsManager: React.FC<SettingsManagerProps> = ({ settings, updateSetti
                         onChange={handleLogoUpload}
                       />
                       {logoUploadError && (
-                        <p className="mt-2 text-[11px] text-rose-600 font-bold">{logoUploadError}</p>
+                        <p className="mt-3 text-sm text-red-600 font-medium">{logoUploadError}</p>
                       )}
                     </>
                   ) : (
-                    <div className="mt-4 inline-flex items-center gap-2 text-amber-600 text-xs font-black">
-                      <Lock size={14} /> Recurso PRO
+                    <div className="inline-flex items-center gap-2 text-amber-700 bg-amber-50 px-4 py-2 rounded-lg text-sm font-semibold">
+                      <Lock size={16} /> Recurso PRO
                     </div>
                   )}
                 </div>
@@ -481,9 +484,9 @@ const SettingsManager: React.FC<SettingsManagerProps> = ({ settings, updateSetti
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <label className="space-y-2">
-                  <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Nome do criatório</span>
+                  <span className="text-label">Nome do criatório</span>
                   <input
-                    className="w-full p-3 rounded-2xl bg-slate-50 border border-slate-100 text-sm font-bold"
+                    className="w-full p-3.5 rounded-lg bg-white border border-slate-300 text-sm font-medium outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500"
                     value={settings.breederName}
                     onChange={(e) => updateSettings({ ...settings, breederName: e.target.value })}
                     placeholder="Ex: Aviario Azul"
@@ -491,9 +494,9 @@ const SettingsManager: React.FC<SettingsManagerProps> = ({ settings, updateSetti
                 </label>
 
                 <label className="space-y-2">
-                  <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">CPF / CNPJ</span>
+                  <span className="text-label">CPF / CNPJ</span>
                   <input
-                    className="w-full p-3 rounded-2xl bg-slate-50 border border-slate-100 text-sm font-bold"
+                    className="w-full p-3.5 rounded-lg bg-white border border-slate-300 text-sm font-medium outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500"
                     value={settings.cpfCnpj}
                     onChange={(e) => updateSettings({ ...settings, cpfCnpj: maskCpfCnpj(e.target.value) })}
                     placeholder="Digite com numeros"
@@ -504,28 +507,28 @@ const SettingsManager: React.FC<SettingsManagerProps> = ({ settings, updateSetti
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <label className="space-y-2">
                   <div className="flex items-center gap-2">
-                    <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Numero SISPASS</span>
+                    <span className="text-label">Número SISPASS</span>
                     <div className="group relative cursor-help">
-                      <HelpCircle size={14} className="text-slate-300 hover:text-slate-400" />
-                      <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 hidden group-hover:block bg-slate-800 text-white text-[10px] px-3 py-2 rounded-lg whitespace-nowrap z-50">
+                      <HelpCircle size={14} className="text-slate-400 hover:text-slate-600" />
+                      <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 hidden group-hover:block bg-slate-800 text-white text-xs px-3 py-2 rounded-lg whitespace-nowrap z-50">
                         Número de registro do SISPASS/CTF junto ao IBAMA
                       </div>
                     </div>
                   </div>
                   <input
-                    className="w-full p-3 rounded-2xl bg-slate-50 border border-slate-100 text-sm font-bold"
+                    className="w-full p-3.5 rounded-lg bg-white border border-slate-300 text-sm font-medium outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500"
                     value={settings.sispassNumber}
                     onChange={(e) => updateSettings({ ...settings, sispassNumber: e.target.value })}
                     placeholder="Ex: 1234567-8"
                   />
-                  <p className="text-[10px] text-slate-400">Encontre em sua licença SISPASS/CTF</p>
+                  <p className="text-xs text-slate-500">Encontre em sua licença SISPASS/CTF</p>
                 </label>
                 <label className="space-y-2">
                   <div className="flex items-center gap-2">
-                    <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Data de Renovação SISPASS</span>
+                    <span className="text-label">Data de Renovação SISPASS</span>
                     <div className="group relative cursor-help">
-                      <HelpCircle size={14} className="text-slate-300 hover:text-slate-400" />
-                      <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 hidden group-hover:block bg-slate-800 text-white text-[10px] px-3 py-2 rounded-lg whitespace-nowrap z-50">
+                      <HelpCircle size={14} className="text-slate-400 hover:text-slate-600" />
+                      <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 hidden group-hover:block bg-slate-800 text-white text-xs px-3 py-2 rounded-lg whitespace-nowrap z-50">
                         Data de vencimento da sua licença SISPASS/CTF
                       </div>
                     </div>
@@ -533,7 +536,7 @@ const SettingsManager: React.FC<SettingsManagerProps> = ({ settings, updateSetti
                   <input
                     ref={renewalDateRef}
                     type="date"
-                    className="w-full p-3 rounded-2xl bg-slate-50 border border-slate-100 text-sm font-bold"
+                    className="w-full p-3.5 rounded-lg bg-white border border-slate-300 text-sm font-medium outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500"
                     value={settings.renewalDate}
                     onChange={(e) => updateSettings({ ...settings, renewalDate: e.target.value })}
                   />
