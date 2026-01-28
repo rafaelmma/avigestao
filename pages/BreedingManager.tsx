@@ -418,7 +418,7 @@ const BreedingManager: React.FC<BreedingManagerProps> = ({ state, addPair, updat
              <Bell size={24} />}
           </div>
           <div>
-            <p className="text-sm font-black uppercase tracking-widest leading-none mb-1">Notificação</p>
+            <p className="text-sm font-semibold text-slate-600 leading-none mb-1">Notificação</p>
             <p className="text-elderly-label text-slate-600 opacity-90">{notification.message}</p>
           </div>
           <button onClick={() => setNotification(null)} className="ml-4 p-1 hover:bg-black/5 rounded-lg">
@@ -429,26 +429,26 @@ const BreedingManager: React.FC<BreedingManagerProps> = ({ state, addPair, updat
 
       <header className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h2 className="text-3xl font-black text-[#0F172A] tracking-tight">Reprodução</h2>
+          <h2 className="text-3xl font-bold text-slate-900 tracking-tight">Reprodução</h2>
           <p className="text-slate-400 font-medium text-sm mt-1">Gestão de casais, incubação e nascimentos.</p>
         </div>
         <div className="flex gap-2">
            <div className="flex bg-white p-1 rounded-xl shadow-sm border border-slate-100 mr-2">
              <button 
                onClick={() => setCurrentList('active')} 
-               className={`px-4 py-2 text-xs font-black uppercase rounded-lg transition-all ${currentList === 'active' ? 'bg-[#0F172A] text-white shadow' : 'text-slate-400'}`}
+               className={`px-4 py-2 text-xs font-semibold rounded-lg transition-all whitespace-nowrap ${currentList === 'active' ? 'bg-slate-900 text-white shadow-sm' : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'}`}
              >
                Ativos
              </button>
              <button 
                onClick={() => setCurrentList('archived')} 
-               className={`px-4 py-2 text-xs font-black uppercase rounded-lg transition-all flex items-center gap-2 ${currentList === 'archived' ? 'bg-amber-500 text-white shadow' : 'text-slate-400'}`}
+               className={`px-4 py-2 text-xs font-semibold rounded-lg transition-all flex items-center gap-2 whitespace-nowrap ${currentList === 'archived' ? 'bg-amber-600 text-white shadow-sm' : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'}`}
              >
                <Archive size={12} /> Histórico
              </button>
              <button 
                onClick={() => setCurrentList('trash')} 
-               className={`px-4 py-2 text-xs font-black uppercase rounded-lg transition-all flex items-center gap-2 ${currentList === 'trash' ? 'bg-rose-500 text-white shadow' : 'text-slate-400'}`}
+               className={`px-4 py-2 text-xs font-semibold rounded-lg transition-all flex items-center gap-2 whitespace-nowrap ${currentList === 'trash' ? 'bg-red-600 text-white shadow-sm' : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'}`}
              >
                <Trash2 size={12} /> Lixeira
              </button>
@@ -456,10 +456,10 @@ const BreedingManager: React.FC<BreedingManagerProps> = ({ state, addPair, updat
            {currentList === 'active' && (
              <button 
               onClick={() => { setShowPairModal(true); setNewPair({ status: 'Ativo' }); }}
-              className="flex items-center gap-2 px-6 py-3 bg-[#0F172A] hover:opacity-90 text-white rounded-2xl shadow-lg transition-all font-black text-xs uppercase tracking-widest"
+              className="flex items-center gap-2 px-5 py-3 bg-slate-900 hover:bg-slate-800 text-white rounded-lg shadow-md transition-all font-semibold text-sm"
              >
               <Plus size={18} />
-              Registrar Casal
+              Novo Casal
              </button>
            )}
         </div>
@@ -488,7 +488,7 @@ const BreedingManager: React.FC<BreedingManagerProps> = ({ state, addPair, updat
               <Heart size={20} className={currentList === 'archived' ? 'text-amber-500' : currentList === 'trash' ? 'text-rose-500' : 'text-[#0F172A]'} />
               {currentList === 'active' ? 'Casais Ativos' : currentList === 'archived' ? 'Histórico de Casais' : 'Casais Excluídos'}
             </h3>
-            <span className="px-3 py-1 bg-rose-50 text-rose-500 text-elderly-label rounded-lg uppercase">
+            <span className="px-3 py-1 bg-red-50 text-red-600 text-xs font-medium rounded-lg">
               {visiblePairs.length} Registros
             </span>
           </div>
@@ -503,21 +503,21 @@ const BreedingManager: React.FC<BreedingManagerProps> = ({ state, addPair, updat
                 )}
                 <div className="p-6 flex items-center justify-between bg-slate-50/50">
                   <div className="flex items-center gap-4">
-                    <div className={`w-12 h-12 bg-white rounded-2xl flex items-center justify-center shadow-sm border group-hover:scale-110 transition-transform ${pair.lastHatchDate ? 'text-emerald-500 border-emerald-200' : 'text-rose-500 border-slate-100'}`}>
+                    <div className={`w-12 h-12 bg-white rounded-lg flex items-center justify-center shadow-sm border group-hover:scale-105 transition-transform ${pair.lastHatchDate ? 'text-emerald-600 border-emerald-200' : 'text-red-500 border-slate-100'}`}>
                       <Heart size={24} fill={pair.status === 'Ativo' ? 'currentColor' : 'none'} />
                     </div>
                     <div>
                       <div className="flex items-center gap-2">
-                        <h3 className="font-black text-slate-800 leading-tight">{pair.name}</h3>
+                        <h3 className="font-bold text-slate-900 leading-tight">{pair.name}</h3>
                         {pair.lastHatchDate && (
-                          <span className="px-2 py-0.5 bg-emerald-50 text-emerald-600 text-elderly-label uppercase rounded-lg border border-emerald-200">
+                          <span className="px-2 py-0.5 bg-emerald-50 text-emerald-700 text-xs font-medium rounded-md border border-emerald-200">
                             Com Filhotes
                           </span>
                         )}
                       </div>
-                      <p className="text-elderly-label text-slate-600 font-bold uppercase tracking-wider">Unido em: {new Date(pair.startDate).toLocaleDateString('pt-BR')}</p>
+                      <p className="text-xs text-slate-600 font-medium">Unido em: {new Date(pair.startDate).toLocaleDateString('pt-BR')}</p>
                       {pair.lastHatchDate && (
-                        <p className="text-elderly-label text-emerald-600 font-black uppercase tracking-wider">
+                        <p className="text-xs text-emerald-700 font-semibold">
                           Última ninhada: {new Date(pair.lastHatchDate).toLocaleDateString('pt-BR')}
                         </p>
                       )}

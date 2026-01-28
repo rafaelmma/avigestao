@@ -199,20 +199,20 @@ const TaskManager: React.FC<TaskManagerProps> = ({ state, addTask, updateTask, t
     <div className="space-y-6 animate-in fade-in duration-500">
       <header className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h2 className="text-3xl font-black text-[#0F172A] tracking-tight">Agenda de Manejo</h2>
+          <h2 className="text-3xl font-bold text-slate-900 tracking-tight">Agenda de Manejo</h2>
           <p className="text-slate-400 font-medium text-sm mt-1">Organize as tarefas diárias e semanais do criatório.</p>
         </div>
         <div className="flex gap-2">
            <div className="flex bg-white p-1 rounded-xl shadow-sm border border-slate-100 mr-2">
              <button 
                onClick={() => setCurrentList('active')} 
-               className={`px-4 py-2 text-xs font-black uppercase rounded-lg transition-all ${currentList === 'active' ? 'bg-[#0F172A] text-white shadow' : 'text-slate-400'}`}
+               className={`px-4 py-2 text-xs font-semibold rounded-lg transition-all whitespace-nowrap ${currentList === 'active' ? 'bg-slate-900 text-white shadow-sm' : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'}`}
              >
                Agenda Ativa
              </button>
              <button 
                onClick={() => setCurrentList('trash')} 
-               className={`px-4 py-2 text-xs font-black uppercase rounded-lg transition-all flex items-center gap-2 ${currentList === 'trash' ? 'bg-rose-500 text-white shadow' : 'text-slate-400'}`}
+               className={`px-4 py-2 text-xs font-semibold rounded-lg transition-all flex items-center gap-2 whitespace-nowrap ${currentList === 'trash' ? 'bg-red-600 text-white shadow-sm' : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'}`}
              >
                <Trash2 size={12} /> Lixeira
              </button>
@@ -220,7 +220,7 @@ const TaskManager: React.FC<TaskManagerProps> = ({ state, addTask, updateTask, t
            {currentList === 'active' && (
              <button 
               onClick={handleOpenAdd}
-              className="flex items-center gap-2 px-6 py-3 bg-[#0F172A] hover:opacity-90 text-white rounded-2xl shadow-lg transition-all font-black text-xs uppercase tracking-widest"
+              className="flex items-center gap-2 px-5 py-3 bg-slate-900 hover:bg-slate-800 text-white rounded-lg shadow-md transition-all font-semibold text-sm"
              >
               <Plus size={18} />
               Nova Tarefa

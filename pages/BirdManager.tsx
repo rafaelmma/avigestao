@@ -865,25 +865,25 @@ const BirdManager: React.FC<BirdManagerProps> = ({
   // Helpers de Renderização
   const renderClassificationBadge = (cls: BirdClassification) => {
     switch (cls) {
-      case 'Galador': return <span className="flex items-center gap-1 text-elderly-label bg-rose-50 text-rose-600 px-2 py-0.5 rounded-full uppercase"><Heart size={10} fill="currentColor" /> Galador</span>;
-      case 'Pássaro de Canto': return <span className="flex items-center gap-1 text-elderly-label bg-indigo-50 text-indigo-600 px-2 py-0.5 rounded-full uppercase"><Mic2 size={10} /> Canto</span>;
-      case 'Ambos': return <span className="flex items-center gap-1 text-elderly-label bg-purple-50 text-purple-600 px-2 py-0.5 rounded-full uppercase"><Award size={10} /> Ambos</span>;
+      case 'Galador': return <span className="flex items-center gap-1 text-xs font-medium bg-red-50 text-red-700 px-2 py-1 rounded-md"><Heart size={10} fill="currentColor" /> Galador</span>;
+      case 'Pássaro de Canto': return <span className="flex items-center gap-1 text-xs font-medium bg-blue-50 text-blue-700 px-2 py-1 rounded-md"><Mic2 size={10} /> Canto</span>;
+      case 'Ambos': return <span className="flex items-center gap-1 text-xs font-medium bg-purple-50 text-purple-700 px-2 py-1 rounded-md"><Award size={10} /> Ambos</span>;
       default: return null;
     }
   };
 
   const renderTrainingStatusBadge = (status: TrainingStatus) => {
     if (status === 'Não Iniciado') return null;
-    let color = 'bg-slate-100 text-slate-500';
+    let color = 'bg-slate-100 text-slate-600';
     let label: string = status;
-    let icon = <Music size={8} />;
+    let icon = <Music size={10} />;
 
-    if (status === 'Fixado') { color = 'bg-amber-100 text-amber-700'; label = 'Mestre (Fixado)'; icon = <Award size={8} />; }
+    if (status === 'Fixado') { color = 'bg-amber-100 text-amber-700'; label = 'Mestre'; icon = <Award size={10} />; }
     if (status === 'Em Encarte') { color = 'bg-blue-100 text-blue-700'; label = 'Em Encarte'; }
     if (status === 'Pardo (Aprendizado)') { color = 'bg-orange-100 text-orange-700'; label = 'Pardo'; }
 
     return (
-      <div className={`flex items-center gap-1 text-elderly-label px-2 py-0.5 rounded-full uppercase ${color}`}>
+      <div className={`flex items-center gap-1 text-xs font-medium px-2 py-1 rounded-md ${color}`}>
         {icon} {label}
       </div>
     );
@@ -895,7 +895,7 @@ const BirdManager: React.FC<BirdManagerProps> = ({
     <div className="space-y-6 animate-in fade-in duration-500">
       <header className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h2 className="text-3xl font-black text-[#0F172A] tracking-tight">{headerTitle}</h2>
+          <h2 className="text-3xl font-bold text-slate-900 tracking-tight">{headerTitle}</h2>
           {currentList === 'plantel' && state.settings.plan === 'Básico' && !isAdmin && (
             <div className="flex items-center gap-2 mt-1">
               <div className="w-24 h-1.5 bg-slate-100 rounded-full overflow-hidden">
@@ -904,7 +904,7 @@ const BirdManager: React.FC<BirdManagerProps> = ({
                   style={{ width: `${(state.birds.length / MAX_FREE_BIRDS) * 100}%` }}
                 ></div>
               </div>
-              <p className="text-elderly-label text-slate-600 uppercase tracking-widest">
+              <p className="text-xs font-medium text-slate-500">
                 {state.birds.length} de {MAX_FREE_BIRDS} aves (Plano Básico)
               </p>
             </div>
@@ -914,13 +914,13 @@ const BirdManager: React.FC<BirdManagerProps> = ({
         <div className="flex gap-2 bg-white p-1 rounded-xl shadow-sm border border-slate-100 overflow-x-auto">
            <button 
              onClick={() => setCurrentList('plantel')}
-             className={`px-4 py-2 text-xs font-black uppercase rounded-lg transition-all whitespace-nowrap ${currentList === 'plantel' ? 'bg-[#0F172A] text-white shadow' : 'text-slate-400 hover:text-slate-600'}`}
+             className={`px-4 py-2 text-xs font-semibold rounded-lg transition-all whitespace-nowrap ${currentList === 'plantel' ? 'bg-slate-900 text-white shadow-sm' : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'}`}
            >
              Aves Ativas
            </button>
            <button 
              onClick={() => setCurrentList('histórico')}
-             className={`px-4 py-2 text-xs font-black uppercase rounded-lg transition-all flex items-center gap-2 whitespace-nowrap ${currentList === 'histórico' ? 'bg-slate-600 text-white shadow' : 'text-slate-400 hover:text-slate-600'}`}
+             className={`px-4 py-2 text-xs font-semibold rounded-lg transition-all flex items-center gap-2 whitespace-nowrap ${currentList === 'histórico' ? 'bg-slate-600 text-white shadow-sm' : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'}`}
            >
              📋 Histórico
              {state.birds.filter(b => b.status !== 'Ativo').length > 0 && (
@@ -930,9 +930,9 @@ const BirdManager: React.FC<BirdManagerProps> = ({
            {includeSexingTab && (
              <button 
                onClick={() => setCurrentList('sexagem')}
-               className={`px-4 py-2 text-xs font-black uppercase rounded-lg transition-all flex items-center gap-2 whitespace-nowrap ${currentList === 'sexagem' ? 'bg-blue-600 text-white shadow' : 'text-slate-400 hover:text-slate-600'}`}
+               className={`px-4 py-2 text-xs font-semibold rounded-lg transition-all flex items-center gap-2 whitespace-nowrap ${currentList === 'sexagem' ? 'bg-blue-600 text-white shadow-sm' : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'}`}
              >
-               <Dna size={14} /> Central de Sexagem
+               <Dna size={14} /> Sexagem
                {waitingResultBirds.length > 0 && (
                  <span className="bg-white/20 px-1.5 rounded text-elderly-label">{waitingResultBirds.length}</span>
                )}
@@ -940,7 +940,7 @@ const BirdManager: React.FC<BirdManagerProps> = ({
            )}
            <button 
              onClick={() => setCurrentList('lixeira')}
-             className={`px-4 py-2 text-xs font-black uppercase rounded-lg transition-all flex items-center gap-2 whitespace-nowrap ${currentList === 'lixeira' ? 'bg-rose-500 text-white shadow' : 'text-slate-400 hover:text-slate-600'}`}
+             className={`px-4 py-2 text-xs font-semibold rounded-lg transition-all flex items-center gap-2 whitespace-nowrap ${currentList === 'lixeira' ? 'bg-red-600 text-white shadow-sm' : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'}`}
            >
              <Trash2 size={14} /> Lixeira
            </button>
@@ -1419,9 +1419,9 @@ const BirdManager: React.FC<BirdManagerProps> = ({
                {isEditing ? (
                  <form onSubmit={handleUpdateBird} className="space-y-6">
                     <div className="flex border-b border-slate-100 mb-6">
-                       <button type="button" onClick={() => setActiveTab('dados')} className={`px-6 py-3 text-xs font-black uppercase tracking-widest border-b-2 transition-all ${activeTab === 'dados' ? 'border-brand text-brand' : 'border-transparent text-slate-400 hover:text-slate-600'}`}>Dados Cadastrais</button>
-                       <button type="button" onClick={() => setActiveTab('genealogia')} className={`px-6 py-3 text-xs font-black uppercase tracking-widest border-b-2 transition-all ${activeTab === 'genealogia' ? 'border-brand text-brand' : 'border-transparent text-slate-400 hover:text-slate-600'}`}>Genealogia</button>
-                       <button type="button" onClick={() => setActiveTab('docs')} className={`px-6 py-3 text-xs font-black uppercase tracking-widest border-b-2 transition-all ${activeTab === 'docs' ? 'border-brand text-brand' : 'border-transparent text-slate-400 hover:text-slate-600'}`}>Galeria & Docs</button>
+                       <button type="button" onClick={() => setActiveTab('dados')} className={`px-6 py-3 text-sm font-semibold border-b-2 transition-all ${activeTab === 'dados' ? 'border-blue-600 text-blue-600' : 'border-transparent text-slate-600 hover:text-slate-900'}`}>Dados Cadastrais</button>
+                       <button type="button" onClick={() => setActiveTab('genealogia')} className={`px-6 py-3 text-sm font-semibold border-b-2 transition-all ${activeTab === 'genealogia' ? 'border-blue-600 text-blue-600' : 'border-transparent text-slate-600 hover:text-slate-900'}`}>Genealogia</button>
+                       <button type="button" onClick={() => setActiveTab('docs')} className={`px-6 py-3 text-sm font-semibold border-b-2 transition-all ${activeTab === 'docs' ? 'border-blue-600 text-blue-600' : 'border-transparent text-slate-600 hover:text-slate-900'}`}>Galeria & Docs</button>
                     </div>
 
                     {activeTab === 'dados' && (
@@ -1433,11 +1433,11 @@ const BirdManager: React.FC<BirdManagerProps> = ({
                            </div>
                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                <div className="space-y-2">
-                                  <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest">Nome / Identificação</label>
+                                  <label className="text-label">Nome / Identificação</label>
                                   <input required className="w-full p-3.5 bg-white border border-slate-300 rounded-lg font-medium text-slate-900 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500" value={editingBird.name || ''} onChange={e => setEditingBird({...editingBird, name: e.target.value})} />
                                </div>
                                <div className="space-y-2">
-                                  <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest">Anilha</label>
+                                  <label className="text-label">Anilha</label>
                                   <input required className="w-full p-3.5 bg-white border border-slate-300 rounded-lg font-medium text-slate-900 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500" value={editingBird.ringNumber || ''} onChange={e => setEditingBird({...editingBird, ringNumber: e.target.value})} />
                                </div>
                            </div>
@@ -1445,7 +1445,7 @@ const BirdManager: React.FC<BirdManagerProps> = ({
                            <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
                                {/* ... Campos de especie, sexo, data ... */}
                                <div className="space-y-2">
-                                  <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest">Espécie</label>
+                                  <label className="text-label">Espécie</label>
                                   <div className="space-y-2">
                                     <select 
                                       className="w-full p-3.5 bg-white border border-slate-300 rounded-lg font-medium text-slate-900 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500 appearance-none" 
@@ -1474,7 +1474,7 @@ const BirdManager: React.FC<BirdManagerProps> = ({
                                   </div>
                                </div>
                                <div className="space-y-2">
-                                  <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest">Sexo</label>
+                                  <label className="text-label">Sexo</label>
                                   <select className="w-full p-3.5 bg-white border border-slate-300 rounded-lg font-medium text-slate-900 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500 appearance-none" value={editingBird.sex} onChange={e => updateEditingBirdWithDefaultPhoto({...editingBird, sex: e.target.value as any})}>
                                     <option value="Macho">Macho</option>
                                     <option value="Fêmea">Fêmea</option>
@@ -1482,18 +1482,18 @@ const BirdManager: React.FC<BirdManagerProps> = ({
                                   </select>
                                </div>
                                <div className="space-y-2">
-                                  <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest">Data Nasc.</label>
+                                  <label className="text-label">Data Nasc.</label>
                                   <input type="date" className="w-full p-3.5 bg-white border border-slate-300 rounded-lg font-medium text-slate-900 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500" value={editingBird.birthDate} onChange={e => updateEditingBirdWithDefaultPhoto({...editingBird, birthDate: e.target.value})} />
                                </div>
                                <div className="space-y-2">
-                                  <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest">Mutação / Cor</label>
+                                  <label className="text-label">Mutação / Cor</label>
                                   <input className="w-full p-3.5 bg-white border border-slate-300 rounded-lg font-medium text-slate-900 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500" value={editingBird.colorMutation || ''} onChange={e => setEditingBird({...editingBird, colorMutation: e.target.value})} />
                                </div>
                            </div>
 
                            <div className="grid grid-cols-2 gap-6">
                               <div className="space-y-2">
-                                 <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest">Classificação</label>
+                                 <label className="text-label">Classificação</label>
                                  <select className="w-full p-3.5 bg-white border border-slate-300 rounded-lg font-medium text-slate-900 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500 appearance-none" value={editingBird.classification} onChange={e => setEditingBird({...editingBird, classification: e.target.value as any})}>
                                    <option value="Não Definido">Não Definido</option>
                                    <option value="Galador">Galador</option>
@@ -1502,7 +1502,7 @@ const BirdManager: React.FC<BirdManagerProps> = ({
                                  </select>
                               </div>
                               <div className="space-y-2">
-                                 <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest">Status</label>
+                                 <label className="text-label">Status</label>
                                  <select className="w-full p-3.5 bg-white border border-slate-300 rounded-lg font-medium text-slate-900 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500 appearance-none" value={editingBird.status} onChange={e => setEditingBird({...editingBird, status: e.target.value as any})}>
                                    <option value="Ativo">Ativo</option>
                                    <option value="Óbito">Óbito</option>
