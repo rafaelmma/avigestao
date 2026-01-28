@@ -149,13 +149,14 @@ export async function loadBirdsForUser(userId: string): Promise<Bird[]> {
 
 /**
  * Salva novo pássaro no Supabase (com upsert para evitar duplicatas)
+ * APENAS CAMPOS VERIFICADOS QUE EXISTEM NA TABELA
  */
 export async function saveBirdToSupabase(
   bird: Bird,
   userId: string
 ): Promise<{ success: boolean; error?: string }> {
   try {
-    // Preparar dados para sincronização
+    // Preparar dados para sincronização - APENAS CAMPOS QUE SABEMOS QUE EXISTEM
     const birdData = {
       id: bird.id,
       breeder_id: userId,
@@ -173,9 +174,10 @@ export async function saveBirdToSupabase(
       song_training_status: bird.songTrainingStatus,
       song_type: bird.songType,
       training_notes: bird.trainingNotes,
-      photo_url: bird.photoUrl,
-      is_repeater: bird.isRepeater,
-      created_at: bird.createdAt
+      photo_url: bird.photoUrl
+      // REMOVIDOS campos que não existem na tabela:
+      // - is_repeater
+      // - created_at (já é gerado automaticamente no Supabase)
     };
 
     // UPSERT: se existe, atualiza; se não existe, insere
@@ -184,14 +186,16 @@ export async function saveBirdToSupabase(
       .upsert(birdData, { onConflict: 'id' });
 
     if (error) {
-      console.warn('Erro Supabase ao salvar ave:', error);
+      console.error('❌ Erro CRÍTICO ao sincronizar com Supabase:', error.message);
+      console.error('Detalhes:', error);
+      // NÃO retornamos como sucesso se houver erro
       return {
         success: false,
         error: error.message || 'Erro ao salvar no Supabase'
       };
     }
 
-    console.log('✓ Ave sincronizada com Supabase:', bird.name, data);
+    console.log('✓ Ave sincronizada com Supabase:', bird.name);
     return { success: true };
   } catch (err) {
     const errorMsg = err instanceof Error ? err.message : String(err);

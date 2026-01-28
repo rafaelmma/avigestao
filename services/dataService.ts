@@ -220,10 +220,30 @@ export async function loadTabData(userId: string, tab: string) {
       return { medications, applications, treatments, medicationCatalog };
     }
     case "birds":
-    case "sexing":
-      return {
-        birds: await safeSelect(() => supabase.from("birds").select("*").eq("breeder_id", userId), mapBirdFromDb),
-      };
+    case "sexing": {
+      // IMPORTANTE: Carregar birds com fallback para localStorage se Supabase falhar
+      const birdsFromSupabase = await safeSelect(
+        () => supabase.from("birds").select("*").eq("breeder_id", userId),
+        mapBirdFromDb
+      );
+      
+      // Se conseguiu carregar do Supabase, retorna
+      if (birdsFromSupabase && birdsFromSupabase.length > 0) {
+        console.log(`✓ Carregados ${birdsFromSupabase.length} pássaros do Supabase na aba '${tab}'`);
+        return { birds: birdsFromSupabase };
+      }
+      
+      // Se falhou, tenta localStorage como fallback
+      const cachedState = loadCachedState(userId);
+      if (cachedState.hasCache && cachedState.state?.birds) {
+        console.log(`⚠ Supabase falhou, usando localStorage como fallback (${cachedState.state.birds.length} aves)`);
+        return { birds: cachedState.state.birds };
+      }
+      
+      // Se não tem nada, retorna array vazio
+      console.warn(`❌ Nenhuma ave encontrada em Supabase ou localStorage para aba '${tab}'`);
+      return { birds: [] };
+    }
     case "tasks":
       return {
         tasks: await safeSelect(() => supabase.from("tasks").select("*").eq("user_id", userId), mapTaskFromDb),
@@ -259,7 +279,7 @@ export const mapBirdFromDb = (row: any): Bird => {
 
   return {
     id: row.id,
-    ringNumber: row.ring ?? row.ringNumber ?? "",
+    ringNumber: row.ring_number ?? row.ring ?? row.ringNumber ?? "", // Tentar ring_number PRIMEIRO
     species,
     name: row.name ?? "",
     sex,
