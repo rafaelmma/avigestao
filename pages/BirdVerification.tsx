@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { ArrowLeft, Share2, Download, AlertCircle, CheckCircle } from 'lucide-react';
 import { Bird } from '../types';
 import { supabase } from '../lib/supabase';
+import { loadBirdsForUser } from '../lib/birdSync';
 
 const BirdVerification: React.FC<{ birdId: string }> = ({ birdId }) => {
   const [bird, setBird] = useState<Bird | null>(null);
@@ -28,11 +29,41 @@ const BirdVerification: React.FC<{ birdId: string }> = ({ birdId }) => {
             }
           } catch (insertError) {
             console.warn('Erro ao registrar acesso:', insertError);
-            // Continua mesmo se falhar ao registrar
           }
         }
 
-        // Carrega dados do pássaro do localStorage como fallback
+        // Tentar carregar do Supabase primeiro (mais rápido e confiável)
+        const { data: birdData, error: birdError } = await supabase
+          .from('birds')
+          .select('*')
+          .eq('id', birdId)
+          .single();
+
+        if (!birdError && birdData) {
+          setBird({
+            id: birdData.id,
+            name: birdData.name,
+            species: birdData.species,
+            sex: birdData.sex,
+            status: birdData.status,
+            ringNumber: birdData.ring_number,
+            birthDate: birdData.birth_date,
+            colorMutation: birdData.color_mutation,
+            classification: birdData.classification,
+            location: birdData.location,
+            fatherId: birdData.father_id,
+            motherId: birdData.mother_id,
+            songTrainingStatus: birdData.song_training_status,
+            songType: birdData.song_type,
+            trainingNotes: birdData.training_notes,
+            photoUrl: birdData.photo_url
+          } as Bird);
+          setVerified(true);
+          setLoading(false);
+          return;
+        }
+
+        // Fallback: carregar do localStorage
         const stored = localStorage.getItem('avigestao_state_v2');
         if (stored) {
           const data = JSON.parse(stored);
@@ -46,32 +77,12 @@ const BirdVerification: React.FC<{ birdId: string }> = ({ birdId }) => {
           }
         }
 
-        // Se não encontrar, tentar Supabase
-        if (supabase) {
-          try {
-            const { data: birdData, error: birdError } = await supabase
-              .from('birds')
-              .select('*')
-              .eq('id', birdId)
-              .single();
-
-            if (birdError || !birdData) {
-              setError('Pássaro não encontrado');
-              setLoading(false);
-              return;
-            }
-
-            setBird(birdData as Bird);
-            setVerified(true);
-          } catch (queryError) {
-            console.warn('Erro ao buscar do Supabase:', queryError);
-            setError('Erro ao carregar dados do pássaro');
-          }
-        }
+        // Se não encontrar em lugar nenhum
+        setError('Pássaro não encontrado na base de dados');
+        setLoading(false);
       } catch (err) {
         console.error('Erro ao carregar dados:', err);
         setError('Erro ao carregar dados do pássaro');
-      } finally {
         setLoading(false);
       }
     };
