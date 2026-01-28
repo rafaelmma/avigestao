@@ -447,7 +447,8 @@ const App: React.FC = () => {
     return () => {
       cancelled = true;
     };
-  }, [activeTab, session, supabaseUnavailable];
+  }, [activeTab, session, supabaseUnavailable]);
+
   const handleSession = async (newSession: any, event?: string) => {
     if (!newSession) {
       if (sessionClearRef.current) {
