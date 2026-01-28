@@ -140,13 +140,13 @@ const BirdManager: React.FC<BirdManagerProps> = ({
 
   // New Bird State
   const [newBird, setNewBird] = useState<Partial<Bird>>({
-    sex: 'Indeterminado',
+    sex: 'Desconhecido',
     status: 'Ativo',
     species: BRAZILIAN_SPECIES[0],
-    classification: 'Não Definido',
+    classification: 'Exemplar',
     songTrainingStatus: 'Não Iniciado',
     isRepeater: false,
-    photoUrl: getDefaultBirdImage(BRAZILIAN_SPECIES[0], 'Indeterminado', new Date().toISOString().split('T')[0]),
+    photoUrl: getDefaultBirdImage(BRAZILIAN_SPECIES[0], 'Desconhecido', new Date().toISOString().split('T')[0]),
     birthDate: new Date().toISOString().split('T')[0],
     sexing: {
       protocol: '',
@@ -394,9 +394,8 @@ const BirdManager: React.FC<BirdManagerProps> = ({
         // Gerar UUID válido
         const movementId = crypto.randomUUID ? crypto.randomUUID() : `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
         // Mapear status para tipo de movimentação
-        let movementType: 'Óbito' | 'Fuga' | 'Transporte' | 'Venda' | 'Doação' = 'Óbito';
-        if (quickStatusData.newStatus === 'Fuga') movementType = 'Fuga';
-        else if (quickStatusData.newStatus === 'Vendido') movementType = 'Venda';
+        let movementType: MovementType = 'Transporte';
+        if (quickStatusData.newStatus === 'Vendido') movementType = 'Venda';
         else if (quickStatusData.newStatus === 'Doado') movementType = 'Doação';
         else if (quickStatusData.newStatus === 'Óbito') movementType = 'Óbito';
         

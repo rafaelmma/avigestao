@@ -216,7 +216,8 @@ export const MOCK_MEDS: Medication[] = [
   {
     id: 'm9',
     name: 'Nalyt 100',
-    type: 'Antibiótico (Amplo Espectro)',
+    userId: 'system',
+    type: 'Antibiótico' as any,
     batch: 'NAL-123',
     expiryDate: '2025-05-20',
     stock: 1
@@ -224,7 +225,8 @@ export const MOCK_MEDS: Medication[] = [
   {
     id: 'm10',
     name: 'Cálcio',
-    type: 'Suplemento Mineral',
+    userId: 'system',
+    type: 'Vitamina' as any,
     batch: 'CAL-009',
     expiryDate: '2027-01-01',
     stock: 3
@@ -232,7 +234,8 @@ export const MOCK_MEDS: Medication[] = [
   {
     id: 'm11',
     name: 'Avitrin Plumas',
-    type: 'Suplemento (Muda)',
+    userId: 'system',
+    type: 'Vitamina' as any,
     batch: 'AVP-445',
     expiryDate: '2026-02-28',
     stock: 2
@@ -240,7 +243,8 @@ export const MOCK_MEDS: Medication[] = [
   {
     id: 'm12',
     name: 'Hidrovit',
-    type: 'Eletrólitos / Reidratante',
+    userId: 'system',
+    type: 'Outro' as any,
     batch: 'HID-221',
     expiryDate: '2025-07-15',
     stock: 2
