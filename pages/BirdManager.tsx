@@ -470,7 +470,7 @@ const BirdManager: React.FC<BirdManagerProps> = ({
   const filteredBirds = useMemo(() => {
     if (currentList === 'sexagem') return []; // Handled separately
     if (currentList === 'ibama-pendentes') {
-      return state.birds.filter(b => b.ibamaBaixaPendente && (b.status === 'Óbito' || b.status === 'Fuga' || b.status === 'Vendido' || b.status === 'Doado'));
+      return state.birds.filter(b => b.ibamaBaixaPendente && (b.status === 'Óbito' || b.status === 'Vendido' || b.status === 'Doado'));
     }
     
     let list: Bird[] = [];
@@ -895,8 +895,8 @@ const BirdManager: React.FC<BirdManagerProps> = ({
     let icon = <Music size={10} />;
 
     if (status === 'Em Progresso') { color = 'bg-amber-100 text-amber-700'; label = 'Em Progresso'; icon = <Award size={10} />; }
-    if (status === 'Em Encarte') { color = 'bg-blue-100 text-blue-700'; label = 'Em Encarte'; }
-    if (status === 'Pardo (Aprendizado)') { color = 'bg-orange-100 text-orange-700'; label = 'Pardo'; }
+    if (status === 'Concluído') { color = 'bg-green-100 text-green-700'; label = 'Concluído'; }
+    if (status === 'Certificado') { color = 'bg-blue-100 text-blue-700'; label = 'Certificado'; }
 
     return (
       <div className={`flex items-center gap-1 text-xs font-medium px-2 py-1 rounded-md ${color}`}>
@@ -1238,7 +1238,6 @@ const BirdManager: React.FC<BirdManagerProps> = ({
                     <span className={`px-2 py-0.5 rounded-full text-[9px] font-black uppercase ${
                       bird.status === 'Ativo' ? 'bg-emerald-50 text-emerald-600' :
                       bird.status === 'Óbito' ? 'bg-red-100 text-red-700' :
-                      bird.status === 'Fuga' ? 'bg-orange-100 text-orange-700' :
                       bird.status === 'Vendido' ? 'bg-blue-100 text-blue-700' :
                       bird.status === 'Doado' ? 'bg-purple-100 text-purple-700' :
                       'bg-slate-100 text-slate-500'
@@ -1264,7 +1263,7 @@ const BirdManager: React.FC<BirdManagerProps> = ({
                       <span className="flex items-center gap-1 text-[8px] font-black bg-slate-100 text-slate-500 px-2 py-0.5 rounded-full uppercase" title="Idade aproximada">
                         <Cake size={8} className="text-slate-400" /> {calculateAge(bird.birthDate)}
                       </span>
-                      {renderClassificationBadge(bird.classification)}
+                      {bird.classification && renderClassificationBadge(bird.classification)}
                       {renderTrainingStatusBadge(bird.songTrainingStatus)}
                       {bird.sexing?.resultDate && (
                         <div className="flex items-center gap-1 text-[8px] font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full uppercase">
