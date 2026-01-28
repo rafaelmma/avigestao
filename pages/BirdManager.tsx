@@ -3,7 +3,7 @@ import React, { useState, useMemo, useRef, useEffect, Suspense } from 'react';
 import { deleteBird as svcDeleteBird } from '../services/birds';
 import ConfirmDialog from '../components/ConfirmDialog';
 import BirdCardPrint from '../components/BirdCard';
-import { Bird, AppState, Sex, TrainingStatus, BirdClassification, BirdDocument, MovementRecord } from '../types';
+import { Bird, AppState, Sex, TrainingStatus, BirdClassification, BirdDocument, MovementRecord, MovementType } from '../types';
 import { 
   Plus, 
   Search, 
@@ -98,7 +98,7 @@ const BirdManager: React.FC<BirdManagerProps> = ({
   const [showQuickStatusModal, setShowQuickStatusModal] = useState(false);
   const [quickStatusBird, setQuickStatusBird] = useState<Bird | null>(null);
   const [quickStatusData, setQuickStatusData] = useState({
-    newStatus: 'Óbito' as 'Óbito' | 'Fuga' | 'Vendido' | 'Doado',
+    newStatus: 'Óbito' as 'Óbito' | 'Vendido' | 'Doado',
     date: new Date().toISOString().split('T')[0],
     createMovement: true,
     notes: ''
