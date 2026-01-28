@@ -105,7 +105,7 @@ export async function loadInitialData(userId: string) {
 
   // Initial data for dashboard and core UI only.
   const [birds, transactions, tasks, tournaments, clutches, pairs, archivedPairs, movements, settingsResult] = await Promise.all([
-    safeSelect(() => supabase.from("birds").select("*").eq("user_id", userId), mapBirdFromDb),
+    safeSelect(() => supabase.from("birds").select("*").eq("breeder_id", userId), mapBirdFromDb),
     safeSelect(() => supabase.from("transactions").select("*").eq("user_id", userId), mapTransactionFromDb),
     safeSelect(() => supabase.from("tasks").select("*").eq("user_id", userId), mapTaskFromDb),
     safeSelect(() => supabase.from("tournaments").select("*").eq("user_id", userId), mapTournamentFromDb),
