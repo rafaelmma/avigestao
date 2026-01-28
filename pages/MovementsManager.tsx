@@ -381,8 +381,10 @@ const MovementsManager: React.FC<MovementsManagerProps> = ({ state, addMovement,
                     <option value="Entrada">Entrada</option>
                     <option value="Saída">Saída</option>
                     <option value="Transferência">Transferência</option>
-                    <option value="Venda">Venda</option>                    <option value="Doação">Doação</option>
-                    <option value="\u00d3bito">\u00d3bito</option>
+                    <option value="Venda">Venda</option>                    
+                    <option value="Doação">Doação</option>
+                    <option value="Óbito">Óbito</option>
+                  </select>
                 </div>
                 <div>
                   <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Data</label>
