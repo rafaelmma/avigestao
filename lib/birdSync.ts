@@ -164,7 +164,9 @@ export async function saveBirdToSupabase(
       species: bird.species,
       sex: bird.sex,
       status: bird.status,
-      ring_number: bird.ringNumber,
+      // IMPORTANTE: ring_number vazio deve ser NULL (não string vazia)
+      // Pois Supabase tem constraint UNIQUE, e vários NULLs são permitidos, mas múltiplas strings vazias não
+      ring_number: bird.ringNumber && bird.ringNumber.trim() ? bird.ringNumber : null,
       birth_date: bird.birthDate,
       color_mutation: bird.colorMutation,
       classification: bird.classification,
@@ -180,6 +182,12 @@ export async function saveBirdToSupabase(
       // - created_at (já é gerado automaticamente no Supabase)
     };
 
+    console.log('📤 Sincronizando ave com Supabase:', {
+      nome: birdData.name,
+      anilha: birdData.ring_number || '(null - sem anilha)',
+      userId: userId.substring(0, 8) + '...'
+    });
+
     // UPSERT: se existe, atualiza; se não existe, insere
     const { error, data } = await supabase
       .from('birds')
@@ -187,7 +195,7 @@ export async function saveBirdToSupabase(
 
     if (error) {
       console.error('❌ Erro CRÍTICO ao sincronizar com Supabase:', error.message);
-      console.error('Detalhes:', error);
+      console.error('Detalhes completos:', error);
       // NÃO retornamos como sucesso se houver erro
       return {
         success: false,
