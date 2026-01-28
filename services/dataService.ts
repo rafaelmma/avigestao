@@ -103,7 +103,7 @@ export async function loadInitialData(userId: string) {
   
   // 1. Tentar localStorage primeiro (instantâneo)
   const cachedState = loadCachedState(userId);
-  if (cachedState.hasCache) {
+  if (cachedState.hasCache && (cachedState.state?.birds?.length ?? 0) > 0) {
     console.log('✓ Carregado do cache localStorage');
     // Sincronizar com Supabase em background (não bloqueia UI)
     syncWithSupabaseInBackground(userId).catch(err => 
@@ -112,7 +112,23 @@ export async function loadInitialData(userId: string) {
     return cachedState.state!;
   }
 
-  // 2. Se não houver cache, carregar do Supabase (com timeout)
+  // 2. Se não houver cache ou cache vazio, carregar do Supabase PRIMEIRO (com timeout)
+  // Primeiro, tentar carregar birds do Supabase para trazer para localStorage
+  let birdsFromSupabase: Bird[] = [];
+  try {
+    const { data: supabaseBirds, error } = await supabase
+      .from('birds')
+      .select('*')
+      .eq('breeder_id', userId);
+    
+    if (!error && supabaseBirds && supabaseBirds.length > 0) {
+      console.log(`✓ Carregados ${supabaseBirds.length} pássaros do Supabase`);
+      birdsFromSupabase = supabaseBirds.map(mapBirdFromDb);
+    }
+  } catch (err) {
+    console.warn('Erro ao carregar birds do Supabase:', err);
+  }
+
   const settingsPromise = safeSingleSettings(
     () => supabase.from("settings").select("*").eq("user_id", userId).maybeSingle()
   );
@@ -121,7 +137,10 @@ export async function loadInitialData(userId: string) {
   try {
     const [birds, transactions, tasks, tournaments, clutches, pairs, archivedPairs, movements, settingsResult] = await Promise.race([
       Promise.all([
-        safeSelect(() => supabase.from("birds").select("*").eq("breeder_id", userId), mapBirdFromDb),
+        // Se temos birds do Supabase, usar; senão carregar
+        birdsFromSupabase.length > 0 
+          ? Promise.resolve(birdsFromSupabase)
+          : safeSelect(() => supabase.from("birds").select("*").eq("breeder_id", userId), mapBirdFromDb),
         safeSelect(() => supabase.from("transactions").select("*").eq("user_id", userId), mapTransactionFromDb),
         safeSelect(() => supabase.from("tasks").select("*").eq("user_id", userId), mapTaskFromDb),
         safeSelect(() => supabase.from("tournaments").select("*").eq("user_id", userId), mapTournamentFromDb),

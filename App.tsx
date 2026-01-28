@@ -1022,7 +1022,12 @@ const App: React.FC = () => {
       
       // 2. SALVAR NO LOCALSTORAGE (backup instantâneo)
       if (session?.user?.id) {
-        persistState({ ...state, birds: [...state.birds, bird] }, session.user.id);
+        try {
+          const updatedState = { ...state, birds: [...state.birds, bird] };
+          persistState(updatedState, session.user.id);
+        } catch (err) {
+          console.warn('Erro ao salvar no localStorage:', err);
+        }
       }
 
       // 3. SINCRONIZAR COM SUPABASE EM BACKGROUND (não bloqueia)
@@ -1077,10 +1082,15 @@ const App: React.FC = () => {
 
       // 2. SALVAR NO LOCALSTORAGE (backup instantâneo)
       if (session?.user?.id) {
-        persistState({ 
-          ...state, 
-          birds: state.birds.map(b => b.id === bird.id ? bird : b)
-        }, session.user.id);
+        try {
+          const updatedState = { 
+            ...state, 
+            birds: state.birds.map(b => b.id === bird.id ? bird : b)
+          };
+          persistState(updatedState, session.user.id);
+        } catch (err) {
+          console.warn('Erro ao salvar no localStorage:', err);
+        }
       }
 
       // 3. SINCRONIZAR COM SUPABASE EM BACKGROUND (não bloqueia)
