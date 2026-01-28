@@ -44,7 +44,7 @@ export async function migrateLocalData(userId: string) {
     if (Array.isArray(data.birds) && data.birds.length) {
       const birdsToInsert = await filterExisting("birds", stripInvalidIds(data.birds));
       if (birdsToInsert.length) {
-        const birds = birdsToInsert.map((b: any) => ({ ...b, user_id: userId }));
+        const birds = birdsToInsert.map((b: any) => ({ ...b, breeder_id: userId }));
         await supabase.from("birds").insert(birds);
       }
     }
