@@ -27,58 +27,62 @@ const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
-      <div className="bg-white rounded-3xl shadow-2xl max-w-md w-full mx-4 p-8 animate-in fade-in scale-95">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm animate-in fade-in">
+      <div className="bg-white rounded-xl shadow-2xl max-w-md w-full mx-4 p-6 animate-in zoom-in-95 duration-200">
         {/* Header */}
-        <div className="flex items-start gap-4 mb-6">
-          <div className={`p-3 rounded-2xl ${isDangerous ? 'bg-rose-100' : 'bg-blue-100'}`}>
+        <div className="flex items-start gap-3 mb-4">
+          <div className={`p-2.5 rounded-lg flex-shrink-0 ${isDangerous ? 'bg-red-100' : 'bg-blue-100'}`}>
             {isDangerous ? (
-              <Trash2 className="text-rose-600" size={24} />
+              <Trash2 className="text-red-600" size={20} />
             ) : (
-              <AlertCircle className="text-blue-600" size={24} />
+              <AlertCircle className="text-blue-600" size={20} />
             )}
+          </div>
+          <div className="flex-1">
+            <h2 className="text-lg font-bold text-slate-900">{title}</h2>
           </div>
           <button
             onClick={onCancel}
-            className="ml-auto p-2 hover:bg-slate-100 rounded-xl transition-colors"
+            className="p-1.5 hover:bg-slate-100 rounded-lg transition-colors flex-shrink-0"
             aria-label="Fechar"
           >
-            <X size={20} className="text-slate-400" />
+            <X size={18} className="text-slate-400" />
           </button>
         </div>
 
-        {/* Title */}
-        <h2 className="text-xl font-black text-slate-900 mb-3">{title}</h2>
-
         {/* Message */}
-        <p className="text-base text-slate-600 mb-8 leading-relaxed">{message}</p>
+        <p className="text-sm text-slate-600 mb-6 leading-relaxed">{message}</p>
+
+        {/* Warning text for dangerous actions */}
+        {isDangerous && (
+          <div className="bg-red-50 border border-red-200 rounded-lg p-3 mb-4">
+            <p className="text-xs text-red-700 font-semibold text-center">
+              ⚠️ Esta ação não pode ser desfeita
+            </p>
+          </div>
+        )}
 
         {/* Buttons */}
         <div className="flex gap-3">
           <button
             onClick={onCancel}
             disabled={isLoading}
-            className="flex-1 btn-elderly-secondary"
+            className="flex-1 px-4 py-2.5 bg-white text-slate-700 border border-slate-300 rounded-lg font-semibold text-sm hover:bg-slate-50 transition-colors disabled:opacity-50"
           >
             {cancelText}
           </button>
           <button
             onClick={onConfirm}
             disabled={isLoading}
-            className={`flex-1 ${isDangerous ? 'btn-elderly-danger' : 'btn-elderly-primary'} ${
-              isLoading ? 'opacity-50 cursor-not-allowed' : ''
+            className={`flex-1 px-4 py-2.5 rounded-lg font-semibold text-sm transition-colors disabled:opacity-50 ${
+              isDangerous 
+                ? 'bg-red-600 text-white hover:bg-red-700' 
+                : 'bg-slate-900 text-white hover:bg-black'
             }`}
           >
             {isLoading ? 'Processando...' : confirmText}
           </button>
         </div>
-
-        {/* Warning text for dangerous actions */}
-        {isDangerous && (
-          <p className="text-xs text-rose-600 font-bold mt-4 text-center uppercase tracking-widest">
-            ⚠️ Esta ação não pode ser desfeita
-          </p>
-        )}
       </div>
     </div>
   );
