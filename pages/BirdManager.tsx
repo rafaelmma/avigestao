@@ -961,27 +961,27 @@ const BirdManager: React.FC<BirdManagerProps> = ({
       {/* --- MODO CENTRAL DE SEXAGEM --- */}
       {currentList === 'sexagem' && (
         <div className="space-y-8 animate-in slide-in-from-right-4 duration-300">
-           <div className="bg-blue-50 border border-blue-100 text-blue-700 p-4 rounded-2xl flex items-start gap-3">
-              <div className="p-2 bg-blue-100 rounded-xl text-blue-600">
+           <div className="bg-blue-50 border border-blue-200 text-blue-700 p-4 rounded-xl flex items-start gap-3">
+              <div className="p-2 bg-blue-100 rounded-lg text-blue-600">
                 <CheckCircle2 size={18} />
               </div>
               <div>
-                <p className="text-xs font-black uppercase tracking-widest">Dica</p>
+                <p className="text-xs font-semibold text-blue-900 mb-1">Dica</p>
                 <p className="text-xs text-blue-700">Aves com sexo indeterminado aparecem aqui para gerar a remessa da sexagem.</p>
               </div>
            </div>
            {/* ... (Existing Sexing Logic remains unchanged) ... */}
            {/* Seção 1: Pendentes de Envio */}
-           <div className="bg-white p-6 rounded-[32px] border border-slate-100 shadow-sm">
+           <div className="bg-white p-6 rounded-xl border border-slate-100 shadow-sm">
               <div className="flex justify-between items-center mb-6">
-                 <h3 className="font-black text-slate-800 flex items-center gap-3">
-                   <div className="p-2 bg-amber-100 text-amber-600 rounded-xl"><Microscope size={20} /></div>
+                 <h3 className="font-bold text-slate-900 flex items-center gap-3">
+                   <div className="p-2 bg-amber-50 text-amber-600 rounded-lg"><Microscope size={20} /></div>
                    Pendentes de Envio
                  </h3>
                  <button 
                    onClick={() => setShowSendLabModal(true)}
                    disabled={selectedForSexing.length === 0}
-                   className="px-4 py-2 bg-amber-500 text-white text-xs font-black uppercase tracking-widest rounded-xl shadow-lg shadow-amber-200 disabled:opacity-50 disabled:shadow-none hover:bg-amber-600 transition-all flex items-center gap-2"
+                   className="px-4 py-2.5 bg-amber-600 text-white text-sm font-semibold rounded-lg shadow-md disabled:opacity-50 disabled:shadow-none hover:bg-amber-700 transition-all flex items-center gap-2"
                  >
                    <Truck size={16} /> Gerar Remessa ({selectedForSexing.length})
                  </button>
@@ -1397,20 +1397,20 @@ const BirdManager: React.FC<BirdManagerProps> = ({
               <div className="flex gap-2">
                 {!isEditing ? (
                   <>
-                    <button onClick={() => setViewMode('details')} className={`px-6 py-2.5 rounded-lg text-xs font-semibold uppercase tracking-wide transition-all ${viewMode === 'details' ? 'bg-slate-900 text-white shadow-sm' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}>Ficha Técnica</button>
-                    <button onClick={() => setViewMode('pedigree')} className={`px-6 py-2.5 rounded-lg text-xs font-semibold uppercase tracking-wide transition-all ${viewMode === 'pedigree' ? 'bg-slate-900 text-white shadow-sm' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}>Árvore Genealógica</button>
+                    <button onClick={() => setViewMode('details')} className={`px-6 py-2.5 rounded-lg text-sm font-semibold transition-all ${viewMode === 'details' ? 'bg-slate-900 text-white shadow-sm' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}>Ficha Técnica</button>
+                    <button onClick={() => setViewMode('pedigree')} className={`px-6 py-2.5 rounded-lg text-sm font-semibold transition-all ${viewMode === 'pedigree' ? 'bg-slate-900 text-white shadow-sm' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}>Árvore Genealógica</button>
                   </>
                 ) : (
-                  <h3 className="text-lg font-black text-slate-800 flex items-center gap-2">
+                  <h3 className="text-lg font-bold text-slate-900 flex items-center gap-2">
                     <Edit size={18} /> Editando: {selectedBird.name}
                   </h3>
                 )}
               </div>
               <div className="flex gap-2">
-                 <button onClick={() => { deleteBird(selectedBird.id); setSelectedBird(null); }} className="p-3 bg-rose-50 text-rose-500 rounded-2xl hover:bg-rose-100 transition-colors" title="Mover para Lixeira">
+                 <button onClick={() => { deleteBird(selectedBird.id); setSelectedBird(null); }} className="p-3 bg-red-50 text-red-600 rounded-lg hover:bg-red-100 transition-colors" title="Mover para Lixeira">
                     <Trash2 size={20} />
                  </button>
-                 <button onClick={() => setSelectedBird(null)} className="p-3 bg-slate-50 text-slate-400 rounded-2xl hover:text-slate-600">
+                 <button onClick={() => setSelectedBird(null)} className="p-3 bg-slate-50 text-slate-400 rounded-lg hover:text-slate-600">
                     <X size={20} />
                  </button>
               </div>
@@ -1515,10 +1515,10 @@ const BirdManager: React.FC<BirdManagerProps> = ({
 
                           {/* Controle de Registro IBAMA */}
                           {(editingBird.status === 'Óbito' || editingBird.status === 'Fuga' || editingBird.status === 'Vendido' || editingBird.status === 'Doado') && (
-                            <div className="p-6 bg-amber-50 border-2 border-amber-200 rounded-2xl space-y-4">
-                              <div className="flex items-center gap-2 text-amber-700">
+                            <div className="p-6 bg-amber-50 border-2 border-amber-200 rounded-xl space-y-4">
+                              <div className="flex items-center gap-2 text-amber-800">
                                 <Zap size={18} />
-                                <h4 className="text-sm font-black uppercase tracking-widest">Controle de Registro IBAMA</h4>
+                                <h4 className="text-sm font-semibold">Controle de Registro IBAMA</h4>
                               </div>
                               <div className="p-3 bg-white border border-amber-200 rounded-xl mb-4">
                                 <p className="text-xs font-bold text-amber-800">
@@ -1540,10 +1540,10 @@ const BirdManager: React.FC<BirdManagerProps> = ({
                                 </label>
                                 {!editingBird.ibamaBaixaPendente && (
                                   <div className="space-y-2 animate-in fade-in">
-                                    <label className="block text-[10px] font-black text-amber-700 uppercase tracking-widest">Data do Registro</label>
+                                    <label className="text-label text-amber-800">Data do Registro</label>
                                     <input 
                                       type="date" 
-                                      className="w-full p-4 bg-white border border-amber-300 rounded-2xl font-bold text-slate-700 outline-none focus:border-amber-500" 
+                                      className="w-full p-3.5 bg-white border border-amber-300 rounded-lg font-medium text-slate-900 outline-none focus:border-amber-500 focus:ring-2 focus:ring-amber-500" 
                                       value={editingBird.ibamaBaixaData || ''} 
                                       onChange={e => setEditingBird({...editingBird, ibamaBaixaData: e.target.value})} 
                                     />

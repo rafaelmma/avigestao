@@ -397,7 +397,7 @@ const SettingsManager: React.FC<SettingsManagerProps> = ({ settings, updateSetti
 
       <header className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
         <div>
-          <h2 className="text-3xl font-black text-slate-900">Configurações</h2>
+          <h2 className="text-3xl font-bold text-slate-900">Configurações</h2>
           <p className="text-slate-500">Ajuste dados do criatório, licenças, Certificado e aparência.</p>
         </div>
         <div className="flex flex-wrap gap-3 items-center">
