@@ -521,12 +521,8 @@ const BirdManager: React.FC<BirdManagerProps> = ({
         alert('❌ Nome da ave é obrigatório.');
         return;
       }
-      if (!newBird.ringNumber || newBird.ringNumber.trim() === '') {
-        alert('❌ Número de anilha é obrigatório.');
-        return;
-      }
 
-      if (newBird.name && newBird.ringNumber) {
+      if (newBird.name) {
         const makeId = () => {
           if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
             return crypto.randomUUID();
@@ -548,6 +544,7 @@ const BirdManager: React.FC<BirdManagerProps> = ({
           // id and createdAt will be set by the DB (but keep fallback)
           id: makeId(),
           createdAt: new Date().toISOString(),
+          ringNumber: newBird.ringNumber || '', // Permitir vazio para filhotes
           manualAncestors: newBird.manualAncestors || {},
           documents: newBird.documents || []
         };
@@ -557,7 +554,7 @@ const BirdManager: React.FC<BirdManagerProps> = ({
 
         console.log('📝 Tentando salvar ave:', {
           nome: birdToSave.name,
-          anilha: birdToSave.ringNumber,
+          anilha: birdToSave.ringNumber || '(sem anilha - filhote?)',
           especie: birdToSave.species,
           sexo: birdToSave.sex,
           status: birdToSave.status
@@ -2013,15 +2010,15 @@ const BirdManager: React.FC<BirdManagerProps> = ({
                           </div>
                           <div className="space-y-2">
                              <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
-                               <span>Anilha</span>
+                               <span>Anilha <span className="text-slate-300 text-xs">(opcional)</span></span>
                                <div className="group relative cursor-help">
                                  <HelpCircle size={14} className="text-slate-300 hover:text-slate-400" />
                                  <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 hidden group-hover:block bg-slate-800 text-white text-[10px] px-3 py-2 rounded-lg whitespace-nowrap z-50">
-                                   Número da anilha ou SISPASS
+                                   Deixe vazio para filhotes com menos de 6 dias
                                  </div>
                                </div>
                              </label>
-                             <input required placeholder="Ex: SISPASS 123456" className="w-full p-4 bg-white border border-slate-200 rounded-2xl font-bold text-slate-700 outline-none focus:border-brand" value={newBird.ringNumber || ''} onChange={e => setNewBird({...newBird, ringNumber: e.target.value})} />
+                             <input placeholder="Ex: SISPASS 123456 (opcional)" className="w-full p-4 bg-white border border-slate-200 rounded-2xl font-bold text-slate-700 outline-none focus:border-brand" value={newBird.ringNumber || ''} onChange={e => setNewBird({...newBird, ringNumber: e.target.value})} />
                           </div>
                       </div>
                       <div className="grid grid-cols-2 md:grid-cols-4 gap-6">

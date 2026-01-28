@@ -1035,30 +1035,32 @@ const App: React.FC = () => {
       if (!bird.name || !bird.name.trim()) {
         throw new Error('Nome da ave é obrigatório');
       }
-      if (!bird.ringNumber || !bird.ringNumber.trim()) {
-        throw new Error('Número de anilha é obrigatório');
-      }
 
-      // 2. VALIDAÇÃO: Verificar se ring_number já existe para este usuário
-      const ringNumberExists = state.birds.some(
-        b => b.ringNumber.toLowerCase() === bird.ringNumber.toLowerCase()
-      );
-      
-      if (ringNumberExists) {
-        const existingBird = state.birds.find(
-          b => b.ringNumber.toLowerCase() === bird.ringNumber.toLowerCase()
+      // 2. VALIDAÇÃO: Verificar se ring_number já existe (APENAS se foi fornecido)
+      // Filhotes recém-nascidos podem não ter anilha ainda
+      if (bird.ringNumber && bird.ringNumber.trim()) {
+        const ringNumberExists = state.birds.some(
+          b => b.ringNumber && b.ringNumber.toLowerCase() === bird.ringNumber.toLowerCase()
         );
-        const msg = `❌ Número de anilha '${bird.ringNumber}' já está em uso na ave "${existingBird?.name}"`;
-        toast.error(msg);
-        console.warn('⚠ Validação: Ring number duplicado:', msg);
-        return false;
+        
+        if (ringNumberExists) {
+          const existingBird = state.birds.find(
+            b => b.ringNumber && b.ringNumber.toLowerCase() === bird.ringNumber.toLowerCase()
+          );
+          const msg = `❌ Número de anilha '${bird.ringNumber}' já está em uso na ave "${existingBird?.name}"`;
+          toast.error(msg);
+          console.warn('⚠ Validação: Ring number duplicado:', msg);
+          return false;
+        }
+        console.log('✓ Validação OK: Ring number é único para o usuário');
+      } else {
+        console.log('ℹ Ave criada SEM anilha (pode ser filhote recém-nascido)');
       }
-
-      console.log('✓ Validação OK: Ring number é único para o usuário');
 
       // 3. ADICIONAR AO LOCAL STATE IMEDIATAMENTE (aparece na hora)
       setState(prev => ({ ...prev, birds: [...prev.birds, bird] }));
-      toast.success('✅ Ave adicionada com sucesso!');
+      const msgSucesso = bird.ringNumber ? '✅ Ave adicionada com sucesso!' : '✅ Filhote criado (anilha será adicionada depois)';
+      toast.success(msgSucesso);
       
       // 4. SALVAR NO LOCALSTORAGE (backup instantâneo - PRINCIPAL)
       if (session?.user?.id) {
