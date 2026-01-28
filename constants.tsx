@@ -122,6 +122,7 @@ export const INITIAL_SETTINGS: BreederSettings = {
 export const MOCK_BIRDS: Bird[] = [
   {
     id: '1',
+    breederId: 'system-user',
     ringNumber: 'SIS-2023-001',
     species: 'Curió',
     name: 'Mestre',
@@ -179,7 +180,8 @@ export const MOCK_MEDS: Medication[] = [
   {
     id: 'm5',
     name: 'Avitrin E',
-    type: 'Vitamina E (Reprodução)',
+    userId: 'system',
+    type: 'Vitamina' as any,
     batch: 'AVE-112',
     expiryDate: '2025-11-05',
     stock: 4
@@ -187,7 +189,8 @@ export const MOCK_MEDS: Medication[] = [
   {
     id: 'm6',
     name: 'Enrofloxacina 10%',
-    type: 'Antibiótico (Respiratório)',
+    userId: 'system',
+    type: 'Antibiótico' as any,
     batch: 'ENR-887',
     expiryDate: '2026-03-15',
     stock: 2
@@ -195,7 +198,8 @@ export const MOCK_MEDS: Medication[] = [
   {
     id: 'm7',
     name: 'Mercepton',
-    type: 'Protetor Hepático',
+    userId: 'system',
+    type: 'Outro' as any,
     batch: 'MER-332',
     expiryDate: '2025-10-30',
     stock: 5
@@ -203,7 +207,8 @@ export const MOCK_MEDS: Medication[] = [
   {
     id: 'm8',
     name: 'Organew',
-    type: 'Probiótico',
+    userId: 'system',
+    type: 'Outro' as any,
     batch: 'ORG-776',
     expiryDate: '2026-09-01',
     stock: 1
