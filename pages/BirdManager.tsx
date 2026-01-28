@@ -2,6 +2,7 @@
 import React, { useState, useMemo, useRef, useEffect, Suspense } from 'react';
 import { deleteBird as svcDeleteBird } from '../services/birds';
 import ConfirmDialog from '../components/ConfirmDialog';
+import BirdCardPrint from '../components/BirdCard';
 import { Bird, AppState, Sex, TrainingStatus, BirdClassification, BirdDocument, MovementRecord } from '../types';
 import { 
   Plus, 
@@ -1758,9 +1759,19 @@ const BirdManager: React.FC<BirdManagerProps> = ({
                              />
                           </div>
                         </div>
-                        <button onClick={() => { setIsEditing(true); setEditingBird(selectedBird); setActiveTab('dados'); }} className="w-full py-4 bg-[#0F172A] text-white rounded-2xl font-black text-xs uppercase tracking-widest flex items-center justify-center gap-3 shadow-lg hover:shadow-xl transition-all">
-                          <Edit size={18} /> Editar Dados
-                        </button>
+                        <div className="space-y-3">
+                          <button onClick={() => { setIsEditing(true); setEditingBird(selectedBird); setActiveTab('dados'); }} className="w-full py-4 bg-[#0F172A] text-white rounded-2xl font-black text-xs uppercase tracking-widest flex items-center justify-center gap-3 shadow-lg hover:shadow-xl transition-all">
+                            <Edit size={18} /> Editar Dados
+                          </button>
+                          {state.settings?.plan === 'Profissional' && (
+                            <BirdCardPrint 
+                              bird={selectedBird}
+                              breederName={state.settings?.breederName || 'AviGestão'}
+                              breederLogo={state.settings?.logoUrl}
+                              sispassNumber={state.settings?.sispassNumber}
+                            />
+                          )}
+                        </div>
                      </div>
                      <div className="lg:col-span-8 space-y-8">
                          {/* ... (Existing Details Card) ... */}
