@@ -165,7 +165,7 @@ export async function loadTabData(userId: string, tab: string) {
     case "birds":
     case "sexing":
       return {
-        birds: await safeSelect(() => supabase.from("birds").select("*").eq("user_id", userId), mapBirdFromDb),
+        birds: await safeSelect(() => supabase.from("birds").select("*").eq("breeder_id", userId), mapBirdFromDb),
       };
     case "tasks":
       return {
