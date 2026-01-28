@@ -17,7 +17,8 @@ import {
   X,
   FileBadge,
   Clock,
-  RefreshCw
+  RefreshCw,
+  BarChart3
 } from 'lucide-react';
 import { SubscriptionPlan } from '../types';
 import { APP_LOGO_ICON } from '../constants';
@@ -49,6 +50,7 @@ const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab, logoUrl, bre
     { id: 'tournaments', label: 'Torneios / Eventos', icon: <Trophy size={20} /> },
     { id: 'meds', label: 'Medicamentos', icon: <FlaskConical size={20} /> },
     { id: 'finance', label: 'Financeiro', icon: <DollarSign size={20} />, pro: true },
+    { id: 'analytics', label: 'Analytics', icon: <BarChart3 size={20} />, pro: true },
     { id: 'help', label: 'Ajuda & FAQ', icon: <HelpCircle size={20} /> },
   ];
 

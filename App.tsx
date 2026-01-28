@@ -31,6 +31,7 @@ const DocumentsManager = lazy(() => import('./pages/DocumentsManager'));
 const Auth = lazy(() => import('./pages/Auth'));
 const ResetPassword = lazy(() => import('./pages/ResetPassword'));
 const BirdVerification = lazy(() => import('./pages/BirdVerification'));
+const VerificationAnalytics = lazy(() => import('./pages/VerificationAnalytics'));
 import { supabase, SUPABASE_MISSING } from './lib/supabase';
 import { loadInitialData, loadTabData, loadDeletedPairs } from './services/dataService';
 
@@ -2033,6 +2034,23 @@ const App: React.FC = () => {
         );
       case 'help':
         return <HelpCenter />;
+      case 'analytics':
+        // Apenas usuários Profissional podem ver
+        if (state.settings?.plan !== 'Profissional') {
+          return (
+            <div className="bg-white rounded-2xl shadow-sm p-8 text-center">
+              <h2 className="text-2xl font-bold text-slate-900 mb-4">Recurso Exclusivo PRO</h2>
+              <p className="text-slate-600 mb-6">Analytics de verificações está disponível apenas para assinantes Profissional</p>
+              <button
+                onClick={() => navigateTo('settings')}
+                className="px-6 py-2 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700"
+              >
+                Fazer Upgrade
+              </button>
+            </div>
+          );
+        }
+        return <VerificationAnalytics />;
       default:
         return <Dashboard state={state} updateSettings={updateSettings} onSave={persistSettings} navigateTo={navigateTo} isAdmin={isAdmin} />;
     }
