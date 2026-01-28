@@ -88,30 +88,28 @@ const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab, logoUrl, bre
         fixed left-0 top-0 h-screen w-64 bg-white border-r border-slate-200 flex flex-col z-50 shadow-lg lg:shadow-sm transition-transform duration-300
         ${isOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
       `}>
-        <div className="p-5 pb-6 flex items-center justify-between border-b border-slate-200">
-          <div className="flex items-center gap-3">
-            <div className="w-12 h-12 bg-gradient-to-br from-blue-50 to-slate-50 border border-slate-200 rounded-lg p-2 flex items-center justify-center flex-shrink-0">
-              <img 
-                src={logoUrl || APP_LOGO_ICON} 
-                alt="Logo" 
-                className="w-full h-full object-contain" 
-              />
-            </div>
-            <div className="overflow-hidden flex-1">
-              <h1
-                title={breederName || 'AviGestão'}
-                className="font-bold text-slate-900 text-sm leading-tight truncate"
-              >
-                {breederName || 'AviGestão'}
-              </h1>
-              <span className={`text-[10px] font-semibold uppercase tracking-wide px-1.5 py-0.5 rounded inline-block ${isAdmin ? 'bg-red-100 text-red-700' : plan === 'Profissional' ? 'bg-blue-100 text-blue-700' : 'bg-slate-100 text-slate-600'}`}>
-                {planLabel}
-              </span>
-            </div>
-          </div>
-          <button onClick={onClose} className="lg:hidden text-slate-400 hover:text-slate-600 flex-shrink-0">
+        <div className="p-6 pb-4 flex flex-col items-center justify-center border-b border-slate-200 gap-3 relative">
+          <button onClick={onClose} className="absolute top-4 right-4 lg:hidden text-slate-400 hover:text-slate-600">
             <X size={20} />
           </button>
+          <div className="w-20 h-20 bg-gradient-to-br from-blue-50 to-slate-50 border-2 border-slate-300 rounded-lg p-2 flex items-center justify-center flex-shrink-0 shadow-md hover:shadow-lg transition-shadow">
+            <img 
+              src={logoUrl || APP_LOGO_ICON} 
+              alt="Logo" 
+              className="w-full h-full object-contain" 
+            />
+          </div>
+          <div className="text-center">
+            <h1
+              title={breederName || 'AviGestão'}
+              className="font-bold text-slate-900 text-base leading-tight"
+            >
+              {breederName || 'AviGestão'}
+            </h1>
+            <span className={`text-[10px] font-semibold uppercase tracking-wide px-2 py-1 rounded inline-block mt-2 ${isAdmin ? 'bg-red-100 text-red-700' : plan === 'Profissional' ? 'bg-blue-100 text-blue-700' : 'bg-slate-100 text-slate-600'}`}>
+              {planLabel}
+            </span>
+          </div>
         </div>
 
         {hasTrial && trialDaysLeft >= 0 && (
