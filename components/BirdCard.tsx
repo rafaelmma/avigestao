@@ -16,18 +16,32 @@ const BirdCardPrint: React.FC<BirdCardPrintProps> = ({
   breederLogo,
   sispassNumber 
 }) => {
-  // Gera QR code usando API pública
+  const [bgColor, setBgColor] = React.useState<'dark' | 'white'>('dark');
+
+  // Gera QR code usando API pública - formato PNG para compatibilidade com PDF
   const generateQRCode = (text: string) => {
     const encoded = encodeURIComponent(text);
-    return `https://api.qrserver.com/v1/create-qr-code/?size=120x120&data=${encoded}`;
+    return `https://api.qrserver.com/v1/create-qr-code/?format=png&size=120x120&data=${encoded}`;
   };
 
-  const handlePrint = () => {
+  const handlePreview = () => {
     const printWindow = window.open('', '', 'width=900,height=700');
     if (printWindow) {
       const birdIdentifier = `${bird.name} | Anilha: ${bird.ringNumber || 'N/A'} | ID: ${bird.id.substring(0, 8)}`;
       const qrUrl = generateQRCode(birdIdentifier);
       const printDate = new Date().toLocaleDateString('pt-BR');
+      
+      // Cores baseadas no fundo selecionado
+      const isDark = bgColor === 'dark';
+      const bgGradient = isDark 
+        ? 'linear-gradient(135deg, #1a365d 0%, #0f172a 100%)' 
+        : '#ffffff';
+      const borderColor = isDark ? '#d97706' : '#94a3b8';
+      const titleColor = isDark ? '#fbbf24' : '#1a365d';
+      const labelColor = isDark ? '#cbd5e1' : '#64748b';
+      const valueColor = isDark ? '#fbbf24' : '#0f172a';
+      const tagBg = isDark ? 'rgba(217, 119, 6, 0.2)' : 'rgba(100, 116, 139, 0.1)';
+      const tagColor = isDark ? '#fbbf24' : '#1a365d';
 
       printWindow.document.write(`
         <!DOCTYPE html>
@@ -40,7 +54,7 @@ const BirdCardPrint: React.FC<BirdCardPrintProps> = ({
             * { margin: 0; padding: 0; box-sizing: border-box; }
             html, body { 
               font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif; 
-              background: #e5e7eb; 
+              background: ${isDark ? '#e5e7eb' : '#f8fafc'}; 
               padding: 20px;
               display: flex;
               justify-content: center;
@@ -59,22 +73,21 @@ const BirdCardPrint: React.FC<BirdCardPrintProps> = ({
               gap: 20px;
             }
             
-            /* CARTÃO TIPO CARTEIRINHA - DESIGN PROFISSIONAL */
             .card {
               width: 100%;
               aspect-ratio: 1.587;
-              background: linear-gradient(135deg, #1a365d 0%, #0f172a 100%);
-              border: 2px solid #d97706;
+              background: ${bgGradient};
+              border: 2px solid ${borderColor};
               border-radius: 10px;
               padding: 14px;
               display: grid;
               grid-template-columns: 70px 1fr 60px;
               gap: 10px;
-              box-shadow: 0 10px 30px rgba(26, 54, 93, 0.4);
+              box-shadow: 0 10px 30px ${isDark ? 'rgba(26, 54, 93, 0.4)' : 'rgba(0, 0, 0, 0.1)'};
               page-break-inside: avoid;
               position: relative;
               overflow: hidden;
-              color: white;
+              ${isDark ? 'color: white;' : 'color: #1a365d;'}
             }
             
             .card::before {
@@ -84,7 +97,7 @@ const BirdCardPrint: React.FC<BirdCardPrintProps> = ({
               right: -50%;
               width: 200%;
               height: 200%;
-              background: radial-gradient(circle, rgba(217, 119, 6, 0.03) 1px, transparent 1px);
+              background: radial-gradient(circle, rgba(217, 119, 6, ${isDark ? '0.03' : '0.01'}) 1px, transparent 1px);
               background-size: 15px 15px;
               z-index: 0;
             }
@@ -96,7 +109,6 @@ const BirdCardPrint: React.FC<BirdCardPrintProps> = ({
               flex-direction: column;
             }
 
-            /* COLUNA 1: Logo e Criador */
             .col-logo {
               display: flex;
               flex-direction: column;
@@ -107,15 +119,15 @@ const BirdCardPrint: React.FC<BirdCardPrintProps> = ({
             .logo-badge {
               width: 70px;
               height: 70px;
-              background: linear-gradient(135deg, #eff6ff 0%, #faf5ff 100%);
-              border: 2px solid #d97706;
+              background: ${isDark ? 'linear-gradient(135deg, #eff6ff 0%, #faf5ff 100%)' : 'linear-gradient(135deg, #f0f4f8 0%, #eff6ff 100%)'};
+              border: 2px solid ${borderColor};
               border-radius: 8px;
               display: flex;
               align-items: center;
               justify-content: center;
               flex-shrink: 0;
               overflow: hidden;
-              box-shadow: 0 4px 12px rgba(217, 119, 6, 0.2);
+              box-shadow: 0 4px 12px ${isDark ? 'rgba(217, 119, 6, 0.2)' : 'rgba(0, 0, 0, 0.08)'};
             }
 
             .logo-badge img {
@@ -129,13 +141,12 @@ const BirdCardPrint: React.FC<BirdCardPrintProps> = ({
               font-weight: 700;
               text-transform: uppercase;
               letter-spacing: 0.5px;
-              color: #fbbf24;
+              color: ${titleColor};
               text-align: center;
               line-height: 1.2;
               word-break: break-word;
             }
 
-            /* COLUNA 2: Dados da Ave - CENTRO */
             .col-data {
               display: flex;
               flex-direction: column;
@@ -149,7 +160,7 @@ const BirdCardPrint: React.FC<BirdCardPrintProps> = ({
               font-weight: 700;
               text-transform: uppercase;
               letter-spacing: 0.5px;
-              color: #fbbf24;
+              color: ${titleColor};
               line-height: 1.2;
             }
 
@@ -162,21 +173,21 @@ const BirdCardPrint: React.FC<BirdCardPrintProps> = ({
             }
 
             .data-label {
-              color: #cbd5e1;
+              color: ${labelColor};
               font-weight: 600;
               white-space: nowrap;
             }
 
             .data-value {
-              color: #fbbf24;
+              color: ${valueColor};
               font-weight: 700;
             }
 
             .tag-species {
               display: inline-block;
-              background: rgba(217, 119, 6, 0.2);
-              border: 1px solid #d97706;
-              color: #fbbf24;
+              background: ${tagBg};
+              border: 1px solid ${borderColor};
+              color: ${tagColor};
               padding: 2px 6px;
               border-radius: 4px;
               font-size: 7px;
@@ -185,7 +196,6 @@ const BirdCardPrint: React.FC<BirdCardPrintProps> = ({
               margin-top: 2px;
             }
 
-            /* COLUNA 3: QR Code */
             .col-qr {
               display: flex;
               flex-direction: column;
@@ -199,7 +209,7 @@ const BirdCardPrint: React.FC<BirdCardPrintProps> = ({
               width: 60px;
               height: 60px;
               background: white;
-              border: 2px solid #d97706;
+              border: 2px solid ${borderColor};
               border-radius: 6px;
               padding: 2px;
               display: flex;
@@ -213,11 +223,12 @@ const BirdCardPrint: React.FC<BirdCardPrintProps> = ({
               width: 100%;
               height: 100%;
               object-fit: contain;
+              image-rendering: pixelated;
             }
 
             .footer-info {
               font-size: 7px;
-              color: #cbd5e1;
+              color: ${labelColor};
               text-align: center;
               line-height: 1.2;
               word-break: break-word;
@@ -225,23 +236,37 @@ const BirdCardPrint: React.FC<BirdCardPrintProps> = ({
 
             .footer-date {
               font-size: 6px;
-              color: #64748b;
+              color: ${labelColor};
+              opacity: 0.8;
+            }
+
+            .empty-space {
+              background: white;
+              border: 2px dashed #e2e8f0;
+              border-radius: 10px;
+              display: flex;
+              align-items: center;
+              justify-content: center;
+              color: #94a3b8;
+              font-size: 14px;
+              font-weight: 600;
             }
 
             @media print {
               html, body { background: white; padding: 0; }
               .card { box-shadow: none; }
+              .empty-space { display: none; }
             }
           </style>
         </head>
         <body>
           <div class="print-container">
             <div class="cards-grid">
-              <!-- Cartão 1 -->
+              <!-- Cartão Único -->
               <div class="card">
                 <div class="col-logo">
                   <div class="logo-badge">
-                    <img src="${breederLogo || APP_LOGO_ICON}" alt="Logo" />
+                    <img src="${breederLogo || APP_LOGO_ICON}" alt="Logo" onerror="this.style.display='none'" />
                   </div>
                   <div class="breeder-label">${breederName.toUpperCase()}</div>
                 </div>
@@ -268,49 +293,16 @@ const BirdCardPrint: React.FC<BirdCardPrintProps> = ({
 
                 <div class="col-qr">
                   <div class="qr-box">
-                    <img src="${qrUrl}" alt="QR Code" />
+                    <img src="${qrUrl}" alt="QR Code" loading="eager" />
                   </div>
                   <div class="footer-info">ID:<br/>${bird.id.substring(0, 8).toUpperCase()}</div>
                   <div class="footer-date">${printDate}</div>
                 </div>
               </div>
 
-              <!-- Cartão 2 (duplicado para imprimir 2 por página) -->
-              <div class="card">
-                <div class="col-logo">
-                  <div class="logo-badge">
-                    <img src="${breederLogo || APP_LOGO_ICON}" alt="Logo" />
-                  </div>
-                  <div class="breeder-label">${breederName.toUpperCase()}</div>
-                </div>
-
-                <div class="col-data">
-                  <div class="card-content">
-                    <div class="bird-title">${bird.name || 'PÁSSARO'}</div>
-                    ${bird.species ? `<div class="tag-species">${bird.species}</div>` : ''}
-                  </div>
-
-                  <div class="card-content">
-                    ${bird.ringNumber ? `<div class="data-row"><span class="data-label">Anilha:</span><span class="data-value">${bird.ringNumber}</span></div>` : ''}
-                    ${bird.sex ? `<div class="data-row"><span class="data-label">Sexo:</span><span class="data-value">${bird.sex}</span></div>` : ''}
-                    ${bird.birthDate ? `<div class="data-row"><span class="data-label">Nasc.:</span><span class="data-value">${new Date(bird.birthDate).toLocaleDateString('pt-BR')}</span></div>` : ''}
-                    ${bird.colorMutation ? `<div class="data-row"><span class="data-label">Mutação:</span><span class="data-value">${bird.colorMutation}</span></div>` : ''}
-                    ${bird.classification ? `<div class="data-row"><span class="data-label">Class.:</span><span class="data-value">${bird.classification}</span></div>` : ''}
-                  </div>
-
-                  <div class="card-content">
-                    ${sispassNumber ? `<div class="data-row"><span class="data-label">SISPASS:</span><span class="data-value">${sispassNumber}</span></div>` : ''}
-                    ${bird.status ? `<div class="data-row"><span class="data-label">Status:</span><span class="data-value">${bird.status}</span></div>` : ''}
-                  </div>
-                </div>
-
-                <div class="col-qr">
-                  <div class="qr-box">
-                    <img src="${qrUrl}" alt="QR Code" />
-                  </div>
-                  <div class="footer-info">ID:<br/>${bird.id.substring(0, 8).toUpperCase()}</div>
-                  <div class="footer-date">${printDate}</div>
-                </div>
+              <!-- Espaço para segundo cartão -->
+              <div class="empty-space">
+                Espaço para outro cartão
               </div>
             </div>
           </div>
@@ -318,19 +310,44 @@ const BirdCardPrint: React.FC<BirdCardPrintProps> = ({
         </html>
       `);
       printWindow.document.close();
-      setTimeout(() => printWindow.print(), 250);
     }
   };
 
   return (
-    <button
-      onClick={handlePrint}
-      className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-semibold hover:bg-blue-700 transition-all"
-      title="Imprimir cartão do pássaro"
-    >
-      <Printer size={16} />
-      Imprimir Cartão
-    </button>
+    <div className="space-y-3">
+      <div className="flex items-center gap-3">
+        <label className="flex items-center gap-2 text-sm">
+          <input
+            type="radio"
+            name="bgColor"
+            value="dark"
+            checked={bgColor === 'dark'}
+            onChange={() => setBgColor('dark')}
+            className="w-4 h-4"
+          />
+          <span className="text-slate-700 font-medium">Fundo Escuro</span>
+        </label>
+        <label className="flex items-center gap-2 text-sm">
+          <input
+            type="radio"
+            name="bgColor"
+            value="white"
+            checked={bgColor === 'white'}
+            onChange={() => setBgColor('white')}
+            className="w-4 h-4"
+          />
+          <span className="text-slate-700 font-medium">Fundo Branco</span>
+        </label>
+      </div>
+      <button
+        onClick={handlePreview}
+        className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-semibold hover:bg-blue-700 transition-all"
+        title="Visualizar e imprimir cartão do pássaro"
+      >
+        <Printer size={16} />
+        Imprimir Cartão
+      </button>
+    </div>
   );
 };
 
