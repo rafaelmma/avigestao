@@ -641,11 +641,18 @@ const App: React.FC = () => {
   const createFallbackSettings = async (
     workingSettings: BreederSettings | undefined,
     currentSession: any,
-    userId: string
+    userId: string,
+    passedBreederName?: string
   ): Promise<BreederSettings> => {
+    // Se recebeu breederName (novo signup), usa; senão tenta o que existe ou fallback para email
+    const breederNameToUse = passedBreederName || 
+                             workingSettings?.breederName || 
+                             currentSession.user?.email || 
+                             defaultState.settings.breederName;
+    
     const fallbackSettings: BreederSettings = {
       ...(workingSettings || defaultState.settings),
-      breederName: currentSession.user?.email || defaultState.settings.breederName,
+      breederName: breederNameToUse,
       plan: workingSettings?.plan || defaultState.settings.plan,
     };
     
@@ -773,8 +780,19 @@ const App: React.FC = () => {
       const hasSettingsRow = !settingsFailed && !!workingSettings?.userId;
       
       // Create fallback settings for new users
+      const pendingBreederName = (() => {
+        try {
+          const pending = localStorage.getItem('avigestao_pending_breeder_name');
+          if (pending) {
+            localStorage.removeItem('avigestao_pending_breeder_name');
+            return pending;
+          }
+        } catch {}
+        return undefined;
+      })();
+
       if (!hasSettingsRow && !settingsFailed) {
-        workingSettings = await createFallbackSettings(workingSettings, currentSession, userId);
+        workingSettings = await createFallbackSettings(workingSettings, currentSession, userId, pendingBreederName);
       } else if (!settingsFailed && !workingSettings?.breederName && currentSession.user?.email) {
         workingSettings = { ...(workingSettings || {}), breederName: currentSession.user.email };
       }
@@ -2036,7 +2054,15 @@ const App: React.FC = () => {
     
     return (
       <Suspense fallback={<div className="min-h-screen flex items-center justify-center">Carregando…</div>}>
-        <Auth onLogin={() => { /* sessão será tratada via supabase listener */ }} />
+        <Auth onLogin={(settings?: Partial<BreederSettings>) => { 
+          // Armazena breederName temporariamente se fornecido (novo signup)
+          if (settings?.breederName) {
+            try {
+              localStorage.setItem('avigestao_pending_breeder_name', settings.breederName);
+            } catch {}
+          }
+          /* sessão será tratada via supabase listener */ 
+        }} />
       </Suspense>
     );
   }

@@ -44,7 +44,16 @@ const Auth: React.FC<AuthProps> = ({ onLogin }) => {
         const { data, error } = await supabase.auth.signUp({ email, password });
         setIsLoading(false);
         if (error) return alert(error.message);
-        alert('Conta criada! Verifique seu e-mail.');
+        // Passa o breederName para criar as settings na primeira vez
+        if (data?.user?.id) {
+          onLogin({ userId: data.user.id, breederName: name });
+        }
+        // Mostra mensagem melhorada
+        alert('Conta criada com sucesso!\n\nVerifique seu e-mail para confirmar o cadastro.\n\nDepois você poderá fazer login com sua conta.');
+        setIsLogin(true);
+        setEmail('');
+        setPassword('');
+        setName('');
       }
     } catch (err: any) {
       setIsLoading(false);
