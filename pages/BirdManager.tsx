@@ -1264,7 +1264,7 @@ const BirdManager: React.FC<BirdManagerProps> = ({
                         <Cake size={8} className="text-slate-400" /> {calculateAge(bird.birthDate)}
                       </span>
                       {bird.classification && renderClassificationBadge(bird.classification)}
-                      {renderTrainingStatusBadge(bird.songTrainingStatus)}
+                      {bird.songTrainingStatus && renderTrainingStatusBadge(bird.songTrainingStatus)}
                       {bird.sexing?.resultDate && (
                         <div className="flex items-center gap-1 text-[8px] font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full uppercase">
                           <TestTube size={8} /> Sexada
@@ -1309,14 +1309,6 @@ const BirdManager: React.FC<BirdManagerProps> = ({
                           title="Marcar como Óbito"
                         >
                           🔴 Óbito
-                        </button>
-                        <button 
-                          type="button"
-                          onClick={(e) => { e.stopPropagation(); setQuickStatusBird(bird); setQuickStatusData({newStatus: 'Fuga', date: new Date().toISOString().split('T')[0], createMovement: true, notes: ''}); setShowQuickStatusModal(true); }}
-                          className="px-2 py-1.5 text-[9px] font-bold text-orange-700 bg-orange-50 hover:bg-orange-100 rounded-lg transition-all border border-orange-200"
-                          title="Marcar como Fuga"
-                        >
-                          🟠 Fuga
                         </button>
                         <button 
                           type="button"
@@ -1529,7 +1521,7 @@ const BirdManager: React.FC<BirdManagerProps> = ({
                           </div>
 
                           {/* Controle de Registro IBAMA */}
-                          {(editingBird.status === 'Óbito' || editingBird.status === 'Fuga' || editingBird.status === 'Vendido' || editingBird.status === 'Doado') && (
+                          {(editingBird.status === 'Óbito' || editingBird.status === 'Vendido' || editingBird.status === 'Doado') && (
                             <div className="p-6 bg-amber-50 border-2 border-amber-200 rounded-xl space-y-4">
                               <div className="flex items-center gap-2 text-amber-800">
                                 <Zap size={18} />
