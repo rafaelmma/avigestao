@@ -110,7 +110,7 @@ const MedsManager: React.FC<MedsManagerProps> = ({
 
   const filteredMeds = listToUse.filter(m => 
     m.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    m.type.toLowerCase().includes(searchTerm.toLowerCase())
+    m.type?.toLowerCase().includes(searchTerm.toLowerCase())
   );
   const expiredMeds = state.medications.filter(m => isExpired(m.expiryDate));
 
@@ -156,8 +156,8 @@ const MedsManager: React.FC<MedsManagerProps> = ({
         });
         // Só baixa estoque se for novo registro
         const med = state.medications.find(m => m.id === newApp.medicationId);
-        if (med && med.stock > 0) {
-          updateMed({ ...med, stock: med.stock - 1 });
+        if (med && (med.stock ?? 0) > 0) {
+          updateMed({ ...med, stock: (med.stock ?? 0) - 1 });
         }
       }
 
@@ -259,8 +259,8 @@ const MedsManager: React.FC<MedsManagerProps> = ({
 
     // Baixar Estoque
     const med = state.medications.find(m => m.id === treatment.medicationId);
-    if (med && med.stock > 0) {
-        updateMed({ ...med, stock: med.stock - 1 });
+    if (med && (med.stock ?? 0) > 0) {
+        updateMed({ ...med, stock: (med.stock ?? 0) - 1 });
     }
 
     // Atualizar Tratamento (Última Dose)
@@ -431,7 +431,7 @@ const MedsManager: React.FC<MedsManagerProps> = ({
                 <div className="p-5 flex-1 space-y-4">
                   <div className="flex items-start justify-between">
                     <div className={`p-3 rounded-2xl ${
-                      med.type.toLowerCase().includes('vitamina') || med.type.toLowerCase().includes('suplemento')
+                      med.type?.toLowerCase().includes('vitamina') || med.type?.toLowerCase().includes('suplemento')
                         ? 'bg-emerald-50 text-emerald-600'
                         : 'bg-blue-50 text-blue-600'
                     }`}>
@@ -466,8 +466,8 @@ const MedsManager: React.FC<MedsManagerProps> = ({
                     </div>
                     <div className="bg-slate-50 rounded-xl p-2 border border-slate-100">
                       <p className="text-[8px] text-slate-400 font-black uppercase mb-0.5">Estoque</p>
-                      <p className={`text-xs font-bold ${med.stock < 2 ? 'text-orange-500' : 'text-slate-700'}`}>
-                        {med.stock} unid.
+                      <p className={`text-xs font-bold ${(med.stock ?? 0) < 2 ? 'text-orange-500' : 'text-slate-700'}`}>
+                        {med.stock ?? 0} unid.
                       </p>
                     </div>
                   </div>
@@ -945,7 +945,7 @@ const MedsManager: React.FC<MedsManagerProps> = ({
                     </div>
                   </div>
                 </label>
-                <input required type="text" placeholder="Ex: Suplemento, Antibiótico..." className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-brand font-bold text-slate-700" value={newMed.type || ''} onChange={e => setNewMed({...newMed, type: e.target.value})} />
+                <input required type="text" placeholder="Ex: Suplemento, Antibiótico..." className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-brand font-bold text-slate-700" value={newMed.type || ''} onChange={e => setNewMed({...newMed, type: e.target.value as any})} />
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div>
@@ -1012,7 +1012,7 @@ const MedsManager: React.FC<MedsManagerProps> = ({
               <div className="grid grid-cols-2 gap-4">
                  <div>
                     <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Tipo</label>
-                    <input required type="text" className="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl outline-none focus:border-brand font-bold text-slate-700" value={editingMed.type || ''} onChange={e => setEditingMed({...editingMed, type: e.target.value})} />
+                    <input required type="text" className="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl outline-none focus:border-brand font-bold text-slate-700" value={editingMed.type || ''} onChange={e => setEditingMed({...editingMed, type: e.target.value as any})} />
                  </div>
                  <div>
                     <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Lote</label>

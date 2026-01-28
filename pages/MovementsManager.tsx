@@ -38,7 +38,7 @@ const MovementsManager: React.FC<MovementsManagerProps> = ({ state, addMovement,
   const [searchTerm, setSearchTerm] = useState('');
   const [currentList, setCurrentList] = useState<'active' | 'trash'>('active');
   const [newMov, setNewMov] = useState<Partial<MovementRecord>>({
-    type: 'Transporte',
+    type: 'Entrada',
     date: new Date().toISOString().split('T')[0]
   });
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -82,7 +82,7 @@ const MovementsManager: React.FC<MovementsManagerProps> = ({ state, addMovement,
   const filteredMovements = listToUse.filter(m => {
     const bird = state.birds.find(b => b.id === m.birdId) || state.deletedBirds?.find(b => b.id === m.birdId);
     return bird?.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
-           bird?.ringNumber.toLowerCase().includes(searchTerm.toLowerCase());
+           bird?.ringNumber?.toLowerCase().includes(searchTerm.toLowerCase());
   });
 
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -99,7 +99,7 @@ const MovementsManager: React.FC<MovementsManagerProps> = ({ state, addMovement,
   const handleOpenAdd = () => {
     setIsEditing(false);
     setNewMov({ 
-      type: 'Transporte', 
+      type: 'Entrada', 
       date: new Date().toISOString().split('T')[0] 
     });
     setShowModal(true);
@@ -124,7 +124,7 @@ const MovementsManager: React.FC<MovementsManagerProps> = ({ state, addMovement,
         });
       }
       setShowModal(false);
-      setNewMov({ type: 'Transporte', date: new Date().toISOString().split('T')[0] });
+      setNewMov({ type: 'Entrada', date: new Date().toISOString().split('T')[0] });
     }
   };
 
@@ -150,7 +150,7 @@ const MovementsManager: React.FC<MovementsManagerProps> = ({ state, addMovement,
       <header className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <h2 className="text-3xl font-black text-[#0F172A] tracking-tight">Movimentações</h2>
-          <p className="text-slate-400 font-medium text-sm mt-1">Óbitos, fugas, vendas, doações e guias de transporte (GTR)</p>
+                <p className="text-slate-400 font-medium text-sm mt-1">Entrada, saída, transferência, venda, doação e óbito</p>
         </div>
         <div className="flex gap-2">
            <div className="flex bg-white p-1 rounded-xl shadow-sm border border-slate-100 mr-2">
@@ -240,12 +240,9 @@ const MovementsManager: React.FC<MovementsManagerProps> = ({ state, addMovement,
                     <td className="px-6 py-4">
                       <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-lg text-[10px] font-black uppercase ${
                         m.type === 'Óbito' ? 'bg-slate-100 text-slate-600' :
-                        m.type === 'Fuga' ? 'bg-amber-50 text-amber-600' :
-                        m.type === 'Transporte' ? 'bg-blue-50 text-blue-600' : 'bg-emerald-50 text-emerald-600'
+                        m.type === 'Venda' ? 'bg-emerald-50 text-emerald-600' : 'bg-blue-50 text-blue-600'
                       }`}>
-                        {m.type === 'Óbito' && <Skull size={12} />}
-                        {m.type === 'Fuga' && <Wind size={12} />}
-                        {m.type === 'Transporte' && <Truck size={12} />}
+                        {m.type === '\u00d3bito' && <Skull size={12} />}
                         {m.type === 'Venda' && <ArrowRightLeft size={12} />}
                         {m.type}
                       </span>
@@ -351,7 +348,7 @@ const MovementsManager: React.FC<MovementsManagerProps> = ({ state, addMovement,
               <div className="p-4 bg-amber-50 rounded-2xl border border-amber-100 flex gap-3">
                 <Info size={16} className="text-amber-600 flex-shrink-0 mt-0.5" />
                 <p className="text-[11px] text-amber-900 leading-relaxed font-medium">
-                  Atenção: Ao registrar um **Óbito**, **Fuga** ou **Venda**, o status do pássaro no plantel será alterado automaticamente.
+                  Atenção: Ao registrar um **Óbito**, **Saída** ou **Venda**, o status do pássaro no plantel será alterado automaticamente.
                 </p>
               </div>
 
@@ -381,10 +378,11 @@ const MovementsManager: React.FC<MovementsManagerProps> = ({ state, addMovement,
                     value={newMov.type}
                     onChange={e => setNewMov({...newMov, type: e.target.value as any})}
                   >
-                    <option value="Transporte">Transporte (GTR)</option>
-                    <option value="Óbito">Óbito</option>
-                    <option value="Fuga">Fuga</option>
-                    <option value="Venda">Venda</option>                    <option value="Doação">Doação</option>                  </select>
+                    <option value="Entrada">Entrada</option>
+                    <option value="Saída">Saída</option>
+                    <option value="Transferência">Transferência</option>
+                    <option value="Venda">Venda</option>                    <option value="Doação">Doação</option>
+                    <option value="\u00d3bito">\u00d3bito</option>
                 </div>
                 <div>
                   <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Data</label>
@@ -398,7 +396,7 @@ const MovementsManager: React.FC<MovementsManagerProps> = ({ state, addMovement,
                 </div>
               </div>
 
-              {(newMov.type === 'Transporte' || newMov.type === 'Venda') && (
+              {(newMov.type === 'Entrada' || newMov.type === 'Venda') && (
                 <div className="space-y-4">
                   <div>
                     <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">
@@ -430,7 +428,7 @@ const MovementsManager: React.FC<MovementsManagerProps> = ({ state, addMovement,
                 </div>
               )}
 
-              {(newMov.type === 'Óbito' || newMov.type === 'Fuga') && (
+              {(newMov.type === 'Óbito' || newMov.type === 'Saída') && (
                 <div>
                   <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Observações / Causa</label>
                   <textarea 
@@ -442,7 +440,7 @@ const MovementsManager: React.FC<MovementsManagerProps> = ({ state, addMovement,
                 </div>
               )}
 
-              {newMov.type === 'Transporte' && (
+              {newMov.type === 'Entrada' && (
                 <div className="space-y-2">
                   <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Anexar GTR (PDF/Imagem)</label>
                   <div 

@@ -42,7 +42,7 @@ interface BreedingManagerProps {
 interface PendingHatchling {
   name: string;
   ringNumber: string;
-  sex: 'Indeterminado' | 'Macho' | 'Fêmea';
+  sex: 'Desconhecido' | 'Macho' | 'Fêmea';
 }
 
 const BreedingManager: React.FC<BreedingManagerProps> = ({ state, addPair, updatePair, addBird, addClutch, updateClutch, deletePair, restorePair, permanentlyDeletePair, archivePair, unarchivePair, archiveFromTrashToPairs }) => {
@@ -136,6 +136,7 @@ const BreedingManager: React.FC<BreedingManagerProps> = ({ state, addPair, updat
     // Criar o casal com todos os campos obrigatórios
     const pairData: Pair = {
       id: makeId(),
+      userId: state.userId || '',
       maleId: newPair.maleId,
       femaleId: newPair.femaleId,
       name: newPair.name,
@@ -193,7 +194,7 @@ const BreedingManager: React.FC<BreedingManagerProps> = ({ state, addPair, updat
     const initialHatchlings: PendingHatchling[] = Array(count).fill(null).map((_, i) => ({
       name: `Filhote ${i + 1}`,
       ringNumber: '',
-      sex: 'Indeterminado'
+      sex: 'Desconhecido'
     }));
     
     setHatchlingsToRegister(initialHatchlings);
@@ -246,7 +247,7 @@ const BreedingManager: React.FC<BreedingManagerProps> = ({ state, addPair, updat
             status: 'Ativo',
             fatherId: pair.maleId,
             motherId: pair.femaleId,
-            classification: 'Não Definido',
+            classification: 'Exemplar',
             songTrainingStatus: 'Não Iniciado',
             colorMutation: 'Clássico (Filhote)', // Padrão
             location: pair.name, // Herda localização do casal
@@ -343,8 +344,7 @@ const BreedingManager: React.FC<BreedingManagerProps> = ({ state, addPair, updat
     const updatedPair: Pair = {
       ...pair,
       startDate: reactivateData.startDate,
-      lastHatchDate: reactivateData.clearHistory ? undefined : pair.lastHatchDate,
-      archivedAt: undefined
+      lastHatchDate: reactivateData.clearHistory ? undefined : pair.lastHatchDate
     };
 
     if (unarchivePair) {
@@ -1029,7 +1029,7 @@ const BreedingManager: React.FC<BreedingManagerProps> = ({ state, addPair, updat
                                 setHatchlingsToRegister(newArr);
                               }}
                             >
-                              <option value="Indeterminado">Indeterminado</option>
+                              <option value="Desconhecido">Desconhecido</option>
                               <option value="Macho">Macho</option>
                               <option value="Fêmea">Fêmea</option>
                             </select>
