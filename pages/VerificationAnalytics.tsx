@@ -26,21 +26,76 @@ const VerificationAnalytics: React.FC = () => {
   useEffect(() => {
     const loadVerifications = async () => {
       try {
-        if (!supabase) {
-          setLoading(false);
-          return;
-        }
-
-        // Carrega dados do localStorage como fallback
+        setLoading(true);
+        
+        // Carrega pássaros do localStorage
         const stored = localStorage.getItem('avigestao_state_v2');
+        let birdsMap: Record<string, string> = {};
+        
         if (stored) {
           const data = JSON.parse(stored);
           const birds = data?.birds || [];
-          
-          // Simula dados de verificação
-          const mockVerifications: VerificationRecord[] = birds.slice(0, 5).map((bird: any) => ({
-            bird_id: bird.id,
-            bird_name: bird.name,
+          birds.forEach((bird: any) => {
+            birdsMap[bird.id] = bird.name;
+          });
+        }
+
+        // Busca verificações do Supabase
+        if (supabase && Object.keys(birdsMap).length > 0) {
+          try {
+            const { data: verificationData, error: verificationError } = await supabase
+              .from('bird_verifications')
+              .select('bird_id, accessed_at')
+              .gte('accessed_at', dateRange.from + 'T00:00:00')
+              .lte('accessed_at', dateRange.to + 'T23:59:59')
+              .order('accessed_at', { ascending: false });
+
+            if (verificationError) {
+              console.warn('Erro ao buscar verificações:', verificationError);
+              // Continua com dados locais
+            } else if (verificationData && verificationData.length > 0) {
+              // Agrupa por bird_id
+              const grouped: Record<string, { count: number; last_accessed: string }> = {};
+              
+              verificationData.forEach((record: any) => {
+                if (!grouped[record.bird_id]) {
+                  grouped[record.bird_id] = { count: 0, last_accessed: record.accessed_at };
+                }
+                grouped[record.bird_id].count++;
+                
+                // Atualiza last_accessed se for mais recente
+                if (new Date(record.accessed_at) > new Date(grouped[record.bird_id].last_accessed)) {
+                  grouped[record.bird_id].last_accessed = record.accessed_at;
+                }
+              });
+
+              // Converte para array e ordena
+              const mockVerifications: VerificationRecord[] = Object.entries(grouped)
+                .map(([bird_id, data]) => ({
+                  bird_id,
+                  bird_name: birdsMap[bird_id] || `Pássaro ${bird_id.substring(0, 8)}`,
+                  count: data.count,
+                  last_accessed: data.last_accessed
+                }))
+                .sort((a, b) => b.count - a.count);
+
+              setVerifications(mockVerifications);
+              setTotalVerifications(mockVerifications.reduce((sum, v) => sum + v.count, 0));
+              setLoading(false);
+              return;
+            }
+          } catch (err) {
+            console.warn('Erro ao conectar Supabase:', err);
+            // Continua com fallback
+          }
+        }
+
+        // Fallback: dados locais simulados (caso Supabase não esteja disponível)
+        if (Object.keys(birdsMap).length > 0) {
+          const birds = Object.entries(birdsMap).slice(0, 5);
+          const mockVerifications: VerificationRecord[] = birds.map(([id, name]) => ({
+            bird_id: id,
+            bird_name: name,
             count: Math.floor(Math.random() * 50) + 1,
             last_accessed: new Date(Date.now() - Math.random() * 30 * 24 * 60 * 60 * 1000).toISOString()
           }));
