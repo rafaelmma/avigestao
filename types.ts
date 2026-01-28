@@ -1,7 +1,7 @@
 ﻿// ============================================================================
 // TIPOS ENUMERADOS (correspondentes aos enums do banco Supabase)
 // ============================================================================
-export type BirdStatus = 'Ativo' | 'Inativo' | 'Vendido' | 'Doado' | 'Falecido' | 'Criação' | 'Óbito' | 'Fuga';
+export type BirdStatus = 'Ativo' | 'Inativo' | 'Vendido' | 'Doado' | 'Falecido' | 'Criação' | 'Óbito';
 export type Sex = 'Macho' | 'Fêmea' | 'Desconhecido';
 export type BirdClassification = 'Exemplar' | 'Reprodutor' | 'Descarte';
 export type TrainingStatus = 'Não Iniciado' | 'Em Progresso' | 'Concluído' | 'Certificado';
@@ -132,8 +132,11 @@ export interface Pair {
   userId: string;
   maleId?: string;
   femaleId?: string;
+  name?: string;
+  status?: string;
   startDate: string;
   endDate?: string;
+  lastHatchDate?: string;
   deletedAt?: string;
 }
 

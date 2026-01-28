@@ -972,6 +972,7 @@ const App: React.FC = () => {
 
   const mapBirdFromDb = (row: any): Bird => ({
     id: row.id,
+    breederId: row.breeder_id ?? session?.user?.id ?? '',
     ringNumber: row.ring ?? '',
     name: row.name ?? '',
     species: row.species ?? '',
@@ -1243,10 +1244,6 @@ const App: React.FC = () => {
         case 'Óbito':
           newStatus = 'Óbito';
           ibamaBaixaPendente = true; // Precisa dar baixa no IBAMA
-          break;
-        case 'Fuga':
-          newStatus = 'Fuga';
-          ibamaBaixaPendente = true; // Precisa registrar fuga no IBAMA
           break;
         case 'Venda':
           newStatus = 'Vendido';

@@ -128,12 +128,12 @@ export const MOCK_BIRDS: Bird[] = [
     sex: 'Macho',
     colorMutation: 'Clássico',
     birthDate: '2022-10-10',
-    status: 'Ativo',
+    status: 'Ativo' as any,
     location: 'Gaiola 01',
     photoUrl: getDefaultBirdImage('Curió', 'Macho', '2022-10-10'),
     createdAt: new Date().toISOString(),
-    classification: 'Pássaro de Canto',
-    songTrainingStatus: 'Fixado',
+    classification: 'Exemplar' as any,
+    songTrainingStatus: 'Em Progresso' as any,
     songType: 'Praia Clássico',
     isRepeater: true
   }
@@ -143,7 +143,8 @@ export const MOCK_MEDS: Medication[] = [
   {
     id: 'm1',
     name: 'Avitrin Complexo Vitamínico',
-    type: 'Suplemento / Vitaminas',
+    userId: 'system',
+    type: 'Vitamina' as any,
     batch: 'AV-2024-01',
     expiryDate: '2026-06-30',
     stock: 2
@@ -151,7 +152,8 @@ export const MOCK_MEDS: Medication[] = [
   {
     id: 'm2',
     name: 'Allax (Ivomec)',
-    type: 'Antiparasitário (Ácaros)',
+    userId: 'system',
+    type: 'Antiparasitário' as any,
     batch: 'ALX-998',
     expiryDate: '2025-12-15',
     stock: 1
@@ -159,7 +161,8 @@ export const MOCK_MEDS: Medication[] = [
   {
     id: 'm3',
     name: 'Coccidex',
-    type: 'Antibiótico / Coccidiose',
+    userId: 'system',
+    type: 'Antibiótico' as any,
     batch: 'CX-2023',
     expiryDate: '2025-08-20',
     stock: 3
@@ -167,7 +170,8 @@ export const MOCK_MEDS: Medication[] = [
   {
     id: 'm4',
     name: 'Glicopan Pet',
-    type: 'Suplemento Energético',
+    userId: 'system',
+    type: 'Vitamina' as any,
     batch: 'GLI-554',
     expiryDate: '2026-01-10',
     stock: 1
