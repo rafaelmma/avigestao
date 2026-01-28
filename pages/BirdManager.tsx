@@ -394,7 +394,7 @@ const BirdManager: React.FC<BirdManagerProps> = ({
         // Gerar UUID válido
         const movementId = crypto.randomUUID ? crypto.randomUUID() : `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
         // Mapear status para tipo de movimentação
-        let movementType: MovementType = 'Transporte';
+        let movementType: MovementType = 'Entrada';
         if (quickStatusData.newStatus === 'Vendido') movementType = 'Venda';
         else if (quickStatusData.newStatus === 'Doado') movementType = 'Doação';
         else if (quickStatusData.newStatus === 'Óbito') movementType = 'Óbito';
@@ -437,9 +437,8 @@ const BirdManager: React.FC<BirdManagerProps> = ({
       // 2. Criar movimentação automaticamente baseada no status da ave
       const movementId = crypto.randomUUID ? crypto.randomUUID() : `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
       // Mapear status para tipo de movimentação
-      let movementType: 'Óbito' | 'Fuga' | 'Transporte' | 'Venda' | 'Doação' = 'Óbito';
-      if (quickIbamaBird.status === 'Fuga') movementType = 'Fuga';
-      else if (quickIbamaBird.status === 'Vendido') movementType = 'Venda';
+      let movementType: MovementType = 'Entrada';
+      if (quickIbamaBird.status === 'Vendido') movementType = 'Venda';
       else if (quickIbamaBird.status === 'Doado') movementType = 'Doação';
       else if (quickIbamaBird.status === 'Óbito') movementType = 'Óbito';
       
@@ -488,7 +487,7 @@ const BirdManager: React.FC<BirdManagerProps> = ({
     
     return list.filter(bird => {
       const matchesSearch = bird.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                            bird.ringNumber.toLowerCase().includes(searchTerm.toLowerCase());
+                            (bird.ringNumber?.toLowerCase().includes(searchTerm.toLowerCase()) ?? false);
       
       const matchesSpecies = filterSpecies ? bird.species === filterSpecies : true;
       const matchesSex = filterSex ? bird.sex === filterSex : true;
@@ -500,7 +499,7 @@ const BirdManager: React.FC<BirdManagerProps> = ({
   }, [state.birds, state.deletedBirds, searchTerm, currentList, filterSpecies, filterSex, filterTraining, filterStatus]);
 
   // Listas para a Central de Sexagem
-  const pendingSexingBirds = state.birds.filter(b => b.sex === 'Indeterminado' && (!b.sexing?.sentDate));
+  const pendingSexingBirds = state.birds.filter(b => b.sex === 'Desconhecido' && (!b.sexing?.sentDate));
   const waitingResultBirds = state.birds.filter(b => b.sexing?.sentDate && !b.sexing?.resultDate);
 
   const males = state.birds.filter(b => b.sex === 'Macho');
@@ -863,16 +862,16 @@ const BirdManager: React.FC<BirdManagerProps> = ({
 
   const resetNewBird = () => {
     setNewBird({ 
-      sex: 'Indeterminado', 
+      sex: 'Desconhecido', 
       status: 'Ativo', 
       species: BRAZILIAN_SPECIES[0],
-      photoUrl: getDefaultBirdImage(BRAZILIAN_SPECIES[0], 'Indeterminado', new Date().toISOString().split('T')[0]),
+      photoUrl: getDefaultBirdImage(BRAZILIAN_SPECIES[0], 'Desconhecido', new Date().toISOString().split('T')[0]),
       birthDate: new Date().toISOString().split('T')[0],
       sexing: { protocol: '', laboratory: '', sentDate: '' },
       songTrainingStatus: 'Não Iniciado',
       songType: '',
       isRepeater: false,
-      classification: 'Não Definido'
+      classification: 'Exemplar'
     });
     setGenealogyMode({ father: 'plantel', mother: 'plantel' });
     setManualAncestorsForm({ f: '', ff: '', fm: '', m: '', mf: '', mm: '' });
@@ -882,9 +881,9 @@ const BirdManager: React.FC<BirdManagerProps> = ({
   // Helpers de Renderização
   const renderClassificationBadge = (cls: BirdClassification) => {
     switch (cls) {
-      case 'Galador': return <span className="flex items-center gap-1 text-xs font-medium bg-red-50 text-red-700 px-2 py-1 rounded-md"><Heart size={10} fill="currentColor" /> Galador</span>;
-      case 'Pássaro de Canto': return <span className="flex items-center gap-1 text-xs font-medium bg-blue-50 text-blue-700 px-2 py-1 rounded-md"><Mic2 size={10} /> Canto</span>;
-      case 'Ambos': return <span className="flex items-center gap-1 text-xs font-medium bg-purple-50 text-purple-700 px-2 py-1 rounded-md"><Award size={10} /> Ambos</span>;
+      case 'Reprodutor': return <span className="flex items-center gap-1 text-xs font-medium bg-red-50 text-red-700 px-2 py-1 rounded-md"><Heart size={10} fill="currentColor" /> Reprodutor</span>;
+      case 'Exemplar': return <span className="flex items-center gap-1 text-xs font-medium bg-blue-50 text-blue-700 px-2 py-1 rounded-md"><Mic2 size={10} /> Exemplar</span>;
+      case 'Descarte': return <span className="flex items-center gap-1 text-xs font-medium bg-purple-50 text-purple-700 px-2 py-1 rounded-md"><Award size={10} /> Descarte</span>;
       default: return null;
     }
   };
@@ -895,7 +894,7 @@ const BirdManager: React.FC<BirdManagerProps> = ({
     let label: string = status;
     let icon = <Music size={10} />;
 
-    if (status === 'Fixado') { color = 'bg-amber-100 text-amber-700'; label = 'Mestre'; icon = <Award size={10} />; }
+    if (status === 'Em Progresso') { color = 'bg-amber-100 text-amber-700'; label = 'Em Progresso'; icon = <Award size={10} />; }
     if (status === 'Em Encarte') { color = 'bg-blue-100 text-blue-700'; label = 'Em Encarte'; }
     if (status === 'Pardo (Aprendizado)') { color = 'bg-orange-100 text-orange-700'; label = 'Pardo'; }
 
