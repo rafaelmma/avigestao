@@ -27,8 +27,9 @@ const BirdCardPrint: React.FC<BirdCardPrintProps> = ({
   const handlePreview = () => {
     const printWindow = window.open('', '', 'width=900,height=700');
     if (printWindow) {
-      const birdIdentifier = `${bird.name} | Anilha: ${bird.ringNumber || 'N/A'} | ID: ${bird.id.substring(0, 8)}`;
-      const qrUrl = generateQRCode(birdIdentifier);
+      // QR Code agora aponta para a URL de verificação
+      const verificationUrl = `${window.location.origin}/bird/${bird.id}`;
+      const qrUrl = generateQRCode(verificationUrl);
       const printDate = new Date().toLocaleDateString('pt-BR');
       
       // Cores baseadas no fundo selecionado

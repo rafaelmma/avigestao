@@ -30,6 +30,7 @@ const HelpCenter = lazy(() => import('./pages/HelpCenter'));
 const DocumentsManager = lazy(() => import('./pages/DocumentsManager'));
 const Auth = lazy(() => import('./pages/Auth'));
 const ResetPassword = lazy(() => import('./pages/ResetPassword'));
+const BirdVerification = lazy(() => import('./pages/BirdVerification'));
 import { supabase, SUPABASE_MISSING } from './lib/supabase';
 import { loadInitialData, loadTabData, loadDeletedPairs } from './services/dataService';
 
@@ -2038,6 +2039,17 @@ const App: React.FC = () => {
   };
 
   if (!session && !supabaseUnavailable) {
+    // Verifica se é uma página de verificação de pássaro (sem autenticação necessária)
+    const pathMatch = window.location.pathname.match(/^\/bird\/([a-zA-Z0-9-]+)$/);
+    if (pathMatch) {
+      const birdId = pathMatch[1];
+      return (
+        <Suspense fallback={<div className="min-h-screen flex items-center justify-center">Carregando…</div>}>
+          <BirdVerification birdId={birdId} />
+        </Suspense>
+      );
+    }
+
     // Verifica se é uma página de reset de senha (token vem como hash)
     const hash = window.location.hash;
     const searchParams = new URLSearchParams(window.location.search);
@@ -2075,6 +2087,17 @@ const App: React.FC = () => {
     return (
       <Suspense fallback={<div className="min-h-screen flex items-center justify-center">Carregando…</div>}>
         <ResetPassword />
+      </Suspense>
+    );
+  }
+
+  // Verifica se é uma página de verificação de pássaro (acessível sem autenticação)
+  const pathMatch = window.location.pathname.match(/^\/bird\/([a-zA-Z0-9-]+)$/);
+  if (pathMatch) {
+    const birdId = pathMatch[1];
+    return (
+      <Suspense fallback={<div className="min-h-screen flex items-center justify-center">Carregando…</div>}>
+        <BirdVerification birdId={birdId} />
       </Suspense>
     );
   }
