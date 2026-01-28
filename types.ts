@@ -1,7 +1,7 @@
 ﻿// ============================================================================
 // TIPOS ENUMERADOS (correspondentes aos enums do banco Supabase)
 // ============================================================================
-export type BirdStatus = 'Ativo' | 'Inativo' | 'Vendido' | 'Doado' | 'Falecido' | 'Criação';
+export type BirdStatus = 'Ativo' | 'Inativo' | 'Vendido' | 'Doado' | 'Falecido' | 'Criação' | 'Óbito' | 'Fuga';
 export type Sex = 'Macho' | 'Fêmea' | 'Desconhecido';
 export type BirdClassification = 'Exemplar' | 'Reprodutor' | 'Descarte';
 export type TrainingStatus = 'Não Iniciado' | 'Em Progresso' | 'Concluído' | 'Certificado';
@@ -45,6 +45,8 @@ export interface Bird {
   motherId?: string; // UUID da mãe (bird)
   songTrainingStatus?: TrainingStatus;
   songType?: string;
+  songSource?: string;
+  trainingStartDate?: string;
   trainingNotes?: string;
   photoUrl?: string;
   createdAt?: string;

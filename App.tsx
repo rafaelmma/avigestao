@@ -1040,12 +1040,12 @@ const App: React.FC = () => {
       // Filhotes recém-nascidos podem não ter anilha ainda
       if (bird.ringNumber && bird.ringNumber.trim()) {
         const ringNumberExists = state.birds.some(
-          b => b.ringNumber && b.ringNumber.toLowerCase() === bird.ringNumber.toLowerCase()
+          b => b.ringNumber && b.ringNumber?.toLowerCase() === bird.ringNumber?.toLowerCase()
         );
         
         if (ringNumberExists) {
           const existingBird = state.birds.find(
-            b => b.ringNumber && b.ringNumber.toLowerCase() === bird.ringNumber.toLowerCase()
+            b => b.ringNumber && b.ringNumber?.toLowerCase() === bird.ringNumber?.toLowerCase()
           );
           const msg = `❌ Número de anilha '${bird.ringNumber}' já está em uso na ave "${existingBird?.name}"`;
           toast.error(msg);
