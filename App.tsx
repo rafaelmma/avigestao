@@ -1087,7 +1087,7 @@ const App: React.FC = () => {
           ibama_baixa_pendente: bird.ibamaBaixaPendente ?? false,
           ibama_baixa_data: bird.ibamaBaixaData
         };
-        const { error } = await supabase.from('birds').update(dbBird).eq('id', bird.id).eq('user_id', session.user.id);
+        const { error } = await supabase.from('birds').update(dbBird).eq('id', bird.id).eq('breeder_id', session.user.id);
         if (error) console.error('Erro ao atualizar ave:', error);
         
         // Sincronizar também na tabela birds para verificação via QR
@@ -1109,7 +1109,7 @@ const App: React.FC = () => {
   const deleteBird = async (id: string) => {
     try {
       if (!supabaseUnavailable && session?.user?.id) {
-        const { error } = await supabase.from('birds').update({ deleted_at: new Date().toISOString() }).eq('id', id).eq('user_id', session.user.id);
+        const { error } = await supabase.from('birds').update({ deleted_at: new Date().toISOString() }).eq('id', id).eq('breeder_id', session.user.id);
         if (error) console.error('Erro ao deletar ave:', error);
       }
     } catch (e) {
