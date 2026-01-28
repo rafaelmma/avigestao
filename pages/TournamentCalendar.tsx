@@ -23,6 +23,7 @@ import {
   HelpCircle
 } from 'lucide-react';
 const TipCarousel = React.lazy(() => import('../components/TipCarousel'));
+import BirdCertificate from '../components/BirdCertificate';
 
 interface TournamentCalendarProps {
   state: AppState;
@@ -616,6 +617,20 @@ const TournamentCalendar: React.FC<TournamentCalendarProps> = ({ state, addEvent
                              />
                              <label htmlFor="hasTrophy" className="text-xs font-bold text-amber-800">Conquistou Troféu</label>
                           </div>
+
+                          {/* Botão de Certificado se for 1º lugar */}
+                          {newEvent.trophy && newEvent.result?.includes('1º') && (
+                            <div className="mt-6 pt-6 border-t border-amber-100">
+                              <p className="text-xs text-amber-700 font-semibold mb-4">🏆 Gerar certificado digital para este campeão:</p>
+                              <BirdCertificate
+                                bird={activeBirds.find(b => b.id === newEvent.participatingBirds?.[0]) || activeBirds[0]}
+                                event={newEvent as TournamentEvent}
+                                breederName={state.settings?.breederName || 'Criador'}
+                                breederLogo={state.settings?.logoUrl}
+                                sispassNumber={state.settings?.sispassNumber}
+                              />
+                            </div>
+                          )}
                        </div>
                     )}
 
