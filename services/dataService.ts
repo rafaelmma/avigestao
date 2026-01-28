@@ -277,32 +277,33 @@ export async function loadDeletedPairs(userId: string) {
 
 export const mapBirdFromDb = (row: any): Bird => {
   const species = row.species ?? "";
-  const sex = row.sex ?? "Indeterminado";
+  const sex = row.sex ?? "Desconhecido";
   const rawPhotoUrl = row.photo_url ?? row.photoUrl ?? undefined;
   const birthDate = row.birth_date ?? row.birthDate ?? undefined;
   const photoUrl = isDefaultBirdImage(rawPhotoUrl) ? getDefaultBirdImage(species, sex, birthDate) : rawPhotoUrl;
 
   return {
     id: row.id,
-    ringNumber: row.ring_number ?? row.ring ?? row.ringNumber ?? "", // Tentar ring_number PRIMEIRO
+    breederId: row.breeder_id ?? row.breederId ?? "",
+    ringNumber: row.ring_number ?? row.ring ?? row.ringNumber ?? "",
     species,
     name: row.name ?? "",
-    sex,
+    sex: (row.sex ?? "Desconhecido") as any,
     colorMutation: row.color_mutation ?? row.colorMutation ?? "",
-    birthDate: row.birth_date ?? row.birthDate ?? "",
-    status: row.status ?? "Ativo",
+    birthDate: row.birth_date ?? row.birthDate ?? undefined,
+    status: (row.status ?? "Ativo") as any,
     location: row.location ?? "",
     photoUrl,
     fatherId: row.father_id ?? row.fatherId ?? undefined,
     motherId: row.mother_id ?? row.motherId ?? undefined,
-    manualAncestors: row.manual_ancestors ?? row.manualAncestors ?? undefined,
-    createdAt: row.created_at ?? row.createdAt ?? new Date().toISOString(),
-    classification: (row.classification ?? "Não Definido") as any,
-    songTrainingStatus: (row.song_training_status ?? row.songTrainingStatus ?? "Não Iniciado") as any,
-    songType: row.song_type ?? row.songType ?? "",
-    songSource: row.song_source ?? row.songSource ?? undefined,
-    trainingStartDate: row.training_start_date ?? row.trainingStartDate ?? undefined,
+    classification: (row.classification ?? "Exemplar") as any,
+    songTrainingStatus: (row.song_training_status ?? "Não Iniciado") as any,
+    songType: row.song_type ?? row.songType ?? undefined,
     trainingNotes: row.training_notes ?? row.trainingNotes ?? undefined,
+    createdAt: row.created_at ?? row.createdAt ?? new Date().toISOString(),
+    updatedAt: row.updated_at ?? row.updatedAt ?? undefined,
+    // Campos legados (compatibilidade)
+    manualAncestors: row.manual_ancestors ?? row.manualAncestors ?? undefined,
     isRepeater: row.is_repeater ?? row.isRepeater ?? false,
     sexing: row.sexing ?? undefined,
     documents: row.documents ?? undefined,
@@ -314,13 +315,14 @@ export const mapBirdFromDb = (row: any): Bird => {
 
 export const mapMovementFromDb = (row: any): MovementRecord => ({
   id: row.id,
-  birdId: row.bird_id ?? row.birdId ?? "",
-  type: row.type,
-  date: row.date,
-  notes: row.notes ?? "",
-  gtrUrl: row.gtr_url ?? row.gtrUrl ?? undefined,
+  userId: row.user_id ?? row.userId ?? undefined,
+  birdId: row.bird_id ?? row.birdId ?? undefined,
+  type: (row.type ?? "Transferência") as any,
+  date: row.date ?? undefined,
+  notes: row.notes ?? undefined,
   destination: row.destination ?? undefined,
   buyerSispass: row.buyer_sispass ?? row.buyerSispass ?? undefined,
+  gtrUrl: row.gtr_url ?? row.gtrUrl ?? undefined,
   deletedAt: row.deleted_at ?? row.deletedAt ?? undefined,
 });
 
@@ -366,10 +368,11 @@ export const mapTournamentFromDb = (row: any): TournamentEvent => ({
 
 export const mapMedicationFromDb = (row: any): Medication => ({
   id: row.id,
+  userId: row.user_id ?? row.userId ?? "",
   name: row.name ?? "",
-  type: row.type ?? "",
-  batch: row.batch ?? "",
-  expiryDate: row.expiry_date ?? row.expiryDate ?? "",
+  type: (row.type ?? "Outro") as any,
+  batch: row.batch ?? undefined,
+  expiryDate: row.expiry_date ?? row.expiryDate ?? undefined,
   stock: row.stock ?? 0,
   deletedAt: row.deleted_at ?? row.deletedAt ?? undefined,
 });
@@ -387,19 +390,17 @@ export const mapMedicationCatalogFromDb = (row: any): MedicationCatalogItem => (
 
 export const mapPairFromDb = (row: any): Pair => ({
   id: row.id,
-  maleId: row.male_id ?? row.maleId ?? "",
-  femaleId: row.female_id ?? row.femaleId ?? "",
+  userId: row.user_id ?? row.userId ?? "",
+  maleId: row.male_id ?? row.maleId ?? undefined,
+  femaleId: row.female_id ?? row.femaleId ?? undefined,
   startDate: row.start_date ?? row.startDate ?? "",
   endDate: row.end_date ?? row.endDate ?? undefined,
-  status: row.status ?? "Ativo",
-  name: row.name ?? "",
-  lastHatchDate: row.last_hatch_date ?? row.lastHatchDate ?? undefined,
-  archivedAt: row.archived_at ?? row.archivedAt ?? undefined,
   deletedAt: row.deleted_at ?? row.deletedAt ?? undefined,
 });
 
 export const mapClutchFromDb = (row: any): Clutch => ({
   id: row.id,
+  userId: row.user_id ?? row.userId ?? "",
   pairId: row.pair_id ?? row.pairId ?? "",
   layDate: row.lay_date ?? row.layDate ?? "",
   eggCount: row.egg_count ?? row.eggCount ?? 0,
@@ -410,8 +411,8 @@ export const mapClutchFromDb = (row: any): Clutch => ({
 
 export const mapApplicationFromDb = (row: any): MedicationApplication => ({
   id: row.id,
-  birdId: row.bird_id ?? row.birdId ?? "",
-  medicationId: row.medication_id ?? row.medicationId ?? "",
+  birdId: row.bird_id ?? row.birdId ?? undefined,
+  medicationId: row.medication_id ?? row.medicationId ?? undefined,
   date: row.date ?? "",
   dosage: row.dosage ?? "",
   notes: row.notes ?? "",

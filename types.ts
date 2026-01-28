@@ -1,7 +1,14 @@
-﻿export type BirdStatus = 'Ativo' | 'Óbito' | 'Fuga' | 'Vendido' | 'Doado';
-export type Sex = 'Macho' | 'Fêmea' | 'Indeterminado';
-export type BirdClassification = 'Galador' | 'Pássaro de Canto' | 'Ambos' | 'Não Definido';
-export type TrainingStatus = 'Não Iniciado' | 'Em Encarte' | 'Fixado' | 'Pardo (Aprendizado)';
+﻿// ============================================================================
+// TIPOS ENUMERADOS (correspondentes aos enums do banco Supabase)
+// ============================================================================
+export type BirdStatus = 'Ativo' | 'Inativo' | 'Vendido' | 'Doado' | 'Falecido' | 'Criação';
+export type Sex = 'Macho' | 'Fêmea' | 'Desconhecido';
+export type BirdClassification = 'Exemplar' | 'Reprodutor' | 'Descarte';
+export type TrainingStatus = 'Não Iniciado' | 'Em Progresso' | 'Concluído' | 'Certificado';
+export type MovementType = 'Entrada' | 'Saída' | 'Transferência' | 'Venda' | 'Doação' | 'Óbito';
+export type MedicationType = 'Antibiótico' | 'Vitamina' | 'Antiparasitário' | 'Desinfetante' | 'Outro';
+export type EventType = 'Nascimento' | 'Sexagem' | 'Certificação' | 'Concurso' | 'Venda' | 'Outro';
+export type SharePlatform = 'WhatsApp' | 'Email' | 'Facebook' | 'Instagram' | 'Twitter' | 'Outro';
 export type SubscriptionPlan = 'Básico' | 'Profissional';
 
 export interface SexingData {
@@ -24,30 +31,31 @@ export interface BirdDocument {
 
 export interface Bird {
   id: string;
-  ringNumber: string;
-  species: string;
+  breederId: string; // UUID do criador (user_id)
   name: string;
-  sex: Sex;
-  colorMutation: string;
-  birthDate: string;
+  species: string;
+  sex?: Sex;
   status: BirdStatus;
-  location: string;
+  ringNumber?: string;
+  birthDate?: string;
+  colorMutation?: string;
+  classification?: BirdClassification;
+  location?: string;
+  fatherId?: string; // UUID do pai (bird)
+  motherId?: string; // UUID da mãe (bird)
+  songTrainingStatus?: TrainingStatus;
+  songType?: string;
+  trainingNotes?: string;
   photoUrl?: string;
-  fatherId?: string;
-  motherId?: string;
+  createdAt?: string;
+  updatedAt?: string;
+  // Campos legados (para compatibilidade com dados antigos)
   manualAncestors?: Record<string, string>;
-  createdAt: string;
-  classification: BirdClassification;
-  songTrainingStatus: TrainingStatus;
-  songType: string;
-  songSource?: string;        // Fonte (CD / Tutor / Mestre)
-  trainingStartDate?: string; // Data inicio do encarte
-  trainingNotes?: string;     // Observações de evolução do canto
-  isRepeater: boolean;
+  isRepeater?: boolean;
   sexing?: SexingData; 
-  documents?: BirdDocument[]; // Novo campo: Repositório de documentos da ave
-  ibamaBaixaPendente?: boolean; // Controle de baixa IBAMA para óbitos
-  ibamaBaixaData?: string; // Data de conclusão da baixa IBAMA
+  documents?: BirdDocument[];
+  ibamaBaixaPendente?: boolean;
+  ibamaBaixaData?: string;
   deletedAt?: string;
 }
 
@@ -106,31 +114,30 @@ export interface TournamentEvent {
 
 export interface MovementRecord {
   id: string;
-  birdId: string;
-  type: 'Óbito' | 'Fuga' | 'Transporte' | 'Venda' | 'Doação';
-  date: string;
-  notes: string;
-  gtrUrl?: string;
+  userId?: string;
+  birdId?: string;
+  type?: MovementType;
+  date?: string;
+  notes?: string;
   destination?: string;
   buyerSispass?: string;
+  gtrUrl?: string;
   deletedAt?: string;
 }
 
 export interface Pair {
   id: string;
-  maleId: string;
-  femaleId: string;
+  userId: string;
+  maleId?: string;
+  femaleId?: string;
   startDate: string;
   endDate?: string;
-  status: 'Ativo' | 'Inativo';
-  name: string;
-  lastHatchDate?: string;
-  archivedAt?: string;
   deletedAt?: string;
 }
 
 export interface Clutch {
   id: string;
+  userId: string;
   pairId: string;
   layDate: string;
   eggCount: number;
@@ -141,11 +148,12 @@ export interface Clutch {
 
 export interface Medication {
   id: string;
+  userId: string;
   name: string;
-  type: string;
-  batch: string;
-  expiryDate: string;
-  stock: number;
+  type?: MedicationType;
+  batch?: string;
+  expiryDate?: string;
+  stock?: number;
   deletedAt?: string;
 }
 
@@ -162,12 +170,12 @@ export interface MedicationCatalogItem {
 
 export interface MedicationApplication {
   id: string;
-  birdId: string;
-  medicationId: string;
+  birdId?: string;
+  medicationId?: string;
   date: string;
   dosage: string;
   notes: string;
-  treatmentId?: string; // Link para tratamento contínuo
+  treatmentId?: string;
   deletedAt?: string;
 }
 
