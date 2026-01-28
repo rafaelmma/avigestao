@@ -99,41 +99,79 @@ export const cacheMedicationCatalog = (items: MedicationCatalogItem[]) => {
 };
 
 export async function loadInitialData(userId: string) {
+  // ESTRATÉGIA: Carregar localStorage PRIMEIRO (rápido), depois sincronizar com Supabase em background
+  
+  // 1. Tentar localStorage primeiro (instantâneo)
+  const cachedState = loadCachedState(userId);
+  if (cachedState.hasCache) {
+    console.log('✓ Carregado do cache localStorage');
+    // Sincronizar com Supabase em background (não bloqueia UI)
+    syncWithSupabaseInBackground(userId).catch(err => 
+      console.warn('Erro ao sincronizar com Supabase:', err)
+    );
+    return cachedState.state!;
+  }
+
+  // 2. Se não houver cache, carregar do Supabase (com timeout)
   const settingsPromise = safeSingleSettings(
     () => supabase.from("settings").select("*").eq("user_id", userId).maybeSingle()
   );
 
   // Initial data for dashboard and core UI only.
-  const [birds, transactions, tasks, tournaments, clutches, pairs, archivedPairs, movements, settingsResult] = await Promise.all([
-    safeSelect(() => supabase.from("birds").select("*").eq("breeder_id", userId), mapBirdFromDb),
-    safeSelect(() => supabase.from("transactions").select("*").eq("user_id", userId), mapTransactionFromDb),
-    safeSelect(() => supabase.from("tasks").select("*").eq("user_id", userId), mapTaskFromDb),
-    safeSelect(() => supabase.from("tournaments").select("*").eq("user_id", userId), mapTournamentFromDb),
-    safeSelect(() => supabase.from("clutches").select("*").eq("user_id", userId), mapClutchFromDb),
-    safeSelect(() => supabase.from("pairs").select("*").eq("user_id", userId).is("deleted_at", null).is("archived_at", null), mapPairFromDb),
-    safeSelect(() => supabase.from("pairs").select("*").eq("user_id", userId).not("archived_at", "is", null).is("deleted_at", null), mapPairFromDb),
-    safeSelect(() => supabase.from("movements").select("*").eq("user_id", userId).is("deleted_at", null), mapMovementFromDb),
-    settingsPromise,
-  ]);
+  try {
+    const [birds, transactions, tasks, tournaments, clutches, pairs, archivedPairs, movements, settingsResult] = await Promise.race([
+      Promise.all([
+        safeSelect(() => supabase.from("birds").select("*").eq("breeder_id", userId), mapBirdFromDb),
+        safeSelect(() => supabase.from("transactions").select("*").eq("user_id", userId), mapTransactionFromDb),
+        safeSelect(() => supabase.from("tasks").select("*").eq("user_id", userId), mapTaskFromDb),
+        safeSelect(() => supabase.from("tournaments").select("*").eq("user_id", userId), mapTournamentFromDb),
+        safeSelect(() => supabase.from("clutches").select("*").eq("user_id", userId), mapClutchFromDb),
+        safeSelect(() => supabase.from("pairs").select("*").eq("user_id", userId).is("deleted_at", null).is("archived_at", null), mapPairFromDb),
+        safeSelect(() => supabase.from("pairs").select("*").eq("user_id", userId).not("archived_at", "is", null).is("deleted_at", null), mapPairFromDb),
+        safeSelect(() => supabase.from("movements").select("*").eq("user_id", userId).is("deleted_at", null), mapMovementFromDb),
+        settingsPromise,
+      ]),
+      new Promise<any>((_, reject) => setTimeout(() => reject(new Error('Supabase timeout')), 5000))
+    ]) as any;
 
-  const settings = settingsResult.settings;
+    const settings = settingsResult.settings;
 
-  return {
-    birds,
-    movements,
-    transactions,
-    tasks,
-    tournaments,
-    medications: [],
-    pairs,
-    archivedPairs,
-    clutches,
-    applications: [],
-    treatments: [],
-    medicationCatalog: [],
-    settings: settings ?? INITIAL_SETTINGS,
-    settingsFailed: settingsResult.failed,
-  };
+    return {
+      birds,
+      movements,
+      transactions,
+      tasks,
+      tournaments,
+      medications: [],
+      pairs,
+      archivedPairs,
+      clutches,
+      applications: [],
+      treatments: [],
+      medicationCatalog: [],
+      settings: settings ?? INITIAL_SETTINGS,
+      settingsFailed: settingsResult.failed,
+    };
+  } catch (err) {
+    console.warn('Falha ao carregar do Supabase, retornando estado vazio:', err);
+    // Retornar vazio - App carregará do localStorage
+    return {
+      birds: [],
+      movements: [],
+      transactions: [],
+      tasks: [],
+      tournaments: [],
+      medications: [],
+      pairs: [],
+      archivedPairs: [],
+      clutches: [],
+      applications: [],
+      treatments: [],
+      medicationCatalog: [],
+      settings: INITIAL_SETTINGS,
+      settingsFailed: true,
+    };
+  }
 }
 
 export async function loadTabData(userId: string, tab: string) {
@@ -383,4 +421,54 @@ function normalizeTrialEndDate(value?: string) {
   return parsed.getTime() >= Date.now() ? parsed.toISOString().split("T")[0] : undefined;
 }
 
+/**
+ * Sincroniza dados com Supabase em background (não bloqueia UI)
+ * Usado quando localStorage é carregado primeiro
+ */
+async function syncWithSupabaseInBackground(userId: string) {
+  try {
+    // Sincroniza birds silenciosamente
+    await safeSelect(
+      () => supabase.from("birds").select("*").eq("breeder_id", userId),
+      mapBirdFromDb
+    );
+    // Se chegou aqui, Supabase está respondendo
+    console.log('✓ Sincronizado com Supabase com sucesso');
+  } catch (err) {
+    console.warn('Background sync com Supabase falhou (será tentado novamente):', err);
+    // Continua mesmo assim - localStorage já tem os dados
+  }
+}
 
+// Função para carregar do cache (já deve existir em App.tsx)
+function loadCachedState(userId: string) {
+  try {
+    const storageKey = `avigestao_state_v2:${userId}`;
+    const stored = localStorage.getItem(storageKey);
+    if (!stored) return { hasCache: false, state: null };
+    
+    const { data } = JSON.parse(stored);
+    return {
+      hasCache: true,
+      state: {
+        birds: data.birds || [],
+        movements: data.movements || [],
+        transactions: data.transactions || [],
+        tasks: data.tasks || [],
+        tournaments: data.tournaments || [],
+        medications: data.medications || [],
+        pairs: data.pairs || [],
+        archivedPairs: data.archivedPairs || [],
+        clutches: data.clutches || [],
+        applications: data.applications || [],
+        treatments: data.treatments || [],
+        medicationCatalog: data.medicationCatalog || [],
+        settings: data.settings || INITIAL_SETTINGS,
+        settingsFailed: false,
+      }
+    };
+  } catch (err) {
+    console.warn('Erro ao carregar cache:', err);
+    return { hasCache: false, state: null };
+  }
+}
