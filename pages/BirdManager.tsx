@@ -1875,7 +1875,7 @@ const BirdManager: React.FC<BirdManagerProps> = ({
                                         <div className="min-w-0">
                                            <p className="text-xs font-bold text-slate-800 truncate">{getMedicationName(app.medicationId) ?? 'Medicamento'}</p>
                                            <p className="text-[10px] text-slate-400 font-bold uppercase mt-1">
-                                             {new Date(app.date).toLocaleDateString('pt-BR')} ÔÇó {app.dosage}
+                                             {new Date(app.date).toLocaleDateString('pt-BR')} ÔÇó {app.dosage ?? ''}
                                            </p>
                                            {app.notes && <p className="text-[10px] text-slate-500 mt-1 truncate">{app.notes}</p>}
                                         </div>
@@ -2301,7 +2301,6 @@ const BirdManager: React.FC<BirdManagerProps> = ({
            <div className="bg-white rounded-[40px] w-full max-w-md shadow-2xl overflow-hidden">
               <div className={`p-8 bg-gradient-to-r ${
                 quickStatusData.newStatus === 'Óbito' ? 'from-red-500 to-rose-500' :
-                quickStatusData.newStatus === 'Fuga' ? 'from-orange-500 to-amber-500' :
                 quickStatusData.newStatus === 'Vendido' ? 'from-blue-500 to-cyan-500' :
                 'from-purple-500 to-pink-500'
               }`}>

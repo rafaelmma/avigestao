@@ -118,7 +118,7 @@ const MedsManager: React.FC<MedsManagerProps> = ({
     const bird = state.birds.find(b => b.id === app.birdId);
     const med = state.medications.find(m => m.id === app.medicationId);
     const term = searchTerm.toLowerCase();
-    return bird?.name.toLowerCase().includes(term) || med?.name.toLowerCase().includes(term);
+    return (bird?.name ?? '').toLowerCase().includes(term) || ((med?.name ?? '') ?? '').toLowerCase().includes(term);
   }).sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 
   // --- HANDLERS DE FORMULÁRIO (MEDICAMENTO) ---
@@ -453,15 +453,15 @@ const MedsManager: React.FC<MedsManagerProps> = ({
                   </div>
                   
                   <div>
-                    <h3 className="font-bold text-slate-800 text-sm truncate">{med.name ?? 'Sem nome'}</h3>
-                    <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider mt-0.5">{med.type ?? 'Indefinido'}</p>
+                    <h3 className="font-bold text-slate-800 text-sm truncate">{(med.name ?? 'Sem nome').toUpperCase()}</h3>
+                    <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider mt-0.5">{(med.type ?? 'Indefinido').toUpperCase()}</p>
                   </div>
 
                   <div className="grid grid-cols-2 gap-2">
                     <div className={`rounded-xl p-2 border ${isExpired(med.expiryDate) ? 'bg-red-50 border-red-100' : 'bg-slate-50 border-slate-100'}`}>
                       <p className={`text-[8px] font-black uppercase mb-0.5 ${isExpired(med.expiryDate) ? 'text-red-400' : 'text-slate-400'}`}>Validade</p>
                       <p className={`text-xs font-bold ${isExpired(med.expiryDate) ? 'text-red-700' : 'text-slate-700'}`}>
-                        {new Date(med.expiryDate).toLocaleDateString('pt-BR')}
+                        {new Date(med.expiryDate ?? new Date()).toLocaleDateString('pt-BR')}
                       </p>
                     </div>
                     <div className="bg-slate-50 rounded-xl p-2 border border-slate-100">
@@ -1102,7 +1102,7 @@ const MedsManager: React.FC<MedsManagerProps> = ({
                 >
                   <option value="">Selecione o item...</option>
                   {state.medications.map(m => (
-                    <option key={m.id} value={m.id}>{m.name} {isExpired(m.expiryDate) ? '(VENCIDO)' : `(Estoque: ${m.stock})`}</option>
+                    <option key={m.id} value={m.id}>{(m.name ?? 'Sem nome').toUpperCase()} {isExpired(m.expiryDate) ? '(VENCIDO)' : `(Estoque: ${m.stock ?? 0})`}</option>
                   ))}
                 </select>
               </div>
