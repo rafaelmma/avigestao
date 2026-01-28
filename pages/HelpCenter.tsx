@@ -11,7 +11,8 @@ const HelpCenter: React.FC = () => {
     { q: 'Como registrar tarefas e concluir?', a: 'Em "Agenda / Tarefas" crie tarefas (única ou recorrente), conclua para mover ao Histórico e limpe o histórico quando necessário.' },
     { q: 'Como lançar eventos/torneios?', a: 'Em "Torneios / Eventos" cadastre título, data, local e tipo. Use o botão de checklist para preparar o pássaro e acompanhar o progresso.' },
     { q: 'Como controlar medicamentos e aplicações?', a: 'Cadastre o medicamento, aplique escolhendo ave e dosagem, e consulte o histórico na aba Histórico ou no perfil da ave (Histórico de Medicações).' },
-    { q: 'Como lançar receitas e despesas?', a: 'Em "Financeiro" clique em "Novo Lançamento", escolha Receita/Despesa, categoria e subitem. Os lançamentos alimentam os cartões de saldo no dashboard.' }
+    { q: 'Como lançar receitas e despesas?', a: 'Em "Financeiro" clique em "Novo Lançamento", escolha Receita/Despesa, categoria e subitem. Os lançamentos alimentam os cartões de saldo no dashboard.' },
+    { q: 'Como imprimir cartão de identificação do pássaro?', a: 'Este é um recurso exclusivo para usuários com plano Profissional. Abra um pássaro no "Plantel", clique em "Imprimir Cartão" (botão com ícone de impressora). O cartão inclui: logo do seu criatório, número SISPASS, foto/ilustração da ave, dados completos (anilha, espécie, sexo, data de nascimento, cor/mutação). Configure seu logo e SISPASS em "Configurações" para aparecerem no cartão. Ideal para documentação durante fiscalização do IBAMA.' }
   ];
 
   const [search, setSearch] = useState('');
