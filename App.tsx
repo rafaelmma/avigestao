@@ -1016,6 +1016,16 @@ const App: React.FC = () => {
   // Birds
   const addBird = async (bird: Bird): Promise<boolean> => {
     try {
+      // 1. ADICIONAR AO LOCAL STATE IMEDIATAMENTE (aparece na hora)
+      setState(prev => ({ ...prev, birds: [...prev.birds, bird] }));
+      toast.success('Ave adicionada com sucesso!');
+      
+      // 2. SALVAR NO LOCALSTORAGE (backup instantâneo)
+      if (session?.user?.id) {
+        persistState({ ...state, birds: [...state.birds, bird] }, session.user.id);
+      }
+
+      // 3. SINCRONIZAR COM SUPABASE EM BACKGROUND (não bloqueia)
       if (!supabaseUnavailable && session?.user?.id) {
         const dbBird = {
           id: bird.id,
@@ -1036,31 +1046,44 @@ const App: React.FC = () => {
           song_type: bird.songType,
           training_notes: bird.trainingNotes
         };
-        const { error } = await supabase.from('birds').insert(dbBird);
-        if (error) {
-          console.error('Erro ao salvar ave no Supabase:', error);
-          toast.error('Erro ao salvar ave');
-          return false;
-        }
-        toast.success('Ave adicionada com sucesso!');
         
-        // Sincronizar também na tabela birds para verificação via QR
-        try {
-          await saveBirdToSupabase(bird, session.user.id);
-        } catch (syncErr) {
-          console.warn('Erro ao sincronizar na tabela birds:', syncErr);
-          // Não falha se isso não funcionar
-        }
+        // Sincronizar em background (sem bloquear)
+        supabase.from('birds').insert(dbBird).catch((err: any) => {
+          console.warn('Aviso: Erro ao sincronizar com Supabase (dados continuam no localStorage):', err);
+          // Dados já estão no localStorage, então continua funcionando
+        });
+        
+        // Sincronizar também para verificação via QR
+        saveBirdToSupabase(bird, session.user.id).catch((err: any) =>
+          console.warn('Aviso: Erro ao sincronizar QR (dados continuam no localStorage):', err)
+        );
       }
-      setState(prev => ({ ...prev, birds: [...prev.birds, bird] }));
+
       return true;
     } catch (e) {
       console.error('addBird failed', e);
+      toast.error('Erro ao adicionar ave');
       return false;
     }
   };
   const updateBird = async (bird: Bird) => {
     try {
+      // 1. ATUALIZAR NO LOCAL STATE IMEDIATAMENTE
+      setState(prev => ({
+        ...prev,
+        birds: prev.birds.map(b => b.id === bird.id ? bird : b)
+      }));
+      toast.success('Ave atualizada com sucesso!');
+
+      // 2. SALVAR NO LOCALSTORAGE (backup instantâneo)
+      if (session?.user?.id) {
+        persistState({ 
+          ...state, 
+          birds: state.birds.map(b => b.id === bird.id ? bird : b)
+        }, session.user.id);
+      }
+
+      // 3. SINCRONIZAR COM SUPABASE EM BACKGROUND (não bloqueia)
       if (!supabaseUnavailable && session?.user?.id) {
         const dbBird = {
           ring_number: bird.ringNumber,
@@ -1079,16 +1102,14 @@ const App: React.FC = () => {
           song_type: bird.songType,
           training_notes: bird.trainingNotes
         };
-        const { error } = await supabase.from('birds').update(dbBird).eq('id', bird.id).eq('breeder_id', session.user.id);
-        if (error) console.error('Erro ao atualizar ave:', error);
         
-        // Sincronizar também na tabela birds para verificação via QR
-        try {
-          await saveBirdToSupabase(bird, session.user.id);
-        } catch (syncErr) {
-          console.warn('Erro ao sincronizar na tabela birds:', syncErr);
-          // Não falha se isso não funcionar
-        }
+        // Sincronizar em background
+        supabase.from('birds').update(dbBird).eq('id', bird.id).eq('breeder_id', session.user.id)
+          .catch((err: any) => console.warn('Aviso: Erro ao sincronizar atualização (dados continuam no localStorage):', err));
+        
+        // Sincronizar também para verificação via QR
+        saveBirdToSupabase(bird, session.user.id)
+          .catch((err: any) => console.warn('Aviso: Erro ao sincronizar QR (dados continuam no localStorage):', err));
       }
     } catch (e) {
       console.error('updateBird failed', e);
