@@ -1017,15 +1017,35 @@ const App: React.FC = () => {
   const addBird = async (bird: Bird): Promise<boolean> => {
     try {
       // 1. VALIDAÇÃO BÁSICA
-      if (!bird.name || !bird.ringNumber) {
-        throw new Error('Nome e número de anilha são obrigatórios');
+      if (!bird.name || !bird.name.trim()) {
+        throw new Error('Nome da ave é obrigatório');
+      }
+      if (!bird.ringNumber || !bird.ringNumber.trim()) {
+        throw new Error('Número de anilha é obrigatório');
       }
 
-      // 2. ADICIONAR AO LOCAL STATE IMEDIATAMENTE (aparece na hora)
-      setState(prev => ({ ...prev, birds: [...prev.birds, bird] }));
-      toast.success('Ave adicionada com sucesso!');
+      // 2. VALIDAÇÃO: Verificar se ring_number já existe para este usuário
+      const ringNumberExists = state.birds.some(
+        b => b.ringNumber.toLowerCase() === bird.ringNumber.toLowerCase()
+      );
       
-      // 3. SALVAR NO LOCALSTORAGE (backup instantâneo - PRINCIPAL)
+      if (ringNumberExists) {
+        const existingBird = state.birds.find(
+          b => b.ringNumber.toLowerCase() === bird.ringNumber.toLowerCase()
+        );
+        const msg = `❌ Número de anilha '${bird.ringNumber}' já está em uso na ave "${existingBird?.name}"`;
+        toast.error(msg);
+        console.warn('⚠ Validação: Ring number duplicado:', msg);
+        return false;
+      }
+
+      console.log('✓ Validação OK: Ring number é único para o usuário');
+
+      // 3. ADICIONAR AO LOCAL STATE IMEDIATAMENTE (aparece na hora)
+      setState(prev => ({ ...prev, birds: [...prev.birds, bird] }));
+      toast.success('✅ Ave adicionada com sucesso!');
+      
+      // 4. SALVAR NO LOCALSTORAGE (backup instantâneo - PRINCIPAL)
       if (session?.user?.id) {
         try {
           const updatedState = { ...state, birds: [...state.birds, bird] };
@@ -1037,7 +1057,7 @@ const App: React.FC = () => {
         }
       }
 
-      // 4. SINCRONIZAR COM SUPABASE EM BACKGROUND (backup - não bloqueia UI)
+      // 5. SINCRONIZAR COM SUPABASE EM BACKGROUND (backup - não bloqueia UI)
       if (!supabaseUnavailable && session?.user?.id) {
         // Usar a mesma função para sincronizar
         saveBirdToSupabase(bird, session.user.id)
@@ -1135,8 +1155,47 @@ const App: React.FC = () => {
         deletedBirds: (prev.deletedBirds || []).filter(b => b.id !== id)
       };
     });
-  const permanentlyDeleteBird = (id: string) =>
-    setState(prev => ({ ...prev, deletedBirds: (prev.deletedBirds || []).filter(b => b.id !== id) }));
+  const permanentlyDeleteBird = async (id: string) => {
+    try {
+      // 1. Deletar REALMENTE do Supabase (exclusão permanente)
+      if (!supabaseUnavailable && session?.user?.id) {
+        const { error } = await supabase
+          .from('birds')
+          .delete()
+          .eq('id', id)
+          .eq('breeder_id', session.user.id);
+        
+        if (error) {
+          console.error('❌ Erro ao deletar permanentemente ave:', error);
+          toast.error('Erro ao deletar ave permanentemente');
+          return;
+        }
+        console.log('✓ Ave deletada permanentemente do Supabase:', id);
+      }
+
+      // 2. Remover do estado local
+      setState(prev => {
+        const deletedBirds = (prev.deletedBirds || []).filter(b => b.id !== id);
+        
+        // Salvar no localStorage
+        if (session?.user?.id) {
+          try {
+            const updatedState = { ...prev, deletedBirds };
+            persistState(updatedState, session.user.id);
+          } catch (err) {
+            console.warn('Erro ao salvar deletedBirds no localStorage:', err);
+          }
+        }
+        
+        return { ...prev, deletedBirds };
+      });
+      
+      toast.success('Ave removida permanentemente');
+    } catch (e) {
+      console.error('❌ permanentlyDeleteBird falhou:', e);
+      toast.error('Erro ao deletar ave permanentemente');
+    }
+  };
 
   // Movements
   const addMovement = async (mov: MovementRecord) => {
@@ -1313,8 +1372,47 @@ const App: React.FC = () => {
         deletedPairs: (prev.deletedPairs || []).filter(p => p.id !== id)
       };
     });
-  const permanentlyDeletePair = (id: string) =>
-    setState(prev => ({ ...prev, deletedPairs: (prev.deletedPairs || []).filter(p => p.id !== id) }));
+  const permanentlyDeletePair = async (id: string) => {
+    try {
+      // 1. Deletar REALMENTE do Supabase (exclusão permanente)
+      if (!supabaseUnavailable && session?.user?.id) {
+        const { error } = await supabase
+          .from('pairs')
+          .delete()
+          .eq('id', id)
+          .eq('user_id', session.user.id);
+        
+        if (error) {
+          console.error('❌ Erro ao deletar permanentemente casal:', error);
+          toast.error('Erro ao deletar casal permanentemente');
+          return;
+        }
+        console.log('✓ Casal deletado permanentemente do Supabase:', id);
+      }
+
+      // 2. Remover do estado local
+      setState(prev => {
+        const deletedPairs = (prev.deletedPairs || []).filter(p => p.id !== id);
+        
+        // Salvar no localStorage
+        if (session?.user?.id) {
+          try {
+            const updatedState = { ...prev, deletedPairs };
+            persistState(updatedState, session.user.id);
+          } catch (err) {
+            console.warn('Erro ao salvar deletedPairs no localStorage:', err);
+          }
+        }
+        
+        return { ...prev, deletedPairs };
+      });
+      
+      toast.success('Casal removido permanentemente');
+    } catch (e) {
+      console.error('❌ permanentlyDeletePair falhou:', e);
+      toast.error('Erro ao deletar casal permanentemente');
+    }
+  };
 
   // Archive/Unarchive Pairs
   const archivePair = async (id: string) => {
