@@ -90,7 +90,7 @@ const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab, logoUrl, bre
       `}>
         <div className="p-5 pb-6 flex items-center justify-between border-b border-slate-200">
           <div className="flex items-center gap-3">
-            <div className="w-12 h-12 bg-slate-900 rounded-lg p-1.5 flex items-center justify-center flex-shrink-0">
+            <div className="w-12 h-12 bg-gradient-to-br from-blue-50 to-slate-50 border border-slate-200 rounded-lg p-2 flex items-center justify-center flex-shrink-0">
               <img 
                 src={logoUrl || APP_LOGO_ICON} 
                 alt="Logo" 
