@@ -414,15 +414,29 @@ const App: React.FC = () => {
       try {
         const data = await loadTabData(session.user.id, tab);
         if (cancelled) return;
+        
+        // IMPORTANTE: Nunca sobrescrever com dados vazios!
+        // Se o array está vazio e já temos dados, não atualizar
         if (data && Object.keys(data).length > 0) {
+          // Verificar se algum dado crucial está vazio quando deveria ter algo
+          const hasEmptyArrayWhenShouldntBe = 
+            (data.birds?.length === 0 && state.birds?.length > 0) ||
+            (data.pairs?.length === 0 && state.pairs?.length > 0);
+          
+          if (hasEmptyArrayWhenShouldntBe) {
+            console.warn('⚠ Supabase retornou dados vazios quando já havia dados. Ignorando para preservar localStorage.');
+            return;
+          }
+          
           setState(prev => ({ ...prev, ...data }));
+          console.log(`✓ Dados da aba '${tab}' carregados:`, data);
         }
       } catch (err: any) {
         const msg = (err?.message || '').toString();
         if (msg.includes('AbortError') || msg.includes('aborted')) {
           // navegação/abort controller durante troca de aba: ignora
         } else if (import.meta?.env?.DEV) {
-          console.warn('Falha ao carregar dados da aba', tab, err);
+          console.warn('❌ Falha ao carregar dados da aba', tab, err);
         }
       } finally {
         loadedTabsRef.current.add(tab);
@@ -433,7 +447,7 @@ const App: React.FC = () => {
     return () => {
       cancelled = true;
     };
-  }, [activeTab, session, supabaseUnavailable]);
+  }, [activeTab, session, supabaseUnavailable];
   const handleSession = async (newSession: any, event?: string) => {
     if (!newSession) {
       if (sessionClearRef.current) {

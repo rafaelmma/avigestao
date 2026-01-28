@@ -99,38 +99,41 @@ export const cacheMedicationCatalog = (items: MedicationCatalogItem[]) => {
 };
 
 export async function loadInitialData(userId: string) {
-  // ESTRATÉGIA: Carregar localStorage PRIMEIRO (rápido), depois sincronizar com Supabase em background
+  // ESTRATÉGIA: localStorage é SEMPRE principal
+  // Supabase é apenas sincronização em background (nunca sobrescreve localStorage)
   
-  // 1. Tentar localStorage primeiro (instantâneo)
+  // 1. SEMPRE tentar localStorage PRIMEIRO (instantâneo + confiável)
   const cachedState = loadCachedState(userId);
-  if (cachedState.hasCache && (cachedState.state?.birds?.length ?? 0) > 0) {
-    console.log('✓ Carregado do cache localStorage');
+  if (cachedState.hasCache) {
+    console.log('✓ Usando dados do localStorage (PRINCIPAL)');
     // Sincronizar com Supabase em background (não bloqueia UI)
     syncWithSupabaseInBackground(userId).catch(err => 
-      console.warn('Erro ao sincronizar com Supabase:', err)
+      console.warn('⚠ Erro ao sincronizar com Supabase em background:', err)
     );
     return cachedState.state!;
   }
 
-  // 2. Se não houver cache ou cache vazio, carregar do Supabase PRIMEIRO (com timeout)
-  // Primeiro, tentar carregar birds do Supabase para trazer para localStorage
+  // 2. Se NÃO há cache em localStorage, tentar Supabase (para primeira vez)
+  console.log('⚠ Nenhum cache em localStorage, carregando do Supabase...');
+  
   let birdsFromSupabase: Bird[] = [];
   try {
     const { data: supabaseBirds, error } = await supabase
       .from('birds')
       .select('*')
-      .eq('breeder_id', userId);
+      .eq('breeder_id', userId)
+      .timeout(5000); // Timeout de 5 segundos
     
     if (!error && supabaseBirds && supabaseBirds.length > 0) {
-      console.log(`✓ Carregados ${supabaseBirds.length} pássaros do Supabase`);
+      console.log(`✓ Carregados ${supabaseBirds.length} pássaros do Supabase (primeira vez)`);
       birdsFromSupabase = supabaseBirds.map(mapBirdFromDb);
     }
   } catch (err) {
-    console.warn('Erro ao carregar birds do Supabase:', err);
+    console.warn('⚠ Erro ao carregar birds do Supabase na primeira vez:', err);
   }
 
   const settingsPromise = safeSingleSettings(
-    () => supabase.from("settings").select("*").eq("user_id", userId).maybeSingle()
+    () => supabase.from("settings").select("*").eq("user_id", userId).maybeSingle().timeout(5000)
   );
 
   // Initial data for dashboard and core UI only.
@@ -140,17 +143,17 @@ export async function loadInitialData(userId: string) {
         // Se temos birds do Supabase, usar; senão carregar
         birdsFromSupabase.length > 0 
           ? Promise.resolve(birdsFromSupabase)
-          : safeSelect(() => supabase.from("birds").select("*").eq("breeder_id", userId), mapBirdFromDb),
-        safeSelect(() => supabase.from("transactions").select("*").eq("user_id", userId), mapTransactionFromDb),
-        safeSelect(() => supabase.from("tasks").select("*").eq("user_id", userId), mapTaskFromDb),
-        safeSelect(() => supabase.from("tournaments").select("*").eq("user_id", userId), mapTournamentFromDb),
-        safeSelect(() => supabase.from("clutches").select("*").eq("user_id", userId), mapClutchFromDb),
-        safeSelect(() => supabase.from("pairs").select("*").eq("user_id", userId).is("deleted_at", null).is("archived_at", null), mapPairFromDb),
-        safeSelect(() => supabase.from("pairs").select("*").eq("user_id", userId).not("archived_at", "is", null).is("deleted_at", null), mapPairFromDb),
-        safeSelect(() => supabase.from("movements").select("*").eq("user_id", userId).is("deleted_at", null), mapMovementFromDb),
+          : safeSelect(() => supabase.from("birds").select("*").eq("breeder_id", userId).timeout(5000), mapBirdFromDb),
+        safeSelect(() => supabase.from("transactions").select("*").eq("user_id", userId).timeout(5000), mapTransactionFromDb),
+        safeSelect(() => supabase.from("tasks").select("*").eq("user_id", userId).timeout(5000), mapTaskFromDb),
+        safeSelect(() => supabase.from("tournaments").select("*").eq("user_id", userId).timeout(5000), mapTournamentFromDb),
+        safeSelect(() => supabase.from("clutches").select("*").eq("user_id", userId).timeout(5000), mapClutchFromDb),
+        safeSelect(() => supabase.from("pairs").select("*").eq("user_id", userId).is("deleted_at", null).is("archived_at", null).timeout(5000), mapPairFromDb),
+        safeSelect(() => supabase.from("pairs").select("*").eq("user_id", userId).not("archived_at", "is", null).is("deleted_at", null).timeout(5000), mapPairFromDb),
+        safeSelect(() => supabase.from("movements").select("*").eq("user_id", userId).is("deleted_at", null).timeout(5000), mapMovementFromDb),
         settingsPromise,
       ]),
-      new Promise<any>((_, reject) => setTimeout(() => reject(new Error('Supabase timeout')), 5000))
+      new Promise<any>((_, reject) => setTimeout(() => reject(new Error('Supabase timeout (5s)')), 6000))
     ]) as any;
 
     const settings = settingsResult.settings;
@@ -172,8 +175,10 @@ export async function loadInitialData(userId: string) {
       settingsFailed: settingsResult.failed,
     };
   } catch (err) {
-    console.warn('Falha ao carregar do Supabase, retornando estado vazio:', err);
-    // Retornar vazio - App carregará do localStorage
+    console.error('❌ Falha ao carregar inicial do Supabase:', err);
+    // NÃO retornar vazio! Retornar o que temos do localStorage como fallback
+    // Se não tem nada, retornar estado padrão vazio
+    console.log('⚠ Retornando estado padrão vazio (primeira vez, sem dados)');
     return {
       birds: [],
       movements: [],
