@@ -45,15 +45,15 @@ const ALL_WIDGETS = [
 const StatCard = ({ icon, label, value, subValue, isWarning, isPositive, onClick }: any) => (
   <div 
     onClick={onClick}
-    className={`bg-white p-6 rounded-[32px] border border-slate-100 shadow-sm transition-all hover:-translate-y-1 h-full ${isWarning ? 'bg-orange-50/30' : ''} ${onClick ? 'cursor-pointer hover:shadow-md active:scale-95' : ''}`}
+    className={`bg-white p-5 rounded-lg border transition-all h-full ${isWarning ? 'border-amber-200 bg-amber-50/40' : 'border-slate-200'} ${onClick ? 'cursor-pointer hover:shadow-md hover:border-slate-300 active:scale-95' : 'shadow-sm'}`}
   >
-    <div className="flex items-center gap-3 mb-6">
-      <div className="p-3 bg-slate-50 rounded-2xl">{icon}</div>
-      <span className="text-sm font-black text-slate-400 uppercase tracking-widest">{label}</span>
+    <div className="flex items-center gap-3 mb-4">
+      <div className="p-2 bg-slate-100 rounded-lg text-slate-600">{icon}</div>
+      <span className="text-xs font-semibold text-slate-500 uppercase tracking-wide">{label}</span>
     </div>
     <div>
-      <h4 className={`text-2xl font-black tracking-tight ${isWarning ? 'text-orange-600' : isPositive === false ? 'text-rose-600' : 'text-slate-800'}`}>{value}</h4>
-      <p className="text-sm font-bold text-slate-400 uppercase mt-1">{subValue}</p>
+      <h4 className={`text-2xl font-bold tracking-tight ${isWarning ? 'text-amber-700' : isPositive === false ? 'text-red-600' : 'text-slate-900'}`}>{value}</h4>
+      <p className="text-xs font-medium text-slate-500 uppercase mt-1">{subValue}</p>
     </div>
   </div>
 );

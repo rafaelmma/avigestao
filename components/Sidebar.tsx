@@ -85,119 +85,110 @@ const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab, logoUrl, bre
       )}
 
       <div className={`
-        fixed left-0 top-0 h-screen w-64 bg-white border-r border-slate-100 flex flex-col z-50 shadow-2xl lg:shadow-sm transition-transform duration-300
+        fixed left-0 top-0 h-screen w-64 bg-white border-r border-slate-200 flex flex-col z-50 shadow-lg lg:shadow-sm transition-transform duration-300
         ${isOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
       `}>
-        <div className="p-6 pb-8 flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <div className="relative group">
-              <div className="w-20 h-20 bg-gradient-to-br from-slate-50 to-white rounded-2xl p-2 border-2 border-slate-200 shadow-lg shadow-slate-200/50 flex items-center justify-center hover:shadow-xl transition-shadow">
-                <img 
-                  src={logoUrl || APP_LOGO_ICON} 
-                  alt="Logo" 
-                  className="w-full h-full object-contain drop-shadow-sm" 
-                />
-              </div>
-              <div className={`absolute -bottom-1 -right-1 w-4 h-4 border-2 border-white rounded-full ${isAdmin ? 'bg-rose-500' : plan === 'Profissional' ? 'bg-amber-500' : 'bg-emerald-500'}`}></div>
+        <div className="p-5 pb-6 flex items-center justify-between border-b border-slate-200">
+          <div className="flex items-center gap-3">
+            <div className="w-12 h-12 bg-slate-900 rounded-lg p-1.5 flex items-center justify-center flex-shrink-0">
+              <img 
+                src={logoUrl || APP_LOGO_ICON} 
+                alt="Logo" 
+                className="w-full h-full object-contain" 
+              />
             </div>
             <div className="overflow-hidden flex-1">
               <h1
                 title={breederName || 'AviGestão'}
-                className="font-black text-slate-900 text-xs leading-snug truncate max-w-[160px]"
+                className="font-bold text-slate-900 text-sm leading-tight truncate"
               >
                 {breederName || 'AviGestão'}
               </h1>
-              <span className={`text-[9px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded ${isAdmin ? 'bg-rose-100 text-rose-700' : plan === 'Profissional' ? 'bg-amber-100 text-amber-700' : 'bg-slate-100 text-slate-400'}`}>
+              <span className={`text-[10px] font-semibold uppercase tracking-wide px-1.5 py-0.5 rounded inline-block ${isAdmin ? 'bg-red-100 text-red-700' : plan === 'Profissional' ? 'bg-blue-100 text-blue-700' : 'bg-slate-100 text-slate-600'}`}>
                 {planLabel}
               </span>
             </div>
           </div>
-          <button onClick={onClose} className="lg:hidden text-slate-400 hover:text-slate-600">
-            <X size={24} />
+          <button onClick={onClose} className="lg:hidden text-slate-400 hover:text-slate-600 flex-shrink-0">
+            <X size={20} />
           </button>
         </div>
 
         {hasTrial && trialDaysLeft >= 0 && (
-          <div className="px-4 mb-4 animate-in fade-in slide-in-from-left-4 duration-500">
-             <div className="bg-gradient-to-r from-amber-500 to-amber-600 rounded-2xl p-4 text-white shadow-lg shadow-amber-500/20 relative overflow-hidden">
-                <div className="flex items-center gap-2 mb-1 relative z-10">
-                   <Clock size={16} className="text-amber-200" />
-                   <span className="text-xs font-black uppercase tracking-widest">Teste Grátis</span>
-                </div>
-                <p className="text-2xl font-black relative z-10">{trialDaysLeft} <span className="text-xs font-medium opacity-80">dias restantes</span></p>
-                <div className="absolute -bottom-4 -right-4 w-16 h-16 bg-white opacity-10 rounded-full"></div>
+          <div className="px-4 py-4 bg-blue-50 border-b border-blue-200">
+             <div className="flex items-center gap-2 mb-1">
+                <Clock size={16} className="text-blue-600 flex-shrink-0" />
+                <span className="text-xs font-semibold text-blue-900 uppercase tracking-wide">Teste</span>
              </div>
+             <p className="text-lg font-bold text-blue-900">{trialDaysLeft} dias</p>
           </div>
         )}
 
-        <nav className="flex-1 px-4 space-y-1 overflow-y-auto">
+        <nav className="flex-1 px-3 py-4 space-y-1 overflow-y-auto">
           {menuItems.map((item) => (
             <button
               key={item.id}
               onClick={() => handleNavigation(item.id)}
-              className={`w-full flex items-center justify-between px-4 py-4 rounded-2xl transition-all duration-300 group ${
+              className={`w-full flex items-center justify-between px-3 py-2.5 rounded-lg transition-all text-sm font-medium ${
                 activeTab === item.id
-                  ? 'bg-brand text-white shadow-lg shadow-brand/20'
-                  : 'text-slate-500 hover:bg-slate-50 hover:text-brand'
+                  ? 'bg-slate-900 text-white'
+                  : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
               }`}
             >
-              <div className="flex items-center gap-4">
-                <span className={`${activeTab === item.id ? 'text-white' : 'text-slate-400 group-hover:text-brand'} transition-colors`}>
+              <div className="flex items-center gap-3">
+                <span className="flex-shrink-0 w-5 h-5 flex items-center justify-center text-slate-400">
                   {item.icon}
                 </span>
-                <span className="font-bold text-base tracking-tight">{item.label}</span>
+                <span className="flex-1 text-left">{item.label}</span>
                 {item.pro && plan === 'Básico' && !hasTrial && !isAdmin && (
-                  <Zap size={12} className="text-amber-500 fill-amber-500" />
+                  <Zap size={12} className="text-amber-500 fill-amber-500 flex-shrink-0" />
                 )}
               </div>
-              {activeTab === item.id && <ChevronRight size={14} className="opacity-60" />}
+              {activeTab === item.id && <ChevronRight size={16} className="opacity-60 flex-shrink-0" />}
             </button>
           ))}
         </nav>
 
-        <div className="px-4 py-6 border-t border-slate-50 space-y-2">
+        <div className="px-3 py-4 border-t border-slate-200 space-y-2">
           {(plan === 'Básico' || hasTrial) && !isAdmin && (
             <button 
               onClick={goToSubscriptionPlans}
-              className={`w-full flex items-center gap-3 px-4 py-3 rounded-2xl font-black text-[10px] uppercase tracking-widest transition-all ${
+              className={`w-full flex items-center gap-2 px-3 py-2.5 rounded-lg font-semibold text-xs uppercase tracking-wide transition-all ${
                 hasTrial 
-                  ? 'bg-emerald-50 text-emerald-700 hover:bg-emerald-100' 
-                  : 'bg-amber-50 text-amber-700 hover:bg-amber-100'
+                  ? 'bg-green-50 text-green-700 hover:bg-green-100' 
+                  : 'bg-blue-50 text-blue-700 hover:bg-blue-100'
               }`}
             >
-              <Zap size={16} className={hasTrial ? "fill-emerald-500 text-emerald-500" : "fill-amber-500 text-amber-500"} />
-              {hasTrial ? 'Assinar Definitivo' : 'Upgrade para PRO'}
+              <Zap size={14} className="flex-shrink-0" />
+              {hasTrial ? 'Upgrade PRO' : 'Upgrade PRO'}
             </button>
           )}
           <button
             onClick={() => handleNavigation('settings')}
-            className={`w-full flex items-center gap-4 px-4 py-3 rounded-2xl transition-all ${
-              activeTab === 'settings' ? 'bg-slate-100 text-slate-900' : 'text-slate-500 hover:bg-slate-50'
+            className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all ${
+              activeTab === 'settings' ? 'bg-slate-100 text-slate-900' : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
             }`}
           >
-            <Settings size={20} />
-            <span className="font-bold text-sm">Configurações</span>
+            <Settings size={18} className="flex-shrink-0" />
+            Configurações
           </button>
           {onRefresh && (
             <button
               onClick={onRefresh}
               disabled={isRefreshing}
-              className="w-full flex items-center gap-4 px-4 py-3 rounded-2xl transition-all text-emerald-600 hover:bg-emerald-50 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all text-green-700 hover:bg-green-50 disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              <RefreshCw size={20} className={isRefreshing ? 'animate-spin' : ''} />
-              <span className="font-bold text-sm">{isRefreshing ? 'Atualizando...' : 'Atualizar Dados'}</span>
+              <RefreshCw size={18} className={`flex-shrink-0 ${isRefreshing ? 'animate-spin' : ''}`} />
+              {isRefreshing ? 'Atualizando...' : 'Atualizar'}
             </button>
           )}
           <button
             onClick={onLogout}
-            className="w-full flex items-center gap-4 px-4 py-3 rounded-2xl transition-all text-rose-500 hover:bg-rose-50"
+            className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all text-red-600 hover:bg-red-50"
           >
-            <LogOut size={20} />
-            <span className="font-bold text-sm">Sair</span>
+            <LogOut size={18} className="flex-shrink-0" />
+            Sair
           </button>
-          <div className="text-center pt-2">
-             <span className="text-[9px] font-bold text-slate-300">{hasTrial ? 'Versão 2.0 (Trial Ativo)' : 'Versão 2.0'}</span>
-          </div>
         </div>
       </div>
     </>

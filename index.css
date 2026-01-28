@@ -3,43 +3,50 @@
 @tailwind utilities;
 
 :root {
-  --primary: #10B981;
-  --primary-hover: #059669;
-  --primary-soft: rgba(16, 185, 129, 0.1);
-  --accent: #F59E0B;
+  --primary: #1a365d;
+  --primary-hover: #0f2543;
+  --primary-soft: rgba(26, 54, 93, 0.05);
+  --accent: #2563eb;
 }
 
 html, body, #root { height: 100%; }
-body { margin: 0; font-family: Inter, system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial; }
+body { margin: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; letter-spacing: -0.3px; }
 
-/* Acessibilidade para Idosos - Tamanhos de Fonte Aumentados + Contraste Melhorado */
+/* Design System Profissional */
 @layer components {
-  .text-elderly-label { @apply text-sm font-bold text-slate-700; } /* Labels mais escuro */
-  .text-elderly-body { @apply text-base font-normal text-slate-800; } /* Body mais escuro */
-  .text-elderly-heading { @apply text-lg font-bold text-slate-900; } /* Títulos pequenos */
-  .text-elderly-title { @apply text-2xl font-black text-slate-900; } /* Títulos principais */
+  /* Tipografia */
+  .text-label { @apply text-sm font-medium text-slate-600; }
+  .text-label-strong { @apply text-sm font-semibold text-slate-800; }
+  .text-body { @apply text-base font-normal text-slate-700; }
+  .text-body-muted { @apply text-sm font-normal text-slate-500; }
   
-  /* Aumentar text-xs para melhor legibilidade (12px -> 13px) */
-  .text-xs { @apply text-xs font-medium; } /* Mantém 12px mas com weight melhor */
+  /* Botões */
+  .btn-primary { @apply px-5 py-2.5 text-sm font-semibold text-white bg-slate-900 rounded-lg hover:bg-black transition-colors shadow-sm; }
+  .btn-secondary { @apply px-5 py-2.5 text-sm font-semibold text-slate-900 bg-white border border-slate-300 rounded-lg hover:bg-slate-50 transition-colors; }
+  .btn-danger { @apply px-5 py-2.5 text-sm font-semibold text-white bg-red-600 rounded-lg hover:bg-red-700 transition-colors shadow-sm; }
+  .btn-ghost { @apply px-5 py-2.5 text-sm font-semibold text-slate-600 hover:text-slate-900 hover:bg-slate-100 rounded-lg transition-colors; }
   
-  /* Botões acessíveis com melhor contraste */
-  .btn-elderly { @apply min-h-12 min-w-12 px-6 py-3 text-base font-bold rounded-xl transition-all; }
-  .btn-elderly-primary { @apply btn-elderly bg-slate-900 text-white hover:bg-black shadow-lg; }
-  .btn-elderly-secondary { @apply btn-elderly bg-white border-2 border-slate-400 text-slate-900 hover:bg-slate-100 font-bold; }
-  .btn-elderly-danger { @apply btn-elderly bg-rose-700 text-white hover:bg-rose-800 shadow-lg font-bold; }
-
-  /* Inputs com melhor contraste */
+  /* Cards e Containers */
+  .card { @apply bg-white border border-slate-200 rounded-lg shadow-sm; }
+  .card-hover { @apply card hover:shadow-md transition-shadow; }
+  
+  /* Inputs */
   input[type="text"], input[type="email"], input[type="password"], input[type="date"], input[type="number"], 
   textarea, select {
-    @apply text-slate-800 bg-white !important;
-  }
-
-  input:disabled, textarea:disabled, select:disabled {
-    @apply bg-slate-100 text-slate-600 opacity-100 !important;
+    @apply bg-white text-slate-900 border border-slate-300 rounded-lg text-sm font-normal;
   }
 
   input::placeholder {
-    @apply text-slate-500 opacity-100 !important;
+    @apply text-slate-400;
+  }
+
+  input:disabled, textarea:disabled, select:disabled {
+    @apply bg-slate-50 text-slate-500 border-slate-200 opacity-100;
+  }
+
+  /* Focus states */
+  input:focus, textarea:focus, select:focus {
+    @apply outline-none ring-2 ring-blue-500 ring-offset-1 border-blue-500;
   }
 }
 
