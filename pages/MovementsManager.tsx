@@ -227,14 +227,14 @@ const MovementsManager: React.FC<MovementsManagerProps> = ({ state, addMovement,
                       <div className="flex items-center gap-2">
                         <Calendar size={14} className="text-slate-400" />
                         <span className="text-xs font-bold text-slate-600">
-                          {new Date(m.date).toLocaleDateString('pt-BR')}
+                          {(m.date ? new Date(m.date) : new Date()).toLocaleDateString('pt-BR')}
                         </span>
                       </div>
                     </td>
                     <td className="px-6 py-4">
                       <div>
                         <p className="text-sm font-bold text-slate-800">{bird?.name || 'Desconhecido'}</p>
-                        <p className="text-[10px] font-mono text-slate-400">{bird?.ringNumber}</p>
+                        <p className="text-[10px] font-mono text-slate-400">{bird?.ringNumber ?? 'S/A'}</p>
                       </div>
                     </td>
                     <td className="px-6 py-4">

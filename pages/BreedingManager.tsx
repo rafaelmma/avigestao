@@ -136,7 +136,7 @@ const BreedingManager: React.FC<BreedingManagerProps> = ({ state, addPair, updat
     // Criar o casal com todos os campos obrigatórios
     const pairData: Pair = {
       id: makeId(),
-      userId: state.userId || '',
+      userId: state.userId || state.settings?.userId || session?.user?.id || '',
       maleId: newPair.maleId,
       femaleId: newPair.femaleId,
       name: newPair.name,
@@ -245,6 +245,7 @@ const BreedingManager: React.FC<BreedingManagerProps> = ({ state, addPair, updat
             sex: hatchling.sex,
             birthDate: hatchlingBirthDate,
             status: 'Ativo',
+            breederId: state.userId || state.settings?.userId || '',
             fatherId: pair.maleId,
             motherId: pair.femaleId,
             classification: 'Exemplar',

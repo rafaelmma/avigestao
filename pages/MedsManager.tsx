@@ -109,8 +109,8 @@ const MedsManager: React.FC<MedsManagerProps> = ({
     : undefined;
 
   const filteredMeds = listToUse.filter(m => 
-    m.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    m.type?.toLowerCase().includes(searchTerm.toLowerCase())
+    (m.name ?? '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+    (m.type ?? '').toLowerCase().includes(searchTerm.toLowerCase())
   );
   const expiredMeds = state.medications.filter(m => isExpired(m.expiryDate));
 
@@ -238,7 +238,7 @@ const MedsManager: React.FC<MedsManagerProps> = ({
     setNewMed(prev => ({
       ...prev,
       name: item.name || prev.name || '',
-      type: item.category || prev.type || ''
+      type: (item.category || prev.type || '') as any
     }));
   };
 
@@ -343,7 +343,7 @@ const MedsManager: React.FC<MedsManagerProps> = ({
                   <div key={med.id} className="flex items-center justify-between gap-3 bg-white/80 border border-rose-100 rounded-xl px-3 py-2">
                     <div className="min-w-0">
                       <p className="text-xs font-bold text-rose-700 truncate">{med.name}</p>
-                      <p className="text-[10px] text-rose-500">Venceu em {new Date(med.expiryDate).toLocaleDateString('pt-BR')}</p>
+                      <p className="text-[10px] text-rose-500">Venceu em {med.expiryDate ? new Date(med.expiryDate).toLocaleDateString('pt-BR') : 'data inválida'}</p>
                     </div>
                     <div className="flex gap-2">
                       <button
@@ -453,8 +453,8 @@ const MedsManager: React.FC<MedsManagerProps> = ({
                   </div>
                   
                   <div>
-                    <h3 className="font-bold text-slate-800 text-sm truncate">{med.name}</h3>
-                    <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider mt-0.5">{med.type}</p>
+                    <h3 className="font-bold text-slate-800 text-sm truncate">{med.name ?? 'Sem nome'}</h3>
+                    <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider mt-0.5">{med.type ?? 'Indefinido'}</p>
                   </div>
 
                   <div className="grid grid-cols-2 gap-2">
@@ -474,7 +474,7 @@ const MedsManager: React.FC<MedsManagerProps> = ({
                 </div>
 
                 <div className="px-5 py-3 bg-slate-50/50 border-t border-slate-50 flex items-center justify-between">
-                   <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest truncate max-w-[80px]">Lote: {med.batch}</span>
+                   <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest truncate max-w-[80px]">Lote: {med.batch ?? 'S/N'}</span>
                    {currentList === 'active' ? (
                      <div className="flex gap-1">
                         <button 
@@ -1012,7 +1012,7 @@ const MedsManager: React.FC<MedsManagerProps> = ({
               <div className="grid grid-cols-2 gap-4">
                  <div>
                     <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Tipo</label>
-                    <input required type="text" className="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl outline-none focus:border-brand font-bold text-slate-700" value={editingMed.type || ''} onChange={e => setEditingMed({...editingMed, type: e.target.value as any})} />
+                    <input required type="text" className="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl outline-none focus:border-brand font-bold text-slate-700" value={editingMed.type ?? ''} onChange={e => setEditingMed({...editingMed, type: e.target.value as any})} />
                  </div>
                  <div>
                     <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Lote</label>
@@ -1026,7 +1026,7 @@ const MedsManager: React.FC<MedsManagerProps> = ({
                  <div className="flex items-center justify-center gap-4">
                     <button 
                       type="button" 
-                      onClick={() => setEditingMed(prev => prev ? {...prev, stock: Math.max(0, prev.stock - 1)} : null)}
+                      onClick={() => setEditingMed(prev => prev ? {...prev, stock: Math.max(0, (prev.stock ?? 0) - 1)} : null)}
                       className="w-10 h-10 rounded-xl bg-white border border-slate-200 flex items-center justify-center text-slate-500 hover:text-rose-500 hover:border-rose-200 transition-all shadow-sm"
                     >
                       <Minus size={20} />
@@ -1044,7 +1044,7 @@ const MedsManager: React.FC<MedsManagerProps> = ({
 
                     <button 
                       type="button" 
-                      onClick={() => setEditingMed(prev => prev ? {...prev, stock: prev.stock + 1} : null)}
+                      onClick={() => setEditingMed(prev => prev ? {...prev, stock: (prev.stock ?? 0) + 1} : null)}
                       className="w-10 h-10 rounded-xl bg-white border border-slate-200 flex items-center justify-center text-slate-500 hover:text-emerald-500 hover:border-emerald-200 transition-all shadow-sm"
                     >
                       <Plus size={20} />

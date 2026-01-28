@@ -1530,7 +1530,6 @@ const BirdManager: React.FC<BirdManagerProps> = ({
                               <div className="p-3 bg-white border border-amber-200 rounded-xl mb-4">
                                 <p className="text-xs font-bold text-amber-800">
                                   {editingBird.status === 'Óbito' && '⚠️ Óbito: Necessário dar baixa no sistema IBAMA'}
-                                  {editingBird.status === 'Fuga' && '⚠️ Fuga: Necessário registrar a fuga no sistema IBAMA'}
                                   {editingBird.status === 'Vendido' && '⚠️ Venda: Necessário registrar a transferência no IBAMA (com SISPASS do comprador)'}
                                   {editingBird.status === 'Doado' && '⚠️ Doação: Necessário registrar a doação no IBAMA (com SISPASS do destinatário)'}
                                 </p>
@@ -1874,7 +1873,7 @@ const BirdManager: React.FC<BirdManagerProps> = ({
                                   {selectedBirdMedHistory.slice(0, 5).map(app => (
                                      <div key={app.id} className="flex items-center justify-between gap-4 p-4 bg-slate-50 border border-slate-100 rounded-2xl">
                                         <div className="min-w-0">
-                                           <p className="text-xs font-bold text-slate-800 truncate">{getMedicationName(app.medicationId)}</p>
+                                           <p className="text-xs font-bold text-slate-800 truncate">{getMedicationName(app.medicationId) ?? 'Medicamento'}</p>
                                            <p className="text-[10px] text-slate-400 font-bold uppercase mt-1">
                                              {new Date(app.date).toLocaleDateString('pt-BR')} ÔÇó {app.dosage}
                                            </p>
@@ -2262,7 +2261,6 @@ const BirdManager: React.FC<BirdManagerProps> = ({
                     <p className="text-xs font-bold text-amber-700 uppercase tracking-widest mb-2">Instruções</p>
                     <p className="text-xs text-amber-700 font-bold leading-relaxed">
                        {quickIbamaBird.status === 'Óbito' && 'Acesse o sistema IBAMA e registre a baixa do animal falecido.'}
-                       {quickIbamaBird.status === 'Fuga' && 'Acesse o sistema IBAMA e registre o evento de fuga.'}
                        {quickIbamaBird.status === 'Vendido' && 'Acesse o sistema IBAMA e registre a transferência com o SISPASS do comprador.'}
                        {quickIbamaBird.status === 'Doado' && 'Acesse o sistema IBAMA e registre a doação com o SISPASS do destinatário.'}
                     </p>
@@ -2310,7 +2308,6 @@ const BirdManager: React.FC<BirdManagerProps> = ({
                  <div className="flex items-center gap-3">
                     <div className="w-12 h-12 bg-white/20 rounded-2xl flex items-center justify-center text-2xl">
                        {quickStatusData.newStatus === 'Óbito' && '🔴'}
-                       {quickStatusData.newStatus === 'Fuga' && '🟠'}
                        {quickStatusData.newStatus === 'Vendido' && '🔵'}
                        {quickStatusData.newStatus === 'Doado' && '🟣'}
                     </div>
@@ -2372,7 +2369,6 @@ const BirdManager: React.FC<BirdManagerProps> = ({
                        onClick={handleQuickStatusConfirm}
                        className={`py-3 text-white rounded-2xl font-black text-xs uppercase tracking-widest shadow-lg flex items-center justify-center gap-2 transition-all ${
                          quickStatusData.newStatus === 'Óbito' ? 'bg-red-500 hover:bg-red-600 shadow-red-200' :
-                         quickStatusData.newStatus === 'Fuga' ? 'bg-orange-500 hover:bg-orange-600 shadow-orange-200' :
                          quickStatusData.newStatus === 'Vendido' ? 'bg-blue-500 hover:bg-blue-600 shadow-blue-200' :
                          'bg-purple-500 hover:bg-purple-600 shadow-purple-200'
                        }`}
