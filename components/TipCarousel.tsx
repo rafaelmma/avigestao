@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { Lightbulb, Info, Sparkles, Zap, Heart, ShieldCheck, TrendingUp, MapPin, AlertTriangle, CalendarCheck } from 'lucide-react';
+import { Lightbulb, Info, Sparkles, Zap, Heart, ShieldCheck, TrendingUp, MapPin, AlertTriangle, CalendarCheck, Trophy } from 'lucide-react';
 
 type TipCategory = 'dashboard' | 'birds' | 'breeding' | 'meds' | 'finance' | 'movements' | 'tasks' | 'tournaments' | 'settings';
 
