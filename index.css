@@ -12,6 +12,37 @@
 html, body, #root { height: 100%; }
 body { margin: 0; font-family: Inter, system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial; }
 
+/* Acessibilidade para Idosos - Tamanhos de Fonte Aumentados + Contraste Melhorado */
+@layer components {
+  .text-elderly-label { @apply text-sm font-bold text-slate-700; } /* Labels mais escuro */
+  .text-elderly-body { @apply text-base font-normal text-slate-800; } /* Body mais escuro */
+  .text-elderly-heading { @apply text-lg font-bold text-slate-900; } /* Títulos pequenos */
+  .text-elderly-title { @apply text-2xl font-black text-slate-900; } /* Títulos principais */
+  
+  /* Aumentar text-xs para melhor legibilidade (12px -> 13px) */
+  .text-xs { @apply text-xs font-medium; } /* Mantém 12px mas com weight melhor */
+  
+  /* Botões acessíveis com melhor contraste */
+  .btn-elderly { @apply min-h-12 min-w-12 px-6 py-3 text-base font-bold rounded-xl transition-all; }
+  .btn-elderly-primary { @apply btn-elderly bg-slate-900 text-white hover:bg-black shadow-lg; }
+  .btn-elderly-secondary { @apply btn-elderly bg-white border-2 border-slate-400 text-slate-900 hover:bg-slate-100 font-bold; }
+  .btn-elderly-danger { @apply btn-elderly bg-rose-700 text-white hover:bg-rose-800 shadow-lg font-bold; }
+
+  /* Inputs com melhor contraste */
+  input[type="text"], input[type="email"], input[type="password"], input[type="date"], input[type="number"], 
+  textarea, select {
+    @apply text-slate-800 bg-white !important;
+  }
+
+  input:disabled, textarea:disabled, select:disabled {
+    @apply bg-slate-100 text-slate-600 opacity-100 !important;
+  }
+
+  input::placeholder {
+    @apply text-slate-500 opacity-100 !important;
+  }
+}
+
 /* small utility to hide scrollbar when necessary */
 .no-scrollbar::-webkit-scrollbar { display: none; }
 .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }

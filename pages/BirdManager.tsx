@@ -1,6 +1,7 @@
 ﻿
 import React, { useState, useMemo, useRef, useEffect, Suspense } from 'react';
 import { deleteBird as svcDeleteBird } from '../services/birds';
+import ConfirmDialog from '../components/ConfirmDialog';
 import { Bird, AppState, Sex, TrainingStatus, BirdClassification, BirdDocument, MovementRecord } from '../types';
 import { 
   Plus, 
@@ -77,6 +78,15 @@ const BirdManager: React.FC<BirdManagerProps> = ({
   const [showModal, setShowModal] = useState(false);
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
   const [currentList, setCurrentList] = useState<'plantel' | 'histórico' | 'lixeira' | 'sexagem' | 'ibama-pendentes'>(initialList);
+  
+  // Confirmação de Deletar
+  const [deleteConfirm, setDeleteConfirm] = useState<{ isOpen: boolean; birdId: string; birdName: string; isPermanent: boolean }>({
+    isOpen: false,
+    birdId: '',
+    birdName: '',
+    isPermanent: false
+  });
+  const [isDeletingBird, setIsDeletingBird] = useState(false);
   
   // Modal de Registro Rápido IBAMA
   const [showQuickIbamaModal, setShowQuickIbamaModal] = useState(false);
@@ -225,11 +235,11 @@ const BirdManager: React.FC<BirdManagerProps> = ({
 
         <div className="space-y-3">
           <div className="flex items-center justify-between">
-            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Acervo da espécie</p>
+            <p className="text-elderly-label text-slate-600 uppercase tracking-widest">Acervo da espécie</p>
             <button
               type="button"
               onClick={() => applyDefaultIcon(bird, isEditMode)}
-              className="text-[10px] font-black uppercase tracking-widest text-slate-500 hover:text-brand transition-colors"
+              className="text-elderly-label uppercase tracking-widest text-slate-600 hover:text-brand transition-colors"
             >
               Usar ícone padrão
             </button>
@@ -249,25 +259,25 @@ const BirdManager: React.FC<BirdManagerProps> = ({
                     <div className="w-full aspect-square rounded-xl overflow-hidden bg-slate-100">
                       <img src={item.url} alt={`Foto ${item.label}`} className="w-full h-full object-cover object-center" />
                     </div>
-                    <span className="mt-2 block text-[10px] font-bold text-slate-600">{item.label}</span>
+                    <span className="mt-2 block text-elderly-label text-slate-600">{item.label}</span>
                   </button>
                 );
               })}
             </div>
           ) : (
-            <p className="text-[10px] text-slate-400">Sem imagens desta espécie no acervo.</p>
+            <p className="text-elderly-label text-slate-600">Sem imagens desta espécie no acervo.</p>
           )}
 
           <div className="flex items-center gap-2">
             <button
               type="button"
               onClick={handlePhotoClick}
-              className="px-3 py-2 text-[10px] font-black uppercase tracking-widest rounded-xl border border-slate-200 text-slate-500 hover:text-brand hover:border-brand transition-all"
+              className="px-3 py-2 text-elderly-label uppercase tracking-widest rounded-xl border border-slate-200 text-slate-600 hover:text-brand hover:border-brand transition-all"
             >
               Upload personalizado
             </button>
             {!isPro && (
-              <span className="text-[10px] font-bold text-amber-500 flex items-center gap-1">
+              <span className="text-elderly-label text-amber-600 flex items-center gap-1">
                 <Lock size={12} /> Plano Profissional
               </span>
             )}
@@ -778,16 +788,37 @@ const BirdManager: React.FC<BirdManagerProps> = ({
 
   // ------------------------------------
 
-  // Função isolada e direta para DELETAR (Mover para Lixeira)
+  // Função isolada e direta para DELETAR (Mover para Lixeira) - com confirmação
   const handleDeleteClick = (id: string) => {
-    (async () => {
-      try {
-        await svcDeleteBird(id);
-      } catch (err) {
-        console.error('Erro ao deletar no Supabase:', err);
+    const bird = state.birds.find(b => b.id === id);
+    if (bird) {
+      setDeleteConfirm({
+        isOpen: true,
+        birdId: id,
+        birdName: bird.name || 'Ave sem nome',
+        isPermanent: false
+      });
+    }
+  };
+
+  // Confirmação de Delete - Mover para Lixeira
+  const handleConfirmDelete = async () => {
+    setIsDeletingBird(true);
+    try {
+      if (deleteConfirm.isPermanent && permanentlyDeleteBird) {
+        await svcDeleteBird(deleteConfirm.birdId);
+        permanentlyDeleteBird(deleteConfirm.birdId);
+      } else {
+        await svcDeleteBird(deleteConfirm.birdId);
+        deleteBird(deleteConfirm.birdId);
       }
-      deleteBird(id);
-    })();
+      setDeleteConfirm({ isOpen: false, birdId: '', birdName: '', isPermanent: false });
+    } catch (err) {
+      console.error('Erro ao deletar:', err);
+      alert('Erro ao deletar a ave');
+    } finally {
+      setIsDeletingBird(false);
+    }
   };
 
   const handleRestoreClick = (e: React.MouseEvent, id: string) => {
@@ -834,9 +865,9 @@ const BirdManager: React.FC<BirdManagerProps> = ({
   // Helpers de Renderização
   const renderClassificationBadge = (cls: BirdClassification) => {
     switch (cls) {
-      case 'Galador': return <span className="flex items-center gap-1 text-[8px] font-black bg-rose-50 text-rose-600 px-2 py-0.5 rounded-full uppercase"><Heart size={8} fill="currentColor" /> Galador</span>;
-      case 'Pássaro de Canto': return <span className="flex items-center gap-1 text-[8px] font-black bg-indigo-50 text-indigo-600 px-2 py-0.5 rounded-full uppercase"><Mic2 size={8} /> Canto</span>;
-      case 'Ambos': return <span className="flex items-center gap-1 text-[8px] font-black bg-purple-50 text-purple-600 px-2 py-0.5 rounded-full uppercase"><Award size={8} /> Ambos</span>;
+      case 'Galador': return <span className="flex items-center gap-1 text-elderly-label bg-rose-50 text-rose-600 px-2 py-0.5 rounded-full uppercase"><Heart size={10} fill="currentColor" /> Galador</span>;
+      case 'Pássaro de Canto': return <span className="flex items-center gap-1 text-elderly-label bg-indigo-50 text-indigo-600 px-2 py-0.5 rounded-full uppercase"><Mic2 size={10} /> Canto</span>;
+      case 'Ambos': return <span className="flex items-center gap-1 text-elderly-label bg-purple-50 text-purple-600 px-2 py-0.5 rounded-full uppercase"><Award size={10} /> Ambos</span>;
       default: return null;
     }
   };
@@ -852,7 +883,7 @@ const BirdManager: React.FC<BirdManagerProps> = ({
     if (status === 'Pardo (Aprendizado)') { color = 'bg-orange-100 text-orange-700'; label = 'Pardo'; }
 
     return (
-      <div className={`flex items-center gap-1 text-[8px] font-black px-2 py-0.5 rounded-full uppercase ${color}`}>
+      <div className={`flex items-center gap-1 text-elderly-label px-2 py-0.5 rounded-full uppercase ${color}`}>
         {icon} {label}
       </div>
     );
@@ -873,7 +904,7 @@ const BirdManager: React.FC<BirdManagerProps> = ({
                   style={{ width: `${(state.birds.length / MAX_FREE_BIRDS) * 100}%` }}
                 ></div>
               </div>
-              <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
+              <p className="text-elderly-label text-slate-600 uppercase tracking-widest">
                 {state.birds.length} de {MAX_FREE_BIRDS} aves (Plano Básico)
               </p>
             </div>
@@ -893,7 +924,7 @@ const BirdManager: React.FC<BirdManagerProps> = ({
            >
              📋 Histórico
              {state.birds.filter(b => b.status !== 'Ativo').length > 0 && (
-               <span className="bg-white/20 px-1.5 rounded text-[9px]">{state.birds.filter(b => b.status !== 'Ativo').length}</span>
+               <span className="bg-white/20 px-1.5 rounded text-elderly-label">{state.birds.filter(b => b.status !== 'Ativo').length}</span>
              )}
            </button>
            {includeSexingTab && (
@@ -903,7 +934,7 @@ const BirdManager: React.FC<BirdManagerProps> = ({
              >
                <Dna size={14} /> Central de Sexagem
                {waitingResultBirds.length > 0 && (
-                 <span className="bg-white/20 px-1.5 rounded text-[9px]">{waitingResultBirds.length}</span>
+                 <span className="bg-white/20 px-1.5 rounded text-elderly-label">{waitingResultBirds.length}</span>
                )}
              </button>
            )}
@@ -919,7 +950,7 @@ const BirdManager: React.FC<BirdManagerProps> = ({
            >
              <Zap size={14} /> 
              {state.birds.filter(b => b.ibamaBaixaPendente).length > 0 && (
-               <span className="px-1.5 rounded text-[9px]">{state.birds.filter(b => b.ibamaBaixaPendente).length}</span>
+               <span className="px-1.5 rounded text-elderly-label">{state.birds.filter(b => b.ibamaBaixaPendente).length}</span>
              )}
              IBAMA
            </button>
@@ -2336,6 +2367,19 @@ const BirdManager: React.FC<BirdManagerProps> = ({
            </div>
         </div>
       )}
+
+      {/* Modal de Confirmação de Delete */}
+      <ConfirmDialog
+        isOpen={deleteConfirm.isOpen}
+        title="Mover para Lixeira?"
+        message={`Tem certeza que deseja mover "${deleteConfirm.birdName}" para a lixeira? Você poderá restaurá-la depois.`}
+        onConfirm={handleConfirmDelete}
+        onCancel={() => setDeleteConfirm({ isOpen: false, birdId: '', birdName: '', isPermanent: false })}
+        confirmText="Sim, Mover"
+        cancelText="Cancelar"
+        isDangerous={false}
+        isLoading={isDeletingBird}
+      />
     </div>
   );
 };

@@ -419,7 +419,7 @@ const BreedingManager: React.FC<BreedingManagerProps> = ({ state, addPair, updat
           </div>
           <div>
             <p className="text-sm font-black uppercase tracking-widest leading-none mb-1">Notificação</p>
-            <p className="text-xs font-bold opacity-80">{notification.message}</p>
+            <p className="text-elderly-label text-slate-600 opacity-90">{notification.message}</p>
           </div>
           <button onClick={() => setNotification(null)} className="ml-4 p-1 hover:bg-black/5 rounded-lg">
             <X size={16} />
@@ -468,15 +468,15 @@ const BreedingManager: React.FC<BreedingManagerProps> = ({ state, addPair, updat
       {currentList === 'archived' && (
          <div className="bg-amber-50 border-l-4 border-amber-500 p-4 rounded-r-xl mb-4">
             <p className="text-amber-700 font-bold text-sm">Histórico de Casais</p>
-            <p className="text-amber-600 text-xs">Casais que já produziram filhotes. Reative para voltar aos ativos ou envie para lixeira.</p>
+            <p className="text-amber-600 text-elderly-label">Casais que já produziram filhotes. Reative para voltar aos ativos ou envie para lixeira.</p>
          </div>
       )}
 
       {currentList === 'trash' && (
          <div className="bg-rose-50 border-l-4 border-rose-500 p-4 rounded-r-xl mb-4">
             <p className="text-rose-700 font-bold text-sm">Lixeira de Casais</p>
-            <p className="text-rose-600 text-xs">Restaure casais desfeitos acidentalmente, mova para histórico, ou remova definitivamente.</p>
-            <p className="text-rose-600 text-xs mt-1">Itens ficam disponiveis por ate 30 dias na lixeira antes de serem removidos automaticamente.</p>
+            <p className="text-rose-600 text-elderly-label">Restaure casais desfeitos acidentalmente, mova para histórico, ou remova definitivamente.</p>
+            <p className="text-rose-600 text-elderly-label mt-1">Itens ficam disponiveis por ate 30 dias na lixeira antes de serem removidos automaticamente.</p>
          </div>
       )}
 
@@ -488,7 +488,7 @@ const BreedingManager: React.FC<BreedingManagerProps> = ({ state, addPair, updat
               <Heart size={20} className={currentList === 'archived' ? 'text-amber-500' : currentList === 'trash' ? 'text-rose-500' : 'text-[#0F172A]'} />
               {currentList === 'active' ? 'Casais Ativos' : currentList === 'archived' ? 'Histórico de Casais' : 'Casais Excluídos'}
             </h3>
-            <span className="px-3 py-1 bg-rose-50 text-rose-500 text-[10px] font-black rounded-lg uppercase">
+            <span className="px-3 py-1 bg-rose-50 text-rose-500 text-elderly-label rounded-lg uppercase">
               {visiblePairs.length} Registros
             </span>
           </div>
@@ -510,14 +510,14 @@ const BreedingManager: React.FC<BreedingManagerProps> = ({ state, addPair, updat
                       <div className="flex items-center gap-2">
                         <h3 className="font-black text-slate-800 leading-tight">{pair.name}</h3>
                         {pair.lastHatchDate && (
-                          <span className="px-2 py-0.5 bg-emerald-50 text-emerald-600 text-[8px] font-black uppercase rounded-lg border border-emerald-200">
+                          <span className="px-2 py-0.5 bg-emerald-50 text-emerald-600 text-elderly-label uppercase rounded-lg border border-emerald-200">
                             Com Filhotes
                           </span>
                         )}
                       </div>
-                      <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Unido em: {new Date(pair.startDate).toLocaleDateString('pt-BR')}</p>
+                      <p className="text-elderly-label text-slate-600 font-bold uppercase tracking-wider">Unido em: {new Date(pair.startDate).toLocaleDateString('pt-BR')}</p>
                       {pair.lastHatchDate && (
-                        <p className="text-[10px] text-emerald-600 font-black uppercase tracking-wider">
+                        <p className="text-elderly-label text-emerald-600 font-black uppercase tracking-wider">
                           Última ninhada: {new Date(pair.lastHatchDate).toLocaleDateString('pt-BR')}
                         </p>
                       )}
@@ -547,16 +547,16 @@ const BreedingManager: React.FC<BreedingManagerProps> = ({ state, addPair, updat
                 </div>
 
                 <div className="p-6 flex items-center justify-around relative gap-3">
-                   <span className="inline-flex px-3 py-1 rounded-full text-[8px] font-black uppercase bg-blue-50 text-blue-600 border border-blue-100 max-w-[120px] truncate">
+                   <span className="inline-flex px-3 py-1 rounded-full text-elderly-label uppercase bg-blue-50 text-blue-600 border border-blue-100 max-w-[120px] truncate">
                      {getBirdName(pair.maleId)}
                    </span>
                    <div className="flex flex-col items-center gap-1">
                      <Heart size={20} className="text-slate-200" fill="currentColor" />
-                     <span className="px-2 py-0.5 rounded-full text-[8px] font-black uppercase bg-slate-50 text-slate-500 border border-slate-100 max-w-[120px] truncate">
+                     <span className="px-2 py-0.5 rounded-full text-elderly-label uppercase bg-slate-50 text-slate-500 border border-slate-100 max-w-[120px] truncate">
                        {getPairSpecies(pair.id)}
                      </span>
                    </div>
-                   <span className="inline-flex px-3 py-1 rounded-full text-[8px] font-black uppercase bg-rose-50 text-rose-600 border border-rose-100 max-w-[120px] truncate">
+                   <span className="inline-flex px-3 py-1 rounded-full text-elderly-label uppercase bg-rose-50 text-rose-600 border border-rose-100 max-w-[120px] truncate">
                      {getBirdName(pair.femaleId)}
                    </span>
                 </div>
@@ -564,7 +564,7 @@ const BreedingManager: React.FC<BreedingManagerProps> = ({ state, addPair, updat
                 {currentList === 'active' ? (
                   <div className="p-6 pt-0">
                     <div className="bg-slate-50/50 rounded-2xl p-4 border border-slate-100">
-                       <h4 className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-4 flex items-center gap-2">
+                       <h4 className="text-elderly-label text-slate-600 uppercase tracking-widest mb-4 flex items-center gap-2">
                          <ClipboardList size={14} /> Histórico Recente
                        </h4>
                        <div className="space-y-2">
@@ -575,19 +575,19 @@ const BreedingManager: React.FC<BreedingManagerProps> = ({ state, addPair, updat
                                 <span className="text-xs font-bold text-slate-700">{new Date(clutch.layDate).toLocaleDateString('pt-BR')}</span>
                              </div>
                              <div className="flex items-center gap-4">
-                                 <span className="text-[10px] font-black text-brand uppercase whitespace-nowrap">{clutch.eggCount} OVOS</span>
+                                 <span className="text-elderly-label text-brand uppercase whitespace-nowrap">{clutch.eggCount} OVOS</span>
                                  {clutch.hatchedCount > 0 ? (
-                                   <span className="text-[10px] font-black text-emerald-500 uppercase flex items-center gap-1 whitespace-nowrap">
+                                   <span className="text-elderly-label text-emerald-500 uppercase flex items-center gap-1 whitespace-nowrap">
                                      <Baby size={10} /> {clutch.hatchedCount}
                                    </span>
                                  ) : (
-                                   <span className="text-[10px] font-black text-amber-500 uppercase flex items-center gap-1 whitespace-nowrap">
+                                   <span className="text-elderly-label text-amber-500 uppercase flex items-center gap-1 whitespace-nowrap">
                                      <Timer size={10} /> INCUBANDO
                                    </span>
                                  )}
                              </div>
                                {clutch.hatchedCount > 0 && (
-                                 <span className="px-2 py-1 bg-emerald-50 text-emerald-600 rounded-lg text-[9px] font-black uppercase tracking-widest whitespace-nowrap">
+                                 <span className="px-2 py-1 bg-emerald-50 text-emerald-600 rounded-lg text-elderly-label uppercase tracking-widest whitespace-nowrap">
                                    Nascidos: {clutch.hatchedCount}
                                  </span>
                                )}

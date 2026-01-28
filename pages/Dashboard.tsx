@@ -49,11 +49,11 @@ const StatCard = ({ icon, label, value, subValue, isWarning, isPositive, onClick
   >
     <div className="flex items-center gap-3 mb-6">
       <div className="p-3 bg-slate-50 rounded-2xl">{icon}</div>
-      <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{label}</span>
+      <span className="text-sm font-black text-slate-400 uppercase tracking-widest">{label}</span>
     </div>
     <div>
       <h4 className={`text-2xl font-black tracking-tight ${isWarning ? 'text-orange-600' : isPositive === false ? 'text-rose-600' : 'text-slate-800'}`}>{value}</h4>
-      <p className="text-[10px] font-bold text-slate-400 uppercase mt-1">{subValue}</p>
+      <p className="text-sm font-bold text-slate-400 uppercase mt-1">{subValue}</p>
     </div>
   </div>
 );

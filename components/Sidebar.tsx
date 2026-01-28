@@ -100,10 +100,10 @@ const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab, logoUrl, bre
               </div>
               <div className={`absolute -bottom-1 -right-1 w-4 h-4 border-2 border-white rounded-full ${isAdmin ? 'bg-rose-500' : plan === 'Profissional' ? 'bg-amber-500' : 'bg-emerald-500'}`}></div>
             </div>
-            <div className="overflow-hidden">
+            <div className="overflow-hidden flex-1">
               <h1
                 title={breederName || 'AviGestão'}
-                className="font-black text-slate-900 text-sm leading-tight break-words line-clamp-2 max-w-[190px]"
+                className="font-black text-slate-900 text-xs leading-snug truncate max-w-[160px]"
               >
                 {breederName || 'AviGestão'}
               </h1>
@@ -135,7 +135,7 @@ const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab, logoUrl, bre
             <button
               key={item.id}
               onClick={() => handleNavigation(item.id)}
-              className={`w-full flex items-center justify-between px-4 py-3 rounded-2xl transition-all duration-300 group ${
+              className={`w-full flex items-center justify-between px-4 py-4 rounded-2xl transition-all duration-300 group ${
                 activeTab === item.id
                   ? 'bg-brand text-white shadow-lg shadow-brand/20'
                   : 'text-slate-500 hover:bg-slate-50 hover:text-brand'
@@ -145,7 +145,7 @@ const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab, logoUrl, bre
                 <span className={`${activeTab === item.id ? 'text-white' : 'text-slate-400 group-hover:text-brand'} transition-colors`}>
                   {item.icon}
                 </span>
-                <span className="font-bold text-sm tracking-tight">{item.label}</span>
+                <span className="font-bold text-base tracking-tight">{item.label}</span>
                 {item.pro && plan === 'Básico' && !hasTrial && !isAdmin && (
                   <Zap size={12} className="text-amber-500 fill-amber-500" />
                 )}
