@@ -17,12 +17,10 @@ import {
   EyeOff,
   X,
   HelpCircle,
-  Database,
 } from 'lucide-react';
 const TipCarousel = React.lazy(() => import('../components/TipCarousel'));
 import { APP_LOGO } from '../constants';
 import { supabase } from '../supabaseClient';
-import { syncBirdsToSupabase } from '../lib/birdSync';
 
 interface SettingsManagerProps {
   settings: BreederSettings;
@@ -91,9 +89,6 @@ const SettingsManager: React.FC<SettingsManagerProps> = ({ settings, updateSetti
   const [passwordSuccess, setPasswordSuccess] = useState<string | null>(null);
   const [isChangingPassword, setIsChangingPassword] = useState(false);
   const [showPasswordModal, setShowPasswordModal] = useState(false);
-  const [isSyncing, setIsSyncing] = useState(false);
-  const [syncStatus, setSyncStatus] = useState<{ migrated: number; failed: number; errors: string[] } | null>(null);
-  const [syncMessage, setSyncMessage] = useState<string | null>(null);
 
   const isTrial = !!settings.trialEndDate && !isAdmin;
   const canUseLogo = !!isAdmin || settings.plan === 'Profissional' || !!settings.trialEndDate;
@@ -374,38 +369,6 @@ const SettingsManager: React.FC<SettingsManagerProps> = ({ settings, updateSetti
       setPasswordError(msg);
     } finally {
       setIsChangingPassword(false);
-    }
-  };
-
-  const handleSyncBirds = async () => {
-    setIsSyncing(true);
-    setSyncStatus(null);
-    setSyncMessage('Sincronizando pássaros...');
-
-    try {
-      const session = await supabase.auth.getSession();
-      const userId = session?.data?.session?.user?.id;
-
-      if (!userId) {
-        setSyncMessage('Erro: Usuário não autenticado');
-        return;
-      }
-
-      const result = await syncBirdsToSupabase(userId);
-      setSyncStatus(result);
-
-      if (result.success) {
-        setSyncMessage(`✓ Sucesso! ${result.migrated} pássaros sincronizados.`);
-      } else if (result.migrated > 0) {
-        setSyncMessage(`⚠ Parcial: ${result.migrated} sincronizados, ${result.failed} com erro.`);
-      } else {
-        setSyncMessage(`✗ Erro: Nenhum pássaro foi sincronizado.`);
-      }
-    } catch (err) {
-      const errorMsg = err instanceof Error ? err.message : String(err);
-      setSyncMessage(`Erro ao sincronizar: ${errorMsg}`);
-    } finally {
-      setIsSyncing(false);
     }
   };
 
@@ -1002,68 +965,6 @@ const SettingsManager: React.FC<SettingsManagerProps> = ({ settings, updateSetti
               </div>
             </div>
           </div>
-        </div>
-      )}
-
-      {activeTab === 'perfil' && (
-        <div className="bg-white p-8 rounded-3xl border border-slate-100 shadow-sm space-y-6">
-          <h3 className="font-black flex items-center gap-2 text-slate-800">
-            <Database size={18} /> Sincronizar com Supabase
-          </h3>
-          <p className="text-sm text-slate-600">Copie seus pássaros do localStorage para o Supabase. Isso permite que a verificação funcione mesmo offline e cria um backup na nuvem.</p>
-          
-          {syncMessage && (
-            <div className={`p-4 rounded-2xl border ${
-              syncMessage.includes('✓') ? 'bg-emerald-50 border-emerald-200 text-emerald-700' :
-              syncMessage.includes('⚠') ? 'bg-amber-50 border-amber-200 text-amber-700' :
-              'bg-rose-50 border-rose-200 text-rose-700'
-            } text-sm font-bold`}>
-              {syncMessage}
-            </div>
-          )}
-
-          {syncStatus && (
-            <div className="p-4 rounded-2xl bg-slate-50 border border-slate-100 space-y-2">
-              <div className="flex justify-between">
-                <span className="text-slate-600">Sincronizados:</span>
-                <span className="font-bold text-emerald-600">{syncStatus.migrated}</span>
-              </div>
-              {syncStatus.failed > 0 && (
-                <div className="flex justify-between">
-                  <span className="text-slate-600">Erros:</span>
-                  <span className="font-bold text-rose-600">{syncStatus.failed}</span>
-                </div>
-              )}
-              {syncStatus.errors.length > 0 && (
-                <div className="mt-3 pt-3 border-t border-slate-200 space-y-1">
-                  <p className="text-xs font-bold text-slate-500">Detalhes dos erros:</p>
-                  {syncStatus.errors.map((err, i) => (
-                    <p key={i} className="text-xs text-slate-600">{err}</p>
-                  ))}
-                </div>
-              )}
-            </div>
-          )}
-
-          <button
-            onClick={handleSyncBirds}
-            disabled={isSyncing}
-            className="w-full py-3 bg-blue-600 text-white rounded-2xl font-black uppercase text-sm tracking-widest hover:bg-blue-700 transition-all disabled:opacity-60 flex items-center justify-center gap-2"
-          >
-            {isSyncing ? (
-              <>
-                <Loader2 size={16} className="animate-spin" /> Sincronizando...
-              </>
-            ) : (
-              <>
-                <Database size={16} /> Sincronizar Agora
-              </>
-            )}
-          </button>
-
-          <p className="text-xs text-slate-500">
-            ℹ️ Não se preocupe: seus dados no localStorage serão mantidos intactos. Isto apenas cria um backup no Supabase.
-          </p>
         </div>
       )}
     </div>

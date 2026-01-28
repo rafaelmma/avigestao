@@ -34,6 +34,7 @@ const BirdVerification = lazy(() => import('./pages/BirdVerification'));
 const VerificationAnalytics = lazy(() => import('./pages/VerificationAnalytics'));
 import { supabase, SUPABASE_MISSING } from './lib/supabase';
 import { loadInitialData, loadTabData, loadDeletedPairs } from './services/dataService';
+import { saveBirdToSupabase } from './lib/birdSync';
 
 const STORAGE_KEY = 'avigestao_state_v2';
 const storageKeyForUser = (userId?: string) => (userId ? `${STORAGE_KEY}::${userId}` : STORAGE_KEY);
@@ -1042,6 +1043,14 @@ const App: React.FC = () => {
           return false;
         }
         toast.success('Ave adicionada com sucesso!');
+        
+        // Sincronizar também na tabela birds para verificação via QR
+        try {
+          await saveBirdToSupabase(bird, session.user.id);
+        } catch (syncErr) {
+          console.warn('Erro ao sincronizar na tabela birds:', syncErr);
+          // Não falha se isso não funcionar
+        }
       }
       setState(prev => ({ ...prev, birds: [...prev.birds, bird] }));
       return true;
@@ -1080,6 +1089,14 @@ const App: React.FC = () => {
         };
         const { error } = await supabase.from('birds').update(dbBird).eq('id', bird.id).eq('user_id', session.user.id);
         if (error) console.error('Erro ao atualizar ave:', error);
+        
+        // Sincronizar também na tabela birds para verificação via QR
+        try {
+          await saveBirdToSupabase(bird, session.user.id);
+        } catch (syncErr) {
+          console.warn('Erro ao sincronizar na tabela birds:', syncErr);
+          // Não falha se isso não funcionar
+        }
       }
     } catch (e) {
       console.error('updateBird failed', e);
