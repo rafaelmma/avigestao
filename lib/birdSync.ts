@@ -14,6 +14,7 @@ export async function syncBirdsToSupabase(userId: string): Promise<{
   const errors: string[] = [];
   let migrated = 0;
   let failed = 0;
+  let birdsList: Bird[] = [];
 
   try {
     // 1. Carregar dados do localStorage
@@ -28,9 +29,9 @@ export async function syncBirdsToSupabase(userId: string): Promise<{
     }
 
     const data = JSON.parse(stored);
-    const birds: Bird[] = data?.birds || [];
+    birdsList = data?.birds || [];
 
-    if (birds.length === 0) {
+    if (birdsList.length === 0) {
       return {
         success: false,
         migrated: 0,
@@ -39,10 +40,10 @@ export async function syncBirdsToSupabase(userId: string): Promise<{
       };
     }
 
-    console.log(`Iniciando sincronização de ${birds.length} pássaros...`);
+    console.log(`Iniciando sincronização de ${birdsList.length} pássaros...`);
 
     // 2. Inserir cada pássaro no Supabase
-    for (const bird of birds) {
+    for (const bird of birdsList) {
       try {
         const { error } = await supabase.from('birds').insert({
           id: bird.id,
@@ -94,7 +95,7 @@ export async function syncBirdsToSupabase(userId: string): Promise<{
     return {
       success: false,
       migrated: 0,
-      failed: birds.length,
+      failed: birdsList.length,
       errors: [errorMsg]
     };
   }
@@ -113,7 +114,7 @@ export async function loadBirdsForUser(userId: string): Promise<Bird[]> {
 
     if (!error && data && data.length > 0) {
       console.log(`Carregadas ${data.length} pássaros do Supabase`);
-      return data.map(b => ({
+      return data.map((b: any) => ({
         id: b.id,
         name: b.name,
         species: b.species,
