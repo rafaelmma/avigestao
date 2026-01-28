@@ -516,6 +516,16 @@ const BirdManager: React.FC<BirdManagerProps> = ({
   const handleSaveBird = (e: React.FormEvent) => {
     e.preventDefault();
     (async () => {
+      // Validação de campos obrigatórios
+      if (!newBird.name || newBird.name.trim() === '') {
+        alert('❌ Nome da ave é obrigatório.');
+        return;
+      }
+      if (!newBird.ringNumber || newBird.ringNumber.trim() === '') {
+        alert('❌ Número de anilha é obrigatório.');
+        return;
+      }
+
       if (newBird.name && newBird.ringNumber) {
         const makeId = () => {
           if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
@@ -538,20 +548,30 @@ const BirdManager: React.FC<BirdManagerProps> = ({
           // id and createdAt will be set by the DB (but keep fallback)
           id: makeId(),
           createdAt: new Date().toISOString(),
-          manualAncestors: {},
-          documents: []
+          manualAncestors: newBird.manualAncestors || {},
+          documents: newBird.documents || []
         };
 
         // Process Genealogy
         processGenealogyForSave(birdToSave);
 
+        console.log('📝 Tentando salvar ave:', {
+          nome: birdToSave.name,
+          anilha: birdToSave.ringNumber,
+          especie: birdToSave.species,
+          sexo: birdToSave.sex,
+          status: birdToSave.status
+        });
+
         const saved = await addBird(birdToSave);
         if (!saved) {
-          alert('Erro ao salvar ave. Tente novamente.');
+          alert('❌ Erro ao salvar ave. Verifique os dados e tente novamente.');
           return;
         }
 
+        console.log('✅ Ave salva com sucesso!');
         setShowModal(false);
+        resetNewBird();
       }
     })();
   };

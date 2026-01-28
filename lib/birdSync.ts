@@ -148,15 +148,15 @@ export async function loadBirdsForUser(userId: string): Promise<Bird[]> {
 }
 
 /**
- * Salva novo pássaro no Supabase e localStorage
+ * Salva novo pássaro no Supabase (com upsert para evitar duplicatas)
  */
 export async function saveBirdToSupabase(
   bird: Bird,
   userId: string
 ): Promise<{ success: boolean; error?: string }> {
   try {
-    // Salvar no Supabase
-    const { error } = await supabase.from('birds').upsert({
+    // Preparar dados para sincronização
+    const birdData = {
       id: bird.id,
       breeder_id: userId,
       name: bird.name,
@@ -173,17 +173,29 @@ export async function saveBirdToSupabase(
       song_training_status: bird.songTrainingStatus,
       song_type: bird.songType,
       training_notes: bird.trainingNotes,
-      photo_url: bird.photoUrl
-    });
+      photo_url: bird.photoUrl,
+      is_repeater: bird.isRepeater,
+      created_at: bird.createdAt
+    };
+
+    // UPSERT: se existe, atualiza; se não existe, insere
+    const { error, data } = await supabase
+      .from('birds')
+      .upsert(birdData, { onConflict: 'id' });
 
     if (error) {
-      console.warn('Erro ao salvar no Supabase:', error);
-      // Continua mesmo assim, localStorage já tem os dados
+      console.warn('Erro Supabase ao salvar ave:', error);
+      return {
+        success: false,
+        error: error.message || 'Erro ao salvar no Supabase'
+      };
     }
 
+    console.log('✓ Ave sincronizada com Supabase:', bird.name, data);
     return { success: true };
   } catch (err) {
     const errorMsg = err instanceof Error ? err.message : String(err);
+    console.error('✗ Exceção ao sincronizar Supabase:', errorMsg);
     return {
       success: false,
       error: errorMsg
