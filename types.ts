@@ -1,11 +1,11 @@
 ﻿// ============================================================================
 // TIPOS ENUMERADOS (correspondentes aos enums do banco Supabase)
 // ============================================================================
-export type BirdStatus = 'Ativo' | 'Inativo' | 'Vendido' | 'Doado' | 'Falecido' | 'Criação' | 'Óbito';
+export type BirdStatus = 'Ativo' | 'Inativo' | 'Vendido' | 'Doado' | 'Falecido' | 'Criação' | 'Óbito' | 'Fuga';
 export type Sex = 'Macho' | 'Fêmea' | 'Desconhecido';
 export type BirdClassification = 'Exemplar' | 'Reprodutor' | 'Descarte';
 export type TrainingStatus = 'Não Iniciado' | 'Em Progresso' | 'Concluído' | 'Certificado';
-export type MovementType = 'Entrada' | 'Saída' | 'Transferência' | 'Venda' | 'Doação' | 'Óbito';
+export type MovementType = 'Entrada' | 'Saída' | 'Transferência' | 'Venda' | 'Doação' | 'Óbito' | 'Fuga';
 export type MedicationType = 'Antibiótico' | 'Vitamina' | 'Antiparasitário' | 'Desinfetante' | 'Outro';
 export type EventType = 'Nascimento' | 'Sexagem' | 'Certificação' | 'Concurso' | 'Venda' | 'Outro';
 export type SharePlatform = 'WhatsApp' | 'Email' | 'Facebook' | 'Instagram' | 'Twitter' | 'Outro';

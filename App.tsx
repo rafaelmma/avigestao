@@ -251,11 +251,7 @@ const App: React.FC = () => {
 
   const fetchSession = async () => {
     try {
-      const promise = supabase.auth.getSession();
-      const timeoutPromise = new Promise((_, reject) =>
-        setTimeout(() => reject(new Error('Session fetch timeout')), 8000)
-      );
-      const resp: any = await Promise.race([promise, timeoutPromise]);
+      const resp: any = await supabase.auth.getSession();
       return resp?.data?.session ?? null;
     } catch (err) {
       console.warn('Erro ao buscar sessão:', err);

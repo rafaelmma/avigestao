@@ -98,7 +98,7 @@ const BirdManager: React.FC<BirdManagerProps> = ({
   const [showQuickStatusModal, setShowQuickStatusModal] = useState(false);
   const [quickStatusBird, setQuickStatusBird] = useState<Bird | null>(null);
   const [quickStatusData, setQuickStatusData] = useState({
-    newStatus: 'Óbito' as 'Óbito' | 'Vendido' | 'Doado',
+    newStatus: 'Óbito' as 'Óbito' | 'Vendido' | 'Doado' | 'Fuga',
     date: new Date().toISOString().split('T')[0],
     createMovement: true,
     notes: ''
@@ -398,6 +398,7 @@ const BirdManager: React.FC<BirdManagerProps> = ({
         if (quickStatusData.newStatus === 'Vendido') movementType = 'Venda';
         else if (quickStatusData.newStatus === 'Doado') movementType = 'Doação';
         else if (quickStatusData.newStatus === 'Óbito') movementType = 'Óbito';
+        else if (quickStatusData.newStatus === 'Fuga') movementType = 'Fuga';
         
         const newMovement: MovementRecord = {
           id: movementId,
@@ -441,6 +442,7 @@ const BirdManager: React.FC<BirdManagerProps> = ({
       if (quickIbamaBird.status === 'Vendido') movementType = 'Venda';
       else if (quickIbamaBird.status === 'Doado') movementType = 'Doação';
       else if (quickIbamaBird.status === 'Óbito') movementType = 'Óbito';
+      else if (quickIbamaBird.status === 'Fuga') movementType = 'Fuga';
       
       const newMovement: MovementRecord = {
         id: movementId,
@@ -1312,6 +1314,14 @@ const BirdManager: React.FC<BirdManagerProps> = ({
                           title="Marcar como Óbito"
                         >
                           🔴 Óbito
+                        </button>
+                        <button 
+                          type="button"
+                          onClick={(e) => { e.stopPropagation(); setQuickStatusBird(bird); setQuickStatusData({newStatus: 'Fuga', date: new Date().toISOString().split('T')[0], createMovement: true, notes: ''}); setShowQuickStatusModal(true); }}
+                          className="px-2 py-1.5 text-[9px] font-bold text-orange-700 bg-orange-50 hover:bg-orange-100 rounded-lg transition-all border border-orange-200"
+                          title="Marcar como Fuga"
+                        >
+                          🟠 Fuga
                         </button>
                         <button 
                           type="button"
@@ -2304,12 +2314,14 @@ const BirdManager: React.FC<BirdManagerProps> = ({
            <div className="bg-white rounded-[40px] w-full max-w-md shadow-2xl overflow-hidden">
               <div className={`p-8 bg-gradient-to-r ${
                 quickStatusData.newStatus === 'Óbito' ? 'from-red-500 to-rose-500' :
+                quickStatusData.newStatus === 'Fuga' ? 'from-orange-500 to-amber-500' :
                 quickStatusData.newStatus === 'Vendido' ? 'from-blue-500 to-cyan-500' :
                 'from-purple-500 to-pink-500'
               }`}>
                  <div className="flex items-center gap-3">
                     <div className="w-12 h-12 bg-white/20 rounded-2xl flex items-center justify-center text-2xl">
                        {quickStatusData.newStatus === 'Óbito' && '🔴'}
+                       {quickStatusData.newStatus === 'Fuga' && '🟠'}
                        {quickStatusData.newStatus === 'Vendido' && '🔵'}
                        {quickStatusData.newStatus === 'Doado' && '🟣'}
                     </div>
@@ -2371,6 +2383,7 @@ const BirdManager: React.FC<BirdManagerProps> = ({
                        onClick={handleQuickStatusConfirm}
                        className={`py-3 text-white rounded-2xl font-black text-xs uppercase tracking-widest shadow-lg flex items-center justify-center gap-2 transition-all ${
                          quickStatusData.newStatus === 'Óbito' ? 'bg-red-500 hover:bg-red-600 shadow-red-200' :
+                         quickStatusData.newStatus === 'Fuga' ? 'bg-orange-500 hover:bg-orange-600 shadow-orange-200' :
                          quickStatusData.newStatus === 'Vendido' ? 'bg-blue-500 hover:bg-blue-600 shadow-blue-200' :
                          'bg-purple-500 hover:bg-purple-600 shadow-purple-200'
                        }`}

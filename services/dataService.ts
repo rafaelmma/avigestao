@@ -137,7 +137,7 @@ export async function loadInitialData(userId: string) {
 
   // Initial data for dashboard and core UI only.
   try {
-    const [birds, transactions, tasks, tournaments, clutches, pairs, archivedPairs, movements, settingsResult] = await Promise.all([
+    const [birds, transactions, tasks, tournaments, clutches, pairs, archivedPairs, movements, medications, applications, settingsResult] = await Promise.all([
         // Se temos birds do Supabase, usar; senão carregar
         birdsFromSupabase.length > 0 
           ? Promise.resolve(birdsFromSupabase)
@@ -149,6 +149,8 @@ export async function loadInitialData(userId: string) {
         safeSelect(() => supabase.from("pairs").select("*").eq("user_id", userId).is("deleted_at", null).is("archived_at", null), mapPairFromDb),
         safeSelect(() => supabase.from("pairs").select("*").eq("user_id", userId).not("archived_at", "is", null).is("deleted_at", null), mapPairFromDb),
         safeSelect(() => supabase.from("movements").select("*").eq("user_id", userId).is("deleted_at", null), mapMovementFromDb),
+        safeSelect(() => supabase.from("medications").select("*").eq("user_id", userId), mapMedicationFromDb),
+        safeSelect(() => supabase.from("applications").select("*").eq("user_id", userId), mapApplicationFromDb),
         settingsPromise,
       ]) as any;
 
@@ -160,11 +162,11 @@ export async function loadInitialData(userId: string) {
       transactions,
       tasks,
       tournaments,
-      medications: [],
+      medications,
       pairs,
       archivedPairs,
       clutches,
-      applications: [],
+      applications,
       treatments: [],
       medicationCatalog: [],
       settings: settings ?? INITIAL_SETTINGS,
