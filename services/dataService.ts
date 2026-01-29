@@ -137,8 +137,7 @@ export async function loadInitialData(userId: string) {
 
   // Initial data for dashboard and core UI only.
   try {
-    const [birds, transactions, tasks, tournaments, clutches, pairs, archivedPairs, movements, settingsResult] = await Promise.race([
-      Promise.all([
+    const [birds, transactions, tasks, tournaments, clutches, pairs, archivedPairs, movements, settingsResult] = await Promise.all([
         // Se temos birds do Supabase, usar; senão carregar
         birdsFromSupabase.length > 0 
           ? Promise.resolve(birdsFromSupabase)
@@ -151,9 +150,7 @@ export async function loadInitialData(userId: string) {
         safeSelect(() => supabase.from("pairs").select("*").eq("user_id", userId).not("archived_at", "is", null).is("deleted_at", null), mapPairFromDb),
         safeSelect(() => supabase.from("movements").select("*").eq("user_id", userId).is("deleted_at", null), mapMovementFromDb),
         settingsPromise,
-      ]),
-      new Promise<any>((_, reject) => setTimeout(() => reject(new Error('Supabase timeout (5s)')), 6000))
-    ]) as any;
+      ]) as any;
 
     const settings = settingsResult.settings;
 

@@ -511,10 +511,7 @@ const App: React.FC = () => {
 
     // Hidrata dados em background
     try {
-      await Promise.race([
-        Promise.all([checkAdmin(token), hydrateUserData(newSession)]),
-        new Promise<never>((_, reject) => setTimeout(() => reject(new Error('timeout hydrate')), HYDRATE_TIMEOUT_MS))
-      ]);
+      await Promise.all([checkAdmin(token), hydrateUserData(newSession)]);
     } catch (err: any) {
       console.error('Erro ao hidratar sessao:', err);
       if (err?.message === 'timeout hydrate') {
