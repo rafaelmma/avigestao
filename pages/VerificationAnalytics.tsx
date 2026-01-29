@@ -43,11 +43,15 @@ const VerificationAnalytics: React.FC = () => {
         // Busca verificações do Supabase
         if (supabase && Object.keys(birdsMap).length > 0) {
           try {
+            // Se nenhuma data foi selecionada, usar últimos 30 dias
+            const fromDate = dateRange.from || new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+            const toDate = dateRange.to || new Date().toISOString().split('T')[0];
+            
             const { data: verificationData, error: verificationError } = await supabase
               .from('bird_verifications')
               .select('bird_id, accessed_at')
-              .gte('accessed_at', dateRange.from + 'T00:00:00')
-              .lte('accessed_at', dateRange.to + 'T23:59:59')
+              .gte('accessed_at', fromDate + 'T00:00:00')
+              .lte('accessed_at', toDate + 'T23:59:59')
               .order('accessed_at', { ascending: false });
 
             if (verificationError) {
