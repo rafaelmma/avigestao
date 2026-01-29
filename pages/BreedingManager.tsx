@@ -570,16 +570,16 @@ const BreedingManager: React.FC<BreedingManagerProps> = ({ state, addPair, updat
                        </h4>
                        <div className="space-y-2">
                          {state.clutches.filter(c => c.pairId === pair.id).slice(0, 3).map(clutch => (
-                           <div key={clutch.id} className="bg-white p-3 rounded-xl border border-slate-100 flex items-center justify-between shadow-sm group/clutch relative">
-                             <div className="flex items-center gap-3">
+                           <div key={clutch.id} className="bg-white p-3 rounded-xl border border-slate-100 shadow-sm group/clutch relative">
+                             <div className="flex items-center gap-2 mb-2">
                                 <Calendar size={14} className="text-slate-300" />
                                 <span className="text-xs font-bold text-slate-700">{new Date(clutch.layDate).toLocaleDateString('pt-BR')}</span>
                              </div>
-                             <div className="flex items-center gap-4">
-                                 <span className="text-elderly-label text-brand uppercase whitespace-nowrap">{clutch.eggCount} OVOS</span>
+                             <div className="flex items-center gap-3 flex-wrap">
+                                 <span className="text-elderly-label text-brand uppercase font-bold">{clutch.eggCount} OVOS</span>
                                  {clutch.hatchedCount > 0 ? (
-                                   <span className="text-elderly-label text-emerald-500 uppercase flex items-center gap-1 whitespace-nowrap">
-                                     <Baby size={10} /> {clutch.hatchedCount}
+                                   <span className="px-2 py-1 bg-emerald-50 text-emerald-600 rounded-lg text-elderly-label uppercase tracking-widest font-bold flex items-center gap-1 whitespace-nowrap">
+                                     <Baby size={10} /> {clutch.hatchedCount} NASCIDOS
                                    </span>
                                  ) : (
                                    <span className="text-elderly-label text-amber-500 uppercase flex items-center gap-1 whitespace-nowrap">
@@ -587,15 +587,10 @@ const BreedingManager: React.FC<BreedingManagerProps> = ({ state, addPair, updat
                                    </span>
                                  )}
                              </div>
-                               {clutch.hatchedCount > 0 && (
-                                 <span className="px-2 py-1 bg-emerald-50 text-emerald-600 rounded-lg text-elderly-label uppercase tracking-widest whitespace-nowrap">
-                                   Nascidos: {clutch.hatchedCount}
-                                 </span>
-                               )}
                              {/* Botão de Edição da Ninhada */}
                              <button 
                                onClick={() => openClutchModal(pair.id, clutch)}
-                               className="absolute right-2 top-1/2 -translate-y-1/2 p-2 bg-white rounded-lg border border-slate-100 shadow-sm text-slate-400 hover:text-brand hover:border-brand opacity-0 group-hover/clutch:opacity-100 transition-all"
+                               className="absolute right-2 top-2 p-2 bg-white rounded-lg border border-slate-100 shadow-sm text-slate-400 hover:text-brand hover:border-brand opacity-0 group-hover/clutch:opacity-100 transition-all"
                                title="Editar Ninhada"
                              >
                                <Edit2 size={12} />
