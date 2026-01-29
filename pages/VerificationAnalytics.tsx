@@ -14,6 +14,20 @@ interface DateRange {
   to: string;
 }
 
+// Converter UTC para horário local (Brasil BRT)
+const formatBrazilTime = (utcDateString: string) => {
+  const date = new Date(utcDateString);
+  return date.toLocaleString('pt-BR', { 
+    timeZone: 'America/Sao_Paulo',
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit'
+  });
+};
+
 const VerificationAnalytics: React.FC = () => {
   const [verifications, setVerifications] = useState<VerificationRecord[]>([]);
   const [loading, setLoading] = useState(true);
@@ -220,7 +234,7 @@ const VerificationAnalytics: React.FC = () => {
                     ></div>
                   </div>
                   <p className="text-xs text-slate-500 mt-1">
-                    Último acesso: {new Date(bird.last_accessed).toLocaleDateString('pt-BR')}
+                    Último acesso: {formatBrazilTime(bird.last_accessed)}
                   </p>
                 </div>
               );
@@ -245,8 +259,7 @@ const VerificationAnalytics: React.FC = () => {
               <div className="flex-1">
                 <p className="font-semibold text-slate-900">{bird.bird_name} foi verificado</p>
                 <p className="text-sm text-slate-600">
-                  {new Date(bird.last_accessed).toLocaleDateString('pt-BR')} às{' '}
-                  {new Date(bird.last_accessed).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
+                  {formatBrazilTime(bird.last_accessed)}
                 </p>
               </div>
               <span className="text-2xl font-bold text-blue-500">{bird.count}</span>
