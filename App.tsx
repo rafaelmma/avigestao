@@ -902,7 +902,7 @@ const App: React.FC = () => {
         event: '*',
         schema: 'public',
         table: 'birds',
-        filter: `user_id=eq.${userId}`
+        filter: `breeder_id=eq.${userId}`
       }, (payload: any) => {
         handleRealtimeChange('birds', payload);
       })
