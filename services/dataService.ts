@@ -121,8 +121,7 @@ export async function loadInitialData(userId: string) {
     const { data: supabaseBirds, error } = await supabase
       .from('birds')
       .select('*')
-      .eq('breeder_id', userId)
-      .timeout(5000); // Timeout de 5 segundos
+      .eq('breeder_id', userId);
     
     if (!error && supabaseBirds && supabaseBirds.length > 0) {
       console.log(`✓ Carregados ${supabaseBirds.length} pássaros do Supabase (primeira vez)`);
@@ -133,7 +132,7 @@ export async function loadInitialData(userId: string) {
   }
 
   const settingsPromise = safeSingleSettings(
-    () => supabase.from("settings").select("*").eq("user_id", userId).maybeSingle().timeout(5000)
+    () => supabase.from("settings").select("*").eq("user_id", userId).maybeSingle()
   );
 
   // Initial data for dashboard and core UI only.
@@ -143,14 +142,14 @@ export async function loadInitialData(userId: string) {
         // Se temos birds do Supabase, usar; senão carregar
         birdsFromSupabase.length > 0 
           ? Promise.resolve(birdsFromSupabase)
-          : safeSelect(() => supabase.from("birds").select("*").eq("breeder_id", userId).timeout(5000), mapBirdFromDb),
-        safeSelect(() => supabase.from("transactions").select("*").eq("user_id", userId).timeout(5000), mapTransactionFromDb),
-        safeSelect(() => supabase.from("tasks").select("*").eq("user_id", userId).timeout(5000), mapTaskFromDb),
-        safeSelect(() => supabase.from("tournaments").select("*").eq("user_id", userId).timeout(5000), mapTournamentFromDb),
-        safeSelect(() => supabase.from("clutches").select("*").eq("user_id", userId).timeout(5000), mapClutchFromDb),
-        safeSelect(() => supabase.from("pairs").select("*").eq("user_id", userId).is("deleted_at", null).is("archived_at", null).timeout(5000), mapPairFromDb),
-        safeSelect(() => supabase.from("pairs").select("*").eq("user_id", userId).not("archived_at", "is", null).is("deleted_at", null).timeout(5000), mapPairFromDb),
-        safeSelect(() => supabase.from("movements").select("*").eq("user_id", userId).is("deleted_at", null).timeout(5000), mapMovementFromDb),
+          : safeSelect(() => supabase.from("birds").select("*").eq("breeder_id", userId), mapBirdFromDb),
+        safeSelect(() => supabase.from("transactions").select("*").eq("user_id", userId), mapTransactionFromDb),
+        safeSelect(() => supabase.from("tasks").select("*").eq("user_id", userId), mapTaskFromDb),
+        safeSelect(() => supabase.from("tournaments").select("*").eq("user_id", userId), mapTournamentFromDb),
+        safeSelect(() => supabase.from("clutches").select("*").eq("user_id", userId), mapClutchFromDb),
+        safeSelect(() => supabase.from("pairs").select("*").eq("user_id", userId).is("deleted_at", null).is("archived_at", null), mapPairFromDb),
+        safeSelect(() => supabase.from("pairs").select("*").eq("user_id", userId).not("archived_at", "is", null).is("deleted_at", null), mapPairFromDb),
+        safeSelect(() => supabase.from("movements").select("*").eq("user_id", userId).is("deleted_at", null), mapMovementFromDb),
         settingsPromise,
       ]),
       new Promise<any>((_, reject) => setTimeout(() => reject(new Error('Supabase timeout (5s)')), 6000))
