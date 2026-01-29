@@ -112,13 +112,13 @@ const MedsManager: React.FC<MedsManagerProps> = ({
     (m.name ?? '').toLowerCase().includes(searchTerm.toLowerCase()) ||
     (m.type ?? '').toLowerCase().includes(searchTerm.toLowerCase())
   );
-  const expiredMeds = state.medications.filter(m => isExpired(m.expiryDate));
+  const expiredMeds = state.medications.filter(m => isExpired(m.expiryDate ?? ''));
 
   const filteredHistory = historyListToUse.filter(app => {
     const bird = state.birds.find(b => b.id === app.birdId);
     const med = state.medications.find(m => m.id === app.medicationId);
     const term = searchTerm.toLowerCase();
-    return (bird?.name ?? '').toLowerCase().includes(term) || ((med?.name ?? '') ?? '').toLowerCase().includes(term);
+    return (bird?.name ?? '').toLowerCase().includes(term) || (med?.name ?? '').toLowerCase().includes(term);
   }).sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 
   // --- HANDLERS DE FORMULÁRIO (MEDICAMENTO) ---
@@ -437,11 +437,11 @@ const MedsManager: React.FC<MedsManagerProps> = ({
                     }`}>
                       <FlaskConical size={20} />
                     </div>
-                    {isExpired(med.expiryDate) ? (
+                    {isExpired(med.expiryDate ?? '') ? (
                       <span className="px-2 py-1 bg-red-100 text-red-600 text-[8px] font-black uppercase rounded-lg border border-red-200 flex items-center gap-1">
                         <AlertTriangle size={10} /> Vencido
                       </span>
-                    ) : isExpiringSoon(med.expiryDate) ? (
+                    ) : isExpiringSoon(med.expiryDate ?? '') ? (
                       <span className="px-2 py-1 bg-amber-100 text-amber-600 text-[8px] font-black uppercase rounded-lg border border-amber-200">
                         Vence Logo
                       </span>
@@ -458,9 +458,9 @@ const MedsManager: React.FC<MedsManagerProps> = ({
                   </div>
 
                   <div className="grid grid-cols-2 gap-2">
-                    <div className={`rounded-xl p-2 border ${isExpired(med.expiryDate) ? 'bg-red-50 border-red-100' : 'bg-slate-50 border-slate-100'}`}>
-                      <p className={`text-[8px] font-black uppercase mb-0.5 ${isExpired(med.expiryDate) ? 'text-red-400' : 'text-slate-400'}`}>Validade</p>
-                      <p className={`text-xs font-bold ${isExpired(med.expiryDate) ? 'text-red-700' : 'text-slate-700'}`}>
+                    <div className={`rounded-xl p-2 border ${isExpired(med.expiryDate ?? '') ? 'bg-red-50 border-red-100' : 'bg-slate-50 border-slate-100'}`}>
+                      <p className={`text-[8px] font-black uppercase mb-0.5 ${isExpired(med.expiryDate ?? '') ? 'text-red-400' : 'text-slate-400'}`}>Validade</p>
+                      <p className={`text-xs font-bold ${isExpired(med.expiryDate ?? '') ? 'text-red-700' : 'text-slate-700'}`}>
                         {new Date(med.expiryDate ?? new Date()).toLocaleDateString('pt-BR')}
                       </p>
                     </div>
@@ -1102,7 +1102,7 @@ const MedsManager: React.FC<MedsManagerProps> = ({
                 >
                   <option value="">Selecione o item...</option>
                   {state.medications.map(m => (
-                    <option key={m.id} value={m.id}>{(m.name ?? 'Sem nome').toUpperCase()} {isExpired(m.expiryDate) ? '(VENCIDO)' : `(Estoque: ${m.stock ?? 0})`}</option>
+                    <option key={m.id} value={m.id}>{(m.name ?? 'Sem nome').toUpperCase()} {isExpired(m.expiryDate ?? '') ? '(VENCIDO)' : `(Estoque: ${m.stock ?? 0})`}</option>
                   ))}
                 </select>
               </div>

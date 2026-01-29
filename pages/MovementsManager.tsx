@@ -220,14 +220,14 @@ const MovementsManager: React.FC<MovementsManagerProps> = ({ state, addMovement,
             </thead>
             <tbody className="divide-y divide-slate-100">
               {filteredMovements.length > 0 ? filteredMovements.map(m => {
-                const bird = getBirdById(m.birdId);
+                const bird = getBirdById(m.birdId ?? '');
                 return (
                   <tr key={m.id} className={`transition-colors ${currentList === 'trash' ? 'bg-rose-50/30' : 'hover:bg-slate-50/50'}`}>
                     <td className="px-6 py-4">
                       <div className="flex items-center gap-2">
                         <Calendar size={14} className="text-slate-400" />
                         <span className="text-xs font-bold text-slate-600">
-                          {(m.date ? new Date(m.date ?? new Date()) : new Date()).toLocaleDateString('pt-BR')}
+                          {new Date(m.date ?? new Date().toISOString()).toLocaleDateString('pt-BR')}
                         </span>
                       </div>
                     </td>

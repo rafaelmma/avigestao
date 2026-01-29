@@ -504,7 +504,10 @@ const BirdManager: React.FC<BirdManagerProps> = ({
 
   const males = state.birds.filter(b => b.sex === 'Macho');
   const females = state.birds.filter(b => b.sex === 'Fêmea');
-  const getMedicationName = (id: string) => state.medications.find(m => m.id === id)?.name || 'Medicamento';
+  const getMedicationName = (id: string): string => {
+    const med = state.medications.find(m => m.id === id);
+    return (med?.name ?? 'Medicamento') as string;
+  };
   const getMedicationHistoryForBird = (birdId: string) =>
     state.applications
       .filter(app => app.birdId === birdId)
@@ -1873,9 +1876,9 @@ const BirdManager: React.FC<BirdManagerProps> = ({
                                   {selectedBirdMedHistory.slice(0, 5).map(app => (
                                      <div key={app.id} className="flex items-center justify-between gap-4 p-4 bg-slate-50 border border-slate-100 rounded-2xl">
                                         <div className="min-w-0">
-                                           <p className="text-xs font-bold text-slate-800 truncate">{getMedicationName(app.medicationId) ?? 'Medicamento'}</p>
+                                           <p className="text-xs font-bold text-slate-800 truncate">{getMedicationName(app.medicationId ?? '')}</p>
                                            <p className="text-[10px] text-slate-400 font-bold uppercase mt-1">
-                                             {new Date(app.date).toLocaleDateString('pt-BR')} ÔÇó {app.dosage ?? ''}
+                                             {new Date(app.date).toLocaleDateString('pt-BR')} ÔÇó {app.dosage ?? '-'}
                                            </p>
                                            {app.notes && <p className="text-[10px] text-slate-500 mt-1 truncate">{app.notes}</p>}
                                         </div>
