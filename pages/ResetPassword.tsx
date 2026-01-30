@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { Lock, CheckCircle2, ArrowRight, ShieldCheck } from 'lucide-react';
 import { APP_LOGO } from '../constants';
-import { supabase } from '../supabaseClient';
+import { auth } from '../lib/firebase';
+import { confirmPasswordReset, verifyPasswordResetCode } from 'firebase/auth';
 
 const ResetPassword: React.FC = () => {
   const [isLoading, setIsLoading] = useState(false);
@@ -11,55 +12,31 @@ const ResetPassword: React.FC = () => {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState(false);
   const [tokenError, setTokenError] = useState(false);
+  const [oobCode, setOobCode] = useState<string | null>(null);
 
   useEffect(() => {
     const verifyToken = async () => {
-      // Verifica hash (fluxo padrão Supabase)
-      const hashParams = new URLSearchParams(window.location.hash.substring(1));
-      const type = hashParams.get('type');
-      const errorCode = hashParams.get('error_code');
-      const errorDescription = hashParams.get('error_description');
-
-      // Verifica query param (fluxo sem hash, ex: Brevo sem tracker)
+      // Firebase usa o parâmetro 'oobCode' na URL
       const searchParams = new URLSearchParams(window.location.search);
-      const resetToken = searchParams.get('resetToken');
-      const emailFromUrl = searchParams.get('email') || hashParams.get('email');
-
-      if (errorCode === 'otp_expired') {
-        setError('Link expirado. Solicite um novo link de recuperação.');
-        setTokenError(true);
-        setIsVerifying(false);
-        return;
-      }
-
-      if (errorDescription) {
-        setError(decodeURIComponent(errorDescription));
-        setTokenError(true);
-        setIsVerifying(false);
-        return;
-      }
-
-      // Se tiver resetToken em query, verifica manualmente
-      if (resetToken) {
-        const { error: verifyError } = await supabase.auth.verifyOtp({
-          type: 'recovery',
-          token: resetToken,
-          email: emailFromUrl || undefined
-        });
-        if (verifyError) {
-          setError(verifyError.message || 'Link inválido ou expirado. Solicite um novo link.');
-          setTokenError(true);
-        }
-        setIsVerifying(false);
-        return;
-      }
-
-      // Sem resetToken, confere se veio hash type=recovery
-      if (type !== 'recovery') {
+      const code = searchParams.get('oobCode');
+      
+      if (!code) {
         setError('Link inválido ou expirado. Solicite um novo link de recuperação.');
         setTokenError(true);
+        setIsVerifying(false);
+        return;
       }
-      setIsVerifying(false);
+
+      try {
+        // Verifica se o código é válido
+        await verifyPasswordResetCode(auth, code);
+        setOobCode(code);
+        setIsVerifying(false);
+      } catch (err: any) {
+        setError(err?.message || 'Link inválido ou expirado. Solicite um novo link.');
+        setTokenError(true);
+        setIsVerifying(false);
+      }
     };
 
     verifyToken();
@@ -79,17 +56,15 @@ const ResetPassword: React.FC = () => {
       return;
     }
 
+    if (!oobCode) {
+      setError('Código de verificação inválido');
+      return;
+    }
+
     setIsLoading(true);
 
     try {
-      const { error } = await supabase.auth.updateUser({ password });
-      
-      if (error) {
-        setError(error.message);
-        setIsLoading(false);
-        return;
-      }
-
+      await confirmPasswordReset(auth, oobCode, password);
       setSuccess(true);
       setTimeout(() => {
         window.location.href = '/';

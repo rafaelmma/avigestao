@@ -1,0 +1,85 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Função helper para verificar autenticação
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+    
+    // Função helper para verificar se o usuário é o dono dos dados
+    function isOwner(userId) {
+      return request.auth.uid == userId;
+    }
+    
+    // Regras para dados de usuários
+    match /users/{userId} {
+      // Settings do usuário
+      match /settings/{settingId} {
+        allow read, write: if isAuthenticated() && isOwner(userId);
+      }
+      
+      // Birds (pássaros)
+      match /birds/{birdId} {
+        allow read, write: if isAuthenticated() && isOwner(userId);
+      }
+      
+      // Pairs (casais)
+      match /pairs/{pairId} {
+        allow read, write: if isAuthenticated() && isOwner(userId);
+      }
+      
+      // Clutches (ninhadas)
+      match /clutches/{clutchId} {
+        allow read, write: if isAuthenticated() && isOwner(userId);
+      }
+      
+      // Medications (medicamentos)
+      match /medications/{medicationId} {
+        allow read, write: if isAuthenticated() && isOwner(userId);
+      }
+      
+      // Applications (aplicações de medicamentos)
+      match /applications/{applicationId} {
+        allow read, write: if isAuthenticated() && isOwner(userId);
+      }
+      
+      // Treatments (tratamentos contínuos)
+      match /treatments/{treatmentId} {
+        allow read, write: if isAuthenticated() && isOwner(userId);
+      }
+      
+      // Movements (movimentações)
+      match /movements/{movementId} {
+        allow read, write: if isAuthenticated() && isOwner(userId);
+      }
+      
+      // Transactions (transações financeiras)
+      match /transactions/{transactionId} {
+        allow read, write: if isAuthenticated() && isOwner(userId);
+      }
+      
+      // Tasks (tarefas)
+      match /tasks/{taskId} {
+        allow read, write: if isAuthenticated() && isOwner(userId);
+      }
+      
+      // Tournaments (torneios)
+      match /tournaments/{tournamentId} {
+        allow read, write: if isAuthenticated() && isOwner(userId);
+      }
+      
+      // Documents (documentos)
+      match /documents/{documentId} {
+        allow read, write: if isAuthenticated() && isOwner(userId);
+      }
+    }
+    
+    // Dados públicos de verificação de pássaros (somente leitura)
+    match /public_birds/{birdId} {
+      allow read: if true;
+      allow write: if isAuthenticated();
+    }
+  }
+}
+

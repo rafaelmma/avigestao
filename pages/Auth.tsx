@@ -3,7 +3,7 @@ import React, { useState } from 'react';
 import { Mail, Lock, User, ArrowRight, CheckCircle2, Zap, ShieldCheck, Star } from 'lucide-react';
 import { BreederSettings } from '../types';
 import { APP_LOGO } from '../constants';
-import { supabase } from '../supabaseClient';
+import { signIn, signUp, resetPassword } from '../services/authService';
 
 interface AuthProps {
   onLogin: (settings?: Partial<BreederSettings>) => void;
@@ -23,34 +23,31 @@ const Auth: React.FC<AuthProps> = ({ onLogin }) => {
 
     try {
       if (isForgotPassword) {
-        const { error } = await supabase.auth.resetPasswordForEmail(email, {
-          redirectTo: `${window.location.origin}`,
-        });
+        const { error } = await resetPassword(email);
         setIsLoading(false);
-        if (error) return alert(error.message);
+        if (error) return alert(error);
         alert('Email de recuperação enviado! Verifique sua caixa de entrada.');
         setIsForgotPassword(false);
         return;
       }
 
       if (isLogin) {
-        const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+        const { user, error } = await signIn(email, password);
         setIsLoading(false);
-        if (error) return alert(error.message);
-        if (data?.user?.id) {
-          onLogin({ userId: data.user.id });
+        if (error) return alert(error);
+        if (user?.uid) {
+          onLogin({ userId: user.uid });
         }
       } else {
-        const { data, error } = await supabase.auth.signUp({ email, password });
+        const { user, error } = await signUp(email, password);
         setIsLoading(false);
-        if (error) return alert(error.message);
+        if (error) return alert(error);
         // Passa o breederName para criar as settings na primeira vez
-        if (data?.user?.id) {
-          onLogin({ userId: data.user.id, breederName: name });
+        if (user?.uid) {
+          onLogin({ userId: user.uid, breederName: name });
         }
         // Mostra mensagem melhorada
-        alert('Conta criada com sucesso!\n\nVerifique seu e-mail para confirmar o cadastro.\n\nDepois você poderá fazer login com sua conta.');
-        setIsLogin(true);
+        alert('Conta criada com sucesso!\n\nVocê já pode começar a usar o sistema.');
         setEmail('');
         setPassword('');
         setName('');
