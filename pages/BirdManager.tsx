@@ -8,6 +8,7 @@ import Card from '../components/ui/Card';
 import DropdownMenu, { MenuItem } from '../components/ui/DropdownMenu';
 import AlertBanner from '../components/ui/AlertBanner';
 import Tabs, { TabItem } from '../components/ui/Tabs';
+import BirdListTabs from '../components/BirdListTabs';
 import { Bird, AppState, Sex, TrainingStatus, BirdClassification, BirdDocument, MovementRecord, MovementType } from '../types';
 import { getStatusBadgeVariant } from '../lib/designSystem';
 import { 
@@ -938,50 +939,16 @@ const BirdManager: React.FC<BirdManagerProps> = ({
           )}
         </div>
         {showListTabs && (
-        <div className="flex gap-2 bg-white p-1 rounded-xl shadow-sm border border-slate-100 overflow-x-auto">
-           <button 
-             onClick={() => setCurrentList('plantel')}
-             className={`px-4 py-2 text-xs font-semibold rounded-lg transition-all whitespace-nowrap ${currentList === 'plantel' ? 'bg-slate-900 text-white shadow-sm' : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'}`}
-           >
-             Aves Ativas
-           </button>
-           <button 
-             onClick={() => setCurrentList('histórico')}
-             className={`px-4 py-2 text-xs font-semibold rounded-lg transition-all flex items-center gap-2 whitespace-nowrap ${currentList === 'histórico' ? 'bg-slate-600 text-white shadow-sm' : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'}`}
-           >
-             📋 Histórico
-             {state.birds.filter(b => b.status !== 'Ativo').length > 0 && (
-               <span className="bg-white/20 px-1.5 rounded text-elderly-label">{state.birds.filter(b => b.status !== 'Ativo').length}</span>
-             )}
-           </button>
-           {includeSexingTab && (
-             <button 
-               onClick={() => setCurrentList('sexagem')}
-               className={`px-4 py-2 text-xs font-semibold rounded-lg transition-all flex items-center gap-2 whitespace-nowrap ${currentList === 'sexagem' ? 'bg-blue-600 text-white shadow-sm' : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'}`}
-             >
-               <Dna size={14} /> Sexagem
-               {waitingResultBirds.length > 0 && (
-                 <span className="bg-white/20 px-1.5 rounded text-elderly-label">{waitingResultBirds.length}</span>
-               )}
-             </button>
-           )}
-           <button 
-             onClick={() => setCurrentList('lixeira')}
-             className={`px-4 py-2 text-xs font-semibold rounded-lg transition-all flex items-center gap-2 whitespace-nowrap ${currentList === 'lixeira' ? 'bg-red-600 text-white shadow-sm' : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'}`}
-           >
-             <Trash2 size={14} /> Lixeira
-           </button>
-           <button 
-             onClick={() => setCurrentList('ibama-pendentes')}
-             className={`px-4 py-2 text-xs font-black uppercase rounded-lg transition-all flex items-center gap-2 whitespace-nowrap ${currentList === 'ibama-pendentes' ? 'bg-amber-500 text-white shadow' : 'text-slate-400 hover:text-slate-600'}`}
-           >
-             <Zap size={14} /> 
-             {state.birds.filter(b => b.ibamaBaixaPendente).length > 0 && (
-               <span className="px-1.5 rounded text-elderly-label">{state.birds.filter(b => b.ibamaBaixaPendente).length}</span>
-             )}
-             IBAMA
-           </button>
-        </div>
+          <BirdListTabs
+            currentList={currentList}
+            onChange={setCurrentList}
+            activeBirdsCount={state.birds.filter(b => b.status === 'Ativo' && !b.deletedAt).length}
+            historicCount={state.birds.filter(b => b.status !== 'Ativo' && !b.deletedAt).length}
+            sexingWaitingCount={waitingResultBirds.length}
+            trashCount={state.birds.filter(b => b.deletedAt).length}
+            ibamaPendingCount={state.birds.filter(b => b.ibamaBaixaPendente && !b.deletedAt).length}
+            includeSexingTab={includeSexingTab}
+          />
         )}
       </header>
 
