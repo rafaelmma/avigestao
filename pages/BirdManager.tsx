@@ -1086,7 +1086,7 @@ const BirdManager: React.FC<BirdManagerProps> = ({
 
             <button 
               onClick={handleOpenAddModal}
-              className="flex items-center gap-2 px-6 py-3.5 bg-slate-900 hover:bg-black text-white rounded-lg shadow-md transition-all font-semibold text-sm"
+              className="btn-primary flex items-center gap-2"
             >
               <Plus size={18} />
               <span className="hidden md:inline">Nova Ave</span>
@@ -1383,8 +1383,18 @@ const BirdManager: React.FC<BirdManagerProps> = ({
               <div className="flex gap-2">
                 {!isEditing ? (
                   <>
-                    <button onClick={() => setViewMode('details')} className={`px-6 py-2.5 rounded-lg text-sm font-semibold transition-all ${viewMode === 'details' ? 'bg-slate-900 text-white shadow-sm' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}>Ficha Técnica</button>
-                    <button onClick={() => setViewMode('pedigree')} className={`px-6 py-2.5 rounded-lg text-sm font-semibold transition-all ${viewMode === 'pedigree' ? 'bg-slate-900 text-white shadow-sm' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}>Árvore Genealógica</button>
+                    <button 
+                      onClick={() => setViewMode('details')} 
+                      className={viewMode === 'details' ? 'btn-primary' : 'btn-secondary'}
+                    >
+                      Ficha Técnica
+                    </button>
+                    <button 
+                      onClick={() => setViewMode('pedigree')} 
+                      className={viewMode === 'pedigree' ? 'btn-primary' : 'btn-secondary'}
+                    >
+                      Árvore Genealógica
+                    </button>
                   </>
                 ) : (
                   <h3 className="text-lg font-bold text-slate-900 flex items-center gap-2">
@@ -2214,7 +2224,7 @@ const BirdManager: React.FC<BirdManagerProps> = ({
       {showQuickIbamaModal && quickIbamaBird && (
         <div className="fixed inset-0 z-[200] flex items-center justify-center bg-slate-900/60 backdrop-blur-md p-4 animate-in fade-in duration-300">
            <div className="bg-white rounded-[40px] w-full max-w-md shadow-2xl overflow-hidden">
-              <div className="p-8 bg-gradient-to-r from-amber-500 to-orange-500">
+              <div className="p-8 bg-amber-500">
                  <div className="flex items-center gap-3">
                     <div className="w-12 h-12 bg-white/20 rounded-2xl flex items-center justify-center">
                        <Zap size={24} className="text-white" />
@@ -2278,11 +2288,11 @@ const BirdManager: React.FC<BirdManagerProps> = ({
       {showQuickStatusModal && quickStatusBird && (
         <div className="fixed inset-0 z-[200] flex items-center justify-center bg-slate-900/60 backdrop-blur-md p-4 animate-in fade-in duration-300">
            <div className="bg-white rounded-[40px] w-full max-w-md shadow-2xl overflow-hidden">
-              <div className={`p-8 bg-gradient-to-r ${
-                quickStatusData.newStatus === 'Óbito' ? 'from-red-500 to-rose-500' :
-                quickStatusData.newStatus === 'Fuga' ? 'from-orange-500 to-amber-500' :
-                quickStatusData.newStatus === 'Vendido' ? 'from-blue-500 to-cyan-500' :
-                'from-purple-500 to-pink-500'
+              <div className={`p-8 ${
+                quickStatusData.newStatus === 'Óbito' ? 'bg-red-500' :
+                quickStatusData.newStatus === 'Fuga' ? 'bg-orange-500' :
+                quickStatusData.newStatus === 'Vendido' ? 'bg-blue-500' :
+                'bg-purple-500'
               }`}>
                  <div className="flex items-center gap-3">
                     <div className="w-12 h-12 bg-white/20 rounded-2xl flex items-center justify-center text-2xl">
