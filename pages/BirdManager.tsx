@@ -3,7 +3,13 @@ import React, { useState, useMemo, useRef, useEffect, Suspense } from 'react';
 import { deleteBird as svcDeleteBird } from '../services/birds';
 import ConfirmDialog from '../components/ConfirmDialog';
 import BirdCardPrint from '../components/BirdCard';
+import Badge from '../components/ui/Badge';
+import Card from '../components/ui/Card';
+import DropdownMenu, { MenuItem } from '../components/ui/DropdownMenu';
+import AlertBanner from '../components/ui/AlertBanner';
+import Tabs, { TabItem } from '../components/ui/Tabs';
 import { Bird, AppState, Sex, TrainingStatus, BirdClassification, BirdDocument, MovementRecord, MovementType } from '../types';
+import { getStatusBadgeVariant } from '../lib/designSystem';
 import { 
   Plus, 
   Search, 
@@ -1205,205 +1211,198 @@ const BirdManager: React.FC<BirdManagerProps> = ({
       )}
       
       {currentList !== 'sexagem' && (
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
         {filteredBirds.map((bird) => (
-          /* CARTÃO COM ESTRUTURA REVISADA */
-          <div 
-            key={bird.id} 
-            className={`group relative bg-white rounded-xl border overflow-hidden shadow-sm hover:shadow-lg hover:-translate-y-0.5 transition-all duration-200 flex flex-col ${currentList === 'lixeira' ? 'border-red-200 opacity-90' : 'border-slate-200'}`}
+          <Card 
+            key={bird.id}
+            interactive 
+            hover
+            onClick={() => {
+              if (currentList === 'plantel') {
+                setSelectedBird(bird);
+                setEditingBird(bird);
+                setViewMode('details');
+                setIsEditing(false);
+              }
+            }}
+            className={currentList === 'lixeira' ? 'opacity-75' : ''}
           >
-            {/* CONTEÚDO DO CARTÃO (ABRE MODAL) */}
-            <div 
-              className="flex-1 cursor-pointer w-full h-full flex flex-col"
-              onClick={() => { 
-                if (currentList === 'plantel') {
-                  setSelectedBird(bird); setEditingBird(bird); setViewMode('details'); setIsEditing(false); 
+            {/* Foto */}
+            <div className="relative aspect-square bg-slate-50 rounded-lg overflow-hidden mb-4">
+              <img 
+                src={resolveBirdPhoto(bird)} 
+                alt={bird.name}
+                style={{...getImageFitStyle(resolveBirdPhoto(bird)), width: '100%', height: '100%', maxWidth: '100%', maxHeight: '100%'}}
+                className={`object-contain ${currentList === 'lixeira' ? 'grayscale opacity-50' : ''}`}
+              />
+              {currentList === 'lixeira' && (
+                <div className="absolute inset-0 flex items-center justify-center bg-white/40">
+                  <span className="bg-rose-500 text-white px-3 py-1 rounded-full text-xs font-bold uppercase">Na Lixeira</span>
+                </div>
+              )}
+            </div>
+
+            {/* Cabeçalho: nome + status */}
+            <div className="flex items-start justify-between mb-3 gap-2">
+              <div className="flex-1 min-w-0">
+                <h4 className="text-base font-bold text-slate-900 truncate">{bird.name}</h4>
+                <p className="text-xs text-slate-500 truncate">{bird.ringNumber}</p>
+              </div>
+              <Badge variant={getStatusBadgeVariant(bird.status)} size="md">
+                {bird.status}
+              </Badge>
+            </div>
+
+            {/* Info essencial */}
+            <div className="space-y-1 mb-4">
+              <p className="text-sm text-slate-600">{bird.species}</p>
+              <p className="text-xs text-slate-500">
+                {calculateAge(bird.birthDate)}
+              </p>
+            </div>
+
+            {/* Alerta IBAMA se pendente */}
+            {bird.ibamaBaixaPendente && (
+              <AlertBanner variant="warning" className="mb-4 text-xs">
+                Registro IBAMA pendente
+              </AlertBanner>
+            )}
+
+            {/* Badges de info (plantel apenas) */}
+            {currentList === 'plantel' && (
+              <div className="flex flex-wrap gap-2 mb-4">
+                {bird.classification && (
+                  <Badge variant="info" size="sm">
+                    {bird.classification}
+                  </Badge>
+                )}
+                {bird.songTrainingStatus && bird.songTrainingStatus !== 'Não Iniciado' && (
+                  <Badge variant="info" size="sm">
+                    {bird.songTrainingStatus}
+                  </Badge>
+                )}
+                {bird.sexing?.resultDate && (
+                  <Badge variant="success" size="sm">
+                    ✓ Sexada
+                  </Badge>
+                )}
+              </div>
+            )}
+
+            {/* Menu de Ações */}
+            {currentList === 'plantel' && bird.status === 'Ativo' && (
+              <DropdownMenu
+                trigger={
+                  <button className="w-full px-3 py-2 bg-slate-100 text-slate-700 rounded-lg text-sm font-medium hover:bg-slate-200 flex items-center justify-between">
+                    Ações
+                    <ChevronDown size={14} />
+                  </button>
                 }
-              }}
-            >
-                <div className="relative aspect-square bg-slate-50 flex items-center justify-center overflow-hidden">
-                  <img src={resolveBirdPhoto(bird)} style={{...getImageFitStyle(resolveBirdPhoto(bird)), width: '100%', height: '100%', maxWidth: '100%', maxHeight: '100%'}} className={`object-contain ${currentList === 'lixeira' ? 'grayscale opacity-50' : ''}`} />
-                  <div className={`absolute top-3 left-3 px-2 py-0.5 rounded-lg text-[8px] font-black uppercase border shadow-sm ${
-                      bird.sex === 'Macho' ? 'bg-blue-50 text-blue-600 border-blue-100' : 
-                      bird.sex === 'Fêmea' ? 'bg-pink-50 text-pink-600 border-pink-100' : 
-                      'bg-slate-50 text-slate-500 border-slate-200'
-                  }`}>
-                      {bird.sex}
-                  </div>
+                items={[
+                  {
+                    id: 'edit',
+                    label: 'Editar',
+                    icon: <Edit size={14} />,
+                    onClick: () => {
+                      setSelectedBird(bird);
+                      setEditingBird(bird);
+                      setViewMode('details');
+                      setIsEditing(true);
+                    }
+                  },
+                  {
+                    id: 'status',
+                    label: 'Mudar Status',
+                    icon: <CheckCircle2 size={14} />,
+                    onClick: () => {
+                      setQuickStatusBird(bird);
+                      setQuickStatusData({
+                        newStatus: 'Óbito',
+                        date: new Date().toISOString().split('T')[0],
+                        createMovement: true,
+                        notes: ''
+                      });
+                      setShowQuickStatusModal(true);
+                    }
+                  },
+                  bird.ibamaBaixaPendente ? {
+                    id: 'ibama',
+                    label: 'Registrar IBAMA',
+                    icon: <Zap size={14} />,
+                    onClick: () => {
+                      setQuickIbamaBird(bird);
+                      setShowQuickIbamaModal(true);
+                      setQuickIbamaDate(new Date().toISOString().split('T')[0]);
+                    }
+                  } : null,
+                  { divider: true },
+                  {
+                    id: 'delete',
+                    label: 'Mover para Lixeira',
+                    icon: <Trash2 size={14} />,
+                    onClick: () => handleDeleteClick(bird.id),
+                    variant: 'danger'
+                  }
+                ].filter(Boolean) as MenuItem[]}
+              />
+            )}
 
-                  {currentList === 'lixeira' && (
-                    <div className="absolute inset-0 flex items-center justify-center bg-white/30 backdrop-blur-[1px]">
-                       <span className="bg-rose-500 text-white px-3 py-1 rounded-full text-xs font-black uppercase tracking-widest shadow-lg">Na Lixeira</span>
-                    </div>
-                  )}
-                </div>
-                <div className="p-5 flex-1">
-                  <div className="flex items-center gap-2">
-                    <h3 className="font-bold text-slate-800 text-sm truncate pr-2">{bird.name}</h3>
-                    <span className={`px-2 py-0.5 rounded-full text-[9px] font-black uppercase ${
-                      bird.status === 'Ativo' ? 'bg-emerald-50 text-emerald-600' :
-                      bird.status === 'Óbito' ? 'bg-red-100 text-red-700' :
-                      bird.status === 'Vendido' ? 'bg-blue-100 text-blue-700' :
-                      bird.status === 'Doado' ? 'bg-purple-100 text-purple-700' :
-                      'bg-slate-100 text-slate-500'
-                    }`}>
-                      {bird.status}
-                    </span>
-                    {bird.ibamaBaixaPendente && (
-                      <span className="px-2 py-0.5 rounded-full text-[9px] font-black uppercase bg-amber-100 text-amber-700 animate-pulse" title="Registro IBAMA Pendente">
-                        ⚠️ IBAMA
-                      </span>
-                    )}
-                  </div>
-                  <div className="flex flex-col gap-0.5 mt-0.5">
-                    <p className="text-[10px] text-slate-400 font-bold uppercase">{bird.ringNumber}</p>
-                    <p className="text-[10px] text-slate-600 font-bold flex items-center gap-1.5">
-                       <span className="w-1 h-1 rounded-full bg-slate-300"></span>
-                       {bird.species}
-                    </p>
-                  </div>
-                  
-                  {currentList === 'plantel' && (
-                    <div className="flex flex-wrap gap-1 mt-3">
-                      <span className="flex items-center gap-1 text-[8px] font-black bg-slate-100 text-slate-500 px-2 py-0.5 rounded-full uppercase" title="Idade aproximada">
-                        <Cake size={8} className="text-slate-400" /> {calculateAge(bird.birthDate)}
-                      </span>
-                      {bird.classification && renderClassificationBadge(bird.classification)}
-                      {bird.songTrainingStatus && renderTrainingStatusBadge(bird.songTrainingStatus)}
-                      {bird.sexing?.resultDate && (
-                        <div className="flex items-center gap-1 text-[8px] font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full uppercase">
-                          <TestTube size={8} /> Sexada
-                        </div>
-                      )}
-                    </div>
-                  )}
-                </div>
-            </div>
+            {currentList === 'ibama-pendentes' && (
+              <button
+                onClick={() => {
+                  setQuickIbamaBird(bird);
+                  setShowQuickIbamaModal(true);
+                  setQuickIbamaDate(new Date().toISOString().split('T')[0]);
+                }}
+                className="btn-primary w-full"
+              >
+                <CheckCircle2 size={14} /> Registrar IBAMA
+              </button>
+            )}
 
-            {/* BARRA DE AÇÕES INFERIOR - SEPARADA DO CORPO */}
-            <div className={`p-2 border-t flex items-center justify-between gap-2 ${
-              currentList === 'lixeira' ? 'bg-rose-50 border-rose-100' : 
-              currentList === 'ibama-pendentes' ? 'bg-amber-50 border-amber-100' :
-              'bg-slate-50 border-slate-100'
-            }`}>
-               {currentList === 'ibama-pendentes' ? (
-                 <div className="w-full flex gap-2">
-                    <button 
-                      type="button"
-                      onClick={(e) => { e.stopPropagation(); setQuickIbamaBird(bird); setShowQuickIbamaModal(true); setQuickIbamaDate(new Date().toISOString().split('T')[0]); }}
-                      className="flex-1 flex items-center justify-center gap-1 px-2 py-2 bg-amber-500 text-white text-[10px] font-bold uppercase rounded-lg shadow-sm hover:bg-amber-600 transition-all"
-                    >
-                      <CheckCircle2 size={12} /> Registrar IBAMA
-                    </button>
-                    <button 
-                      type="button"
-                      onClick={(e) => { e.stopPropagation(); setSelectedBird(bird); setEditingBird(bird); setViewMode('details'); setIsEditing(true); }}
-                      className="flex items-center gap-1 px-3 py-2 text-[10px] font-bold uppercase text-slate-400 hover:text-brand hover:bg-white rounded-lg transition-all"
-                    >
-                      <Edit size={12} />
-                    </button>
-                 </div>
-               ) : currentList === 'plantel' ? (
-                 <div className="w-full flex gap-1 flex-wrap">
-                    {bird.status === 'Ativo' && (
-                      <>
-                        <button 
-                          type="button"
-                          onClick={(e) => { e.stopPropagation(); setQuickStatusBird(bird); setQuickStatusData({newStatus: 'Óbito', date: new Date().toISOString().split('T')[0], createMovement: true, notes: ''}); setShowQuickStatusModal(true); }}
-                          className="px-2 py-1.5 text-[9px] font-bold text-red-700 bg-red-50 hover:bg-red-100 rounded-lg transition-all border border-red-200"
-                          title="Marcar como Óbito"
-                        >
-                          🔴 Óbito
-                        </button>
-                        <button 
-                          type="button"
-                          onClick={(e) => { e.stopPropagation(); setQuickStatusBird(bird); setQuickStatusData({newStatus: 'Fuga', date: new Date().toISOString().split('T')[0], createMovement: true, notes: ''}); setShowQuickStatusModal(true); }}
-                          className="px-2 py-1.5 text-[9px] font-bold text-orange-700 bg-orange-50 hover:bg-orange-100 rounded-lg transition-all border border-orange-200"
-                          title="Marcar como Fuga"
-                        >
-                          🟠 Fuga
-                        </button>
-                        <button 
-                          type="button"
-                          onClick={(e) => { e.stopPropagation(); setQuickStatusBird(bird); setQuickStatusData({newStatus: 'Vendido', date: new Date().toISOString().split('T')[0], createMovement: true, notes: ''}); setShowQuickStatusModal(true); }}
-                          className="px-2 py-1.5 text-[9px] font-bold text-blue-700 bg-blue-50 hover:bg-blue-100 rounded-lg transition-all border border-blue-200"
-                          title="Marcar como Vendido"
-                        >
-                          🔵 Vendido
-                        </button>
-                        <button 
-                          type="button"
-                          onClick={(e) => { e.stopPropagation(); setQuickStatusBird(bird); setQuickStatusData({newStatus: 'Doado', date: new Date().toISOString().split('T')[0], createMovement: true, notes: ''}); setShowQuickStatusModal(true); }}
-                          className="px-2 py-1.5 text-[9px] font-bold text-purple-700 bg-purple-50 hover:bg-purple-100 rounded-lg transition-all border border-purple-200"
-                          title="Marcar como Doado"
-                        >
-                          🟣 Doado
-                        </button>
-                      </>
-                    )}
-                    {bird.ibamaBaixaPendente && (
-                      <button 
-                        type="button"
-                        onClick={(e) => { e.stopPropagation(); setQuickIbamaBird(bird); setShowQuickIbamaModal(true); setQuickIbamaDate(new Date().toISOString().split('T')[0]); }}
-                        className="flex items-center gap-1 px-2 py-1.5 text-[9px] font-bold text-amber-700 bg-amber-50 hover:bg-amber-100 rounded-lg transition-all border border-amber-200"
-                      >
-                        ⚡ IBAMA
-                      </button>
-                    )}
-                    <button 
-                      type="button"
-                      onClick={(e) => { e.stopPropagation(); handleDeleteClick(bird.id); }}
-                      className="ml-auto flex items-center gap-2 px-2 py-1.5 text-[9px] font-bold text-slate-400 hover:text-rose-500 hover:bg-white rounded-lg transition-all"
-                    >
-                      <Trash2 size={12} />
-                    </button>
-                 </div>
-               ) : currentList === 'histórico' ? (
-                 <div className="w-full flex gap-2">
-                    <button 
-                      type="button"
-                      onClick={(e) => handleRestoreToActive(e, bird.id)}
-                      className="flex-1 flex items-center justify-center gap-1 px-2 py-2 bg-emerald-500 text-white text-[10px] font-bold uppercase rounded-lg shadow-sm hover:bg-emerald-600 transition-all"
-                    >
-                      <RefreshCcw size={12} /> Restaurar
-                    </button>
-                    <button 
-                      type="button"
-                      onClick={(e) => { e.stopPropagation(); handleDeleteClick(bird.id); }}
-                      className="flex-1 flex items-center justify-center gap-1 px-2 py-2 bg-rose-500 text-white text-[10px] font-bold uppercase rounded-lg shadow-sm hover:bg-rose-600 transition-all"
-                    >
-                      <Trash2 size={12} /> Deletar
-                    </button>
-                 </div>
-               ) : (
-                 <div className="w-full flex gap-2">
-                    <button 
-                      type="button"
-                      onClick={(e) => handleRestoreClick(e, bird.id)}
-                      className="flex-1 flex items-center justify-center gap-1 px-2 py-2 bg-emerald-500 text-white text-[10px] font-bold uppercase rounded-lg shadow-sm hover:bg-emerald-600 transition-all"
-                    >
-                      <RefreshCcw size={12} /> Restaurar
-                    </button>
-                    <button 
-                      type="button"
-                      onClick={(e) => handlePermanentDelete(e, bird.id)}
-                      className="flex-1 flex items-center justify-center gap-1 px-2 py-2 bg-rose-500 text-white text-[10px] font-bold uppercase rounded-lg shadow-sm hover:bg-rose-600 transition-all"
-                    >
-                      <X size={12} /> Apagar
-                    </button>
-                 </div>
-               )}
-            </div>
-          </div>
+            {currentList === 'histórico' && (
+              <div className="flex gap-2">
+                <button
+                  onClick={() => handleRestoreToActive(null as any, bird.id)}
+                  className="btn-secondary flex-1"
+                >
+                  <RefreshCcw size={14} /> Restaurar
+                </button>
+                <button
+                  onClick={() => handleDeleteClick(bird.id)}
+                  className="btn-danger flex-1"
+                >
+                  <Trash2 size={14} /> Deletar
+                </button>
+              </div>
+            )}
+
+            {currentList === 'lixeira' && (
+              <div className="flex gap-2">
+                <button
+                  onClick={() => handleRestoreClick(null as any, bird.id)}
+                  className="btn-secondary flex-1"
+                >
+                  <RefreshCcw size={14} /> Restaurar
+                </button>
+                <button
+                  onClick={() => handlePermanentDelete(null as any, bird.id)}
+                  className="btn-danger flex-1"
+                >
+                  <X size={14} /> Apagar
+                </button>
+              </div>
+            )}
+          </Card>
         ))}
 
         {currentList === 'plantel' && (
           <button 
             onClick={handleOpenAddModal}
-            className="h-full min-h-[250px] bg-white border-2 border-dashed border-slate-300 rounded-xl flex flex-col items-center justify-center gap-2 hover:border-blue-400 hover:bg-blue-50/30 transition-all text-slate-400 hover:text-blue-600 cursor-pointer"
+            className="h-full min-h-[320px] bg-white border-2 border-dashed border-slate-300 rounded-xl flex flex-col items-center justify-center gap-2 hover:border-blue-400 hover:bg-blue-50/30 transition-all text-slate-400 hover:text-blue-600 cursor-pointer"
           >
-            <Plus size={32} />
-            <span className="text-xs font-bold uppercase tracking-widest">Adicionar</span>
+            <Plus size={40} />
+            <span className="text-sm font-bold uppercase tracking-widest">Adicionar Ave</span>
           </button>
         )}
       </div>
