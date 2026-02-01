@@ -1,15 +1,18 @@
 ﻿
 import React, { useState, useMemo, useRef, useEffect, Suspense } from 'react';
+import toast from 'react-hot-toast';
 import { deleteBird as svcDeleteBird } from '../services/birds';
 import ConfirmDialog from '../components/ConfirmDialog';
 import BirdCardPrint from '../components/BirdCard';
+import ViewSettings from '../components/ViewSettings';
+import { HelpIcon } from '../components/Tooltip';
 import Badge from '../components/ui/Badge';
 import Card from '../components/ui/Card';
 import DropdownMenu, { MenuItem } from '../components/ui/DropdownMenu';
 import AlertBanner from '../components/ui/AlertBanner';
 import Tabs, { TabItem } from '../components/ui/Tabs';
 import BirdListTabs from '../components/BirdListTabs';
-import { Bird, AppState, Sex, TrainingStatus, BirdClassification, BirdDocument, MovementRecord, MovementType } from '../types';
+import { Bird, AppState, Sex, TrainingStatus, BirdClassification, BirdDocument, MovementRecord, MovementType, ViewPreferences } from '../types';
 import { getStatusBadgeVariant } from '../lib/designSystem';
 import { 
   Plus, 
@@ -53,6 +56,16 @@ import { BRAZILIAN_SPECIES, MAX_FREE_BIRDS, SPECIES_IMAGES, getDefaultBirdImage,
 import PedigreeTree from '../components/PedigreeTree';
 const TipCarousel = React.lazy(() => import('../components/TipCarousel'));
 
+// Função para normalizar nomes de espécies (corrigir erros comuns)
+const normalizeSpeciesName = (species: string): string => {
+  const corrections: Record<string, string> = {
+    'Curiõ': 'Curió',
+    'curião': 'Curió',
+    'CURIÕ': 'Curió',
+  };
+  return corrections[species] || species;
+};
+
 interface BirdManagerProps {
   state: AppState;
   addBird: (bird: Bird) => Promise<boolean>;
@@ -61,6 +74,7 @@ interface BirdManagerProps {
   addMovement?: (mov: MovementRecord) => Promise<void>;
   restoreBird?: (id: string) => void;
   permanentlyDeleteBird?: (id: string) => void;
+  saveSettings?: (settings: any) => Promise<boolean>;
   isAdmin?: boolean;
   initialList?: 'plantel' | 'lixeira' | 'sexagem';
   showListTabs?: boolean;
@@ -76,6 +90,7 @@ const BirdManager: React.FC<BirdManagerProps> = ({
   addMovement,
   restoreBird,
   permanentlyDeleteBird,
+  saveSettings,
   isAdmin,
   initialList = 'plantel',
   showListTabs = true,
@@ -105,10 +120,13 @@ const BirdManager: React.FC<BirdManagerProps> = ({
   const [showQuickStatusModal, setShowQuickStatusModal] = useState(false);
   const [quickStatusBird, setQuickStatusBird] = useState<Bird | null>(null);
   const [quickStatusData, setQuickStatusData] = useState({
-    newStatus: 'Óbito' as 'Óbito' | 'Vendido' | 'Doado' | 'Fuga',
+    newStatus: 'Óbito' as 'Óbito' | 'Vendido' | 'Doado' | 'Fuga' | 'Transferência',
     date: new Date().toISOString().split('T')[0],
     createMovement: true,
-    notes: ''
+    notes: '',
+    receptorName: '',
+    receptorDocument: '',
+    receptorDocumentType: 'ibama' as 'ibama' | 'cpf'
   });
   
   // States da Central de Sexagem
@@ -124,6 +142,33 @@ const BirdManager: React.FC<BirdManagerProps> = ({
   const [filterSex, setFilterSex] = useState('');
   const [filterTraining, setFilterTraining] = useState('');
   const [filterStatus, setFilterStatus] = useState('');
+  const [filterIbamaMovementType, setFilterIbamaMovementType] = useState<'Todos' | 'Óbito' | 'Fuga' | 'Venda' | 'Doação' | 'Transferência'>('Todos');
+
+  // Preferências de Visualização
+  const [viewPreferences, setViewPreferences] = useState(state.settings?.viewPreferences || {
+    showBirdImages: true,
+    badgeSize: 'xs' as const,
+    compactMode: false
+  });
+
+  // Salvar preferências quando mudam
+  // Só salva preferências se realmente mudarem
+  useEffect(() => {
+    if (!saveSettings) return;
+    const prev = state.settings?.viewPreferences || {};
+    const curr = viewPreferences || {};
+    const changed = Object.keys(curr).some(
+      key => curr[key as keyof typeof curr] !== prev[key as keyof typeof prev]
+    );
+    if (changed) {
+      const updatedSettings = {
+        ...state.settings,
+        viewPreferences,
+        _autoViewPrefUpdate: true // flag para não mostrar toast
+      };
+      saveSettings(updatedSettings).catch(err => console.error('Erro ao salvar preferências:', err));
+    }
+  }, [viewPreferences, saveSettings, state.settings]);
 
   // State for Add/Edit Tabs
   const [activeTab, setActiveTab] = useState<'dados' | 'genealogia' | 'docs'>('dados');
@@ -174,6 +219,13 @@ const BirdManager: React.FC<BirdManagerProps> = ({
   useEffect(() => {
     setCurrentList(initialList);
   }, [initialList]);
+
+  // Resetar filtros quando muda de aba
+  useEffect(() => {
+    setSearchTerm('');
+    setShowFilters(false);
+    setFilterIbamaMovementType('Todos');
+  }, [currentList]);
 
   const getLibraryImagesForSpecies = (species?: string) => {
     if (!species) return [];
@@ -392,9 +444,13 @@ const BirdManager: React.FC<BirdManagerProps> = ({
       const updatedBird = {
         ...quickStatusBird,
         status: quickStatusData.newStatus,
-        ibamaBaixaPendente: true // Sempre marca como pendente IBAMA
+        ibamaBaixaPendente: true, // Sempre marca como pendente IBAMA
+        ibamaBaixaData: undefined // Limpa data anterior se houver
       };
-      updateBird(updatedBird);
+      await updateBird(updatedBird);
+
+      // Esperar um tick do React para garantir que o estado foi atualizado
+      await new Promise(resolve => setTimeout(resolve, 50));
 
       // 2. Se marcado, criar movimentação também
       if (quickStatusData.createMovement && addMovement) {
@@ -404,6 +460,7 @@ const BirdManager: React.FC<BirdManagerProps> = ({
         let movementType: MovementType = 'Entrada';
         if (quickStatusData.newStatus === 'Vendido') movementType = 'Venda';
         else if (quickStatusData.newStatus === 'Doado') movementType = 'Doação';
+        else if (quickStatusData.newStatus === 'Transferência') movementType = 'Transferência';
         else if (quickStatusData.newStatus === 'Óbito') movementType = 'Óbito';
         else if (quickStatusData.newStatus === 'Fuga') movementType = 'Fuga';
         
@@ -415,18 +472,30 @@ const BirdManager: React.FC<BirdManagerProps> = ({
           notes: quickStatusData.notes || '',
           gtrUrl: undefined,
           destination: undefined,
-          buyerSispass: undefined
+          buyerSispass: undefined,
+          ibamaBaixaPendente: true,
+          // Dados do receptor (se aplicável)
+          receptorName: ['Venda', 'Doação', 'Transferência'].includes(movementType) ? quickStatusData.receptorName : undefined,
+          receptorDocument: ['Venda', 'Doação', 'Transferência'].includes(movementType) ? quickStatusData.receptorDocument : undefined,
+          receptorDocumentType: ['Venda', 'Doação', 'Transferência'].includes(movementType) ? quickStatusData.receptorDocumentType : undefined
         };
+        console.log('[DEBUG] Criando movimento:', newMovement);
         await addMovement(newMovement); // Espera a promessa resolver
       }
 
-      setShowQuickStatusModal(false);
+      // Só fecha o modal se não for doação (doação fecha no botão onClick)
+      if (quickStatusData.newStatus !== 'Doado') {
+        setShowQuickStatusModal(false);
+      }
       setQuickStatusBird(null);
       setQuickStatusData({
         newStatus: 'Óbito',
         date: new Date().toISOString().split('T')[0],
         createMovement: true,
-        notes: ''
+        notes: '',
+        receptorName: '',
+        receptorDocument: '',
+        receptorDocumentType: 'ibama'
       });
     }
   };
@@ -479,7 +548,18 @@ const BirdManager: React.FC<BirdManagerProps> = ({
   const filteredBirds = useMemo(() => {
     if (currentList === 'sexagem') return []; // Handled separately
     if (currentList === 'ibama-pendentes') {
-      return state.birds.filter(b => b.ibamaBaixaPendente && (b.status === 'Óbito' || b.status === 'Vendido' || b.status === 'Doado'));
+      let filtered = state.birds.filter(b => b.ibamaBaixaPendente && !b.deletedAt && (b.status === 'Óbito' || b.status === 'Vendido' || b.status === 'Doado' || b.status === 'Fuga' || b.status === 'Transferência'));
+      // Aplicar filtro de tipo de movimento se não for "Todos"
+      if (filterIbamaMovementType !== 'Todos') {
+        filtered = filtered.filter(bird => {
+          // Buscar o movimento mais recente da ave
+          const movement = state.movements
+            .filter(m => m.birdId === bird.id && !m.ibamaBaixaData && m.date)
+            .sort((a, b) => new Date(b.date || '').getTime() - new Date(a.date || '').getTime())[0];
+          return movement?.type === filterIbamaMovementType;
+        });
+      }
+      return filtered;
     }
     
     let list: Bird[] = [];
@@ -505,11 +585,11 @@ const BirdManager: React.FC<BirdManagerProps> = ({
 
       return matchesSearch && matchesSpecies && matchesSex && matchesTraining && matchesStatus;
     });
-  }, [state.birds, state.deletedBirds, searchTerm, currentList, filterSpecies, filterSex, filterTraining, filterStatus]);
+  }, [state.birds, state.deletedBirds, state.movements, searchTerm, currentList, filterSpecies, filterSex, filterTraining, filterStatus, filterIbamaMovementType]);
 
   // Listas para a Central de Sexagem
-  const pendingSexingBirds = state.birds.filter(b => b.sex === 'Desconhecido' && (!b.sexing?.sentDate));
-  const waitingResultBirds = state.birds.filter(b => b.sexing?.sentDate && !b.sexing?.resultDate);
+  const pendingSexingBirds = state.birds.filter(b => b.sex === 'Desconhecido' && (!b.sexing?.sentDate) && b.status === 'Ativo' && !b.deletedAt);
+  const waitingResultBirds = state.birds.filter(b => b.sexing?.sentDate && !b.sexing?.resultDate && b.status === 'Ativo' && !b.deletedAt);
 
   const males = state.birds.filter(b => b.sex === 'Macho');
   const females = state.birds.filter(b => b.sex === 'Fêmea');
@@ -864,6 +944,7 @@ const BirdManager: React.FC<BirdManagerProps> = ({
         status: 'Ativo',
         ibamaBaixaPendente: false // Limpa também o pendente IBAMA
       });
+      toast.success(`${birdToRestore.name} restaurada para o plantel ativo!`);
     }
   };
 
@@ -944,8 +1025,8 @@ const BirdManager: React.FC<BirdManagerProps> = ({
             onChange={setCurrentList}
             activeBirdsCount={state.birds.filter(b => b.status === 'Ativo' && !b.deletedAt).length}
             historicCount={state.birds.filter(b => b.status !== 'Ativo' && !b.deletedAt).length}
-            sexingWaitingCount={waitingResultBirds.length}
-            trashCount={state.birds.filter(b => b.deletedAt).length}
+            sexingWaitingCount={pendingSexingBirds.length}
+            trashCount={state.deletedBirds?.length || 0}
             ibamaPendingCount={state.birds.filter(b => b.ibamaBaixaPendente && !b.deletedAt).length}
             includeSexingTab={includeSexingTab}
           />
@@ -994,7 +1075,7 @@ const BirdManager: React.FC<BirdManagerProps> = ({
                         </div>
                         <div>
                            <p className="font-bold text-slate-800 text-sm">{bird.name}</p>
-                           <p className="text-[10px] text-slate-500 font-mono">{bird.ringNumber} ÔÇó {bird.species}</p>
+                           <p className="text-[10px] text-slate-500 font-mono">{bird.ringNumber} ÔÇó {normalizeSpeciesName(bird.species)}</p>
                         </div>
                      </div>
                    ))}
@@ -1055,6 +1136,88 @@ const BirdManager: React.FC<BirdManagerProps> = ({
         </div>
       )}
 
+      {/* --- MODO IBAMA PENDENTES --- */}
+      {currentList === 'ibama-pendentes' && (
+        <div className="space-y-4">
+          <div className="flex gap-2">
+            <div className="relative group flex-1">
+              <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={20} />
+              <label htmlFor="ibama-search" className="sr-only">Pesquisar</label>
+              <input 
+                id="ibama-search"
+                name="ibamaSearch"
+                type="text" 
+                placeholder="Pesquisar por nome ou anilha..." 
+                aria-label="Pesquisar por nome ou anilha"
+                autoComplete="off"
+                className="w-full pl-12 pr-4 py-3.5 bg-white border border-slate-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-amber-500 outline-none transition-all text-sm font-medium shadow-sm"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+              />
+            </div>
+            
+            <button 
+              onClick={() => setShowFilters(!showFilters)}
+              className={`px-4 py-3.5 rounded-lg border transition-all flex items-center gap-2 font-semibold text-sm ${showFilters ? 'bg-amber-50 border-amber-300 text-amber-700' : 'bg-white border-slate-300 text-slate-700 hover:bg-slate-50'}`}
+            >
+              <SlidersHorizontal size={18} />
+              <span className="hidden md:inline">Filtrar</span>
+            </button>
+          </div>
+
+          {/* Filtro de Tipo de Movimento IBAMA */}
+          {showFilters && (
+            <div className="p-6 bg-white border border-slate-100 rounded-[24px] shadow-sm animate-in slide-in-from-top-2 duration-200">
+              <div className="flex items-center justify-between mb-4">
+                <h4 className="text-xs font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
+                  <Filter size={14} /> Filtrar por Tipo de Movimento
+                </h4>
+                {filterIbamaMovementType !== 'Todos' && (
+                  <button 
+                    onClick={() => setFilterIbamaMovementType('Todos')}
+                    className="text-[10px] font-bold text-rose-500 hover:underline"
+                  >
+                    Limpar Filtro
+                  </button>
+                )}
+              </div>
+              <div className="flex flex-wrap gap-2">
+                {(['Todos', 'Óbito', 'Fuga', 'Venda', 'Doação', 'Transferência'] as const).map(type => (
+                  <button
+                    key={type}
+                    onClick={() => setFilterIbamaMovementType(type)}
+                    className={`px-4 py-2 rounded-lg font-bold text-sm transition-all ${
+                      filterIbamaMovementType === type
+                        ? 'bg-amber-500 text-white shadow-lg'
+                        : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
+                    }`}
+                  >
+                    {type === 'Venda' && '💰'} 
+                    {type === 'Doação' && '🎁'} 
+                    {type === 'Transferência' && '🔄'} 
+                    {type === 'Óbito' && '⚠️'} 
+                    {type === 'Fuga' && '🚨'} 
+                    {type === 'Todos' && '📋'} 
+                    {' '}{type}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Info Box */}
+          <div className="bg-amber-50 border border-amber-200 text-amber-700 p-4 rounded-xl flex items-start gap-3">
+            <div className="p-2 bg-amber-100 rounded-lg text-amber-600">
+              <Zap size={18} />
+            </div>
+            <div>
+              <p className="text-xs font-semibold text-amber-900 mb-1">Registros Pendentes</p>
+              <p className="text-xs text-amber-700">Aves listadas aqui precisam ser registradas no portal do IBAMA. Clique em "Registrar IBAMA" para marcar como concluído.</p>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* --- MODO LISTA DE PLANTEL (PADRÃO) --- */}
       {currentList === 'plantel' && (
         <div className="space-y-4">
@@ -1083,6 +1246,16 @@ const BirdManager: React.FC<BirdManagerProps> = ({
               <SlidersHorizontal size={18} />
               <span className="hidden md:inline">Filtros</span>
             </button>
+
+            {/* View Settings */}
+            {currentList === 'plantel' && (
+              <ViewSettings 
+                preferences={viewPreferences}
+                onPreferencesChange={(prefs) => {
+                  setViewPreferences(prefs);
+                }}
+              />
+            )}
 
             <button 
               onClick={handleOpenAddModal}
@@ -1178,7 +1351,17 @@ const BirdManager: React.FC<BirdManagerProps> = ({
       )}
       
       {currentList !== 'sexagem' && (
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+      <div className={`grid ${viewPreferences.compactMode ? 'gap-3' : 'gap-6'} ${
+        viewPreferences.badgeSize === 'lg' 
+          ? 'grid-cols-1 sm:grid-cols-1 lg:grid-cols-2 xl:grid-cols-2' 
+          : viewPreferences.badgeSize === 'md'
+          ? 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3'
+          : viewPreferences.badgeSize === 'sm'
+          ? 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-4'
+          : viewPreferences.badgeSize === 'xs'
+          ? 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-5'
+          : 'grid-cols-1 sm:grid-cols-3 lg:grid-cols-5 xl:grid-cols-6'
+      }`}>
         {filteredBirds.map((bird) => (
           <Card 
             key={bird.id}
@@ -1192,64 +1375,154 @@ const BirdManager: React.FC<BirdManagerProps> = ({
                 setIsEditing(false);
               }
             }}
-            className={currentList === 'lixeira' ? 'opacity-75' : ''}
+            className={`${currentList === 'lixeira' ? 'opacity-75' : ''} ${
+              viewPreferences.badgeSize === 'lg' 
+                ? (viewPreferences.compactMode ? 'p-2' : 'p-4') 
+                : viewPreferences.badgeSize === 'md' 
+                ? (viewPreferences.compactMode ? 'p-2' : 'p-3') 
+                : viewPreferences.badgeSize === 'sm' 
+                ? (viewPreferences.compactMode ? 'p-1.5' : 'p-2') 
+                : viewPreferences.badgeSize === 'xs' 
+                ? (viewPreferences.compactMode ? 'p-0.5' : 'p-1') 
+                : (viewPreferences.compactMode ? 'p-0.5' : 'p-0.5')
+            }`}
           >
-            {/* Foto */}
-            <div className="relative aspect-square bg-slate-50 rounded-lg overflow-hidden mb-4">
-              <img 
-                src={resolveBirdPhoto(bird)} 
-                alt={bird.name}
-                style={{...getImageFitStyle(resolveBirdPhoto(bird)), width: '100%', height: '100%', maxWidth: '100%', maxHeight: '100%'}}
-                className={`object-contain ${currentList === 'lixeira' ? 'grayscale opacity-50' : ''}`}
-              />
-              {currentList === 'lixeira' && (
-                <div className="absolute inset-0 flex items-center justify-center bg-white/40">
-                  <span className="bg-rose-500 text-white px-3 py-1 rounded-full text-xs font-bold uppercase">Na Lixeira</span>
+            {/* Foto - Mostrar/Ocultar conforme preferência */}
+            {viewPreferences.showBirdImages !== false ? (
+              <div className={`relative bg-slate-50 rounded-lg overflow-hidden ${
+                viewPreferences.badgeSize === 'lg' ? 'aspect-video mb-6' : 'aspect-square mb-4'
+              }`}>
+                <img 
+                  src={resolveBirdPhoto(bird)} 
+                  alt={bird.name}
+                  style={{...getImageFitStyle(resolveBirdPhoto(bird)), width: '100%', height: '100%', maxWidth: '100%', maxHeight: '100%'}}
+                  className={`object-contain ${currentList === 'lixeira' ? 'grayscale opacity-50' : ''}`}
+                />
+                {currentList === 'lixeira' && (
+                  <div className="absolute inset-0 flex items-center justify-center bg-white/40">
+                    <span className="bg-rose-500 text-white px-3 py-1 rounded-full text-xs font-bold uppercase">Na Lixeira</span>
+                  </div>
+                )}
+              </div>
+            ) : (
+              <div className={`relative bg-gradient-to-br ${
+                bird.sex === 'Macho' ? 'from-blue-100 to-blue-50' : bird.sex === 'Fêmea' ? 'from-pink-100 to-pink-50' : 'from-slate-100 to-slate-50'
+              } rounded-lg overflow-hidden flex items-center justify-center ${
+                viewPreferences.badgeSize === 'lg' ? 'aspect-video mb-6' : 'aspect-square mb-4'
+              }`}>
+                <div className="flex flex-col items-center justify-center gap-2">
+                  <div className={`text-5xl ${viewPreferences.badgeSize === 'lg' ? 'text-6xl' : ''}`}>
+                    {bird.sex === 'Macho' && '♂️'}
+                    {bird.sex === 'Fêmea' && '♀️'}
+                    {bird.sex !== 'Macho' && bird.sex !== 'Fêmea' && '❓'}
+                  </div>
+                  <span className={`font-bold text-slate-600 ${viewPreferences.badgeSize === 'lg' ? 'text-base' : 'text-sm'}`}>
+                    {bird.sex === 'Macho' && 'Macho'}
+                    {bird.sex === 'Fêmea' && 'Fêmea'}
+                    {bird.sex !== 'Macho' && bird.sex !== 'Fêmea' && 'Desconhecido'}
+                  </span>
                 </div>
-              )}
-            </div>
+              </div>
+            )}
 
             {/* Cabeçalho: nome + status */}
-            <div className="flex items-start justify-between mb-3 gap-2">
+            <div className={`flex items-start justify-between ${viewPreferences.compactMode ? 'mb-2' : 'mb-3'} gap-2`}>
               <div className="flex-1 min-w-0">
-                <h4 className="text-base font-bold text-slate-900 truncate">{bird.name}</h4>
-                <p className="text-xs text-slate-500 truncate">{bird.ringNumber}</p>
+                <h4 className={`font-bold text-slate-900 truncate ${
+                  viewPreferences.badgeSize === 'lg' ? 'text-lg' : viewPreferences.badgeSize === 'md' ? 'text-base' : viewPreferences.badgeSize === 'sm' ? 'text-sm' : 'text-xs'
+                }`}>{bird.name}</h4>
+                <p className={`text-slate-500 flex items-center gap-1 ${
+                  viewPreferences.badgeSize === 'lg' ? 'text-sm' : viewPreferences.badgeSize === 'md' ? 'text-xs' : viewPreferences.badgeSize === 'sm' ? 'text-[10px]' : 'text-[8px]'
+                }`}>
+                  <span className="truncate">{bird.ringNumber}</span>
+                  <HelpIcon tooltip="S/A = Número da Anilha (Anel de Identificação)" />
+                </p>
               </div>
-              <Badge variant={getStatusBadgeVariant(bird.status)} size="md">
+              <Badge variant={getStatusBadgeVariant(bird.status)} size={viewPreferences.badgeSize || 'xs'}>
                 {bird.status}
               </Badge>
             </div>
 
             {/* Info essencial */}
-            <div className="space-y-1 mb-4">
-              <p className="text-sm text-slate-600">{bird.species}</p>
-              <p className="text-xs text-slate-500">
+            <div className={`space-y-1 ${viewPreferences.compactMode ? 'mb-2' : 'mb-4'} ${viewPreferences.badgeSize === 'lg' ? 'space-y-2' : viewPreferences.compactMode ? 'space-y-0.5' : 'space-y-1'}`}>
+              <p className={`text-slate-600 flex items-center gap-1 ${
+                viewPreferences.badgeSize === 'lg' ? 'text-base' : viewPreferences.badgeSize === 'md' ? 'text-sm' : viewPreferences.badgeSize === 'sm' ? 'text-xs' : 'text-[10px]'
+              }`}>
+                {normalizeSpeciesName(bird.species)}
+                <HelpIcon tooltip="Espécie do pássaro" />
+              </p>
+              <p className={`text-slate-500 flex items-center gap-1 ${
+                viewPreferences.badgeSize === 'lg' ? 'text-sm' : viewPreferences.badgeSize === 'md' ? 'text-xs' : viewPreferences.badgeSize === 'sm' ? 'text-[10px]' : 'text-[8px]'
+              }`}>
                 {calculateAge(bird.birthDate)}
+                <HelpIcon tooltip={`Data de nascimento: ${bird.birthDate || 'N/A'}`} />
               </p>
             </div>
 
             {/* Alerta IBAMA se pendente */}
             {bird.ibamaBaixaPendente && (
-              <AlertBanner variant="warning" className="mb-4 text-xs">
+              <AlertBanner variant="warning" className={`mb-4 ${viewPreferences.badgeSize === 'lg' ? 'text-sm' : viewPreferences.badgeSize === 'md' ? 'text-xs' : 'text-[10px]'}`}>
                 Registro IBAMA pendente
               </AlertBanner>
             )}
 
+            {/* IBAMA Pendentes View - Mostrar detalhes do movimento */}
+            {currentList === 'ibama-pendentes' && bird.ibamaBaixaPendente && (
+              <div className={`bg-amber-50 border border-amber-200 rounded-lg p-3 space-y-2 mb-4`}>
+                {/* Buscar movimento relacionado */}
+                {state.movements
+                  .filter(m => m.birdId === bird.id && !m.ibamaBaixaData && m.date)
+                  .sort((a, b) => new Date(b.date || '').getTime() - new Date(a.date || '').getTime())[0] && 
+                  (() => {
+                    const movement = state.movements
+                      .filter(m => m.birdId === bird.id && !m.ibamaBaixaData && m.date)
+                      .sort((a, b) => new Date(b.date || '').getTime() - new Date(a.date || '').getTime())[0];
+                    return (
+                      <>
+                        <div>
+                          <p className="text-[10px] font-bold text-amber-800 uppercase">Tipo: {movement?.type}</p>
+                          <p className="text-[9px] text-amber-700">Data: {movement?.date}</p>
+                        </div>
+                        {['Venda', 'Doação', 'Transferência'].includes(movement?.type || '') && (
+                          <div className="bg-white rounded p-2 space-y-1 border border-amber-100">
+                            <p className="text-[9px] font-bold text-slate-700">👤 {movement?.receptorName}</p>
+                            <p className="text-[8px] text-slate-600">
+                              {movement?.receptorDocumentType === 'ibama' ? '🔐 IBAMA:' : '📋 CPF:'} {movement?.receptorDocument}
+                            </p>
+                          </div>
+                        )}
+                        <button 
+                          onClick={() => {
+                            setQuickIbamaBird(bird);
+                            setQuickIbamaDate(new Date().toISOString().split('T')[0]);
+                            setShowQuickIbamaModal(true);
+                          }}
+                          className="w-full text-[10px] font-bold bg-green-500 text-white py-2 rounded-lg hover:bg-green-600 transition-colors"
+                        >
+                          ✅ Registrar no IBAMA
+                        </button>
+                      </>
+                    );
+                  })()
+                }
+              </div>
+            )}
+
             {/* Badges de info (plantel apenas) */}
             {currentList === 'plantel' && (
-              <div className="flex flex-wrap gap-2 mb-4">
+              <div className={`flex flex-wrap gap-2 mb-4 ${viewPreferences.badgeSize === 'lg' ? 'gap-3' : ''}`}>
                 {bird.classification && (
-                  <Badge variant="info" size="sm">
+                  <Badge variant="info" size={viewPreferences.badgeSize === 'lg' ? 'md' : 'sm'}>
                     {bird.classification}
                   </Badge>
                 )}
                 {bird.songTrainingStatus && bird.songTrainingStatus !== 'Não Iniciado' && (
-                  <Badge variant="info" size="sm">
+                  <Badge variant="info" size={viewPreferences.badgeSize === 'lg' ? 'md' : 'sm'}>
                     {bird.songTrainingStatus}
                   </Badge>
                 )}
                 {bird.sexing?.resultDate && (
-                  <Badge variant="success" size="sm">
+                  <Badge variant="success" size={viewPreferences.badgeSize === 'lg' ? 'md' : 'sm'}>
                     ✓ Sexada
                   </Badge>
                 )}
@@ -1260,9 +1533,11 @@ const BirdManager: React.FC<BirdManagerProps> = ({
             {currentList === 'plantel' && bird.status === 'Ativo' && (
               <DropdownMenu
                 trigger={
-                  <button className="w-full px-3 py-2 bg-slate-100 text-slate-700 rounded-lg text-sm font-medium hover:bg-slate-200 flex items-center justify-between">
+                  <button className={`w-full px-3 py-2 bg-slate-100 text-slate-700 rounded-lg font-medium hover:bg-slate-200 flex items-center justify-between ${
+                    viewPreferences.badgeSize === 'lg' ? 'text-base py-3' : viewPreferences.badgeSize === 'md' ? 'text-sm py-2' : viewPreferences.badgeSize === 'sm' ? 'text-xs py-1.5' : 'text-[10px] py-1'
+                  }`}>
                     Ações
-                    <ChevronDown size={14} />
+                    <ChevronDown size={viewPreferences.badgeSize === 'lg' ? 16 : viewPreferences.badgeSize === 'md' ? 14 : 12} />
                   </button>
                 }
                 items={[
@@ -1287,7 +1562,10 @@ const BirdManager: React.FC<BirdManagerProps> = ({
                         newStatus: 'Óbito',
                         date: new Date().toISOString().split('T')[0],
                         createMovement: true,
-                        notes: ''
+                        notes: '',
+                        receptorName: '',
+                        receptorDocument: '',
+                        receptorDocumentType: 'ibama'
                       });
                       setShowQuickStatusModal(true);
                     }
@@ -1330,7 +1608,7 @@ const BirdManager: React.FC<BirdManagerProps> = ({
             {currentList === 'histórico' && (
               <div className="flex gap-2">
                 <button
-                  onClick={() => handleRestoreToActive(null as any, bird.id)}
+                  onClick={(e) => handleRestoreToActive(e, bird.id)}
                   className="btn-secondary flex-1"
                 >
                   <RefreshCcw size={14} /> Restaurar
@@ -1786,7 +2064,7 @@ const BirdManager: React.FC<BirdManagerProps> = ({
                                </div>
                                <div>
                                  <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Espécie</p>
-                                 <p className="text-sm font-bold text-slate-800 mt-1">{selectedBird.species}</p>
+                                 <p className="text-sm font-bold text-slate-800 mt-1">{normalizeSpeciesName(selectedBird.species)}</p>
                                </div>
                                <div>
                                  <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Sexo</p>
@@ -2223,8 +2501,8 @@ const BirdManager: React.FC<BirdManagerProps> = ({
       {/* Modal de Registro Rápido IBAMA */}
       {showQuickIbamaModal && quickIbamaBird && (
         <div className="fixed inset-0 z-[200] flex items-center justify-center bg-slate-900/60 backdrop-blur-md p-4 animate-in fade-in duration-300">
-           <div className="bg-white rounded-[40px] w-full max-w-md shadow-2xl overflow-hidden">
-              <div className="p-8 bg-amber-500">
+          <div className="bg-white rounded-[40px] w-full max-w-md shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
+            <div className="p-8 bg-amber-500">
                  <div className="flex items-center gap-3">
                     <div className="w-12 h-12 bg-white/20 rounded-2xl flex items-center justify-center">
                        <Zap size={24} className="text-white" />
@@ -2239,12 +2517,40 @@ const BirdManager: React.FC<BirdManagerProps> = ({
                  </div>
               </div>
               
-              <div className="p-8 space-y-6">
+              <div className="flex-1 overflow-y-auto p-8 space-y-6">
                  <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100">
                     <p className="text-xs font-bold text-slate-600 uppercase tracking-widest mb-2">Ave</p>
                     <p className="text-lg font-black text-slate-800">{quickIbamaBird.name}</p>
                     <p className="text-[10px] text-slate-500 font-mono">{quickIbamaBird.ringNumber}</p>
                  </div>
+
+                 {/* Detalhes do Movimento/Receptor */}
+                 {(() => {
+                    const movement = state.movements
+                      .filter(m => m.birdId === quickIbamaBird.id && !m.ibamaBaixaData && m.date)
+                      .sort((a, b) => new Date(b.date || '').getTime() - new Date(a.date || '').getTime())[0];
+                    
+                    if (!movement) return null;
+                    
+                    return (
+                      <>
+                        {['Venda', 'Doação', 'Transferência'].includes(movement.type || '') && (
+                          <div className="p-4 bg-blue-50 rounded-2xl border border-blue-200">
+                            <p className="text-xs font-bold text-blue-700 uppercase tracking-widest mb-2">📋 Receptor</p>
+                            <div className="space-y-2">
+                              <p className="text-sm font-black text-slate-800">{movement.receptorName || 'N/A'}</p>
+                              <div className="flex items-center gap-2 text-xs">
+                                <span className="bg-blue-200 text-blue-800 px-2 py-1 rounded font-bold">
+                                  {(movement.receptorDocumentType || 'ibama') === 'ibama' ? '🔐 IBAMA' : '📋 CPF'}
+                                </span>
+                                <span className="text-slate-600 font-mono">{movement.receptorDocument || 'N/A'}</span>
+                              </div>
+                            </div>
+                          </div>
+                        )}
+                      </>
+                    );
+                 })()}
 
                  <div className="p-4 bg-amber-50 rounded-2xl border border-amber-200">
                     <p className="text-xs font-bold text-amber-700 uppercase tracking-widest mb-2">Instruções</p>
@@ -2252,6 +2558,7 @@ const BirdManager: React.FC<BirdManagerProps> = ({
                        {quickIbamaBird.status === 'Óbito' && 'Acesse o sistema IBAMA e registre a baixa do animal falecido.'}
                        {quickIbamaBird.status === 'Vendido' && 'Acesse o sistema IBAMA e registre a transferência com o SISPASS do comprador.'}
                        {quickIbamaBird.status === 'Doado' && 'Acesse o sistema IBAMA e registre a doação com o SISPASS do destinatário.'}
+                       {quickIbamaBird.status === 'Fuga' && 'Acesse o sistema IBAMA e registre o desaparecimento do animal.'}
                     </p>
                  </div>
 
@@ -2265,7 +2572,7 @@ const BirdManager: React.FC<BirdManagerProps> = ({
                     />
                  </div>
 
-                 <div className="grid grid-cols-2 gap-3">
+                 <div className="grid grid-cols-2 gap-3 pb-2 sticky bottom-0 bg-white pt-4">
                     <button 
                        onClick={() => setShowQuickIbamaModal(false)}
                        className="py-3 bg-slate-100 text-slate-600 rounded-2xl font-bold text-xs uppercase tracking-widest hover:bg-slate-200 transition-all"
@@ -2287,8 +2594,8 @@ const BirdManager: React.FC<BirdManagerProps> = ({
       {/* Modal de Status Rápido */}
       {showQuickStatusModal && quickStatusBird && (
         <div className="fixed inset-0 z-[200] flex items-center justify-center bg-slate-900/60 backdrop-blur-md p-4 animate-in fade-in duration-300">
-           <div className="bg-white rounded-[40px] w-full max-w-md shadow-2xl overflow-hidden">
-              <div className={`p-8 ${
+          <div className="bg-white rounded-[40px] w-full max-w-md shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
+            <div className={`p-8 ${
                 quickStatusData.newStatus === 'Óbito' ? 'bg-red-500' :
                 quickStatusData.newStatus === 'Fuga' ? 'bg-orange-500' :
                 quickStatusData.newStatus === 'Vendido' ? 'bg-blue-500' :
@@ -2311,11 +2618,34 @@ const BirdManager: React.FC<BirdManagerProps> = ({
                  </div>
               </div>
 
-              <div className="p-8 space-y-6">
+              <div className="flex-1 overflow-y-auto p-8 space-y-6">
                  <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100">
                     <p className="text-xs font-bold text-slate-600 uppercase tracking-widest mb-2">Ave</p>
                     <p className="text-lg font-black text-slate-800">{quickStatusBird.name}</p>
                     <p className="text-[10px] text-slate-500 font-mono">{quickStatusBird.ringNumber}</p>
+                 </div>
+
+                 <div className="space-y-2">
+                    <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest">Novo Status</label>
+                    <div className="grid grid-cols-2 gap-2">
+                       {(['Óbito', 'Fuga', 'Vendido', 'Doado', 'Transferência'] as const).map((status) => (
+                          <button
+                             key={status}
+                             onClick={() => setQuickStatusData({...quickStatusData, newStatus: status as any})}
+                             className={`py-3 px-4 rounded-2xl font-bold text-xs uppercase tracking-widest transition-all ${
+                               quickStatusData.newStatus === status
+                                 ? status === 'Óbito' ? 'bg-red-500 text-white shadow-lg shadow-red-200' :
+                                   status === 'Fuga' ? 'bg-orange-500 text-white shadow-lg shadow-orange-200' :
+                                   status === 'Vendido' ? 'bg-blue-500 text-white shadow-lg shadow-blue-200' :
+                                   status === 'Transferência' ? 'bg-teal-500 text-white shadow-lg shadow-teal-200' :
+                                   'bg-purple-500 text-white shadow-lg shadow-purple-200'
+                                 : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                             }`}
+                          >
+                             {status === 'Óbito' && '🔴'} {status === 'Fuga' && '🟠'} {status === 'Vendido' && '🔵'} {status === 'Doado' && '🟣'} {status === 'Transferência' && '🔄'} {status}
+                          </button>
+                       ))}
+                    </div>
                  </div>
 
                  <div className="space-y-2">
@@ -2327,6 +2657,43 @@ const BirdManager: React.FC<BirdManagerProps> = ({
                        onChange={(e) => setQuickStatusData({...quickStatusData, date: e.target.value})}
                     />
                  </div>
+
+                 {/* Campos do Receptor (apenas para Venda/Doação/Transferência) */}
+                 {['Vendido', 'Doado', 'Transferência'].includes(quickStatusData.newStatus) && (
+                    <>
+                       <div className="p-4 bg-blue-50 border border-blue-200 rounded-2xl">
+                          <p className="text-xs font-bold text-blue-700 mb-3">📋 Informações do Receptor</p>
+                          
+                          <div className="space-y-3">
+                             <input 
+                                type="text" 
+                                placeholder="Nome do receptor"
+                                className="w-full p-3 bg-white border border-blue-200 rounded-xl text-sm outline-none focus:border-blue-500" 
+                                value={quickStatusData.receptorName}
+                                onChange={(e) => setQuickStatusData({...quickStatusData, receptorName: e.target.value})}
+                             />
+                             
+                             <div className="flex gap-2">
+                                <select 
+                                   className="w-24 p-3 bg-white border border-blue-200 rounded-xl text-sm outline-none focus:border-blue-500"
+                                   value={quickStatusData.receptorDocumentType}
+                                   onChange={(e) => setQuickStatusData({...quickStatusData, receptorDocumentType: e.target.value as 'ibama' | 'cpf'})}
+                                >
+                                   <option value="ibama">IBAMA</option>
+                                   <option value="cpf">CPF</option>
+                                </select>
+                                <input 
+                                   type="text" 
+                                   placeholder={quickStatusData.receptorDocumentType === 'ibama' ? 'Registro IBAMA' : 'CPF'}
+                                   className="flex-1 p-3 bg-white border border-blue-200 rounded-xl text-sm outline-none focus:border-blue-500" 
+                                   value={quickStatusData.receptorDocument}
+                                   onChange={(e) => setQuickStatusData({...quickStatusData, receptorDocument: e.target.value})}
+                                />
+                             </div>
+                          </div>
+                       </div>
+                    </>
+                 )}
 
                  <div className="space-y-2">
                     <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest">Notas (Opcional)</label>
@@ -2348,25 +2715,33 @@ const BirdManager: React.FC<BirdManagerProps> = ({
                     <span className="text-sm font-bold text-blue-800">Criar movimentação também</span>
                  </label>
 
-                 <div className="grid grid-cols-2 gap-3">
+                  <div className="grid grid-cols-2 gap-3 pb-2 sticky bottom-0 bg-white pt-4">
                     <button 
-                       onClick={() => setShowQuickStatusModal(false)}
-                       className="py-3 bg-slate-100 text-slate-600 rounded-2xl font-bold text-xs uppercase tracking-widest hover:bg-slate-200 transition-all"
+                      onClick={() => setShowQuickStatusModal(false)}
+                      className="py-3 bg-slate-100 text-slate-600 rounded-2xl font-bold text-xs uppercase tracking-widest hover:bg-slate-200 transition-all"
                     >
-                       Cancelar
+                      Cancelar
                     </button>
                     <button 
-                       onClick={handleQuickStatusConfirm}
-                       className={`py-3 text-white rounded-2xl font-black text-xs uppercase tracking-widest shadow-lg flex items-center justify-center gap-2 transition-all ${
-                         quickStatusData.newStatus === 'Óbito' ? 'bg-red-500 hover:bg-red-600 shadow-red-200' :
-                         quickStatusData.newStatus === 'Fuga' ? 'bg-orange-500 hover:bg-orange-600 shadow-orange-200' :
-                         quickStatusData.newStatus === 'Vendido' ? 'bg-blue-500 hover:bg-blue-600 shadow-blue-200' :
-                         'bg-purple-500 hover:bg-purple-600 shadow-purple-200'
-                       }`}
+                      onClick={async () => {
+                       await handleQuickStatusConfirm();
+                       // Se for doação, força a aba IBAMA a atualizar imediatamente
+                       if (quickStatusData.newStatus === 'Doado') {
+                         setShowQuickStatusModal(false);
+                         // Pequeno delay para garantir que o estado propagou
+                         setTimeout(() => setCurrentList('ibama-pendentes'), 100);
+                       }
+                      }}
+                      className={`py-3 text-white rounded-2xl font-black text-xs uppercase tracking-widest shadow-lg flex items-center justify-center gap-2 transition-all ${
+                       quickStatusData.newStatus === 'Óbito' ? 'bg-red-500 hover:bg-red-600 shadow-red-200' :
+                       quickStatusData.newStatus === 'Fuga' ? 'bg-orange-500 hover:bg-orange-600 shadow-orange-200' :
+                       quickStatusData.newStatus === 'Vendido' ? 'bg-blue-500 hover:bg-blue-600 shadow-blue-200' :
+                       'bg-purple-500 hover:bg-purple-600 shadow-purple-200'
+                      }`}
                     >
-                       <CheckCircle2 size={16} /> Confirmar
+                      <CheckCircle2 size={16} /> Confirmar
                     </button>
-                 </div>
+                  </div>
               </div>
            </div>
         </div>

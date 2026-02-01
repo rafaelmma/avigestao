@@ -10,7 +10,7 @@ export const SUPABASE_MISSING = !VITE_SUPABASE_URL || !VITE_SUPABASE_ANON_KEY ||
 
 let _supabase: any = null;
 if (SUPABASE_MISSING) {
-  console.error('Supabase not configured: set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY at build time');
+  // Supabase não configurado - usar apenas Firebase
 } else {
   try {
     _supabase = createClient(VITE_SUPABASE_URL, VITE_SUPABASE_ANON_KEY);

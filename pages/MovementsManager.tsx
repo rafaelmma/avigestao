@@ -84,6 +84,11 @@ const MovementsManager: React.FC<MovementsManagerProps> = ({ state, addMovement,
     return bird?.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
            bird?.ringNumber?.toLowerCase().includes(searchTerm.toLowerCase());
   });
+  
+  console.log('[MovementsManager] currentList:', currentList);
+  console.log('[MovementsManager] Movimentos ativos:', state.movements.length);
+  console.log('[MovementsManager] Movimentos deletados:', (state.deletedMovements || []).length);
+  console.log('[MovementsManager] Filtrados para mostrar:', filteredMovements.length);
 
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -249,11 +254,27 @@ const MovementsManager: React.FC<MovementsManagerProps> = ({ state, addMovement,
                     </td>
                     <td className="px-6 py-4">
                       <div className="space-y-1">
-                        <p className="text-xs text-slate-700 font-semibold truncate max-w-xs">{m.destination || m.notes || '-'}</p>
-                        {m.buyerSispass && (
-                          <p className="text-[10px] text-brand font-bold flex items-center gap-1">
-                            <UserCheck size={10} /> SISPASS: {m.buyerSispass}
-                          </p>
+                        {/* Para Transferência e Doação, mostra dados do receptor */}
+                        {(m.type === 'Transferência' || m.type === 'Doação') && m.receptorName ? (
+                          <>
+                            <p className="text-xs text-slate-700 font-semibold truncate max-w-xs">{m.receptorName}</p>
+                            {m.receptorDocument && (
+                              <p className="text-[10px] text-brand font-bold flex items-center gap-1">
+                                <UserCheck size={10} /> 
+                                {m.receptorDocumentType === 'cpf' ? 'CPF' : 'IBAMA'}: {m.receptorDocument}
+                              </p>
+                            )}
+                          </>
+                        ) : (
+                          /* Para outros tipos, mostra destino/notas */
+                          <>
+                            <p className="text-xs text-slate-700 font-semibold truncate max-w-xs">{m.destination || m.notes || '-'}</p>
+                            {m.buyerSispass && (
+                              <p className="text-[10px] text-brand font-bold flex items-center gap-1">
+                                <UserCheck size={10} /> SISPASS: {m.buyerSispass}
+                              </p>
+                            )}
+                          </>
                         )}
                       </div>
                     </td>
@@ -398,44 +419,89 @@ const MovementsManager: React.FC<MovementsManagerProps> = ({ state, addMovement,
                 </div>
               </div>
 
-              {(newMov.type === 'Entrada' || newMov.type === 'Venda') && (
+              {(newMov.type === 'Entrada' || newMov.type === 'Venda' || newMov.type === 'Transferência' || newMov.type === 'Doação') && (
                 <div className="space-y-4">
                   <div>
                     <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">
-                      {newMov.type === 'Venda' ? 'Novo Proprietário' : 'Destino'}
+                      {newMov.type === 'Venda' ? 'Novo Proprietário' : 
+                       newMov.type === 'Transferência' ? 'Nome do Receptor' :
+                       newMov.type === 'Doação' ? 'Nome do Receptor' : 'Destino'}
                     </label>
                     <input 
                       type="text"
-                      placeholder={newMov.type === 'Venda' ? "Ex: João Silva" : "Ex: Criatório BH"}
+                      placeholder={newMov.type === 'Venda' ? "Ex: João Silva" : 
+                                   newMov.type === 'Transferência' || newMov.type === 'Doação' ? "Nome completo de quem recebe" : 
+                                   "Ex: Criatório BH"}
                       className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-brand"
-                      value={newMov.destination || ''}
-                      onChange={e => setNewMov({...newMov, destination: e.target.value})}
+                      value={newMov.type === 'Transferência' || newMov.type === 'Doação' ? (newMov.receptorName || '') : (newMov.destination || '')}
+                      onChange={e => {
+                        if (newMov.type === 'Transferência' || newMov.type === 'Doação') {
+                          setNewMov({...newMov, receptorName: e.target.value});
+                        } else {
+                          setNewMov({...newMov, destination: e.target.value});
+                        }
+                      }}
                     />
                   </div>
                   
-                  {newMov.type === 'Venda' && (
-                    <div>
-                      <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 flex items-center gap-2">
-                        <UserCheck size={14} className="text-brand" /> Cadastro SISPASS do Comprador
-                      </label>
-                      <input 
-                        type="text"
-                        placeholder="Ex: 1234567-8"
-                        className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-brand"
-                        value={newMov.buyerSispass || ''}
-                        onChange={e => setNewMov({...newMov, buyerSispass: e.target.value})}
-                      />
-                    </div>
+                  {(newMov.type === 'Venda' || newMov.type === 'Transferência' || newMov.type === 'Doação') && (
+                    <>
+                      <div>
+                        <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 flex items-center gap-2">
+                          <UserCheck size={14} className="text-brand" /> 
+                          {newMov.type === 'Venda' ? 'Cadastro SISPASS do Comprador' : 'Tipo de Documento'}
+                        </label>
+                        {newMov.type === 'Venda' ? (
+                          <input 
+                            type="text"
+                            placeholder="Ex: 1234567-8"
+                            className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-brand"
+                            value={newMov.buyerSispass || ''}
+                            onChange={e => setNewMov({...newMov, buyerSispass: e.target.value})}
+                          />
+                        ) : (
+                          <select
+                            className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-brand"
+                            value={newMov.receptorDocumentType || 'ibama'}
+                            onChange={e => setNewMov({...newMov, receptorDocumentType: e.target.value as 'ibama' | 'cpf'})}
+                          >
+                            <option value="ibama">Cadastro IBAMA</option>
+                            <option value="cpf">CPF</option>
+                          </select>
+                        )}
+                      </div>
+                      
+                      {(newMov.type === 'Transferência' || newMov.type === 'Doação') && (
+                        <div>
+                          <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">
+                            {newMov.receptorDocumentType === 'cpf' ? 'CPF do Receptor' : 'Cadastro IBAMA do Receptor'}
+                          </label>
+                          <input 
+                            type="text"
+                            placeholder={newMov.receptorDocumentType === 'cpf' ? "000.000.000-00" : "Ex: 1234567-8"}
+                            className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-brand"
+                            value={newMov.receptorDocument || ''}
+                            onChange={e => setNewMov({...newMov, receptorDocument: e.target.value})}
+                          />
+                        </div>
+                      )}
+                    </>
                   )}
                 </div>
               )}
 
-              {(newMov.type === 'Óbito' || newMov.type === 'Saída') && (
+              {(newMov.type === 'Óbito' || newMov.type === 'Saída' || newMov.type === 'Transferência' || newMov.type === 'Doação') && (
                 <div>
-                  <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Observações / Causa</label>
+                  <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">
+                    {newMov.type === 'Óbito' ? 'Observações / Causa' : 
+                     newMov.type === 'Saída' ? 'Observações / Causa' : 
+                     'Observações (Opcional)'}
+                  </label>
                   <textarea 
                     className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none h-20 resize-none focus:border-brand"
-                    placeholder="Descreva detalhes da ocorrência..."
+                    placeholder={newMov.type === 'Óbito' || newMov.type === 'Saída' ? 
+                                 "Descreva detalhes da ocorrência..." : 
+                                 "Informações adicionais sobre a movimentação..."}
                     value={newMov.notes || ''}
                     onChange={e => setNewMov({...newMov, notes: e.target.value})}
                   />

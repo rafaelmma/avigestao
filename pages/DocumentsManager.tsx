@@ -367,7 +367,7 @@ const calculateProgress = (startDateStr?: string, endDateStr?: string) => {
 </div><div className="pt-2 flex flex-col gap-2">
                  <button 
                    onClick={() => handleOpenRenewal('sispass')}
-                   className="w-full py-3 bg-brand text-white shadow-lg shadow-brand/20 hover:bg-emerald-600 rounded-xl text-xs font-black uppercase tracking-widest flex items-center justify-center gap-2 transition-all"
+                   className="w-full py-3 bg-emerald-500 text-white shadow-lg shadow-emerald-500/20 hover:bg-emerald-600 rounded-xl text-xs font-black uppercase tracking-widest flex items-center justify-center gap-2 transition-all"
                  >
                    <CalendarClock size={16} /> {sispassActionLabel}</button>
                  <a 

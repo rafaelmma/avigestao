@@ -87,8 +87,8 @@ const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab, logoUrl, bre
       )}
 
       <div className={`
-        fixed left-0 top-0 h-screen w-64 bg-white border-r border-slate-200 flex flex-col z-50 shadow-lg lg:shadow-sm transition-transform duration-300
-        ${isOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
+        fixed left-0 top-0 h-screen w-64 bg-white border-r border-slate-200 flex flex-col z-50 shadow-xl lg:shadow-none transition-transform duration-300
+        ${isOpen ? 'translate-x-0' : '-translate-x-full'} lg:translate-x-0
       `}>
         <div className="p-6 pb-4 flex flex-col items-center justify-center border-b border-slate-200 gap-3 relative">
           <button onClick={onClose} className="absolute top-4 right-4 lg:hidden text-slate-400 hover:text-slate-600">

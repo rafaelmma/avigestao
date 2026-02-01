@@ -1,7 +1,7 @@
 ﻿// ============================================================================
 // TIPOS ENUMERADOS (correspondentes aos enums do banco Supabase)
 // ============================================================================
-export type BirdStatus = 'Ativo' | 'Inativo' | 'Vendido' | 'Doado' | 'Falecido' | 'Criação' | 'Óbito' | 'Fuga';
+export type BirdStatus = 'Ativo' | 'Inativo' | 'Vendido' | 'Doado' | 'Falecido' | 'Criação' | 'Óbito' | 'Fuga' | 'Transferência';
 export type Sex = 'Macho' | 'Fêmea' | 'Desconhecido';
 export type BirdClassification = 'Exemplar' | 'Reprodutor' | 'Descarte';
 export type TrainingStatus = 'Não Iniciado' | 'Em Progresso' | 'Concluído' | 'Certificado';
@@ -125,6 +125,13 @@ export interface MovementRecord {
   buyerSispass?: string;
   gtrUrl?: string;
   deletedAt?: string;
+  // Campos IBAMA
+  ibamaBaixaPendente?: boolean; // Se precisa registrar no IBAMA
+  ibamaBaixaData?: string; // Data que foi registrado no IBAMA
+  // Campos do receptor (para Doação/Venda/Transferência)
+  receptorName?: string; // Nome de quem recebeu
+  receptorDocument?: string; // IBAMA ou CPF do receptor
+  receptorDocumentType?: 'ibama' | 'cpf'; // Tipo de documento
 }
 
 export interface Pair {
@@ -207,6 +214,12 @@ export interface DigitalCertificateData {
   type: CertificateType; // Novo Campo
 }
 
+export interface ViewPreferences {
+  showBirdImages?: boolean;      // Mostrar imagens dos pássaros
+  badgeSize?: 'xxs' | 'xs' | 'sm' | 'md' | 'lg'; // Tamanho da badge de status
+  compactMode?: boolean;          // Modo compacto (menos espaçamento)
+}
+
 export interface BreederSettings {
   breederName: string;
   userId?: string;
@@ -226,6 +239,7 @@ export interface BreederSettings {
   subscriptionEndDate?: string; // Fim do periodo atual da assinatura
   subscriptionCancelAtPeriodEnd?: boolean; // Se a recorrencia foi cancelada
   subscriptionStatus?: string; // Estado bruto vindo do Stripe (active, trialing, etc)
+  viewPreferences?: ViewPreferences; // Preferências de visualização do usuário
 }
 // Estado global da aplicação
 export interface AppState {

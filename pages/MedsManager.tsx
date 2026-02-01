@@ -78,6 +78,7 @@ const MedsManager: React.FC<MedsManagerProps> = ({
   const [isEditingApp, setIsEditingApp] = useState(false);
 
   const [searchTerm, setSearchTerm] = useState('');
+  const [typeFilter, setTypeFilter] = useState<string>(''); // Novo: filtro por tipo
   const [currentList, setCurrentList] = useState<'active' | 'trash'>('active');
 
   // Form States
@@ -108,11 +109,16 @@ const MedsManager: React.FC<MedsManagerProps> = ({
     ? catalogItems.find(item => item.id === selectedCatalogId)
     : undefined;
 
-  const filteredMeds = listToUse.filter(m => 
-    (m.name ?? '').toLowerCase().includes(searchTerm.toLowerCase()) ||
-    (m.type ?? '').toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const filteredMeds = listToUse.filter(m => {
+    const matchesSearch = (m.name ?? '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (m.type ?? '').toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesType = !typeFilter || (m.type ?? '').toLowerCase() === typeFilter.toLowerCase();
+    return matchesSearch && matchesType;
+  });
   const expiredMeds = state.medications.filter(m => isExpired(m.expiryDate ?? ''));
+
+  // Obter tipos únicos de medicamentos
+  const medicineTypes = Array.from(new Set(state.medications.map(m => m.type).filter(Boolean)));
 
   const filteredHistory = historyListToUse.filter(app => {
     const bird = state.birds.find(b => b.id === app.birdId);
@@ -396,6 +402,18 @@ const MedsManager: React.FC<MedsManagerProps> = ({
                     onChange={(e) => setSearchTerm(e.target.value)}
                   />
                 </div>
+                {currentList === 'active' && medicineTypes.length > 0 && (
+                  <select
+                    value={typeFilter}
+                    onChange={(e) => setTypeFilter(e.target.value)}
+                    className="px-3 py-3 bg-white border border-slate-200 rounded-xl outline-none focus:border-brand text-xs font-bold text-slate-600 cursor-pointer"
+                  >
+                    <option value="">Todos os tipos</option>
+                    {medicineTypes.map(type => (
+                      <option key={type} value={type}>{type}</option>
+                    ))}
+                  </select>
+                )}
                 {currentList === 'active' && (
                   <>
                     <button 

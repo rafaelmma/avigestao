@@ -8,7 +8,11 @@ module.exports = {
     './types.ts'
   ],
   theme: {
-    extend: {},
+    extend: {
+      colors: {
+        brand: '#10b981', // emerald-500
+      }
+    },
   },
   plugins: [],
 };

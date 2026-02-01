@@ -1,6 +1,7 @@
 
 import React, { useMemo, useState } from 'react';
-import { HelpCircle, Book, MessageCircle, ShieldQuestion, ExternalLink, Zap } from 'lucide-react';
+import { HelpCircle, Book, MessageCircle, ShieldQuestion, ExternalLink, Zap, Sparkles, Send, X } from 'lucide-react';
+import { askAI, isAIAvailable } from '../lib/gemini';
 
 const HelpCenter: React.FC = () => {
   const faqs = [
@@ -16,6 +17,35 @@ const HelpCenter: React.FC = () => {
   ];
 
   const [search, setSearch] = useState('');
+  const [showAIChat, setShowAIChat] = useState(false);
+  const [aiQuestion, setAiQuestion] = useState('');
+  const [aiResponse, setAiResponse] = useState('');
+  const [isAILoading, setIsAILoading] = useState(false);
+  const [aiError, setAiError] = useState('');
+
+  const handleAskAI = async () => {
+    if (!aiQuestion.trim()) return;
+    
+    setIsAILoading(true);
+    setAiError('');
+    setAiResponse('');
+    
+    try {
+      const response = await askAI(aiQuestion);
+      setAiResponse(response);
+    } catch (error: any) {
+      setAiError(error.message || 'Erro ao consultar assistente');
+    } finally {
+      setIsAILoading(false);
+    }
+  };
+
+  const handleCloseAI = () => {
+    setShowAIChat(false);
+    setAiQuestion('');
+    setAiResponse('');
+    setAiError('');
+  };
 
   const filteredFaqs = useMemo(() => {
     if (!search.trim()) return faqs;
@@ -32,7 +62,15 @@ const HelpCenter: React.FC = () => {
           <h2 className="text-3xl font-black text-[#0F172A] tracking-tight">Ajuda & Suporte</h2>
           <p className="text-slate-500 font-medium">Tudo o que você precisa para dominar o AviGestão.</p>
         </div>
-        <div className="flex gap-3">
+        <div className="flex gap-3 flex-wrap">
+          {isAIAvailable() && (
+            <button
+              onClick={() => setShowAIChat(true)}
+              className="px-4 py-2 bg-gradient-to-r from-purple-500 to-pink-500 text-white rounded-xl text-xs font-black uppercase tracking-widest flex items-center gap-2 hover:opacity-90 shadow-lg shadow-purple-500/30 transition-all"
+            >
+              <Sparkles size={14} /> Assistente IA
+            </button>
+          )}
           <a
             href="mailto:suporte@avigestao.com"
             className="px-4 py-2 bg-emerald-50 text-emerald-700 border border-emerald-100 rounded-xl text-xs font-black uppercase tracking-widest flex items-center gap-2 hover:bg-emerald-100"
@@ -57,7 +95,7 @@ const HelpCenter: React.FC = () => {
           </div>
           <h3 className="font-bold text-slate-800 mb-2">Manuais</h3>
           <p className="text-xs text-slate-400 font-medium mb-4">Guia rápido para configurar seu criatório do zero.</p>
-          <button className="text-[10px] font-black uppercase text-brand tracking-widest flex items-center gap-2 mx-auto">
+          <button className="text-[10px] font-black uppercase text-emerald-500 tracking-widest flex items-center gap-2 mx-auto">
             Acessar <ExternalLink size={12} />
           </button>
         </div>
@@ -68,7 +106,7 @@ const HelpCenter: React.FC = () => {
           </div>
           <h3 className="font-bold text-slate-800 mb-2">Comunidade</h3>
           <p className="text-xs text-slate-400 font-medium mb-4">Troque experiências com outros criadores.</p>
-          <button className="text-[10px] font-black uppercase text-brand tracking-widest flex items-center gap-2 mx-auto">
+          <button className="text-[10px] font-black uppercase text-emerald-500 tracking-widest flex items-center gap-2 mx-auto">
             Entrar no Grupo <ExternalLink size={12} />
           </button>
         </div>
@@ -91,7 +129,7 @@ const HelpCenter: React.FC = () => {
       <div className="bg-white rounded-[40px] border border-slate-100 shadow-sm overflow-hidden">
         <div className="p-8 border-b border-slate-50 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
           <div className="flex items-center gap-3">
-            <HelpCircle className="text-brand" />
+            <HelpCircle className="text-emerald-500" />
             <h3 className="text-xl font-black text-slate-800">Perguntas Frequentes</h3>
           </div>
           <div className="w-full md:w-80">
@@ -100,7 +138,7 @@ const HelpCenter: React.FC = () => {
               placeholder="Buscar por palavra-chave..."
               value={search}
               onChange={e => setSearch(e.target.value)}
-              className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none text-sm text-slate-700 focus:border-brand"
+              className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none text-sm text-slate-700 focus:border-emerald-500"
             />
           </div>
         </div>
@@ -116,6 +154,113 @@ const HelpCenter: React.FC = () => {
           ))}
         </div>
       </div>
+
+      {/* Modal do Assistente IA */}
+      {showAIChat && (
+        <div className="fixed inset-0 z-[200] flex items-end md:items-center justify-center bg-slate-900/60 backdrop-blur-md p-4 animate-in fade-in duration-300">
+          <div className="bg-white rounded-t-[40px] md:rounded-[40px] w-full max-w-2xl shadow-2xl overflow-hidden animate-in slide-in-from-bottom md:slide-in-from-top-2 duration-300">
+            <div className="bg-gradient-to-r from-purple-500 to-pink-500 p-8 relative overflow-hidden">
+              <Sparkles size={80} className="absolute -top-4 -right-4 text-white opacity-10 rotate-12" />
+              <div className="relative z-10 flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="w-12 h-12 bg-white/20 rounded-2xl flex items-center justify-center">
+                    <Sparkles size={24} className="text-white" />
+                  </div>
+                  <div>
+                    <h3 className="text-xl font-black text-white tracking-tight">Assistente IA</h3>
+                    <p className="text-white/80 text-xs font-bold">Pergunte sobre criação de aves</p>
+                  </div>
+                </div>
+                <button onClick={handleCloseAI} className="text-white/60 hover:text-white transition-colors">
+                  <X size={24} />
+                </button>
+              </div>
+            </div>
+
+            <div className="p-8 space-y-6 max-h-[60vh] overflow-y-auto">
+              {!aiResponse && !isAILoading && !aiError && (
+                <div className="text-center py-8">
+                  <Sparkles size={48} className="mx-auto text-purple-500 mb-4" />
+                  <h4 className="font-bold text-slate-800 mb-2">Como posso ajudar?</h4>
+                  <p className="text-sm text-slate-500">Faça perguntas sobre manejo, SISPASS, acasalamentos, saúde...</p>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mt-6">
+                    <button
+                      onClick={() => setAiQuestion('Como registrar uma ave no SISPASS?')}
+                      className="p-4 bg-slate-50 hover:bg-slate-100 rounded-xl text-left text-xs font-medium text-slate-700 transition-all"
+                    >
+                      💼 Como registrar no SISPASS?
+                    </button>
+                    <button
+                      onClick={() => setAiQuestion('Quais cuidados básicos com Curió?')}
+                      className="p-4 bg-slate-50 hover:bg-slate-100 rounded-xl text-left text-xs font-medium text-slate-700 transition-all"
+                    >
+                      🐦 Cuidados básicos com Curió
+                    </button>
+                    <button
+                      onClick={() => setAiQuestion('Como fazer acasalamento de Bicudo?')}
+                      className="p-4 bg-slate-50 hover:bg-slate-100 rounded-xl text-left text-xs font-medium text-slate-700 transition-all"
+                    >
+                      ❤️ Acasalamento de Bicudo
+                    </button>
+                    <button
+                      onClick={() => setAiQuestion('O que fazer se a ave ficar doente?')}
+                      className="p-4 bg-slate-50 hover:bg-slate-100 rounded-xl text-left text-xs font-medium text-slate-700 transition-all"
+                    >
+                      🏥 Ave doente, o que fazer?
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {aiError && (
+                <div className="p-6 bg-red-50 border border-red-200 rounded-2xl">
+                  <p className="text-sm text-red-700 font-medium">{aiError}</p>
+                </div>
+              )}
+
+              {isAILoading && (
+                <div className="flex items-center gap-3 p-6 bg-purple-50 rounded-2xl">
+                  <div className="animate-spin w-5 h-5 border-2 border-purple-500 border-t-transparent rounded-full"></div>
+                  <p className="text-sm font-medium text-purple-700">Consultando assistente...</p>
+                </div>
+              )}
+
+              {aiResponse && (
+                <div className="space-y-4">
+                  <div className="p-4 bg-slate-100 rounded-2xl">
+                    <p className="text-sm font-bold text-slate-700">Você perguntou:</p>
+                    <p className="text-sm text-slate-600 mt-1">{aiQuestion}</p>
+                  </div>
+                  <div className="p-6 bg-gradient-to-br from-purple-50 to-pink-50 rounded-2xl border border-purple-100">
+                    <p className="text-sm text-slate-700 leading-relaxed whitespace-pre-wrap">{aiResponse}</p>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            <div className="p-8 bg-slate-50 border-t border-slate-100">
+              <div className="flex gap-3">
+                <input
+                  type="text"
+                  placeholder="Digite sua pergunta..."
+                  value={aiQuestion}
+                  onChange={(e) => setAiQuestion(e.target.value)}
+                  onKeyDown={(e) => e.key === 'Enter' && handleAskAI()}
+                  disabled={isAILoading}
+                  className="flex-1 px-4 py-3 bg-white border border-slate-200 rounded-xl outline-none text-sm text-slate-700 focus:border-purple-500 disabled:opacity-50"
+                />
+                <button
+                  onClick={handleAskAI}
+                  disabled={!aiQuestion.trim() || isAILoading}
+                  className="px-6 py-3 bg-gradient-to-r from-purple-500 to-pink-500 text-white rounded-xl font-black text-xs uppercase tracking-widest flex items-center justify-center gap-2 hover:opacity-90 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  <Send size={14} /> Enviar
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

@@ -3,7 +3,7 @@ import { X } from 'lucide-react';
 
 interface BadgeProps {
   variant: 'status' | 'warning' | 'success' | 'danger' | 'info' | 'neutral';
-  size?: 'sm' | 'md' | 'lg';
+  size?: 'xxs' | 'xs' | 'sm' | 'md' | 'lg';
   icon?: React.ReactNode;
   children: React.ReactNode;
   pulse?: boolean;
@@ -32,6 +32,8 @@ const Badge: React.FC<BadgeProps> = ({
   };
   
   const sizeClasses = {
+    xxs: 'px-1 py-0.5 text-[6px]',
+    xs: 'px-1.5 py-0.5 text-[8px]',
     sm: 'px-2 py-0.5 text-[10px]',
     md: 'px-3 py-1 text-xs',
     lg: 'px-4 py-1.5 text-sm'

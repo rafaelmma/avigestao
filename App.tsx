@@ -1,3 +1,4 @@
+
 import React, { Suspense, lazy, useEffect, useRef, useState } from 'react';
 import toast, { Toaster } from 'react-hot-toast';
 import {
@@ -42,16 +43,49 @@ import { auth as firebaseAuth } from './lib/firebase';
 // Firestore services
 import {
   getBirds,
+  addBird as addBirdToFirestore,
+  updateBird as updateBirdInFirestore,
+  deleteBird as deleteBirdFromFirestore,
   getPairs,
+  addPair as addPairToFirestore,
+  updatePair as updatePairInFirestore,
+  deletePair as deletePairFromFirestore,
   getMovements,
+  addMovementInFirestore,
+  updateMovementInFirestore,
+  deleteMovementInFirestore,
+  permanentlyDeleteMovementInFirestore,
   getTransactions,
   getMedications,
+  addMedicationInFirestore,
+  updateMedicationInFirestore,
+  deleteMedicationInFirestore,
+  permanentlyDeleteMedicationInFirestore,
+  getMedicationCatalog,
   getTasks,
+  addTaskInFirestore,
+  updateTaskInFirestore,
+  deleteTaskInFirestore,
+  permanentlyDeleteTaskInFirestore,
   getTournaments,
+  addEventInFirestore,
+  updateEventInFirestore,
+  deleteEventInFirestore,
+  permanentlyDeleteEventInFirestore,
   getSettings,
   getApplications,
+  addApplicationInFirestore,
+  updateApplicationInFirestore,
+  deleteApplicationInFirestore,
+  restoreApplicationInFirestore,
+  permanentlyDeleteApplicationInFirestore,
   getClutches,
   getTreatments,
+  addTreatmentInFirestore,
+  updateTreatmentInFirestore,
+  deleteTreatmentInFirestore,
+  restoreTreatmentInFirestore,
+  permanentlyDeleteTreatmentInFirestore,
   saveSettings
 } from './services/firestoreService';
 
@@ -151,6 +185,16 @@ const App: React.FC = () => {
   const [state, setState] = useState<AppState>(() => defaultState);
   const [session, setSession] = useState<any>(null);
   const [isAdmin, setIsAdmin] = useState(false);
+
+  // Wrapper to persist settings, returns Promise<boolean> for BirdManager
+  const handleSaveSettings = async (settings: BreederSettings): Promise<boolean> => {
+    try {
+      await persistSettings(settings);
+      return true;
+    } catch (e) {
+      return false;
+    }
+  };
   const [isLoading, setIsLoading] = useState(true);
   const [authError, setAuthError] = useState<string | null>(null);
   const [hasHydratedOnce, setHasHydratedOnce] = useState(false);
@@ -270,7 +314,7 @@ const App: React.FC = () => {
     if (newUserId) {
       try {
         setIsLoading(true);
-        const [birds, pairs, movements, transactions, settings, medications, applications, clutches, treatments, tasks, tournaments] = await Promise.all([
+        const [birds, pairs, movements, transactions, settings, medications, applications, clutches, treatments, tasks, tournaments, medicationCatalog] = await Promise.all([
           getBirds(newUserId),
           getPairs(newUserId),
           getMovements(newUserId),
@@ -281,7 +325,8 @@ const App: React.FC = () => {
           getClutches(newUserId),
           getTreatments(newUserId),
           getTasks(newUserId),
-          getTournaments(newUserId)
+          getTournaments(newUserId),
+          getMedicationCatalog()
         ]);
 
         const mergedSettings: BreederSettings = {
@@ -291,15 +336,52 @@ const App: React.FC = () => {
           trialEndDate: normalizeTrialEndDate(settings?.trialEndDate)
         };
 
+        console.log('=== DADOS CARREGADOS DO FIRESTORE ===');
+        console.log('Total de aves carregadas:', birds.length);
+        console.log('Aves:', birds);
+        const pendingSexingFromDB = birds.filter(b => b.sex === 'Desconhecido' && (!b.sexing?.sentDate) && b.status === 'Ativo' && !b.deletedAt);
+        console.log('Aves pendentes de sexagem (filtradas):', pendingSexingFromDB);
+
+        // Separar movimentos normais dos deletados
+        // IMPORTANTE: deletedAt é um Firestore Timestamp, que é um objeto com método toDate()
+        const normalMovements = movements?.filter(m => {
+          if (!m.deletedAt) return true; // Sem deletedAt = normal
+          // Verifica se tem o método toDate (indicador de Firestore Timestamp)
+          if (typeof (m.deletedAt as any).toDate === 'function') {
+            return false; // É um Timestamp válido = deletado
+          }
+          return true; // Valor inválido = tratar como normal
+        }) || [];
+        
+        const deletedMovements = movements?.filter(m => {
+          if (!m.deletedAt) return false; // Sem deletedAt = não deletado
+          // Verifica se tem o método toDate (indicador de Firestore Timestamp)
+          if (typeof (m.deletedAt as any).toDate === 'function') {
+            return true; // É um Timestamp válido = deletado
+          }
+          return false; // Valor inválido = não deletado
+        }) || [];
+        
+        console.log('=== MOVIMENTOS CARREGADOS ===');
+        console.log('Total de movimentos no Firestore:', movements?.length);
+        console.log('Movimentos normais (ativos):', normalMovements.length);
+        console.log('Movimentos deletados:', deletedMovements.length);
+        console.log('Movimentos normais:', normalMovements);
+        console.log('Movimentos deletados:', deletedMovements);
+        console.log('Sample movimento normal:', normalMovements[0]);
+        console.log('Sample movimento deletado:', deletedMovements[0]);
+
         setState({
           ...defaultState,
           birds: birds.length > 0 ? birds : MOCK_BIRDS,
           pairs: pairs || [],
-          movements: movements || [],
+          movements: normalMovements,
+          deletedMovements: deletedMovements,
           transactions: transactions || [],
           settings: mergedSettings,
           medications: medications && medications.length > 0 ? medications : MOCK_MEDS,
           applications: applications || [],
+          medicationCatalog: medicationCatalog || [],
           clutches: clutches || [],
           treatments: treatments || [],
           tasks: tasks || [],
@@ -323,7 +405,10 @@ const App: React.FC = () => {
     try {
       await saveSettings(userId, settings);
       setState(prev => ({ ...prev, settings }));
-      toast.success('Configurações salvas');
+      // Só mostrar toast se não for alteração automática de preferências de visualização
+      if (!(settings as any)._autoViewPrefUpdate) {
+        toast.success('Configurações salvas');
+      }
     } catch (err: any) {
       console.error('Erro ao salvar configurações:', err);
       toast.error('Erro ao salvar configurações');
@@ -345,15 +430,28 @@ const App: React.FC = () => {
 
   const addBird = async (bird: Bird) => {
     const userId = session?.user?.id;
+    console.log('addBird chamado:', { userId, birdName: bird.name });
     if (!userId) {
       toast.error('Usuário não autenticado');
       return false;
     }
 
     try {
+      // Salvar no Firestore primeiro
+      const { id, ...birdData } = bird;
+      console.log('Salvando no Firestore...', birdData);
+      const newId = await addBirdToFirestore(userId, birdData);
+      console.log('ID retornado do Firestore:', newId);
+      
+      if (!newId) {
+        throw new Error('Falha ao salvar no banco de dados');
+      }
+
+      // Atualizar estado local com o ID do Firestore
+      const birdWithId = { ...bird, id: newId };
       setState(prev => ({
         ...prev,
-        birds: [...prev.birds, bird]
+        birds: [...prev.birds, birdWithId]
       }));
 
       toast.success('Ave adicionada com sucesso!');
@@ -368,17 +466,36 @@ const App: React.FC = () => {
 
   const updateBird = async (bird: Bird) => {
     const userId = session?.user?.id;
+    console.log('updateBird chamado:', { userId, birdId: bird.id, birdName: bird.name });
     if (!userId) return;
 
     try {
+      // Atualizar estado local PRIMEIRO para UI reagir imediatamente
       setState(prev => ({
         ...prev,
-        birds: prev.birds.map(b => b.id === bird.id ? bird : b)
+        birds: prev.birds.map(b => b.id === bird.id ? { ...b, ...bird } : b)
       }));
+
+      // Depois salvar no Firestore
+      console.log('Atualizando no Firestore...', bird);
+      const success = await updateBirdInFirestore(userId, bird.id, bird);
+      console.log('Resultado da atualização no Firestore:', success);
+      
+      if (!success) {
+        // Se falhar, reverter o estado local
+        setState(prev => ({
+          ...prev,
+          birds: prev.birds.map(b => b.id === bird.id ? prev.birds.find(ob => ob.id === bird.id) || b : b)
+        }));
+        throw new Error('Falha ao atualizar no banco de dados');
+      }
+
       toast.success('Ave atualizada com sucesso!');
+      return success;
     } catch (e) {
-      console.error('Erro ao atualizar ave:', e);
-      toast.error('Erro ao atualizar ave');
+      toast.error('Erro ao atualizar ave!');
+      console.error(e);
+      return false;
     }
   };
 
@@ -387,6 +504,13 @@ const App: React.FC = () => {
     if (!userId) return;
 
     try {
+      // Marcar como deletada no Firestore
+      const bird = state.birds.find(b => b.id === id);
+      if (bird) {
+        await updateBirdInFirestore(userId, id, { ...bird, deletedAt: new Date().toISOString() });
+      }
+
+      // Atualizar estado local
       setState(prev => {
         const found = prev.birds.find(b => b.id === id);
         if (!found) return prev;
@@ -399,6 +523,7 @@ const App: React.FC = () => {
       });
     } catch (e) {
       console.error('Erro ao deletar ave:', e);
+      toast.error('Erro ao deletar ave');
     }
   };
 
@@ -430,15 +555,28 @@ const App: React.FC = () => {
 
   const addPair = async (pair: Pair) => {
     const userId = session?.user?.id;
+    console.log('addPair chamado:', { userId, pairId: pair.id });
     if (!userId) {
       toast.error('Usuário não autenticado');
       return false;
     }
 
     try {
+      // Salvar no Firestore primeiro
+      const { id, ...pairData } = pair;
+      console.log('Salvando casal no Firestore...', pairData);
+      const newId = await addPairToFirestore(userId, pairData);
+      console.log('ID retornado do Firestore:', newId);
+      
+      if (!newId) {
+        throw new Error('Falha ao salvar no banco de dados');
+      }
+
+      // Atualizar estado local com o ID do Firestore
+      const pairWithId = { ...pair, id: newId };
       setState(prev => ({
         ...prev,
-        pairs: [...prev.pairs, pair]
+        pairs: [...prev.pairs, pairWithId]
       }));
       toast.success('Casal adicionado com sucesso!');
       return true;
@@ -454,6 +592,14 @@ const App: React.FC = () => {
     if (!userId) return;
 
     try {
+      // Salvar no Firestore primeiro
+      const success = await updatePairInFirestore(userId, pair.id, pair);
+      
+      if (!success) {
+        throw new Error('Falha ao atualizar no banco de dados');
+      }
+
+      // Atualizar estado local
       setState(prev => ({
         ...prev,
         pairs: prev.pairs.map(p => p.id === pair.id ? pair : p)
@@ -606,28 +752,51 @@ const App: React.FC = () => {
     }
 
     try {
+      // Atualizar estado local PRIMEIRO
       setState(prev => ({
         ...prev,
         movements: [mov, ...prev.movements]
       }));
 
+      // Depois salvar no Firestore
+      await addMovementInFirestore(userId, mov);
+
       // Update bird status based on movement type
       const bird = state.birds.find(b => b.id === mov.birdId);
       if (bird) {
         let newStatus = bird.status;
+        let shouldMarkIbamaPendente = false;
+        
         switch (mov.type) {
           case 'Óbito':
             newStatus = 'Óbito';
+            shouldMarkIbamaPendente = true;
             break;
           case 'Venda':
             newStatus = 'Vendido';
+            shouldMarkIbamaPendente = true;
             break;
           case 'Doação':
             newStatus = 'Doado';
+            shouldMarkIbamaPendente = true;
+            break;
+          case 'Fuga':
+            shouldMarkIbamaPendente = true;
+            break;
+          case 'Transferência':
+            shouldMarkIbamaPendente = true;
             break;
         }
+        
         if (newStatus !== bird.status) {
-          updateBird({ ...bird, status: newStatus });
+          // NÃO passar ibamaBaixaData para não sobrescrever deleteField()
+          // SEMPRE marcar como pendente IBAMA se é um movimento que requer
+          const { ibamaBaixaData, ...birdWithoutIbama } = bird;
+          updateBird({ 
+            ...birdWithoutIbama, 
+            status: newStatus, 
+            ibamaBaixaPendente: shouldMarkIbamaPendente 
+          });
         }
       }
 
@@ -643,10 +812,15 @@ const App: React.FC = () => {
     if (!userId) return;
 
     try {
+      // Atualizar estado local PRIMEIRO
       setState(prev => ({
         ...prev,
         movements: prev.movements.map(m => m.id === mov.id ? mov : m)
       }));
+
+      // Depois salvar no Firestore
+      await updateMovementInFirestore(userId, mov.id, mov);
+
       toast.success('Movimentação atualizada!');
     } catch (e) {
       console.error('Erro ao atualizar movimentação:', e);
@@ -659,36 +833,112 @@ const App: React.FC = () => {
     if (!userId) return;
 
     try {
-      setState(prev => {
-        const found = prev.movements.find(m => m.id === id);
-        if (!found) return prev;
-        return {
+      console.log('[deleteMovement] Iniciando deletar movimento:', id);
+      console.log('[deleteMovement] Total de movements:', state.movements.length);
+      console.log('[deleteMovement] Total de deletedMovements:', (state.deletedMovements || []).length);
+      
+      // Procurar em state.movements OU em deletedMovements
+      let movementToDelete = state.movements.find(m => m.id === id);
+      let isAlreadyDeleted = false;
+      
+      console.log('[deleteMovement] Encontrado em movements?', !!movementToDelete);
+      
+      if (!movementToDelete) {
+        // Se não encontrou em movements, procura em deletedMovements
+        movementToDelete = (state.deletedMovements || []).find(m => m.id === id);
+        isAlreadyDeleted = true;
+        console.log('[deleteMovement] Encontrado em deletedMovements?', !!movementToDelete);
+      }
+      
+      if (!movementToDelete) {
+        console.warn('[deleteMovement] Movimento não encontrado em lugar nenhum!');
+        return; // Se não encontrou em lugar nenhum
+      }
+
+      if (isAlreadyDeleted) {
+        console.log('[deleteMovement] Movimento já estava deletado, fazendo delete permanente...');
+        // Se já está deletado, deletar permanentemente
+        setState(prev => ({
           ...prev,
-          movements: prev.movements.filter(m => m.id !== id),
-          deletedMovements: [...(prev.deletedMovements || []), { ...found, deletedAt: new Date().toISOString() }]
-        };
-      });
+          deletedMovements: (prev.deletedMovements || []).filter(m => m.id !== id)
+        }));
+        await permanentlyDeleteMovementInFirestore(userId, id);
+        console.log('[deleteMovement] Delete permanente concluído!');
+        toast.success('Movimentação deletada permanentemente!');
+      } else {
+        console.log('[deleteMovement] Movimento está ativo, fazendo soft delete...');
+        // Se está ativo, fazer soft delete
+        setState(prev => {
+          const found = prev.movements.find(m => m.id === id);
+          if (!found) return prev;
+          return {
+            ...prev,
+            movements: prev.movements.filter(m => m.id !== id),
+            deletedMovements: [...(prev.deletedMovements || []), { ...found, deletedAt: new Date().toISOString() }]
+          };
+        });
+        await deleteMovementInFirestore(userId, movementToDelete);
+        console.log('[deleteMovement] Soft delete concluído!');
+        toast.success('Movimentação deletada!');
+      }
     } catch (e) {
       console.error('Erro ao deletar movimentação:', e);
+      toast.error('Erro ao deletar movimentação');
     }
   };
 
-  const restoreMovement = (id: string) =>
-    setState(prev => {
-      const found = (prev.deletedMovements || []).find(m => m.id === id);
-      if (!found) return prev;
-      return {
-        ...prev,
-        movements: [...prev.movements, { ...found, deletedAt: undefined }],
-        deletedMovements: (prev.deletedMovements || []).filter(m => m.id !== id)
-      };
-    });
+  const restoreMovement = async (id: string) => {
+    const userId = session?.user?.id;
+    if (!userId) return;
 
-  const permanentlyDeleteMovement = (id: string) =>
-    setState(prev => ({
-      ...prev,
-      deletedMovements: (prev.deletedMovements || []).filter(m => m.id !== id)
-    }));
+    try {
+      // Atualizar estado local PRIMEIRO
+      setState(prev => {
+        const found = (prev.deletedMovements || []).find(m => m.id === id);
+        if (!found) return prev;
+        return {
+          ...prev,
+          movements: [...prev.movements, { ...found, deletedAt: undefined }],
+          deletedMovements: (prev.deletedMovements || []).filter(m => m.id !== id)
+        };
+      });
+
+      // Depois salvar no Firestore
+      await updateMovementInFirestore(userId, id, { deletedAt: undefined });
+      toast.success('Movimentação restaurada!');
+    } catch (e) {
+      console.error('Erro ao restaurar movimentação:', e);
+      toast.error('Erro ao restaurar movimentação');
+    }
+  };
+
+  const permanentlyDeleteMovement = async (id: string) => {
+    const userId = session?.user?.id;
+    if (!userId) return;
+
+    try {
+      console.log('[permanentlyDeleteMovement] Iniciando delete permanente:', id);
+      console.log('[permanentlyDeleteMovement] userId:', userId);
+      console.log('[permanentlyDeleteMovement] deletedMovements antes:', state.deletedMovements?.length);
+      
+      // Atualizar estado local PRIMEIRO
+      setState(prev => ({
+        ...prev,
+        deletedMovements: (prev.deletedMovements || []).filter(m => m.id !== id)
+      }));
+
+      console.log('[permanentlyDeleteMovement] Estado local atualizado');
+      
+      // Depois deletar do Firestore
+      await permanentlyDeleteMovementInFirestore(userId, id);
+      console.log('[permanentlyDeleteMovement] Firestore delete concluído com sucesso!');
+      
+      toast.success('Movimentação deletada permanentemente!');
+    } catch (e) {
+      console.error('[permanentlyDeleteMovement] ERRO:', e);
+      toast.error('Erro ao deletar movimentação');
+    }
+  };
 
   // ========== MEDICATION HANDLERS ==========
 
@@ -700,10 +950,14 @@ const App: React.FC = () => {
     }
 
     try {
+      // Salvar no estado local PRIMEIRO
       setState(prev => ({
         ...prev,
         medications: [...prev.medications, med]
       }));
+      
+      // Depois salvar no Firestore
+      await addMedicationInFirestore(userId, med);
       toast.success('Medicamento adicionado!');
       return true;
     } catch (e) {
@@ -718,10 +972,14 @@ const App: React.FC = () => {
     if (!userId) return;
 
     try {
+      // Atualizar estado local PRIMEIRO
       setState(prev => ({
         ...prev,
         medications: prev.medications.map(m => m.id === med.id ? med : m)
       }));
+      
+      // Depois atualizar no Firestore
+      await updateMedicationInFirestore(userId, med.id, med);
       toast.success('Medicamento atualizado!');
     } catch (e) {
       console.error('Erro ao atualizar medicamento:', e);
@@ -737,6 +995,12 @@ const App: React.FC = () => {
       setState(prev => {
         const found = prev.medications.find(m => m.id === id);
         if (!found) return prev;
+        
+        // Soft delete no Firestore
+        deleteMedicationInFirestore(userId, found).catch(e =>
+          console.error('Erro ao deletar medicamento:', e)
+        );
+        
         return {
           ...prev,
           medications: prev.medications.filter(m => m.id !== id),
@@ -748,22 +1012,45 @@ const App: React.FC = () => {
     }
   };
 
-  const restoreMed = (id: string) =>
+  const restoreMed = (id: string) => {
+    const userId = session?.user?.id;
+    if (!userId) return;
+    
     setState(prev => {
       const found = (prev.deletedMedications || []).find(m => m.id === id);
       if (!found) return prev;
+      
+      // Remover deletedAt do Firestore
+      const cleanedMed = { ...found };
+      delete cleanedMed.deletedAt;
+      updateMedicationInFirestore(userId, id, cleanedMed).catch(e =>
+        console.error('Erro ao restaurar medicamento:', e)
+      );
+      
       return {
         ...prev,
-        medications: [...prev.medications, { ...found, deletedAt: undefined }],
+        medications: [...prev.medications, cleanedMed],
         deletedMedications: (prev.deletedMedications || []).filter(m => m.id !== id)
       };
     });
+  };
 
-  const permanentlyDeleteMed = (id: string) =>
-    setState(prev => ({
-      ...prev,
-      deletedMedications: (prev.deletedMedications || []).filter(m => m.id !== id)
-    }));
+  const permanentlyDeleteMed = async (id: string) => {
+    const userId = session?.user?.id;
+    if (!userId) return;
+    
+    try {
+      // Delete permanente do Firestore
+      await permanentlyDeleteMedicationInFirestore(userId, id);
+      
+      setState(prev => ({
+        ...prev,
+        deletedMedications: (prev.deletedMedications || []).filter(m => m.id !== id)
+      }));
+    } catch (e) {
+      console.error('Erro ao deletar permanentemente medicamento:', e);
+    }
+  };
 
   // ========== MEDICATION APPLICATION HANDLERS ==========
 
@@ -775,10 +1062,14 @@ const App: React.FC = () => {
     }
 
     try {
+      // Atualizar estado local PRIMEIRO
       setState(prev => ({
         ...prev,
         applications: [...prev.applications, app]
       }));
+      
+      // Depois salvar no Firestore
+      await addApplicationInFirestore(userId, app);
       toast.success('Aplicação registrada!');
       return true;
     } catch (e) {
@@ -793,10 +1084,14 @@ const App: React.FC = () => {
     if (!userId) return;
 
     try {
+      // Atualizar estado local PRIMEIRO
       setState(prev => ({
         ...prev,
         applications: prev.applications.map(a => a.id === app.id ? app : a)
       }));
+      
+      // Depois atualizar no Firestore
+      await updateApplicationInFirestore(userId, app.id, app);
       toast.success('Aplicação atualizada!');
     } catch (e) {
       console.error('Erro ao atualizar aplicação:', e);
@@ -809,8 +1104,11 @@ const App: React.FC = () => {
     if (!userId) return;
 
     try {
+      let appToDelete: MedicationApplication | undefined;
+      
       setState(prev => {
         const found = prev.applications.find(a => a.id === id);
+        appToDelete = found;
         if (!found) return prev;
         return {
           ...prev,
@@ -818,27 +1116,67 @@ const App: React.FC = () => {
           deletedApplications: [...(prev.deletedApplications || []), { ...found, deletedAt: new Date().toISOString() }]
         };
       });
+      
+      // Depois soft delete no Firestore
+      if (appToDelete) {
+        await deleteApplicationInFirestore(userId, appToDelete);
+      }
     } catch (e) {
       console.error('Erro ao deletar aplicação:', e);
     }
   };
 
-  const restoreApplication = (id: string) =>
-    setState(prev => {
-      const found = (prev.deletedApplications || []).find(a => a.id === id);
-      if (!found) return prev;
-      return {
-        ...prev,
-        applications: [...prev.applications, { ...found, deletedAt: undefined }],
-        deletedApplications: (prev.deletedApplications || []).filter(a => a.id !== id)
-      };
-    });
+  const restoreApplication = async (id: string) => {
+    const userId = session?.user?.id;
+    if (!userId) return;
 
-  const permanentlyDeleteApplication = (id: string) =>
-    setState(prev => ({
-      ...prev,
-      deletedApplications: (prev.deletedApplications || []).filter(a => a.id !== id)
-    }));
+    try {
+      let appToRestore: MedicationApplication | undefined;
+      
+      setState(prev => {
+        const found = (prev.deletedApplications || []).find(a => a.id === id);
+        appToRestore = found;
+        if (!found) return prev;
+        return {
+          ...prev,
+          applications: [...prev.applications, { ...found, deletedAt: undefined }],
+          deletedApplications: (prev.deletedApplications || []).filter(a => a.id !== id)
+        };
+      });
+      
+      // Depois restaurar no Firestore
+      if (appToRestore) {
+        await restoreApplicationInFirestore(userId, appToRestore);
+      }
+    } catch (e) {
+      console.error('Erro ao restaurar aplicação:', e);
+    }
+  };
+
+  const permanentlyDeleteApplication = async (id: string) => {
+    const userId = session?.user?.id;
+    if (!userId) return;
+
+    try {
+      let appToDelete: MedicationApplication | undefined;
+      
+      setState(prev => {
+        const found = (prev.deletedApplications || []).find(a => a.id === id);
+        appToDelete = found;
+        return {
+          ...prev,
+          deletedApplications: (prev.deletedApplications || []).filter(a => a.id !== id)
+        };
+      });
+      
+      // Depois deletar permanentemente no Firestore
+      if (appToDelete) {
+        await permanentlyDeleteApplicationInFirestore(userId, appToDelete);
+      }
+    } catch (e) {
+      console.error('Erro ao deletar permanentemente aplicação:', e);
+    }
+  };
 
   // ========== TREATMENT HANDLERS ==========
 
@@ -850,10 +1188,14 @@ const App: React.FC = () => {
     }
 
     try {
+      // Atualizar estado local PRIMEIRO
       setState(prev => ({
         ...prev,
         treatments: [...prev.treatments, t]
       }));
+      
+      // Depois salvar no Firestore
+      await addTreatmentInFirestore(userId, t);
       toast.success('Tratamento adicionado!');
       return true;
     } catch (e) {
@@ -868,10 +1210,14 @@ const App: React.FC = () => {
     if (!userId) return;
 
     try {
+      // Atualizar estado local PRIMEIRO
       setState(prev => ({
         ...prev,
         treatments: prev.treatments.map(item => item.id === t.id ? t : item)
       }));
+      
+      // Depois atualizar no Firestore
+      await updateTreatmentInFirestore(userId, t.id, t);
       toast.success('Tratamento atualizado!');
     } catch (e) {
       console.error('Erro ao atualizar tratamento:', e);
@@ -884,8 +1230,11 @@ const App: React.FC = () => {
     if (!userId) return;
 
     try {
+      let treatToDelete: ContinuousTreatment | undefined;
+      
       setState(prev => {
         const found = prev.treatments.find(t => t.id === id);
+        treatToDelete = found;
         if (!found) return prev;
         return {
           ...prev,
@@ -893,27 +1242,67 @@ const App: React.FC = () => {
           deletedTreatments: [...(prev.deletedTreatments || []), { ...found, deletedAt: new Date().toISOString() }]
         };
       });
+      
+      // Depois soft delete no Firestore
+      if (treatToDelete) {
+        await deleteTreatmentInFirestore(userId, treatToDelete);
+      }
     } catch (e) {
       console.error('Erro ao deletar tratamento:', e);
     }
   };
 
-  const restoreTreatment = (id: string) =>
-    setState(prev => {
-      const found = (prev.deletedTreatments || []).find(t => t.id === id);
-      if (!found) return prev;
-      return {
-        ...prev,
-        treatments: [...prev.treatments, { ...found, deletedAt: undefined }],
-        deletedTreatments: (prev.deletedTreatments || []).filter(t => t.id !== id)
-      };
-    });
+  const restoreTreatment = async (id: string) => {
+    const userId = session?.user?.id;
+    if (!userId) return;
 
-  const permanentlyDeleteTreatment = (id: string) =>
-    setState(prev => ({
-      ...prev,
-      deletedTreatments: (prev.deletedTreatments || []).filter(t => t.id !== id)
-    }));
+    try {
+      let treatToRestore: ContinuousTreatment | undefined;
+      
+      setState(prev => {
+        const found = (prev.deletedTreatments || []).find(t => t.id === id);
+        treatToRestore = found;
+        if (!found) return prev;
+        return {
+          ...prev,
+          treatments: [...prev.treatments, { ...found, deletedAt: undefined }],
+          deletedTreatments: (prev.deletedTreatments || []).filter(t => t.id !== id)
+        };
+      });
+      
+      // Depois restaurar no Firestore
+      if (treatToRestore) {
+        await restoreTreatmentInFirestore(userId, treatToRestore);
+      }
+    } catch (e) {
+      console.error('Erro ao restaurar tratamento:', e);
+    }
+  };
+
+  const permanentlyDeleteTreatment = async (id: string) => {
+    const userId = session?.user?.id;
+    if (!userId) return;
+
+    try {
+      let treatToDelete: ContinuousTreatment | undefined;
+      
+      setState(prev => {
+        const found = (prev.deletedTreatments || []).find(t => t.id === id);
+        treatToDelete = found;
+        return {
+          ...prev,
+          deletedTreatments: (prev.deletedTreatments || []).filter(t => t.id !== id)
+        };
+      });
+      
+      // Depois deletar permanentemente no Firestore
+      if (treatToDelete) {
+        await permanentlyDeleteTreatmentInFirestore(userId, treatToDelete);
+      }
+    } catch (e) {
+      console.error('Erro ao deletar permanentemente tratamento:', e);
+    }
+  };
 
   // ========== TRANSACTION HANDLERS ==========
 
@@ -984,10 +1373,14 @@ const App: React.FC = () => {
     }
 
     try {
+      // Salvar no estado local PRIMEIRO
       setState(prev => ({
         ...prev,
         tasks: [...prev.tasks, t]
       }));
+      
+      // Depois salvar no Firestore
+      await addTaskInFirestore(userId, t);
       toast.success('Tarefa adicionada!');
       return true;
     } catch (e) {
@@ -1002,10 +1395,14 @@ const App: React.FC = () => {
     if (!userId) return;
 
     try {
+      // Atualizar estado local PRIMEIRO
       setState(prev => ({
         ...prev,
         tasks: prev.tasks.map(task => task.id === t.id ? t : task)
       }));
+      
+      // Depois atualizar no Firestore
+      await updateTaskInFirestore(userId, t.id, t);
       toast.success('Tarefa atualizada!');
     } catch (e) {
       console.error('Erro ao atualizar tarefa:', e);
@@ -1014,12 +1411,25 @@ const App: React.FC = () => {
   };
 
   const toggleTask = (id: string) => {
-    setState(prev => ({
-      ...prev,
-      tasks: prev.tasks.map(task => 
-        task.id === id ? { ...task, isCompleted: !task.isCompleted } : task
-      )
-    }));
+    const userId = session?.user?.id;
+    if (!userId) return;
+    
+    setState(prev => {
+      const task = prev.tasks.find(t => t.id === id);
+      if (!task) return prev;
+      
+      const updatedTask = { ...task, isCompleted: !task.isCompleted };
+      
+      // Atualizar Firestore também
+      updateTaskInFirestore(userId, id, updatedTask).catch(e => 
+        console.error('Erro ao atualizar status da tarefa:', e)
+      );
+      
+      return {
+        ...prev,
+        tasks: prev.tasks.map(t => t.id === id ? updatedTask : t)
+      };
+    });
   };
 
   const deleteTask = async (id: string) => {
@@ -1030,6 +1440,12 @@ const App: React.FC = () => {
       setState(prev => {
         const found = prev.tasks.find(t => t.id === id);
         if (!found) return prev;
+        
+        // Soft delete no Firestore
+        deleteTaskInFirestore(userId, found).catch(e =>
+          console.error('Erro ao deletar tarefa:', e)
+        );
+        
         return {
           ...prev,
           tasks: prev.tasks.filter(t => t.id !== id),
@@ -1041,22 +1457,45 @@ const App: React.FC = () => {
     }
   };
 
-  const restoreTask = (id: string) =>
+  const restoreTask = (id: string) => {
+    const userId = session?.user?.id;
+    if (!userId) return;
+    
     setState(prev => {
       const found = (prev.deletedTasks || []).find(t => t.id === id);
       if (!found) return prev;
+      
+      // Remover deletedAt do Firestore
+      const cleanedTask = { ...found };
+      delete cleanedTask.deletedAt;
+      updateTaskInFirestore(userId, id, cleanedTask).catch(e =>
+        console.error('Erro ao restaurar tarefa:', e)
+      );
+      
       return {
         ...prev,
-        tasks: [...prev.tasks, { ...found, deletedAt: undefined }],
+        tasks: [...prev.tasks, cleanedTask],
         deletedTasks: (prev.deletedTasks || []).filter(t => t.id !== id)
       };
     });
+  };
 
-  const permanentlyDeleteTask = (id: string) =>
-    setState(prev => ({
-      ...prev,
-      deletedTasks: (prev.deletedTasks || []).filter(t => t.id !== id)
-    }));
+  const permanentlyDeleteTask = async (id: string) => {
+    const userId = session?.user?.id;
+    if (!userId) return;
+    
+    try {
+      // Delete permanente do Firestore
+      await permanentlyDeleteTaskInFirestore(userId, id);
+      
+      setState(prev => ({
+        ...prev,
+        deletedTasks: (prev.deletedTasks || []).filter(t => t.id !== id)
+      }));
+    } catch (e) {
+      console.error('Erro ao deletar permanentemente tarefa:', e);
+    }
+  };
 
   // ========== TOURNAMENT HANDLERS ==========
 
@@ -1068,10 +1507,14 @@ const App: React.FC = () => {
     }
 
     try {
+      // Salvar no estado local PRIMEIRO
       setState(prev => ({
         ...prev,
         tournaments: [...prev.tournaments, e]
       }));
+      
+      // Depois salvar no Firestore
+      await addEventInFirestore(userId, e);
       toast.success('Evento adicionado!');
       return true;
     } catch (e) {
@@ -1086,10 +1529,14 @@ const App: React.FC = () => {
     if (!userId) return;
 
     try {
+      // Atualizar estado local PRIMEIRO
       setState(prev => ({
         ...prev,
         tournaments: prev.tournaments.map(ev => ev.id === e.id ? e : ev)
       }));
+      
+      // Depois atualizar no Firestore
+      await updateEventInFirestore(userId, e.id, e);
       toast.success('Evento atualizado!');
     } catch (e) {
       console.error('Erro ao atualizar evento:', e);
@@ -1105,6 +1552,12 @@ const App: React.FC = () => {
       setState(prev => {
         const found = prev.tournaments.find(ev => ev.id === id);
         if (!found) return prev;
+        
+        // Soft delete no Firestore
+        deleteEventInFirestore(userId, found).catch(e =>
+          console.error('Erro ao deletar evento:', e)
+        );
+        
         return {
           ...prev,
           tournaments: prev.tournaments.filter(ev => ev.id !== id),
@@ -1116,22 +1569,45 @@ const App: React.FC = () => {
     }
   };
 
-  const restoreEvent = (id: string) =>
+  const restoreEvent = (id: string) => {
+    const userId = session?.user?.id;
+    if (!userId) return;
+    
     setState(prev => {
       const found = (prev.deletedTournaments || []).find(ev => ev.id === id);
       if (!found) return prev;
+      
+      // Remover deletedAt do Firestore
+      const cleanedEvent = { ...found };
+      delete cleanedEvent.deletedAt;
+      updateEventInFirestore(userId, id, cleanedEvent).catch(e =>
+        console.error('Erro ao restaurar evento:', e)
+      );
+      
       return {
         ...prev,
-        tournaments: [...prev.tournaments, { ...found, deletedAt: undefined }],
+        tournaments: [...prev.tournaments, cleanedEvent],
         deletedTournaments: (prev.deletedTournaments || []).filter(ev => ev.id !== id)
       };
     });
+  };
 
-  const permanentlyDeleteEvent = (id: string) =>
-    setState(prev => ({
-      ...prev,
-      deletedTournaments: (prev.deletedTournaments || []).filter(ev => ev.id !== id)
-    }));
+  const permanentlyDeleteEvent = async (id: string) => {
+    const userId = session?.user?.id;
+    if (!userId) return;
+    
+    try {
+      // Delete permanente do Firestore
+      await permanentlyDeleteEventInFirestore(userId, id);
+      
+      setState(prev => ({
+        ...prev,
+        deletedTournaments: (prev.deletedTournaments || []).filter(ev => ev.id !== id)
+      }));
+    } catch (e) {
+      console.error('Erro ao deletar permanentemente evento:', e);
+    }
+  };
 
   // ========== LOGOUT HANDLER ==========
 
@@ -1179,6 +1655,7 @@ const App: React.FC = () => {
             deleteBird={deleteBird}
             restoreBird={restoreBird}
             permanentlyDeleteBird={permanentlyDeleteBird}
+            saveSettings={handleSaveSettings}
             isAdmin={isAdmin}
           />
         );
@@ -1192,6 +1669,7 @@ const App: React.FC = () => {
             deleteBird={deleteBird}
             restoreBird={restoreBird}
             permanentlyDeleteBird={permanentlyDeleteBird}
+            saveSettings={handleSaveSettings}
             initialList="sexagem"
             includeSexingTab
             showListTabs
@@ -1351,7 +1829,7 @@ const App: React.FC = () => {
         trialEndDate={state.settings?.trialEndDate}
         isAdmin={isAdmin}
       />
-      <main className="flex-1 overflow-auto">
+      <main className="flex-1 overflow-auto ml-0 lg:ml-64">
         <Suspense fallback={<div className="flex items-center justify-center min-h-screen">Carregando...</div>}>
           {renderContent()}
         </Suspense>

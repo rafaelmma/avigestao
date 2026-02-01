@@ -34,9 +34,12 @@ const DropdownMenu: React.FC<DropdownMenuProps> = ({ trigger, items, align = 'ri
   const validItems = items.filter(Boolean) as MenuItem[];
 
   return (
-    <div className="relative" ref={menuRef}>
+    <div className="relative" ref={menuRef} onClick={(e) => e.stopPropagation()}>
       <button 
-        onClick={() => setIsOpen(!isOpen)} 
+        onClick={(e) => {
+          e.stopPropagation();
+          setIsOpen(!isOpen);
+        }} 
         className="inline-flex items-center"
       >
         {trigger}
@@ -54,7 +57,8 @@ const DropdownMenu: React.FC<DropdownMenuProps> = ({ trigger, items, align = 'ri
             <React.Fragment key={item.id}>
               {item.divider && idx > 0 && <div className="border-t border-slate-100" />}
               <button
-                onClick={() => {
+                onClick={(e) => {
+                  e.stopPropagation();
                   item.onClick();
                   setIsOpen(false);
                 }}
