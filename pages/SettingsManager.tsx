@@ -1,5 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState, Suspense } from 'react';
 import { BreederSettings } from '../types';
+import { getAuth } from 'firebase/auth';
+import { assinarPlano } from '../lib/stripe';
 import {
   User,
   Image as ImageIcon,
@@ -20,7 +22,6 @@ import {
 } from 'lucide-react';
 const TipCarousel = React.lazy(() => import('../components/TipCarousel'));
 import { APP_LOGO } from '../constants';
-import { supabase } from '../supabaseClient';
 
 interface SettingsManagerProps {
   settings: BreederSettings;
@@ -37,10 +38,10 @@ const PLANS = [
 ];
 
 const PRICE_ID_MAP: Record<string, string> = {
-  monthly: 'price_1Sp8rs0btEoqllHf6KnF3j4i',
-  quarterly: 'price_1Sp8sp0btEoqllHflQnyFP5M',
-  semiannual: 'price_1Sp8ta0btEoqllHfYpjHjlCV',
-  annual: 'price_1Sp8uG0btEoqllHfuRKfN0oK',
+  monthly: 'price_1SwSz20YB6ELT5UOHr8IVksz',
+  quarterly: 'price_1SwSzZ0YB6ELT5UO6VKg534d',
+  semiannual: 'price_1SwT000YB6ELT5UOd7cZBbz6',
+  annual: 'price_1SwT0N0YB6ELT5UOjrjILdg5',
 };
 
 const LOGO_BUCKET = (import.meta as any)?.env?.VITE_SUPABASE_LOGO_BUCKET || 'assets';
@@ -169,18 +170,8 @@ const SettingsManager: React.FC<SettingsManagerProps> = ({ settings, updateSetti
 
   const openBillingPortal = async () => {
     try {
-      const session = await supabase.auth.getSession();
-      const res = await fetch('/api/stripe-portal', {
-        method: 'POST',
-        headers: { Authorization: `Bearer ${session.data.session?.access_token}` },
-      });
-      if (!res.ok) {
-        const err = await res.json().catch(() => ({}));
-        alert(err?.error || 'Erro ao abrir o portal');
-        return;
-      }
-      const { url } = await res.json();
-      if (url) window.location.href = url;
+      const { abrirPortalCliente } = await import('../lib/stripe');
+      await abrirPortalCliente();
     } catch (err) {
       console.error(err);
       alert('Erro ao abrir o portal de assinatura');
@@ -192,23 +183,11 @@ const SettingsManager: React.FC<SettingsManagerProps> = ({ settings, updateSetti
       setPaymentStep('processing');
       const priceId = PRICE_ID_MAP[selectedPlanId];
       if (!priceId) throw new Error('Plano inválido');
-      const session = await supabase.auth.getSession();
-      const res = await fetch('/api/create-checkout', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session.data.session?.access_token}` },
-        body: JSON.stringify({ priceId }),
-      });
-      if (!res.ok) {
-        const err = await res.json();
-        throw new Error(err.error || 'Erro no checkout');
-      }
-      const { url, customerId } = await res.json();
-      if (customerId) localStorage.setItem('avigestao_stripe_customer', customerId);
-      window.location.href = url;
+      await assinarPlano(priceId);
     } catch (err) {
       console.error(err);
-      alert('Erro ao iniciar pagamento');
       setPaymentStep('method');
+      alert('Erro ao iniciar pagamento: ' + (err instanceof Error ? err.message : String(err)));
     }
   };
 
@@ -219,56 +198,92 @@ const SettingsManager: React.FC<SettingsManagerProps> = ({ settings, updateSetti
       alert('Disponível apenas no plano PRO.');
       return;
     }
-    if (!supabase) {
-      alert('Envio de logo indisponível no momento.');
-      return;
-    }
 
     setLogoUploadError(null);
     setIsUploadingLogo(true);
 
     try {
-      const session = await supabase.auth.getSession();
-      const userId = session?.data?.session?.user?.id;
-      if (!userId) throw new Error('Faça login novamente para enviar a logo.');
+      const auth = getAuth();
+      const user = auth.currentUser;
+      
+      if (!user) {
+        throw new Error('Usuário não autenticado');
+      }
 
-      const ext = file.name.split('.').pop() || 'png';
-      const path = `logos/${userId}/criatorio-logo.${ext}`;
+      // Validar tamanho (máximo 5MB)
+      if (file.size > 5 * 1024 * 1024) {
+        throw new Error('Logo deve ter no máximo 5MB');
+      }
 
-      const { error: uploadError } = await supabase.storage.from(LOGO_BUCKET).upload(path, file, { upsert: true });
-      if (uploadError) {
-        if (uploadError.message?.toLowerCase().includes('bucket')) {
-          throw new Error(`Bucket "${LOGO_BUCKET}" não encontrado. Crie-o no Supabase Storage (público) ou defina VITE_SUPABASE_LOGO_BUCKET.`);
+      // Validar tipo de arquivo
+      if (!file.type.startsWith('image/')) {
+        throw new Error('Arquivo deve ser uma imagem (JPG, PNG, etc)');
+      }
+
+      // Get auth token
+      const token = await user.getIdToken();
+
+      // Convert file to base64
+      const reader = new FileReader();
+      reader.onload = async () => {
+        try {
+          const base64String = (reader.result as string).split(',')[1];
+
+          // Call Cloud Function to upload
+          const response = await fetch('https://southamerica-east1-avigestao-cf5fe.cloudfunctions.net/uploadLogo', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${token}`
+            },
+            body: JSON.stringify({
+              fileData: base64String,
+              fileName: file.name
+            })
+          });
+
+          if (!response.ok) {
+            const error = await response.json();
+            throw new Error(error.error || 'Erro ao fazer upload');
+          }
+
+          const result = await response.json();
+          
+          // Update local state
+          const updatedSettings = { ...settings, logoUrl: result.downloadUrl };
+          updateSettings(updatedSettings);
+          await onSave(updatedSettings);
+
+          alert('Logo enviada com sucesso!');
+        } catch (err: any) {
+          console.error('Erro ao enviar logo', err);
+          const message = err?.message || 'Falha ao enviar a logo. Tente novamente.';
+          setLogoUploadError(message);
+          alert(message);
+        } finally {
+          setIsUploadingLogo(false);
+          if (fileInputRef.current) fileInputRef.current.value = '';
         }
-        throw uploadError;
-      }
+      };
 
-      const { data } = supabase.storage.from(LOGO_BUCKET).getPublicUrl(path);
-      const publicUrl = data?.publicUrl;
-      if (!publicUrl) throw new Error('Não foi possível gerar o link da logo.');
+      reader.onerror = () => {
+        setIsUploadingLogo(false);
+        setLogoUploadError('Erro ao ler arquivo');
+      };
 
-      console.log('Logo URL:', publicUrl);
-      const nextSettings = { ...settings, logoUrl: publicUrl };
-      updateSettings(nextSettings);
+      reader.readAsDataURL(file);
 
-      // salva automaticamente para evitar perder a logo ao recarregar
-      try {
-        await onSave(nextSettings);
-        setSavedAt(new Date().toLocaleTimeString());
-      } catch (saveErr) {
-        console.warn('Falha ao salvar logo', saveErr);
-      }
-      alert('Logo enviada e salva com sucesso.');
     } catch (err: any) {
-      console.error('Erro ao enviar logo', err);
+      console.error('Erro ao preparar upload', err);
       const message = err?.message || 'Falha ao enviar a logo. Tente novamente.';
       setLogoUploadError(message);
       alert(message);
-    } finally {
       setIsUploadingLogo(false);
       if (fileInputRef.current) fileInputRef.current.value = '';
     }
   };
+  // Função acima desabilitada por problemas de CORS
+
 
   const statusItems = useMemo(() => {
     const items: { label: string; ok: boolean; value?: string }[] = [];
@@ -326,50 +341,7 @@ const SettingsManager: React.FC<SettingsManagerProps> = ({ settings, updateSetti
       return;
     }
 
-    setIsChangingPassword(true);
-    try {
-      // Primeiro, valida a senha atual tentando fazer login
-      const session = await supabase.auth.getSession();
-      const email = session?.data?.session?.user?.email;
-      
-      if (!email) {
-        throw new Error('Email não encontrado. Faça login novamente.');
-      }
-
-      // Tenta fazer signin com a senha atual para validar
-      const { error: signInError } = await supabase.auth.signInWithPassword({
-        email,
-        password: passwordForm.current,
-      });
-
-      if (signInError) {
-        throw new Error('Senha atual incorreta');
-      }
-
-      // Se validada, atualiza a senha
-      const { error: updateError } = await supabase.auth.updateUser({
-        password: passwordForm.new,
-      });
-
-      if (updateError) {
-        throw new Error(updateError.message || 'Erro ao atualizar senha');
-      }
-
-      setPasswordSuccess('Senha alterada com sucesso! Faça login novamente com a nova senha.');
-      setPasswordForm({ current: '', new: '', confirm: '' });
-      
-      // Após 2s, faz logout para obrigar novo login com a nova senha
-      setTimeout(async () => {
-        try {
-          await supabase.auth.signOut({ scope: 'global' });
-        } catch {/* ignore */}
-      }, 2000);
-    } catch (err: any) {
-      const msg = err?.message || 'Erro ao alterar senha. Tente novamente.';
-      setPasswordError(msg);
-    } finally {
-      setIsChangingPassword(false);
-    }
+    setPasswordError('Mudança de senha disponível via Firebase Console por enquanto.');
   };
 
   return (
@@ -455,14 +427,30 @@ const SettingsManager: React.FC<SettingsManagerProps> = ({ settings, updateSetti
                   <p className="text-sm text-slate-600 mb-4">Exibida no menu lateral e em documentos.</p>
                   {canUseLogo ? (
                     <>
-                      <button
-                        onClick={() => !isUploadingLogo && fileInputRef.current?.click()}
-                        className="inline-flex items-center gap-2 px-6 py-3 bg-blue-600 text-white rounded-lg text-sm font-semibold hover:bg-blue-700 transition-all disabled:opacity-60"
-                        disabled={isUploadingLogo}
-                      >
-                        {isUploadingLogo ? <Loader2 size={16} className="animate-spin" /> : <Upload size={16} />}
-                        {isUploadingLogo ? 'Enviando logo...' : 'Carregar nova logo'}
-                      </button>
+                      <div className="flex flex-col gap-2">
+                        <button
+                          onClick={() => !isUploadingLogo && fileInputRef.current?.click()}
+                          className="inline-flex items-center gap-2 px-6 py-3 bg-blue-600 text-white rounded-lg text-sm font-semibold hover:bg-blue-700 transition-all disabled:opacity-60"
+                          disabled={isUploadingLogo}
+                        >
+                          {isUploadingLogo ? <Loader2 size={16} className="animate-spin" /> : <Upload size={16} />}
+                          {isUploadingLogo ? 'Enviando logo...' : 'Carregar nova logo'}
+                        </button>
+                        {settings.logoUrl && settings.logoUrl !== APP_LOGO && (
+                          <button
+                            onClick={async () => {
+                              try {
+                                await updateSettings({ ...settings, logoUrl: APP_LOGO });
+                              } catch (err) {
+                                console.error('Erro ao restaurar logo padrão:', err);
+                              }
+                            }}
+                            className="inline-flex items-center gap-2 px-6 py-3 bg-slate-600 text-white rounded-lg text-sm font-semibold hover:bg-slate-700 transition-all"
+                          >
+                            Usar logo padrão
+                          </button>
+                        )}
+                      </div>
                       <input
                         type="file"
                         ref={fileInputRef}

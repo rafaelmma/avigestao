@@ -9,7 +9,11 @@ import {
   setDoc,
   Timestamp,
   writeBatch,
-  deleteField
+  deleteField,
+  query,
+  where,
+  orderBy,
+  limit
 } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { Bird, Pair, Clutch, Medication, MedicationApplication, MovementRecord, Transaction, MaintenanceTask, TournamentEvent, ContinuousTreatment, BreederSettings, MedicationCatalogItem } from '../types';
@@ -73,6 +77,17 @@ export const addBird = async (userId: string, bird: Omit<Bird, 'id'>): Promise<s
       createdAt: Timestamp.now(),
       updatedAt: Timestamp.now()
     });
+    
+    // Criar índice público para permitir busca via QR code
+    const indexRef = doc(db, 'bird_index', docRef.id);
+    await setDoc(indexRef, {
+      userId,
+      birdId: docRef.id,
+      createdAt: Timestamp.now()
+    });
+    
+    console.log('[addBird] Índice público criado para:', docRef.id);
+    
     return docRef.id;
   } catch (error) {
     console.error('Erro ao adicionar bird:', error);
@@ -88,6 +103,20 @@ export const updateBird = async (userId: string, birdId: string, updates: Partia
       updatedAt: Timestamp.now()
     });
     await updateDoc(birdRef, cleanedUpdates);
+    
+    // Garantir que o índice público existe (para pássaros antigos)
+    const indexRef = doc(db, 'bird_index', birdId);
+    const indexSnapshot = await getDoc(indexRef);
+    
+    if (!indexSnapshot.exists()) {
+      await setDoc(indexRef, {
+        userId,
+        birdId,
+        createdAt: Timestamp.now()
+      });
+      console.log('[updateBird] Índice público criado para pássaro existente:', birdId);
+    }
+    
     return true;
   } catch (error) {
     console.error('Erro ao atualizar bird:', error);
@@ -480,10 +509,12 @@ export const getTransactions = async (userId: string): Promise<Transaction[]> =>
   try {
     const transactionsRef = collection(db, 'users', userId, 'transactions');
     const snapshot = await getDocs(transactionsRef);
-    const transactions = snapshot.docs.map(doc => ({
-      id: doc.id,
-      ...doc.data()
-    } as Transaction));
+    const transactions = snapshot.docs
+      .map(doc => ({
+        id: doc.id,
+        ...doc.data()
+      } as Transaction))
+      .filter(tx => !tx.deletedAt); // Filtrar apenas transações ativas
     // Sort client-side to avoid composite index
     return transactions.sort((a, b) => {
       const dateA = a.date ? new Date(a.date).getTime() : 0;
@@ -493,6 +524,68 @@ export const getTransactions = async (userId: string): Promise<Transaction[]> =>
   } catch (error) {
     console.error('Erro ao buscar transactions:', error);
     return [];
+  }
+};
+
+export const getDeletedTransactions = async (userId: string): Promise<Transaction[]> => {
+  try {
+    const transactionsRef = collection(db, 'users', userId, 'transactions');
+    const snapshot = await getDocs(transactionsRef);
+    const deletedTransactions = snapshot.docs
+      .map(doc => ({
+        id: doc.id,
+        ...doc.data()
+      } as Transaction))
+      .filter(tx => tx.deletedAt); // Filtrar apenas transações deletadas
+    // Sort client-side to avoid composite index
+    return deletedTransactions.sort((a, b) => {
+      const dateA = a.date ? new Date(a.date).getTime() : 0;
+      const dateB = b.date ? new Date(b.date).getTime() : 0;
+      return dateB - dateA;
+    });
+  } catch (error) {
+    console.error('Erro ao buscar transações deletadas:', error);
+    return [];
+  }
+};
+
+export const saveTransactionToFirestore = async (userId: string, transaction: Transaction): Promise<boolean> => {
+  try {
+    const transactionRef = doc(db, 'users', userId, 'transactions', transaction.id);
+    await setDoc(transactionRef, {
+      ...transaction,
+      updatedAt: Timestamp.now()
+    }, { merge: true });
+    return true;
+  } catch (error: any) {
+    console.error('Erro ao salvar transação:', error);
+    return false;
+  }
+};
+
+export const deleteTransactionInFirestore = async (userId: string, transaction: Transaction): Promise<boolean> => {
+  try {
+    const transactionRef = doc(db, 'users', userId, 'transactions', transaction.id);
+    await setDoc(transactionRef, {
+      ...transaction,
+      deletedAt: Timestamp.now(),
+      updatedAt: Timestamp.now()
+    }, { merge: true });
+    return true;
+  } catch (error: any) {
+    console.error('Erro ao deletar transação:', error);
+    return false;
+  }
+};
+
+export const permanentlyDeleteTransactionInFirestore = async (userId: string, transactionId: string): Promise<boolean> => {
+  try {
+    const transactionRef = doc(db, 'users', userId, 'transactions', transactionId);
+    await deleteDoc(transactionRef);
+    return true;
+  } catch (error: any) {
+    console.error('Erro ao deletar permanentemente transação:', error);
+    return false;
   }
 };
 
@@ -610,16 +703,38 @@ export const getTournaments = async (userId: string): Promise<TournamentEvent[]>
   try {
     const tournamentsRef = collection(db, 'users', userId, 'tournaments');
     const snapshot = await getDocs(tournamentsRef);
-    const tournaments = snapshot.docs.map(doc => {
-      const data = doc.data();
-      return {
-        ...data,
-        id: doc.id  // Document ID do Firestore tem prioridade
-      } as TournamentEvent;
-    });
+    const tournaments = snapshot.docs
+      .map(doc => {
+        const data = doc.data();
+        return {
+          ...data,
+          id: doc.id  // Document ID do Firestore tem prioridade
+        } as TournamentEvent;
+      })
+      .filter(tournament => !tournament.deletedAt); // Filtrar apenas eventos ativos
     return tournaments;
   } catch (error) {
     console.error('Erro ao buscar tournaments:', error);
+    return [];
+  }
+};
+
+export const getDeletedTournaments = async (userId: string): Promise<TournamentEvent[]> => {
+  try {
+    const tournamentsRef = collection(db, 'users', userId, 'tournaments');
+    const snapshot = await getDocs(tournamentsRef);
+    const deletedTournaments = snapshot.docs
+      .map(doc => {
+        const data = doc.data();
+        return {
+          ...data,
+          id: doc.id
+        } as TournamentEvent;
+      })
+      .filter(tournament => tournament.deletedAt); // Filtrar apenas eventos deletados
+    return deletedTournaments;
+  } catch (error) {
+    console.error('Erro ao buscar tournaments deletados:', error);
     return [];
   }
 };
@@ -988,5 +1103,232 @@ export const batchDelete = async (userId: string, collection: string, ids: strin
   } catch (error) {
     console.error('Erro no batch delete:', error);
     return false;
+  }
+};
+// ============= BIRD VERIFICATION ANALYTICS (PÚBLICO) =============
+export interface BirdVerificationRecord {
+  id: string;
+  birdId: string;
+  timestamp: Timestamp;
+  userAgent: string;
+  referrer?: string;
+  ipHash?: string; // Hash do IP para privacidade
+  location?: {
+    city?: string;
+    region?: string;
+    country?: string;
+    latitude?: number;
+    longitude?: number;
+    isp?: string;
+  };
+}
+
+export const recordBirdVerification = async (birdId: string): Promise<boolean> => {
+  try {
+    const verificationRef = collection(db, 'bird_verifications');
+    const docRef = doc(verificationRef);
+    
+    // Capturar localização via IP
+    let locationData: any = {
+      city: 'Desconhecida',
+      region: 'Desconhecida',
+      country: 'Desconhecida',
+      latitude: null,
+      longitude: null,
+      isp: 'Desconhecido'
+    };
+    
+    try {
+      // Usar API de geolocalização gratuita
+      const geoResponse = await fetch('https://ipapi.co/json/');
+      if (geoResponse.ok) {
+        const geoData = await geoResponse.json();
+        locationData = {
+          city: geoData.city || 'Desconhecida',
+          region: geoData.region || 'Desconhecida',
+          country: geoData.country_name || 'Desconhecida',
+          latitude: geoData.latitude,
+          longitude: geoData.longitude,
+          isp: geoData.org || 'Desconhecido'
+        };
+        console.log('[recordBirdVerification] Localização capturada:', locationData);
+      }
+    } catch (geoErr) {
+      console.warn('[recordBirdVerification] Erro ao capturar geolocalização:', geoErr);
+      // Continua sem localização
+    }
+    
+    await setDoc(docRef, {
+      birdId: birdId,
+      timestamp: Timestamp.now(),
+      userAgent: navigator.userAgent,
+      referrer: document.referrer || 'direct',
+      location: locationData,
+      // Não armazenar IP real por privacidade, apenas um hash simples
+      ipHash: btoa(new Date().getTime().toString()).substring(0, 16)
+    });
+    
+    console.log('[recordBirdVerification] Verificação registrada para pássaro:', birdId);
+    return true;
+  } catch (error: any) {
+    console.error('[recordBirdVerification] Erro ao registrar verificação:', error);
+    return false;
+  }
+};
+
+export const getBirdVerifications = async (birdId: string): Promise<BirdVerificationRecord[]> => {
+  try {
+    const verificationsRef = collection(db, 'bird_verifications');
+    const q = query(verificationsRef, where('birdId', '==', birdId), orderBy('timestamp', 'desc'));
+    const snapshot = await getDocs(q);
+    
+    return snapshot.docs.map(doc => ({
+      id: doc.id,
+      ...doc.data()
+    } as BirdVerificationRecord));
+  } catch (error: any) {
+    console.error('[getBirdVerifications] Erro ao buscar verificações:', error);
+    return [];
+  }
+};
+
+export const getAllBirdVerifications = async (): Promise<BirdVerificationRecord[]> => {
+  try {
+    const verificationsRef = collection(db, 'bird_verifications');
+    const q = query(verificationsRef, orderBy('timestamp', 'desc'), limit(1000));
+    const snapshot = await getDocs(q);
+    
+    return snapshot.docs.map(doc => ({
+      id: doc.id,
+      ...doc.data()
+    } as BirdVerificationRecord));
+  } catch (error: any) {
+    console.error('[getAllBirdVerifications] Erro ao buscar todas as verificações:', error);
+    return [];
+  }
+};
+
+/**
+ * Busca dados públicos de um pássaro por ID (sem autenticação necessária)
+ * Função pública para verificação via QR code
+ */
+export const getPublicBirdById = async (birdId: string): Promise<Bird | null> => {
+  try {
+    console.log('[getPublicBirdById] Buscando pássaro:', birdId);
+    
+    if (!birdId) {
+      console.warn('[getPublicBirdById] BirdId vazio');
+      return null;
+    }
+
+    // 1. Buscar no índice público para descobrir o userId
+    const indexRef = doc(db, 'bird_index', birdId);
+    const indexSnapshot = await getDoc(indexRef);
+    
+    if (!indexSnapshot.exists()) {
+      console.warn('[getPublicBirdById] Pássaro não encontrado no índice:', birdId);
+      return null;
+    }
+    
+    const indexData = indexSnapshot.data();
+    const userId = indexData.userId;
+    
+    if (!userId) {
+      console.warn('[getPublicBirdById] userId não encontrado no índice');
+      return null;
+    }
+    
+    console.log('[getPublicBirdById] Encontrado userId no índice:', userId);
+    
+    // 2. Buscar o pássaro na coleção do usuário
+    const birdRef = doc(db, 'users', userId, 'birds', birdId);
+    const birdSnapshot = await getDoc(birdRef);
+    
+    if (!birdSnapshot.exists()) {
+      console.warn('[getPublicBirdById] Pássaro não encontrado na coleção do usuário');
+      return null;
+    }
+    
+    const data = birdSnapshot.data();
+    console.log('[getPublicBirdById] Pássaro encontrado:', { userId, birdId });
+    
+    return {
+      id: birdSnapshot.id,
+      name: data.name || '',
+      species: data.species || '',
+      sex: data.sex || '',
+      status: data.status || '',
+      ringNumber: data.ringNumber || '',
+      birthDate: data.birthDate || '',
+      colorMutation: data.colorMutation || '',
+      classification: data.classification || '',
+      location: data.location || '',
+      fatherId: data.fatherId || '',
+      motherId: data.motherId || '',
+      songTrainingStatus: data.songTrainingStatus || '',
+      songType: data.songType || '',
+      trainingNotes: data.trainingNotes || '',
+      photoUrl: data.photoUrl || '',
+      manualAncestors: data.manualAncestors || {}
+    } as Bird;
+  } catch (error: any) {
+    console.error('[getPublicBirdById] Erro ao buscar pássaro público:', error);
+    return null;
+  }
+};
+
+/**
+ * Busca dados públicos do criador por ID de um de seus pássaros
+ */
+export const getPublicBreederByBirdId = async (birdId: string): Promise<BreederSettings | null> => {
+  try {
+    // 1. Buscar no índice público para descobrir o userId
+    const indexRef = doc(db, 'bird_index', birdId);
+    const indexSnapshot = await getDoc(indexRef);
+    
+    if (!indexSnapshot.exists()) {
+      console.warn('[getPublicBreederByBirdId] Pássaro não encontrado no índice:', birdId);
+      return null;
+    }
+    
+    const indexData = indexSnapshot.data();
+    const userId = indexData.userId;
+    
+    if (!userId) {
+      console.warn('[getPublicBreederByBirdId] userId não encontrado no índice');
+      return null;
+    }
+    
+    // 2. Buscar as settings do criador
+    const settingsRef = doc(db, 'users', userId, 'settings', 'general');
+    const settingsSnapshot = await getDoc(settingsRef);
+    
+    if (!settingsSnapshot.exists()) {
+      console.warn('[getPublicBreederByBirdId] Settings do criador não encontradas');
+      return null;
+    }
+    
+    const data = settingsSnapshot.data();
+    return {
+      breederName: data.breederName || '',
+      cpfCnpj: data.cpfCnpj || '',
+      sispassNumber: data.sispassNumber || '',
+      sispassDocumentUrl: data.sispassDocumentUrl || '',
+      registrationDate: data.registrationDate || '',
+      renewalDate: data.renewalDate || '',
+      lastRenewalDate: data.lastRenewalDate || '',
+      logoUrl: data.logoUrl || '',
+      primaryColor: data.primaryColor || '#10B981',
+      accentColor: data.accentColor || '#F59E0B',
+      plan: data.plan || 'PRO_TESTE',
+      trialEndDate: data.trialEndDate || '',
+      dashboardLayout: data.dashboardLayout || [],
+      certificate: data.certificate || undefined,
+      subscriptionEndDate: data.subscriptionEndDate || '',
+      subscriptionCancelAtPeriodEnd: data.subscriptionCancelAtPeriodEnd || false
+    } as BreederSettings;
+  } catch (error: any) {
+    console.error('[getPublicBreederByBirdId] Erro ao buscar dados do criador:', error);
+    return null;
   }
 };

@@ -1,22 +1,32 @@
 import React, { useEffect, useState } from 'react';
 import { BarChart3, TrendingUp, Eye, Calendar } from 'lucide-react';
-import { supabase } from '../lib/supabase';
+import { getAllBirdVerifications, getPublicBirdById } from '../services/firestoreService';
 
 interface VerificationRecord {
   bird_id: string;
   bird_name: string;
   count: number;
-  last_accessed: string;
+  last_accessed: Date;
+  locations: LocationData[];
+}
+
+interface LocationData {
+  city: string;
+  region: string;
+  country: string;
+  latitude?: number;
+  longitude?: number;
+  isp?: string;
+  count: number;
 }
 
 interface DateRange {
-  from: string;
-  to: string;
+  from: Date;
+  to: Date;
 }
 
 // Converter UTC para horário local (Brasil BRT)
-const formatBrazilTime = (utcDateString: string) => {
-  const date = new Date(utcDateString);
+const formatBrazilTime = (date: Date) => {
   return date.toLocaleString('pt-BR', { 
     timeZone: 'America/Sao_Paulo',
     day: '2-digit',
@@ -32,9 +42,10 @@ const VerificationAnalytics: React.FC = () => {
   const [verifications, setVerifications] = useState<VerificationRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [totalVerifications, setTotalVerifications] = useState(0);
+  const [expandedBirdId, setExpandedBirdId] = useState<string | null>(null);
   const [dateRange, setDateRange] = useState<DateRange>({
-    from: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-    to: new Date().toISOString().split('T')[0]
+    from: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000),
+    to: new Date()
   });
 
   useEffect(() => {
@@ -54,74 +65,83 @@ const VerificationAnalytics: React.FC = () => {
           });
         }
 
-        // Busca verificações do Supabase
-        if (supabase && Object.keys(birdsMap).length > 0) {
-          try {
-            // Se nenhuma data foi selecionada, usar últimos 30 dias
-            const fromDate = dateRange.from || new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
-            const toDate = dateRange.to || new Date().toISOString().split('T')[0];
-            
-            const { data: verificationData, error: verificationError } = await supabase
-              .from('bird_verifications')
-              .select('bird_id, accessed_at')
-              .gte('accessed_at', fromDate + 'T00:00:00')
-              .lte('accessed_at', toDate + 'T23:59:59')
-              .order('accessed_at', { ascending: false });
+        // Busca verificações do Firebase
+        const allVerifications = await getAllBirdVerifications();
+        
+        // Filtrar por data
+        const filtered = allVerifications.filter(v => {
+          const timestamp = v.timestamp.toDate ? v.timestamp.toDate() : new Date(v.timestamp as any);
+          return timestamp >= dateRange.from && timestamp <= dateRange.to;
+        });
 
-            if (verificationError) {
-              console.warn('Erro ao buscar verificações:', verificationError);
-              // Continua com dados locais
-            } else if (verificationData && verificationData.length > 0) {
-              // Agrupa por bird_id
-              const grouped: Record<string, { count: number; last_accessed: string }> = {};
-              
-              verificationData.forEach((record: any) => {
-                if (!grouped[record.bird_id]) {
-                  grouped[record.bird_id] = { count: 0, last_accessed: record.accessed_at };
-                }
-                grouped[record.bird_id].count++;
-                
-                // Atualiza last_accessed se for mais recente
-                if (new Date(record.accessed_at) > new Date(grouped[record.bird_id].last_accessed)) {
-                  grouped[record.bird_id].last_accessed = record.accessed_at;
-                }
-              });
-
-              // Converte para array e ordena
-              const mockVerifications: VerificationRecord[] = Object.entries(grouped)
-                .map(([bird_id, data]) => ({
-                  bird_id,
-                  bird_name: birdsMap[bird_id] || `Pássaro ${bird_id.substring(0, 8)}`,
-                  count: data.count,
-                  last_accessed: data.last_accessed
-                }))
-                .sort((a, b) => b.count - a.count);
-
-              setVerifications(mockVerifications);
-              setTotalVerifications(mockVerifications.reduce((sum, v) => sum + v.count, 0));
-              setLoading(false);
-              return;
-            }
-          } catch (err) {
-            console.warn('Erro ao conectar Supabase:', err);
-            // Continua com fallback
+        // Agrupar por bird_id e localização
+        const grouped: Record<string, { count: number; last_accessed: Date; locationMap: Record<string, any> }> = {};
+        
+        for (const record of filtered) {
+          const timestamp = record.timestamp.toDate ? record.timestamp.toDate() : new Date(record.timestamp as any);
+          const location = (record as any).location || { city: 'Desconhecida', region: 'Desconhecida', country: 'Desconhecida' };
+          const locationKey = `${location.city}|${location.region}|${location.country}`;
+          
+          if (!grouped[record.birdId]) {
+            grouped[record.birdId] = { count: 0, last_accessed: timestamp, locationMap: {} };
           }
+          grouped[record.birdId].count++;
+          
+          // Atualiza last_accessed se for mais recente
+          if (timestamp > grouped[record.birdId].last_accessed) {
+            grouped[record.birdId].last_accessed = timestamp;
+          }
+          
+          // Agrupa localizações
+          if (!grouped[record.birdId].locationMap[locationKey]) {
+            grouped[record.birdId].locationMap[locationKey] = {
+              city: location.city,
+              region: location.region,
+              country: location.country,
+              latitude: location.latitude,
+              longitude: location.longitude,
+              isp: location.isp,
+              count: 0
+            };
+          }
+          grouped[record.birdId].locationMap[locationKey].count++;
         }
 
-        // Fallback: dados locais simulados (caso Supabase não esteja disponível)
-        if (Object.keys(birdsMap).length > 0) {
-          const birds = Object.entries(birdsMap).slice(0, 5);
-          const mockVerifications: VerificationRecord[] = birds.map(([id, name]) => ({
-            bird_id: id,
-            bird_name: name,
-            count: Math.floor(Math.random() * 50) + 1,
-            last_accessed: new Date(Date.now() - Math.random() * 30 * 24 * 60 * 60 * 1000).toISOString()
-          }));
+        // Converte para array e busca nomes do Firestore
+        const verificationRecords: VerificationRecord[] = [];
+        
+        for (const [bird_id, data] of Object.entries(grouped)) {
+          let bird_name = birdsMap[bird_id];
+          
+          // Se não encontrar no localStorage, buscar do Firestore publicamente
+          if (!bird_name) {
+            try {
+              const publicBird = await getPublicBirdById(bird_id);
+              bird_name = publicBird?.name || `Pássaro ${bird_id.substring(0, 8)}`;
+            } catch (err) {
+              console.warn('Erro ao buscar nome do pássaro:', bird_id);
+              bird_name = `Pássaro ${bird_id.substring(0, 8)}`;
+            }
+          }
+          
+          // Converter locationMap em array ordenado
+          const locations = Object.values(data.locationMap as any).sort((a: any, b: any) => b.count - a.count) as LocationData[];
+          
+          verificationRecords.push({
+            bird_id,
+            bird_name,
+            count: data.count,
+            last_accessed: data.last_accessed,
+            locations
+          });
 
-          mockVerifications.sort((a, b) => b.count - a.count);
-          setVerifications(mockVerifications);
-          setTotalVerifications(mockVerifications.reduce((sum, v) => sum + v.count, 0));
         }
+
+        // Ordena por contagem
+        verificationRecords.sort((a, b) => b.count - a.count);
+
+        setVerifications(verificationRecords);
+        setTotalVerifications(verificationRecords.reduce((sum, v) => sum + v.count, 0));
       } catch (err) {
         console.error('Erro ao carregar verificações:', err);
       } finally {
@@ -154,14 +174,14 @@ const VerificationAnalytics: React.FC = () => {
         <div className="flex gap-3">
           <input
             type="date"
-            value={dateRange.from}
-            onChange={(e) => setDateRange({ ...dateRange, from: e.target.value })}
+            value={dateRange.from.toISOString().split('T')[0]}
+            onChange={(e) => setDateRange({ ...dateRange, from: new Date(e.target.value) })}
             className="px-4 py-2 border border-slate-300 rounded-lg text-sm font-medium bg-white hover:bg-slate-50 transition-all"
           />
           <input
             type="date"
-            value={dateRange.to}
-            onChange={(e) => setDateRange({ ...dateRange, to: e.target.value })}
+            value={dateRange.to.toISOString().split('T')[0]}
+            onChange={(e) => setDateRange({ ...dateRange, to: new Date(e.target.value) })}
             className="px-4 py-2 border border-slate-300 rounded-lg text-sm font-medium bg-white hover:bg-slate-50 transition-all"
           />
         </div>
@@ -215,10 +235,14 @@ const VerificationAnalytics: React.FC = () => {
             {verifications.map((bird, idx) => {
               const maxCount = Math.max(...verifications.map(v => v.count));
               const percentage = (bird.count / maxCount) * 100;
+              const isExpanded = expandedBirdId === bird.bird_id;
 
               return (
                 <div key={bird.bird_id} className="group">
-                  <div className="flex items-center justify-between mb-2">
+                  <div 
+                    className="flex items-center justify-between mb-2 cursor-pointer hover:bg-slate-50 p-2 rounded transition-colors"
+                    onClick={() => setExpandedBirdId(isExpanded ? null : bird.bird_id)}
+                  >
                     <div className="flex items-center gap-3">
                       <div className="w-8 h-8 rounded-full bg-blue-100 text-blue-600 font-bold flex items-center justify-center text-sm">
                         {idx + 1}
@@ -236,6 +260,33 @@ const VerificationAnalytics: React.FC = () => {
                   <p className="text-xs text-slate-500 mt-1">
                     Último acesso: {formatBrazilTime(bird.last_accessed)}
                   </p>
+                  
+                  {/* Expansão com dados de localização */}
+                  {isExpanded && bird.locations.length > 0 && (
+                    <div className="mt-4 pt-4 border-t border-slate-200">
+                      <p className="text-sm font-semibold text-slate-700 mb-3">📍 Regiões de Acesso:</p>
+                      <div className="space-y-2">
+                        {bird.locations.map((loc, locIdx) => (
+                          <div key={locIdx} className="bg-slate-50 rounded-lg p-3">
+                            <div className="flex justify-between items-start mb-1">
+                              <div>
+                                <p className="font-semibold text-slate-900">
+                                  {loc.city}, {loc.region}
+                                </p>
+                                <p className="text-xs text-slate-600">{loc.country}</p>
+                                {loc.isp && (
+                                  <p className="text-xs text-slate-500 mt-1">ISP: {loc.isp}</p>
+                                )}
+                              </div>
+                              <span className="bg-blue-100 text-blue-700 px-2 py-1 rounded text-xs font-semibold">
+                                {loc.count} acesso{loc.count > 1 ? 's' : ''}
+                              </span>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                 </div>
               );
             })}

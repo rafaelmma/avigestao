@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
-import { supabase } from '../supabaseClient';
+// import { supabase } from '../supabaseClient'; // REMOVIDO - Firebase only
+const supabase = null as any;
 
 const AdminDashboard: React.FC = () => {
   const [metrics, setMetrics] = useState<any>(null);

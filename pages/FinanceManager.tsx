@@ -13,7 +13,8 @@ import {
   TrendingDown,
   Tag,
   RefreshCcw,
-  X
+  X,
+  PlusCircle
 } from 'lucide-react';
 const TipCarousel = React.lazy(() => import('../components/TipCarousel'));
 
@@ -46,6 +47,11 @@ const FinanceManager: React.FC<FinanceManagerProps> = ({ state, addTransaction, 
   const [showModal, setShowModal] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [currentList, setCurrentList] = useState<'active' | 'trash'>('active');
+  const [showCreateCategory, setShowCreateCategory] = useState(false);
+  const [showCreateSubitem, setShowCreateSubitem] = useState(false);
+  const [newCategoryName, setNewCategoryName] = useState('');
+  const [newSubitemName, setNewSubitemName] = useState('');
+  const [categoryStructure, setCategoryStructure] = useState(CATEGORY_STRUCTURE);
   
   const [newTx, setNewTx] = useState<Partial<Transaction>>({
     type: 'Receita',
@@ -69,18 +75,58 @@ const FinanceManager: React.FC<FinanceManagerProps> = ({ state, addTransaction, 
   // Obter categorias disponíveis baseadas no tipo (Receita/Despesa)
   const availableCategories = useMemo(() => {
     const type = newTx.type || 'Receita';
-    return Object.keys(CATEGORY_STRUCTURE[type]);
-  }, [newTx.type]);
+    return Object.keys(categoryStructure[type]);
+  }, [newTx.type, categoryStructure]);
 
   // Obter subcategorias baseadas na categoria selecionada
   const availableSubcategories = useMemo(() => {
     const type = newTx.type || 'Receita';
     const category = newTx.category;
-    if (category && CATEGORY_STRUCTURE[type][category]) {
-      return CATEGORY_STRUCTURE[type][category];
+    if (category && categoryStructure[type][category]) {
+      return categoryStructure[type][category];
     }
     return [];
-  }, [newTx.type, newTx.category]);
+  }, [newTx.type, newTx.category, categoryStructure]);
+
+  // Criar nova categoria
+  const handleCreateCategory = () => {
+    if (!newCategoryName.trim()) return;
+    
+    const type = newTx.type || 'Receita';
+    const newStructure = { ...categoryStructure };
+    
+    if (!newStructure[type]) {
+      newStructure[type] = {};
+    }
+    
+    newStructure[type][newCategoryName] = [];
+    setCategoryStructure(newStructure);
+    setNewTx({ ...newTx, category: newCategoryName as TransactionCategory, subcategory: '' });
+    setNewCategoryName('');
+    setShowCreateCategory(false);
+  };
+
+  // Criar novo subitem
+  const handleCreateSubitem = () => {
+    if (!newSubitemName.trim() || !newTx.category) return;
+    
+    const type = newTx.type || 'Receita';
+    const category = newTx.category;
+    const newStructure = { ...categoryStructure };
+    
+    if (!newStructure[type][category]) {
+      newStructure[type][category] = [];
+    }
+    
+    if (!newStructure[type][category].includes(newSubitemName)) {
+      newStructure[type][category].push(newSubitemName);
+    }
+    
+    setCategoryStructure(newStructure);
+    setNewTx({ ...newTx, subcategory: newSubitemName });
+    setNewSubitemName('');
+    setShowCreateSubitem(false);
+  };
 
   const handleTypeChange = (type: 'Receita' | 'Despesa') => {
     const defaultCat = Object.keys(CATEGORY_STRUCTURE[type])[0];
@@ -346,29 +392,50 @@ const FinanceManager: React.FC<FinanceManagerProps> = ({ state, addTransaction, 
               <div className="grid grid-cols-2 gap-6">
                 <div>
                   <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Categoria</label>
-                  <select 
-                    className="w-full px-6 py-4 bg-slate-50 border border-slate-100 rounded-2xl outline-none font-bold text-slate-700 appearance-none" 
-                    value={newTx.category} 
-                    onChange={e => setNewTx({...newTx, category: e.target.value as TransactionCategory, subcategory: ''})}
-                  >
-                    {availableCategories.map(cat => (
-                      <option key={cat} value={cat}>{cat}</option>
-                    ))}
-                  </select>
+                  <div className="flex gap-2">
+                    <select 
+                      className="flex-1 px-6 py-4 bg-slate-50 border border-slate-100 rounded-2xl outline-none font-bold text-slate-700 appearance-none" 
+                      value={newTx.category} 
+                      onChange={e => setNewTx({...newTx, category: e.target.value as TransactionCategory, subcategory: ''})}
+                    >
+                      {availableCategories.map(cat => (
+                        <option key={cat} value={cat}>{cat}</option>
+                      ))}
+                    </select>
+                    <button
+                      type="button"
+                      onClick={() => setShowCreateCategory(true)}
+                      className="px-4 py-4 bg-slate-100 hover:bg-slate-200 rounded-2xl text-slate-600 transition-all flex items-center justify-center"
+                      title="Criar categoria personalizada"
+                    >
+                      <PlusCircle size={18} />
+                    </button>
+                  </div>
                 </div>
                 <div>
                   <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Sub-Item</label>
-                  <select 
-                    className="w-full px-6 py-4 bg-slate-50 border border-slate-100 rounded-2xl outline-none font-bold text-slate-700 appearance-none disabled:opacity-50" 
-                    value={newTx.subcategory} 
-                    onChange={e => setNewTx({...newTx, subcategory: e.target.value})}
-                    disabled={availableSubcategories.length === 0}
-                  >
-                    <option value="">Selecione...</option>
-                    {availableSubcategories.map(sub => (
-                      <option key={sub} value={sub}>{sub}</option>
-                    ))}
-                  </select>
+                  <div className="flex gap-2">
+                    <select 
+                      className="flex-1 px-6 py-4 bg-slate-50 border border-slate-100 rounded-2xl outline-none font-bold text-slate-700 appearance-none disabled:opacity-50" 
+                      value={newTx.subcategory} 
+                      onChange={e => setNewTx({...newTx, subcategory: e.target.value})}
+                      disabled={availableSubcategories.length === 0 && !newTx.category}
+                    >
+                      <option value="">Selecione...</option>
+                      {availableSubcategories.map(sub => (
+                        <option key={sub} value={sub}>{sub}</option>
+                      ))}
+                    </select>
+                    <button
+                      type="button"
+                      onClick={() => setShowCreateSubitem(true)}
+                      disabled={!newTx.category}
+                      className="px-4 py-4 bg-slate-100 hover:bg-slate-200 disabled:opacity-30 disabled:cursor-not-allowed rounded-2xl text-slate-600 transition-all flex items-center justify-center"
+                      title="Criar sub-item personalizado"
+                    >
+                      <PlusCircle size={18} />
+                    </button>
+                  </div>
                 </div>
               </div>
 
@@ -376,6 +443,83 @@ const FinanceManager: React.FC<FinanceManagerProps> = ({ state, addTransaction, 
                 <button type="submit" className="w-full py-5 bg-[#0F172A] text-white font-black text-xs uppercase tracking-widest rounded-2xl shadow-xl hover:bg-slate-800 transition-all">Efetuar Lançamento</button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Modal Criar Categoria */}
+      {showCreateCategory && (
+        <div className="fixed inset-0 z-[110] flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4 animate-in fade-in zoom-in-95 duration-200">
+          <div className="bg-white rounded-[32px] w-full max-w-md shadow-2xl">
+            <div className="p-8 border-b border-slate-100 flex justify-between items-center">
+              <h3 className="text-xl font-black text-slate-800">Criar Categoria Personalizada</h3>
+              <button onClick={() => setShowCreateCategory(false)} className="text-slate-400 hover:text-slate-600"><X size={24} /></button>
+            </div>
+            <div className="p-8 space-y-4">
+              <input
+                type="text"
+                placeholder="Nome da categoria (ex: Viagens, Importações)"
+                className="w-full px-4 py-3 bg-slate-50 border border-slate-100 rounded-xl outline-none focus:border-brand font-bold text-slate-700"
+                value={newCategoryName}
+                onChange={e => setNewCategoryName(e.target.value)}
+                autoFocus
+              />
+              <div className="flex gap-3">
+                <button
+                  onClick={() => setShowCreateCategory(false)}
+                  className="flex-1 py-3 bg-slate-100 text-slate-700 font-bold rounded-xl hover:bg-slate-200 transition-all"
+                >
+                  Cancelar
+                </button>
+                <button
+                  onClick={handleCreateCategory}
+                  disabled={!newCategoryName.trim()}
+                  className="flex-1 py-3 bg-blue-600 text-white font-bold rounded-xl hover:bg-blue-700 disabled:opacity-50 transition-all"
+                >
+                  Criar
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal Criar Sub-item */}
+      {showCreateSubitem && (
+        <div className="fixed inset-0 z-[110] flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4 animate-in fade-in zoom-in-95 duration-200">
+          <div className="bg-white rounded-[32px] w-full max-w-md shadow-2xl">
+            <div className="p-8 border-b border-slate-100 flex justify-between items-center">
+              <h3 className="text-xl font-black text-slate-800">Criar Sub-item</h3>
+              <button onClick={() => setShowCreateSubitem(false)} className="text-slate-400 hover:text-slate-600"><X size={24} /></button>
+            </div>
+            <div className="p-8 space-y-4">
+              <p className="text-sm text-slate-600">
+                Categoria: <span className="font-bold text-slate-900">{newTx.category}</span>
+              </p>
+              <input
+                type="text"
+                placeholder="Nome do sub-item"
+                className="w-full px-4 py-3 bg-slate-50 border border-slate-100 rounded-xl outline-none focus:border-brand font-bold text-slate-700"
+                value={newSubitemName}
+                onChange={e => setNewSubitemName(e.target.value)}
+                autoFocus
+              />
+              <div className="flex gap-3">
+                <button
+                  onClick={() => setShowCreateSubitem(false)}
+                  className="flex-1 py-3 bg-slate-100 text-slate-700 font-bold rounded-xl hover:bg-slate-200 transition-all"
+                >
+                  Cancelar
+                </button>
+                <button
+                  onClick={handleCreateSubitem}
+                  disabled={!newSubitemName.trim()}
+                  className="flex-1 py-3 bg-blue-600 text-white font-bold rounded-xl hover:bg-blue-700 disabled:opacity-50 transition-all"
+                >
+                  Criar
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       )}

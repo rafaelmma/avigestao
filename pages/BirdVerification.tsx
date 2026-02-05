@@ -1,93 +1,126 @@
 import React, { useEffect, useState } from 'react';
 import { ArrowLeft, Share2, Download, AlertCircle, CheckCircle } from 'lucide-react';
 import { Bird } from '../types';
-import { supabase } from '../lib/supabase';
-import { loadBirdsForUser } from '../lib/birdSync';
+import { recordBirdVerification, getPublicBirdById, getPublicBreederByBirdId } from '../services/firestoreService';
 
 const BirdVerification: React.FC<{ birdId: string }> = ({ birdId }) => {
   const [bird, setBird] = useState<Bird | null>(null);
   const [breeder, setBreeder] = useState<any>(null);
+  const [parentNames, setParentNames] = useState<{ fatherName?: string; motherName?: string }>({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [verified, setVerified] = useState(false);
 
   useEffect(() => {
+    let mounted = true;
+    const timeoutId = setTimeout(() => {
+      if (mounted && loading) {
+        console.error('[BirdVerification] Timeout: Dados demoraram muito para carregar');
+        setError('Tempo esgotado ao carregar dados. Verifique sua conexão.');
+        setLoading(false);
+      }
+    }, 15000); // 15 segundos de timeout
+
     const loadBirdData = async () => {
       try {
-        // Registra acesso para auditoria no Supabase
-        if (supabase) {
-          try {
-            const { error } = await supabase.from('bird_verifications').insert({
-              bird_id: birdId,
-              accessed_at: new Date().toISOString(),
-              ip_address: 'browser-access',
-              user_agent: navigator.userAgent
-            });
-            
-            if (error && !error.message.includes('does not exist')) {
-              console.warn('Aviso ao registrar acesso:', error);
-            }
-          } catch (insertError) {
-            console.warn('Erro ao registrar acesso:', insertError);
-          }
+        console.log('[BirdVerification] Carregando dados para birdId:', birdId);
+        
+        if (!birdId || birdId.trim() === '') {
+          throw new Error('ID do pássaro inválido');
         }
-
-        // Tentar carregar do Supabase primeiro (mais rápido e confiável)
-        const { data: birdData, error: birdError } = await supabase
-          .from('birds')
-          .select('*')
-          .eq('id', birdId)
-          .single();
-
-        if (!birdError && birdData) {
-          setBird({
-            id: birdData.id,
-            name: birdData.name,
-            species: birdData.species,
-            sex: birdData.sex,
-            status: birdData.status,
-            ringNumber: birdData.ring_number,
-            birthDate: birdData.birth_date,
-            colorMutation: birdData.color_mutation,
-            classification: birdData.classification,
-            location: birdData.location,
-            fatherId: birdData.father_id,
-            motherId: birdData.mother_id,
-            songTrainingStatus: birdData.song_training_status,
-            songType: birdData.song_type,
-            trainingNotes: birdData.training_notes,
-            photoUrl: birdData.photo_url
-          } as Bird);
-          setVerified(true);
-          setLoading(false);
+        
+        // 1. Registrar leitura do QR code (público) - não bloqueia se falhar
+        try {
+          await recordBirdVerification(birdId);
+        } catch (verErr) {
+          console.warn('[BirdVerification] Falha ao registrar verificação:', verErr);
+        }
+        
+        // 2. Buscar dados públicos do pássaro no Firestore
+        const birdData = await getPublicBirdById(birdId);
+        console.log('[BirdVerification] Dados retornados:', birdData);
+        
+        if (!mounted) return;
+        
+        if (birdData) {
+          setBird(birdData);
+          
+          // 3. Buscar nomes de pai e mãe (não bloqueia se falhar)
+          try {
+            const parentNames: { fatherName?: string; motherName?: string } = {};
+            
+            if (birdData.fatherId) {
+              try {
+                const fatherData = await getPublicBirdById(birdData.fatherId);
+                if (fatherData?.name) {
+                  parentNames.fatherName = fatherData.name;
+                }
+              } catch (err) {
+                console.warn('Erro ao buscar dados do pai:', err);
+              }
+            }
+            
+            if (birdData.motherId) {
+              try {
+                const motherData = await getPublicBirdById(birdData.motherId);
+                if (motherData?.name) {
+                  parentNames.motherName = motherData.name;
+                }
+              } catch (err) {
+                console.warn('Erro ao buscar dados da mãe:', err);
+              }
+            }
+            
+            if (mounted) {
+              setParentNames(parentNames);
+            }
+          } catch (parentErr) {
+            console.warn('[BirdVerification] Falha ao buscar nomes dos pais:', parentErr);
+          }
+          
+          // 4. Buscar dados do criador (não bloqueia se falhar)
+          try {
+            const breederData = await getPublicBreederByBirdId(birdId);
+            console.log('[BirdVerification] Dados do criador:', breederData);
+            
+            if (breederData && mounted) {
+              setBreeder(breederData);
+            }
+          } catch (breederErr) {
+            console.warn('[BirdVerification] Falha ao buscar criador:', breederErr);
+          }
+          
+          if (mounted) {
+            setVerified(true);
+            setLoading(false);
+            clearTimeout(timeoutId);
+          }
           return;
         }
 
-        // Fallback: carregar do localStorage
-        const stored = localStorage.getItem('avigestao_state_v2');
-        if (stored) {
-          const data = JSON.parse(stored);
-          const foundBird = data?.birds?.find((b: Bird) => b.id === birdId);
-          if (foundBird) {
-            setBird(foundBird);
-            setBreeder(data?.settings);
-            setVerified(true);
-            setLoading(false);
-            return;
-          }
+        // Se não encontrar
+        if (mounted) {
+          console.error('[BirdVerification] Pássaro não encontrado para ID:', birdId);
+          setError('Pássaro não encontrado na base de dados');
+          setLoading(false);
+          clearTimeout(timeoutId);
         }
-
-        // Se não encontrar em lugar nenhum
-        setError('Pássaro não encontrado na base de dados');
-        setLoading(false);
       } catch (err) {
-        console.error('Erro ao carregar dados:', err);
-        setError('Erro ao carregar dados do pássaro');
-        setLoading(false);
+        console.error('[BirdVerification] Erro ao carregar dados:', err);
+        if (mounted) {
+          setError(err instanceof Error ? err.message : 'Erro ao carregar dados do pássaro');
+          setLoading(false);
+          clearTimeout(timeoutId);
+        }
       }
     };
 
     loadBirdData();
+    
+    return () => {
+      mounted = false;
+      clearTimeout(timeoutId);
+    };
   }, [birdId]);
 
   const handleGoBack = () => {
@@ -111,12 +144,16 @@ const BirdVerification: React.FC<{ birdId: string }> = ({ birdId }) => {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-slate-50 flex items-center justify-center">
-        <div className="text-center">
-          <div className="w-16 h-16 rounded-full bg-blue-100 mx-auto mb-4 flex items-center justify-center">
-            <div className="w-12 h-12 rounded-full border-4 border-blue-200 border-t-blue-500 animate-spin"></div>
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-slate-50 flex items-center justify-center p-4">
+        <div className="text-center max-w-md">
+          <div className="w-20 h-20 rounded-full bg-blue-100 mx-auto mb-6 flex items-center justify-center">
+            <div className="w-16 h-16 rounded-full border-4 border-blue-200 border-t-blue-600 animate-spin"></div>
           </div>
-          <p className="text-slate-600 font-medium">Verificando pássaro...</p>
+          <h2 className="text-xl font-bold text-slate-900 mb-2">Verificando Autenticidade</h2>
+          <p className="text-slate-600 font-medium mb-4">Aguarde enquanto carregamos os dados do pássaro...</p>
+          <div className="bg-white rounded-lg p-4 shadow-sm">
+            <p className="text-sm text-slate-500">ID: {birdId.substring(0, 12)}...</p>
+          </div>
         </div>
       </div>
     );
@@ -130,13 +167,22 @@ const BirdVerification: React.FC<{ birdId: string }> = ({ birdId }) => {
             <AlertCircle className="text-red-500" size={48} />
           </div>
           <h1 className="text-2xl font-bold text-slate-900 text-center mb-2">Pássaro Não Encontrado</h1>
-          <p className="text-slate-600 text-center mb-6">{error || 'Não foi possível localizar este pássaro no sistema.'}</p>
+          <p className="text-slate-600 text-center mb-4">{error || 'Não foi possível localizar este pássaro no sistema.'}</p>
+          <div className="bg-slate-50 rounded-lg p-3 mb-6">
+            <p className="text-xs text-slate-500 text-center">ID buscado:</p>
+            <p className="text-sm text-slate-700 text-center font-mono break-all">{birdId}</p>
+          </div>
           <button
-            onClick={handleGoBack}
-            className="w-full px-4 py-3 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700 transition-all flex items-center justify-center gap-2"
+            onClick={() => window.location.reload()}
+            className="w-full px-4 py-3 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700 transition-all mb-3"
           >
-            <ArrowLeft size={18} />
-            Voltar
+            Tentar Novamente
+          </button>
+          <button
+            onClick={() => window.close()}
+            className="w-full px-4 py-3 bg-slate-200 text-slate-700 rounded-lg font-semibold hover:bg-slate-300 transition-all"
+          >
+            Fechar
           </button>
         </div>
       </div>
@@ -239,8 +285,14 @@ const BirdVerification: React.FC<{ birdId: string }> = ({ birdId }) => {
                 <div>
                   <h3 className="text-xs font-bold text-slate-600 uppercase tracking-wide mb-4">Genealogia</h3>
                   <div className="space-y-2">
-                    <p className="text-sm"><span className="text-slate-600">Pai:</span> <span className="font-semibold">{bird.fatherId || 'Desconhecido'}</span></p>
-                    <p className="text-sm"><span className="text-slate-600">Mãe:</span> <span className="font-semibold">{bird.motherId || 'Desconhecido'}</span></p>
+                    <p className="text-sm">
+                      <span className="text-slate-600">Pai:</span> 
+                      <span className="font-semibold"> {parentNames.fatherName || (bird.fatherId ? bird.fatherId.substring(0, 12) + '...' : 'Desconhecido')}</span>
+                    </p>
+                    <p className="text-sm">
+                      <span className="text-slate-600">Mãe:</span> 
+                      <span className="font-semibold"> {parentNames.motherName || (bird.motherId ? bird.motherId.substring(0, 12) + '...' : 'Desconhecido')}</span>
+                    </p>
                   </div>
                 </div>
               </div>
@@ -258,7 +310,7 @@ const BirdVerification: React.FC<{ birdId: string }> = ({ birdId }) => {
                     </div>
                     <div>
                       <p className="text-xs text-slate-600 font-medium mb-1">Tipo de Canto</p>
-                      <p className="font-semibold text-slate-900">{bird.songType || 'N/A'}</p>
+                      <p className="font-semibold text-slate-900">{bird.songType || 'Não definido'}</p>
                     </div>
                   </div>
                   {bird.trainingNotes && (
@@ -283,8 +335,8 @@ const BirdVerification: React.FC<{ birdId: string }> = ({ birdId }) => {
                 {breeder.sispassNumber && (
                   <p className="text-sm text-slate-600">SISPASS: <span className="font-semibold">{breeder.sispassNumber}</span></p>
                 )}
-                {breeder.cpf && (
-                  <p className="text-sm text-slate-600">CPF: <span className="font-semibold">{breeder.cpf}</span></p>
+                {breeder.cpfCnpj && (
+                  <p className="text-sm text-slate-600">CPF/CNPJ: <span className="font-semibold">{breeder.cpfCnpj}</span></p>
                 )}
               </div>
             </div>

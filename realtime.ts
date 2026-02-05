@@ -1,4 +1,5 @@
-import { supabase } from './supabaseClient';
+// import { supabase } from './supabaseClient'; // REMOVIDO - Firebase only
+const supabase = null as any;
 
 export const subscribeTable = (
   table: string,

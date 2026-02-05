@@ -12,6 +12,13 @@ service cloud.firestore {
       return request.auth.uid == userId;
     }
     
+    // Função helper para verificar se é acesso público
+    function isPublic() {
+      // Acesso público apenas lê dados básicos do pássaro (sem dados sensíveis)
+      // Verificamos se está tentando ler apenas campos públicos
+      return !isAuthenticated();
+    }
+    
     // Regras para dados de usuários
     match /users/{userId} {
       // Settings do usuário
@@ -21,7 +28,10 @@ service cloud.firestore {
       
       // Birds (pássaros)
       match /birds/{birdId} {
-        allow read, write: if isAuthenticated() && isOwner(userId);
+        // Permite get individual sem auth (para QR codes), mas não list
+        allow get: if true;
+        // List e write apenas para o dono
+        allow list, write: if isAuthenticated() && isOwner(userId);
       }
       
       // Pairs (casais)
@@ -75,6 +85,26 @@ service cloud.firestore {
       }
     }
     
+    // Catálogo global de medicamentos (leitura pública)
+    match /medicationCatalog/{catalogId} {
+      allow read: if true;
+      allow write: if false; // Apenas admin pode escrever
+    }
+    
+    // Analytics de verificação de pássaros (público - apenas leitura e escrita de novos registros)
+    match /bird_verifications/{verificationId} {
+      allow read: if true; // Qualquer pessoa pode ler (apenas dados públicos)
+      allow create: if true; // Qualquer pessoa pode registrar uma leitura
+      allow update, delete: if false; // Não pode editar/deletar depois
+    }
+    
+    // Índice público de pássaros (mapeia birdId -> userId)
+    match /bird_index/{birdId} {
+      allow get: if true; // Qualquer pessoa pode buscar o índice
+      allow list: if false; // Não pode listar todos
+      allow write: if isAuthenticated(); // Apenas usuários autenticados podem criar/atualizar
+    }
+    
     // Dados públicos de verificação de pássaros (somente leitura)
     match /public_birds/{birdId} {
       allow read: if true;
@@ -82,4 +112,3 @@ service cloud.firestore {
     }
   }
 }
-

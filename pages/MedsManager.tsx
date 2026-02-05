@@ -62,7 +62,8 @@ const MedsManager: React.FC<MedsManagerProps> = ({
   updateApplication, deleteApplication, restoreApplication, permanentlyDeleteApplication,
   isAdmin
 }) => {
-  const [activeTab, setActiveTab] = useState<'inventory' | 'history' | 'treatments'>('inventory');
+  const [activeTab, setActiveTab] = useState<'inventory' | 'recent-applications' | 'history' | 'treatments'>('inventory');
+  const [recentAppFilter, setRecentAppFilter] = useState({ medicationId: '', birdId: '', daysBack: 30 });
   
   // Modais State
   const [showAddMed, setShowAddMed] = useState(false);
@@ -126,6 +127,24 @@ const MedsManager: React.FC<MedsManagerProps> = ({
     const term = searchTerm.toLowerCase();
     return (bird?.name ?? '').toLowerCase().includes(term) || (med?.name ?? '').toLowerCase().includes(term);
   }).sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+
+  // Filtrar aplicações recentes (últimos N dias)
+  const filterRecentApplications = () => {
+    const now = new Date();
+    const startDate = new Date(now.getTime() - (recentAppFilter.daysBack * 24 * 60 * 60 * 1000));
+    
+    return state.applications.filter(app => {
+      const appDate = new Date(app.date);
+      if (appDate < startDate) return false;
+      
+      if (recentAppFilter.medicationId && app.medicationId !== recentAppFilter.medicationId) return false;
+      if (recentAppFilter.birdId && app.birdId !== recentAppFilter.birdId) return false;
+      
+      return true;
+    }).sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+  };
+  
+  const recentApplications = filterRecentApplications();
 
   // --- HANDLERS DE FORMULÁRIO (MEDICAMENTO) ---
   const handleSaveMed = (e: React.FormEvent) => {
@@ -309,6 +328,12 @@ const MedsManager: React.FC<MedsManagerProps> = ({
              className={`px-4 py-2.5 rounded-xl text-xs font-black uppercase tracking-widest transition-all flex items-center gap-2 whitespace-nowrap ${activeTab === 'inventory' ? 'bg-[#0F172A] text-white shadow-md' : 'text-slate-400 hover:text-slate-600'}`}
            >
              <LayoutGrid size={14} /> Estoque
+           </button>
+           <button 
+             onClick={() => { setActiveTab('recent-applications'); setCurrentList('active'); }}
+             className={`px-4 py-2.5 rounded-xl text-xs font-black uppercase tracking-widest transition-all flex items-center gap-2 whitespace-nowrap ${activeTab === 'recent-applications' ? 'bg-[#0F172A] text-white shadow-md' : 'text-slate-400 hover:text-slate-600'}`}
+           >
+             <Clock size={14} /> Aplicações Recentes
            </button>
            <button 
              onClick={() => { setActiveTab('treatments'); setCurrentList('active'); }}
@@ -543,6 +568,135 @@ const MedsManager: React.FC<MedsManagerProps> = ({
               </button>
             )}
           </div>
+        </div>
+      )}
+
+      {/* --- ABA DE APLICAÇÕES RECENTES --- */}
+      {activeTab === 'recent-applications' && (
+        <div className="bg-white rounded-[32px] border border-slate-200 shadow-sm overflow-hidden animate-in fade-in slide-in-from-top-4 duration-300">
+           {/* Cabeçalho */}
+           <div className="p-6 border-b border-slate-100 bg-slate-50/30">
+              <div className="flex items-center gap-3 mb-6">
+                <div className="bg-blue-50 p-2 rounded-xl text-blue-500">
+                   <Clock size={20} />
+                </div>
+                <div>
+                   <h3 className="font-bold text-slate-800">Aplicações Recentes</h3>
+                   <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{recentApplications.length} aplicações (últimos {recentAppFilter.daysBack} dias)</p>
+                </div>
+              </div>
+
+              {/* Filtros */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div>
+                   <label className="text-xs font-black text-slate-600 uppercase tracking-widest block mb-2">Período (dias)</label>
+                   <select 
+                     value={recentAppFilter.daysBack}
+                     onChange={(e) => setRecentAppFilter({ ...recentAppFilter, daysBack: parseInt(e.target.value) })}
+                     className="w-full px-3 py-2.5 bg-white border border-slate-200 rounded-xl focus:ring-4 focus:ring-brand/5 focus:border-brand outline-none transition-all text-xs font-bold"
+                   >
+                     <option value={7}>Últimos 7 dias</option>
+                     <option value={14}>Últimos 14 dias</option>
+                     <option value={30}>Últimos 30 dias</option>
+                     <option value={60}>Últimos 60 dias</option>
+                     <option value={90}>Últimos 90 dias</option>
+                   </select>
+                </div>
+
+                <div>
+                   <label className="text-xs font-black text-slate-600 uppercase tracking-widest block mb-2">Medicamento</label>
+                   <select 
+                     value={recentAppFilter.medicationId}
+                     onChange={(e) => setRecentAppFilter({ ...recentAppFilter, medicationId: e.target.value })}
+                     className="w-full px-3 py-2.5 bg-white border border-slate-200 rounded-xl focus:ring-4 focus:ring-brand/5 focus:border-brand outline-none transition-all text-xs font-bold"
+                   >
+                     <option value="">Todos os medicamentos</option>
+                     {state.medications.map(med => (
+                       <option key={med.id} value={med.id}>{med.name}</option>
+                     ))}
+                   </select>
+                </div>
+
+                <div>
+                   <label className="text-xs font-black text-slate-600 uppercase tracking-widest block mb-2">Pássaro</label>
+                   <select 
+                     value={recentAppFilter.birdId}
+                     onChange={(e) => setRecentAppFilter({ ...recentAppFilter, birdId: e.target.value })}
+                     className="w-full px-3 py-2.5 bg-white border border-slate-200 rounded-xl focus:ring-4 focus:ring-brand/5 focus:border-brand outline-none transition-all text-xs font-bold"
+                   >
+                     <option value="">Todos os pássaros</option>
+                     {state.birds.map(bird => (
+                       <option key={bird.id} value={bird.id}>{bird.name}</option>
+                     ))}
+                   </select>
+                </div>
+              </div>
+           </div>
+
+           {/* Tabela de Aplicações */}
+           <div className="overflow-x-auto">
+              <table className="w-full text-left">
+                <thead className="bg-slate-50/50 text-[10px] uppercase font-black text-slate-400 tracking-widest">
+                  <tr>
+                    <th className="px-6 py-4">Data/Hora</th>
+                    <th className="px-6 py-4">Pássaro</th>
+                    <th className="px-6 py-4">Medicamento</th>
+                    <th className="px-6 py-4">Dosagem</th>
+                    <th className="px-6 py-4">Obs</th>
+                    <th className="px-6 py-4 text-right">Ações</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100">
+                  {recentApplications.length > 0 ? recentApplications.map(app => (
+                    <tr key={app.id} className="hover:bg-slate-50/50 transition-colors group">
+                      <td className="px-6 py-4">
+                        <div className="flex items-center gap-2">
+                           <Clock size={14} className="text-slate-300" />
+                           <div>
+                             <div className="text-xs font-bold text-slate-600">{new Date(app.date).toLocaleDateString('pt-BR')}</div>
+                             <div className="text-[10px] text-slate-400">{new Date(app.date).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}</div>
+                           </div>
+                        </div>
+                      </td>
+                      <td className="px-6 py-4">
+                        <span className="text-xs font-bold text-slate-800">{state.birds.find(b => b.id === app.birdId)?.name || 'N/A'}</span>
+                      </td>
+                      <td className="px-6 py-4">
+                        <span className="text-xs text-slate-600 font-medium">{state.medications.find(m => m.id === app.medicationId)?.name || 'N/A'}</span>
+                      </td>
+                      <td className="px-6 py-4">
+                        <span className="px-2 py-1 bg-blue-50 text-blue-600 border border-blue-100 text-[10px] font-black rounded-lg">{app.dosage}</span>
+                      </td>
+                      <td className="px-6 py-4 text-xs text-slate-400 max-w-xs truncate" title={app.notes}>{app.notes || '-'}</td>
+                      <td className="px-6 py-4 text-right">
+                         <div className="flex justify-end gap-1">
+                            <button 
+                              onClick={() => handleOpenEditApp(app)}
+                              className="p-2 text-slate-300 hover:text-brand hover:bg-slate-100 rounded-lg transition-all"
+                              title="Editar"
+                            >
+                              <Edit size={14} />
+                            </button>
+                            <button 
+                              onClick={() => handleDeleteApp(app.id)}
+                              className="p-2 text-slate-300 hover:text-rose-500 hover:bg-rose-50 rounded-lg transition-all"
+                              title="Deletar"
+                            >
+                              <Trash2 size={14} />
+                            </button>
+                         </div>
+                      </td>
+                    </tr>
+                  )) : (
+                    <tr>
+                      <td colSpan={6} className="px-6 py-8 text-center">
+                        <div className="text-slate-400 text-sm">Nenhuma aplicação nos últimos {recentAppFilter.daysBack} dias com os filtros selecionados.</div>
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+           </div>
         </div>
       )}
 

@@ -53,7 +53,8 @@ import {
   HelpCircle
 } from 'lucide-react';
 import { BRAZILIAN_SPECIES, MAX_FREE_BIRDS, SPECIES_IMAGES, getDefaultBirdImage, isDefaultBirdImage } from '../constants';
-import PedigreeTree from '../components/PedigreeTree';
+import PedigreeTree from '../components/PedigreeTreeNew';
+import { BirdIdentificationCard } from '../components/BirdIdentificationCard';
 const TipCarousel = React.lazy(() => import('../components/TipCarousel'));
 
 // Função para normalizar nomes de espécies (corrigir erros comuns)
@@ -174,7 +175,7 @@ const BirdManager: React.FC<BirdManagerProps> = ({
   const [activeTab, setActiveTab] = useState<'dados' | 'genealogia' | 'docs'>('dados');
   
   const [selectedBird, setSelectedBird] = useState<Bird | null>(null);
-  const [viewMode, setViewMode] = useState<'details' | 'pedigree'>('details');
+  const [viewMode, setViewMode] = useState<'details' | 'pedigree' | 'card'>('details');
   const [isEditing, setIsEditing] = useState(false);
   const [editingBird, setEditingBird] = useState<Partial<Bird>>({});
   
@@ -372,20 +373,45 @@ const BirdManager: React.FC<BirdManagerProps> = ({
     });
   };
 
-  // Genealogy Form State
+  // Genealogy Form State - Agora com suporte a múltiplas gerações
   const [genealogyMode, setGenealogyMode] = useState<{ father: 'plantel' | 'manual', mother: 'plantel' | 'manual' }>({
     father: 'plantel',
     mother: 'plantel'
   });
   
-  const [manualAncestorsForm, setManualAncestorsForm] = useState({
-    f: '', // Pai
-    ff: '', // Avô Paterno
-    fm: '', // Avó Paterna
-    m: '', // Mãe
-    mf: '', // Avô Materno
-    mm: '' // Avó Materna
-  });
+  // Função para gerar paths para gerações recursivamente
+  const generateGenealogyPaths = (maxDepth: number = 6): string[] => {
+    const paths: string[] = [];
+    for (let depth = 1; depth <= maxDepth; depth++) {
+      const count = Math.pow(2, depth);
+      for (let i = 0; i < count; i++) {
+        const path = i.toString(2).padStart(depth, '0').split('').map(bit => bit === '0' ? 'f' : 'm').join('');
+        paths.push(path);
+      }
+    }
+    return paths;
+  };
+
+  // Detecta automaticamente profundidade máxima de gerações existentes
+  const getMaxGenerationDepth = (bird?: Bird | Partial<Bird>): number => {
+    if (!bird) return 2; // Default: até avós
+    
+    let maxDepth = 0;
+    if ((bird as any).fatherId || (bird as any).manualAncestors?.['f']) maxDepth = Math.max(maxDepth, 1);
+    if ((bird as any).motherId || (bird as any).manualAncestors?.['m']) maxDepth = Math.max(maxDepth, 1);
+    
+    const paths = generateGenealogyPaths(6);
+    for (const path of paths) {
+      if ((bird as any).manualAncestors && (bird as any).manualAncestors[path]) {
+        maxDepth = Math.max(maxDepth, path.length);
+      }
+    }
+    
+    return Math.min(maxDepth + 1, 6); // Mínimo avós (2), máximo 6 gerações
+  };
+  
+  const [manualAncestorsForm, setManualAncestorsForm] = useState<Record<string, string>>({});
+  const [maxGenerationDepth, setMaxGenerationDepth] = useState(2);
 
   // Effect to populate manual ancestors form when editing starts
   useEffect(() => {
@@ -395,14 +421,17 @@ const BirdManager: React.FC<BirdManagerProps> = ({
         mother: editingBird.motherId ? 'plantel' : 'manual'
       });
       
-      setManualAncestorsForm({
-        f: editingBird.manualAncestors?.['f'] || '',
-        ff: editingBird.manualAncestors?.['ff'] || '',
-        fm: editingBird.manualAncestors?.['fm'] || '',
-        m: editingBird.manualAncestors?.['m'] || '',
-        mf: editingBird.manualAncestors?.['mf'] || '',
-        mm: editingBird.manualAncestors?.['mm'] || ''
-      });
+      const depth = getMaxGenerationDepth(editingBird);
+      setMaxGenerationDepth(depth);
+      
+      const paths = generateGenealogyPaths(depth);
+      const newForm: Record<string, string> = {};
+      
+      for (const path of paths) {
+        newForm[path] = editingBird.manualAncestors?.[path] || '';
+      }
+      
+      setManualAncestorsForm(newForm);
     }
   }, [isEditing, editingBird]);
 
@@ -752,11 +781,11 @@ const BirdManager: React.FC<BirdManagerProps> = ({
     if (newDocForm.date && editingBird.id) {
       const newDoc: BirdDocument = {
         id: Math.random().toString(36).substr(2, 9),
-        title: newDocForm.title,
+        title: newDocForm.title || '',
         date: newDocForm.date,
-        type: newDocForm.type as any || 'Outro',
-        url: newDocForm.url,
-        notes: newDocForm.notes
+        type: (newDocForm.type as any) || 'Outro',
+        ...(newDocForm.url && { url: newDocForm.url }),
+        ...(newDocForm.notes && { notes: newDocForm.notes })
       };
 
       const updatedDocuments = [...(editingBird.documents || []), newDoc];
@@ -869,7 +898,7 @@ const BirdManager: React.FC<BirdManagerProps> = ({
           title: `Resultado Sexagem (${resultForm.protocol || 'S/N'})`,
           date: resultForm.resultDate,
           type: 'Exame',
-          url: resultForm.attachmentUrl, // Salva o anexo aqui
+          ...(resultForm.attachmentUrl && { url: resultForm.attachmentUrl }),
           notes: `Laboratório: ${bird.sexing?.laboratory || 'N/A'}. Resultado: ${resultForm.sex}`
       };
 
@@ -964,10 +993,12 @@ const BirdManager: React.FC<BirdManagerProps> = ({
       songTrainingStatus: 'Não Iniciado',
       songType: '',
       isRepeater: false,
-      classification: 'Exemplar'
+      classification: 'Exemplar',
+      manualAncestors: {}
     });
     setGenealogyMode({ father: 'plantel', mother: 'plantel' });
-    setManualAncestorsForm({ f: '', ff: '', fm: '', m: '', mf: '', mm: '' });
+    setMaxGenerationDepth(2);
+    setManualAncestorsForm({});
     setActiveTab('dados');
   };
 
@@ -1606,35 +1637,39 @@ const BirdManager: React.FC<BirdManagerProps> = ({
             )}
 
             {currentList === 'histórico' && (
-              <div className="flex gap-2">
+              <div className="flex items-center gap-2 w-full">
                 <button
                   onClick={(e) => handleRestoreToActive(e, bird.id)}
-                  className="btn-secondary flex-1"
+                  className="btn-secondary flex-1 min-w-0 px-2 py-2"
+                  title="Restaurar"
                 >
-                  <RefreshCcw size={14} /> Restaurar
+                  <RefreshCcw size={18} />
                 </button>
                 <button
                   onClick={() => handleDeleteClick(bird.id)}
-                  className="btn-danger flex-1"
+                  className="btn-danger flex-1 min-w-0 px-2 py-2"
+                  title="Deletar"
                 >
-                  <Trash2 size={14} /> Deletar
+                  <Trash2 size={18} />
                 </button>
               </div>
             )}
 
             {currentList === 'lixeira' && (
-              <div className="flex gap-2">
+              <div className="flex items-center gap-2 w-full">
                 <button
                   onClick={() => handleRestoreClick(null as any, bird.id)}
-                  className="btn-secondary flex-1"
+                  className="btn-secondary flex-1 min-w-0 px-2 py-2"
+                  title="Restaurar"
                 >
-                  <RefreshCcw size={14} /> Restaurar
+                  <RefreshCcw size={18} />
                 </button>
                 <button
                   onClick={() => handlePermanentDelete(null as any, bird.id)}
-                  className="btn-danger flex-1"
+                  className="btn-danger flex-1 min-w-0 px-2 py-2"
+                  title="Apagar permanentemente"
                 >
-                  <X size={14} /> Apagar
+                  <X size={18} />
                 </button>
               </div>
             )}
@@ -1672,6 +1707,12 @@ const BirdManager: React.FC<BirdManagerProps> = ({
                       className={viewMode === 'pedigree' ? 'btn-primary' : 'btn-secondary'}
                     >
                       Árvore Genealógica
+                    </button>
+                    <button 
+                      onClick={() => setViewMode('card')} 
+                      className={viewMode === 'card' ? 'btn-primary' : 'btn-secondary'}
+                    >
+                      Cartão Identificação
                     </button>
                   </>
                 ) : (
@@ -1787,6 +1828,22 @@ const BirdManager: React.FC<BirdManagerProps> = ({
                               </div>
                           </div>
 
+                          <div className="grid grid-cols-2 gap-6">
+                              <div className="space-y-2">
+                                 <label className="text-label">Status de Canto</label>
+                                 <select className="w-full p-3.5 bg-white border border-slate-300 rounded-lg font-medium text-slate-900 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500 appearance-none" value={editingBird.songTrainingStatus} onChange={e => setEditingBird({...editingBird, songTrainingStatus: e.target.value as any})}>
+                                   <option value="Não Iniciado">Não Iniciado</option>
+                                   <option value="Pardo (Aprendizado)">Pardo (Aprendizado)</option>
+                                   <option value="Em Encarte">Em Encarte / Andamento</option>
+                                   <option value="Fixado">Mestre (Fixado)</option>
+                                 </select>
+                              </div>
+                              <div className="space-y-2">
+                                 <label className="text-label">Tipo de Canto (Opcional)</label>
+                                 <input type="text" placeholder="Ex: Praia Clássico, Curió, etc" value={editingBird.songType || ''} onChange={e => setEditingBird({...editingBird, songType: e.target.value})} className="w-full p-3.5 bg-white border border-slate-300 rounded-lg font-medium text-slate-900 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500" />
+                              </div>
+                          </div>
+
                           {/* Controle de Registro IBAMA */}
                           {(editingBird.status === 'Óbito' || editingBird.status === 'Vendido' || editingBird.status === 'Doado') && (
                             <div className="p-6 bg-amber-50 border-2 border-amber-200 rounded-xl space-y-4">
@@ -1830,11 +1887,37 @@ const BirdManager: React.FC<BirdManagerProps> = ({
 
                     {activeTab === 'genealogia' && (
                       <div className="space-y-8 animate-in fade-in duration-300">
-                         {/* ... (Existing Genealogy Code) ... */}
+                         {/* LADO PATERNO */}
                          <div className="p-6 bg-blue-50 rounded-3xl border border-blue-100">
-                            <h4 className="text-sm font-black text-blue-800 uppercase tracking-widest mb-4 flex items-center gap-2">
-                              <Dna size={16} /> Filiação Paterna
-                            </h4>
+                            <div className="flex justify-between items-center mb-4">
+                              <h4 className="text-sm font-black text-blue-800 uppercase tracking-widest mb-4 flex items-center gap-2">
+                                <Dna size={16} /> Filiação Paterna
+                              </h4>
+                              <div className="relative group">
+                                <button 
+                                  type="button" 
+                                  onClick={() => {
+                                    if (genealogyMode.father === 'manual') {
+                                      setMaxGenerationDepth(Math.min(maxGenerationDepth + 1, 6));
+                                    }
+                                  }}
+                                  disabled={genealogyMode.father === 'plantel'}
+                                  className={`text-xs font-bold px-3 py-1 rounded-lg border transition-all ${
+                                    genealogyMode.father === 'plantel'
+                                      ? 'bg-gray-100 text-gray-400 border-gray-200 cursor-not-allowed opacity-50'
+                                      : 'bg-white text-blue-600 hover:text-blue-800 border-blue-200 hover:bg-blue-50'
+                                  }`}
+                                >
+                                  + Adicionar Geração
+                                </button>
+                                {genealogyMode.father === 'plantel' && (
+                                  <div className="absolute bottom-full right-0 mb-2 hidden group-hover:block bg-slate-800 text-white text-xs px-3 py-2 rounded-lg whitespace-nowrap z-50 shadow-lg">
+                                    Mude para "Externo / Manual" para adicionar gerações
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                            
                             <div className="flex gap-4 mb-4">
                                <button type="button" onClick={() => setGenealogyMode({...genealogyMode, father: 'plantel'})} className={`flex-1 py-2 rounded-xl text-xs font-bold transition-all ${genealogyMode.father === 'plantel' ? 'bg-blue-600 text-white shadow-lg' : 'bg-white text-blue-400'}`}>Do Plantel</button>
                                <button type="button" onClick={() => setGenealogyMode({...genealogyMode, father: 'manual'})} className={`flex-1 py-2 rounded-xl text-xs font-bold transition-all ${genealogyMode.father === 'manual' ? 'bg-blue-600 text-white shadow-lg' : 'bg-white text-blue-400'}`}>Externo / Manual</button>
@@ -1847,19 +1930,94 @@ const BirdManager: React.FC<BirdManagerProps> = ({
                               </select>
                             ) : (
                               <div className="space-y-3">
-                                 <input placeholder="Nome do Pai" className="w-full p-3 bg-white border border-blue-200 rounded-xl text-xs font-bold" value={manualAncestorsForm.f} onChange={e => setManualAncestorsForm({...manualAncestorsForm, f: e.target.value})} />
-                                 <div className="grid grid-cols-2 gap-3">
-                                   <input placeholder="Avô Paterno" className="w-full p-3 bg-white border border-blue-200 rounded-xl text-xs font-bold" value={manualAncestorsForm.ff} onChange={e => setManualAncestorsForm({...manualAncestorsForm, ff: e.target.value})} />
-                                   <input placeholder="Avó Paterna" className="w-full p-3 bg-white border border-blue-200 rounded-xl text-xs font-bold" value={manualAncestorsForm.fm} onChange={e => setManualAncestorsForm({...manualAncestorsForm, fm: e.target.value})} />
+                                 {/* Pai (Geração 1) */}
+                                 <div>
+                                   <label className="text-[10px] font-bold text-blue-800 uppercase mb-1 block">👨 Pai</label>
+                                   <input placeholder="Nome do Pai" className="w-full p-3 bg-white border border-blue-200 rounded-xl text-xs font-bold" value={manualAncestorsForm.f || ''} onChange={e => setManualAncestorsForm({...manualAncestorsForm, f: e.target.value})} />
                                  </div>
+
+                                 {/* Avós Paternos (Geração 2) */}
+                                 {maxGenerationDepth >= 2 && (
+                                   <div>
+                                     <label className="text-[10px] font-bold text-blue-700 uppercase mb-1 block pl-2 border-l-2 border-blue-300">👴👵 Avós Paternos</label>
+                                     <div className="grid grid-cols-2 gap-3 pl-2">
+                                       <input placeholder="Avô Paterno" className="w-full p-3 bg-white border border-blue-200 rounded-xl text-xs font-bold" value={manualAncestorsForm.ff || ''} onChange={e => setManualAncestorsForm({...manualAncestorsForm, ff: e.target.value})} />
+                                       <input placeholder="Avó Paterna" className="w-full p-3 bg-white border border-blue-200 rounded-xl text-xs font-bold" value={manualAncestorsForm.fm || ''} onChange={e => setManualAncestorsForm({...manualAncestorsForm, fm: e.target.value})} />
+                                     </div>
+                                   </div>
+                                 )}
+
+                                 {/* Bisavós Paternos (Geração 3) */}
+                                 {maxGenerationDepth >= 3 && (
+                                   <div>
+                                     <label className="text-[10px] font-bold text-blue-600 uppercase mb-1 block pl-4 border-l-2 border-blue-300">👴👴👴👵 Bisavós Paternos</label>
+                                     <div className="grid grid-cols-4 gap-2 pl-4">
+                                       <input placeholder="Bisa. FF" className="w-full p-2 bg-white border border-blue-200 rounded-lg text-xs font-bold" value={manualAncestorsForm.fff || ''} onChange={e => setManualAncestorsForm({...manualAncestorsForm, fff: e.target.value})} />
+                                       <input placeholder="Bisa. FM" className="w-full p-2 bg-white border border-blue-200 rounded-lg text-xs font-bold" value={manualAncestorsForm.ffm || ''} onChange={e => setManualAncestorsForm({...manualAncestorsForm, ffm: e.target.value})} />
+                                       <input placeholder="Bisa. FMF" className="w-full p-2 bg-white border border-blue-200 rounded-lg text-xs font-bold" value={manualAncestorsForm.fmf || ''} onChange={e => setManualAncestorsForm({...manualAncestorsForm, fmf: e.target.value})} />
+                                       <input placeholder="Bisa. FMM" className="w-full p-2 bg-white border border-blue-200 rounded-lg text-xs font-bold" value={manualAncestorsForm.fmm || ''} onChange={e => setManualAncestorsForm({...manualAncestorsForm, fmm: e.target.value})} />
+                                     </div>
+                                   </div>
+                                 )}
+
+                                 {/* Tatarávos Paternos (Geração 4) */}
+                                 {maxGenerationDepth >= 4 && (
+                                   <div>
+                                     <label className="text-[10px] font-bold text-blue-500 uppercase mb-1 block pl-6 border-l-2 border-blue-300">👶👶👶👶 Tatarávos Paternos</label>
+                                     <div className="grid grid-cols-8 gap-1 pl-6">
+                                       {['ffff', 'fffm', 'ffmf', 'ffmm', 'fmff', 'fmfm', 'fmmf', 'fmmm'].map(path => (
+                                         <input key={path} placeholder={path.length.toString()} className="w-full p-1.5 bg-white border border-blue-200 rounded-lg text-[9px] font-bold" value={manualAncestorsForm[path] || ''} onChange={e => setManualAncestorsForm({...manualAncestorsForm, [path]: e.target.value})} />
+                                       ))}
+                                     </div>
+                                   </div>
+                                 )}
+
+                                 {/* Geração 5 */}
+                                 {maxGenerationDepth >= 5 && (
+                                   <div>
+                                     <label className="text-[10px] font-bold text-blue-400 uppercase mb-1 block pl-8 border-l-2 border-blue-200">5ª Geração</label>
+                                     <div className="grid grid-cols-8 gap-1 pl-8 text-[8px]">
+                                       {Array.from({length: 16}, (_, i) => `fffff${i.toString(2).padStart(1, '0')}`).map(path => (
+                                         <input key={path} placeholder="." className="w-full p-1 bg-white border border-blue-200 rounded text-[7px] font-bold" value={manualAncestorsForm[path] || ''} onChange={e => setManualAncestorsForm({...manualAncestorsForm, [path]: e.target.value})} />
+                                       ))}
+                                     </div>
+                                   </div>
+                                 )}
                               </div>
                             )}
                          </div>
 
+                         {/* LADO MATERNO */}
                          <div className="p-6 bg-pink-50 rounded-3xl border border-pink-100">
-                            <h4 className="text-sm font-black text-pink-800 uppercase tracking-widest mb-4 flex items-center gap-2">
-                              <Dna size={16} /> Filiação Materna
-                            </h4>
+                            <div className="flex justify-between items-center mb-4">
+                              <h4 className="text-sm font-black text-pink-800 uppercase tracking-widest mb-4 flex items-center gap-2">
+                                <Dna size={16} /> Filiação Materna
+                              </h4>
+                              <div className="relative group">
+                                <button 
+                                  type="button" 
+                                  onClick={() => {
+                                    if (genealogyMode.mother === 'manual') {
+                                      setMaxGenerationDepth(Math.min(maxGenerationDepth + 1, 6));
+                                    }
+                                  }}
+                                  disabled={genealogyMode.mother === 'plantel'}
+                                  className={`text-xs font-bold px-3 py-1 rounded-lg border transition-all ${
+                                    genealogyMode.mother === 'plantel'
+                                      ? 'bg-gray-100 text-gray-400 border-gray-200 cursor-not-allowed opacity-50'
+                                      : 'bg-white text-pink-600 hover:text-pink-800 border-pink-200 hover:bg-pink-50'
+                                  }`}
+                                >
+                                  + Adicionar Geração
+                                </button>
+                                {genealogyMode.mother === 'plantel' && (
+                                  <div className="absolute bottom-full right-0 mb-2 hidden group-hover:block bg-slate-800 text-white text-xs px-3 py-2 rounded-lg whitespace-nowrap z-50 shadow-lg">
+                                    Mude para "Externa / Manual" para adicionar gerações
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                            
                             <div className="flex gap-4 mb-4">
                                <button type="button" onClick={() => setGenealogyMode({...genealogyMode, mother: 'plantel'})} className={`flex-1 py-2 rounded-xl text-xs font-bold transition-all ${genealogyMode.mother === 'plantel' ? 'bg-pink-600 text-white shadow-lg' : 'bg-white text-pink-400'}`}>Do Plantel</button>
                                <button type="button" onClick={() => setGenealogyMode({...genealogyMode, mother: 'manual'})} className={`flex-1 py-2 rounded-xl text-xs font-bold transition-all ${genealogyMode.mother === 'manual' ? 'bg-pink-600 text-white shadow-lg' : 'bg-white text-pink-400'}`}>Externa / Manual</button>
@@ -1872,11 +2030,59 @@ const BirdManager: React.FC<BirdManagerProps> = ({
                               </select>
                             ) : (
                               <div className="space-y-3">
-                                 <input placeholder="Nome da Mãe" className="w-full p-3 bg-white border border-pink-200 rounded-xl text-xs font-bold" value={manualAncestorsForm.m} onChange={e => setManualAncestorsForm({...manualAncestorsForm, m: e.target.value})} />
-                                 <div className="grid grid-cols-2 gap-3">
-                                   <input placeholder="Avô Materno" className="w-full p-3 bg-white border border-pink-200 rounded-xl text-xs font-bold" value={manualAncestorsForm.mf} onChange={e => setManualAncestorsForm({...manualAncestorsForm, mf: e.target.value})} />
-                                   <input placeholder="Avó Materna" className="w-full p-3 bg-white border border-pink-200 rounded-xl text-xs font-bold" value={manualAncestorsForm.mm} onChange={e => setManualAncestorsForm({...manualAncestorsForm, mm: e.target.value})} />
+                                 {/* Mãe (Geração 1) */}
+                                 <div>
+                                   <label className="text-[10px] font-bold text-pink-800 uppercase mb-1 block">👩 Mãe</label>
+                                   <input placeholder="Nome da Mãe" className="w-full p-3 bg-white border border-pink-200 rounded-xl text-xs font-bold" value={manualAncestorsForm.m || ''} onChange={e => setManualAncestorsForm({...manualAncestorsForm, m: e.target.value})} />
                                  </div>
+
+                                 {/* Avós Maternos (Geração 2) */}
+                                 {maxGenerationDepth >= 2 && (
+                                   <div>
+                                     <label className="text-[10px] font-bold text-pink-700 uppercase mb-1 block pl-2 border-l-2 border-pink-300">👴👵 Avós Maternos</label>
+                                     <div className="grid grid-cols-2 gap-3 pl-2">
+                                       <input placeholder="Avô Materno" className="w-full p-3 bg-white border border-pink-200 rounded-xl text-xs font-bold" value={manualAncestorsForm.mf || ''} onChange={e => setManualAncestorsForm({...manualAncestorsForm, mf: e.target.value})} />
+                                       <input placeholder="Avó Materna" className="w-full p-3 bg-white border border-pink-200 rounded-xl text-xs font-bold" value={manualAncestorsForm.mm || ''} onChange={e => setManualAncestorsForm({...manualAncestorsForm, mm: e.target.value})} />
+                                     </div>
+                                   </div>
+                                 )}
+
+                                 {/* Bisavós Maternos (Geração 3) */}
+                                 {maxGenerationDepth >= 3 && (
+                                   <div>
+                                     <label className="text-[10px] font-bold text-pink-600 uppercase mb-1 block pl-4 border-l-2 border-pink-300">👴👴👴👵 Bisavós Maternos</label>
+                                     <div className="grid grid-cols-4 gap-2 pl-4">
+                                       <input placeholder="Bisa. MF" className="w-full p-2 bg-white border border-pink-200 rounded-lg text-xs font-bold" value={manualAncestorsForm.mff || ''} onChange={e => setManualAncestorsForm({...manualAncestorsForm, mff: e.target.value})} />
+                                       <input placeholder="Bisa. MM" className="w-full p-2 bg-white border border-pink-200 rounded-lg text-xs font-bold" value={manualAncestorsForm.mfm || ''} onChange={e => setManualAncestorsForm({...manualAncestorsForm, mfm: e.target.value})} />
+                                       <input placeholder="Bisa. MMF" className="w-full p-2 bg-white border border-pink-200 rounded-lg text-xs font-bold" value={manualAncestorsForm.mmf || ''} onChange={e => setManualAncestorsForm({...manualAncestorsForm, mmf: e.target.value})} />
+                                       <input placeholder="Bisa. MMM" className="w-full p-2 bg-white border border-pink-200 rounded-lg text-xs font-bold" value={manualAncestorsForm.mmm || ''} onChange={e => setManualAncestorsForm({...manualAncestorsForm, mmm: e.target.value})} />
+                                     </div>
+                                   </div>
+                                 )}
+
+                                 {/* Tatarávos Maternos (Geração 4) */}
+                                 {maxGenerationDepth >= 4 && (
+                                   <div>
+                                     <label className="text-[10px] font-bold text-pink-500 uppercase mb-1 block pl-6 border-l-2 border-pink-300">👶👶👶👶 Tatarávos Maternos</label>
+                                     <div className="grid grid-cols-8 gap-1 pl-6">
+                                       {['mfff', 'mffm', 'mfmf', 'mfmm', 'mmff', 'mmfm', 'mmmf', 'mmmm'].map(path => (
+                                         <input key={path} placeholder={path.length.toString()} className="w-full p-1.5 bg-white border border-pink-200 rounded-lg text-[9px] font-bold" value={manualAncestorsForm[path] || ''} onChange={e => setManualAncestorsForm({...manualAncestorsForm, [path]: e.target.value})} />
+                                       ))}
+                                     </div>
+                                   </div>
+                                 )}
+
+                                 {/* Geração 5 */}
+                                 {maxGenerationDepth >= 5 && (
+                                   <div>
+                                     <label className="text-[10px] font-bold text-pink-400 uppercase mb-1 block pl-8 border-l-2 border-pink-200">5ª Geração</label>
+                                     <div className="grid grid-cols-8 gap-1 pl-8 text-[8px]">
+                                       {Array.from({length: 16}, (_, i) => `mmmmm${i.toString(2).padStart(1, '0')}`).map(path => (
+                                         <input key={path} placeholder="." className="w-full p-1 bg-white border border-pink-200 rounded text-[7px] font-bold" value={manualAncestorsForm[path] || ''} onChange={e => setManualAncestorsForm({...manualAncestorsForm, [path]: e.target.value})} />
+                                       ))}
+                                     </div>
+                                   </div>
+                                 )}
                               </div>
                             )}
                          </div>
@@ -2158,55 +2364,19 @@ const BirdManager: React.FC<BirdManagerProps> = ({
                             )}
                          </div>
 
-                         {/* NOVA SEÇÃO: Gestão Rápida de Status */}
-                         <div className="bg-slate-50 p-8 rounded-[32px] border border-slate-100 shadow-inner space-y-6">
-                            <h3 className="text-sm font-black text-slate-700 uppercase tracking-widest flex items-center gap-2">
-                              <Zap size={16} className="text-amber-500" /> Gestão Rápida
-                            </h3>
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                               <div>
-                                  <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Classificação</label>
-                                  <div className="relative">
-                                    <select 
-                                      className="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl font-bold text-slate-700 appearance-none outline-none focus:border-brand shadow-sm cursor-pointer"
-                                      value={selectedBird.classification}
-                                      onChange={(e) => handleQuickFieldUpdate(selectedBird.id, 'classification', e.target.value)}
-                                    >
-                                      <option value="Não Definido">Não Definido</option>
-                                      <option value="Galador">Galador</option>
-                                      <option value="Pássaro de Canto">Pássaro de Canto</option>
-                                      <option value="Ambos">Ambos</option>
-                                    </select>
-                                    <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400">
-                                      <ChevronDown size={16} />
-                                    </div>
-                                  </div>
-                               </div>
-                               
-                               <div>
-                                  <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Status de Canto</label>
-                                  <div className="relative">
-                                    <select 
-                                      className="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl font-bold text-slate-700 appearance-none outline-none focus:border-brand shadow-sm cursor-pointer"
-                                      value={selectedBird.songTrainingStatus}
-                                      onChange={(e) => handleQuickFieldUpdate(selectedBird.id, 'songTrainingStatus', e.target.value)}
-                                    >
-                                      <option value="Não Iniciado">Não Iniciado</option>
-                                      <option value="Pardo (Aprendizado)">Pardo (Aprendizado)</option>
-                                      <option value="Em Encarte">Em Encarte / Andamento</option>
-                                      <option value="Fixado">Mestre (Fixado)</option>
-                                    </select>
-                                    <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400">
-                                      <ChevronDown size={16} />
-                                    </div>
-                                  </div>
-                               </div>
-                            </div>
-                         </div>
+
                      </div>
                   </div>
+                 ) : viewMode === 'card' ? (
+                   /* Cartão de Identificação com Frente e Verso */
+                   <div className="space-y-6">
+                       <div className="flex justify-end gap-2 no-print">
+                          <button onClick={() => window.print()} className="py-3 px-6 bg-brand text-white rounded-2xl font-black text-xs uppercase tracking-widest flex items-center justify-center gap-2 shadow-lg">Imprimir Cartões</button>
+                       </div>
+                       <BirdIdentificationCard bird={selectedBird} settings={state.settings} />
+                   </div>
                  ) : (
-                   /* ... (Genealogy Tree View) ... */
+                   /* Genealogy Tree View */
                    <div className="flex flex-col lg:flex-row gap-12">
                        <div className="w-full lg:w-72 space-y-6 no-print">
                           <div className="bg-white p-8 rounded-[32px] border border-slate-100 shadow-sm"><h4 className="text-[10px] font-black text-slate-300 uppercase tracking-[0.2em] mb-6">Informações</h4></div>
@@ -2307,9 +2477,15 @@ const BirdManager: React.FC<BirdManagerProps> = ({
                              <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest">Status</label>
                              <select className="w-full p-4 bg-white border border-slate-200 rounded-2xl font-bold text-slate-700 outline-none focus:border-brand appearance-none" value={newBird.status} onChange={e => setNewBird({...newBird, status: e.target.value as any})}> <option value="Ativo">Ativo</option> <option value="Vendido">Vendido</option> <option value="Falecido">Falecido</option> <option value="Transferido">Transferido</option> </select>
                           </div>
+                      </div>
+                      <div className="grid grid-cols-2 gap-6">
                           <div className="space-y-2">
-                             <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest">Fase de Canto</label>
+                             <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest">Status de Canto</label>
                              <select className="w-full p-4 bg-white border border-slate-200 rounded-2xl font-bold text-slate-700 outline-none focus:border-brand appearance-none" value={newBird.songTrainingStatus} onChange={e => setNewBird({...newBird, songTrainingStatus: e.target.value as any})}> <option value="Não Iniciado">Não Iniciado</option> <option value="Pardo (Aprendizado)">Pardo (Aprendizado)</option> <option value="Em Encarte">Em Encarte / Andamento</option> <option value="Fixado">Mestre (Fixado)</option> </select>
+                          </div>
+                          <div className="space-y-2">
+                             <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest">Tipo de Canto (Opcional)</label>
+                             <input type="text" placeholder="Ex: Praia Clássico, Curió, etc" className="w-full p-4 bg-white border border-slate-200 rounded-2xl font-bold text-slate-700 outline-none focus:border-brand" value={newBird.songType || ''} onChange={e => setNewBird({...newBird, songType: e.target.value})} />
                           </div>
                       </div>
                    </div>

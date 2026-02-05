@@ -1,48 +1,54 @@
-import { createClient } from "@supabase/supabase-js";
+import * as admin from "firebase-admin";
 
-const supabase = createClient(
-  process.env.SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-);
+// Initialize Firebase Admin
+if (!admin.apps.length) {
+  admin.initializeApp({
+    credential: admin.credential.cert({
+      projectId: process.env.FIREBASE_PROJECT_ID,
+      clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
+      privateKey: process.env.FIREBASE_PRIVATE_KEY?.replace(/\\n/g, '\n'),
+    }),
+  });
+}
+
+const db = admin.firestore();
 
 export default async function handler(req: any, res: any) {
   if (req.method !== "POST") {
     return res.status(405).json({ error: "Method not allowed" });
   }
-  // Expect a Bearer token from the client (supabase access token)
-  const authHeader = req.headers?.authorization || req.headers?.Authorization;
-  const token = authHeader && typeof authHeader === 'string' ? authHeader.split(' ')[1] : null;
 
-  if (!token) {
-    return res.status(401).json({ error: 'Missing Authorization token' });
+  try {
+    const authHeader = req.headers?.authorization || req.headers?.Authorization;
+    const token = authHeader && typeof authHeader === 'string' ? authHeader.replace('Bearer ', '') : null;
+
+    if (!token) {
+      return res.status(401).json({ error: 'Missing Authorization token' });
+    }
+
+    const decodedToken = await admin.auth().verifyIdToken(token);
+    const userId = decodedToken.uid;
+
+    // Get user's subscription from Firestore
+    const userDoc = await db.collection('users').doc(userId).get();
+    const userData = userDoc.data();
+
+    if (!userData?.subscription) {
+      return res.status(200).json({ isActive: false });
+    }
+
+    const subscription = userData.subscription;
+    const isActive = subscription.status === "active" || subscription.status === "trialing";
+
+    return res.status(200).json({
+      isActive,
+      status: subscription.status,
+      current_period_end: subscription.currentPeriodEnd,
+      cancel_at_period_end: subscription.cancelAtPeriodEnd || false,
+      isTrial: subscription.status === "trialing",
+    });
+  } catch (error: any) {
+    console.error('Subscription status error:', error);
+    return res.status(500).json({ error: error.message });
   }
-
-  const { data: userData, error: userError } = await supabase.auth.getUser(token);
-  if (userError || !userData?.user) {
-    return res.status(401).json({ error: 'Invalid token or user not found' });
-  }
-
-  const user_id = userData.user.id;
-
-  const { data, error } = await supabase
-    .from("subscriptions")
-    .select("status, current_period_end, cancel_at_period_end")
-    .eq("user_id", user_id)
-    .order('created_at', { ascending: false })
-    .limit(1)
-    .single();
-
-  if (error || !data) {
-    return res.status(200).json({ isActive: false });
-  }
-
-  const isActive = data.status === "active" || data.status === "trialing";
-
-  return res.status(200).json({
-    isActive,
-    status: data.status,
-    current_period_end: data.current_period_end,
-    cancel_at_period_end: data.cancel_at_period_end,
-    isTrial: data.status === "trialing",
-  });
 }

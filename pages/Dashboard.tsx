@@ -144,7 +144,7 @@ const Dashboard: React.FC<DashboardProps> = ({ state, updateSettings, onSave, na
       case 'stats':
         return (
           <div className="space-y-4">
-            {(diffDays < 30 || (certDiff !== null && certDiff < 30) || (cancelAtPeriodEnd && subDiff !== null)) && (
+            {(diffDays < 30 || (certDiff !== null && certDiff < 30) || (subDiff !== null && subDiff < 10 && subDiff > 0) || (cancelAtPeriodEnd && subDiff !== null)) && (
               <div className="flex items-center justify-between p-3 rounded-2xl border border-amber-200 bg-amber-50 text-amber-800 text-sm font-bold">
                 <div className="flex items-center gap-2">
                   <Clock size={16} className="text-amber-600" />
@@ -152,6 +152,7 @@ const Dashboard: React.FC<DashboardProps> = ({ state, updateSettings, onSave, na
                     {[
                       diffDays < 30 ? `SISPASS vence em ${diffDays} dias` : null,
                       certDiff !== null && certDiff < 30 ? `Certificado vence em ${certDiff} dias` : null,
+                      subDiff !== null && subDiff < 10 && subDiff > 0 ? `⚠️ Assinatura PRO vence em ${subDiff} dias - Renove agora!` : null,
                       cancelAtPeriodEnd && subDiff !== null ? `Plano profissional termina em ${subDiff} dias (renovacao cancelada)` : null
                     ].filter(Boolean).join(' | ')}
                   </span>

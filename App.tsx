@@ -34,7 +34,7 @@ const DocumentsManager = lazy(() => import('./pages/DocumentsManager'));
 const Auth = lazy(() => import('./pages/Auth'));
 const ResetPassword = lazy(() => import('./pages/ResetPassword'));
 const BirdVerification = lazy(() => import('./pages/BirdVerification'));
-const VerificationAnalytics = lazy(() => import('./pages/VerificationAnalytics'));
+const AnalyticsPage = lazy(() => import('./pages/AnalyticsPage'));
 
 // Firebase auth
 import { getAuth, onAuthStateChanged, signOut } from 'firebase/auth';
@@ -56,6 +56,10 @@ import {
   deleteMovementInFirestore,
   permanentlyDeleteMovementInFirestore,
   getTransactions,
+  getDeletedTransactions,
+  saveTransactionToFirestore,
+  deleteTransactionInFirestore,
+  permanentlyDeleteTransactionInFirestore,
   getMedications,
   addMedicationInFirestore,
   updateMedicationInFirestore,
@@ -68,6 +72,7 @@ import {
   deleteTaskInFirestore,
   permanentlyDeleteTaskInFirestore,
   getTournaments,
+  getDeletedTournaments,
   addEventInFirestore,
   updateEventInFirestore,
   deleteEventInFirestore,
@@ -185,6 +190,18 @@ const App: React.FC = () => {
   const [state, setState] = useState<AppState>(() => defaultState);
   const [session, setSession] = useState<any>(null);
   const [isAdmin, setIsAdmin] = useState(false);
+
+  // Verifica se é uma rota pública (verificação de pássaro)
+  const isPublicRoute = React.useMemo(() => {
+    const pathname = window.location.pathname;
+    return pathname.startsWith('/bird/');
+  }, []);
+
+  const birdIdFromUrl = React.useMemo(() => {
+    const pathname = window.location.pathname;
+    const match = pathname.match(/^\/bird\/(.+?)$/);
+    return match ? match[1] : null;
+  }, []);
 
   // Wrapper to persist settings, returns Promise<boolean> for BirdManager
   const handleSaveSettings = async (settings: BreederSettings): Promise<boolean> => {
@@ -314,11 +331,12 @@ const App: React.FC = () => {
     if (newUserId) {
       try {
         setIsLoading(true);
-        const [birds, pairs, movements, transactions, settings, medications, applications, clutches, treatments, tasks, tournaments, medicationCatalog] = await Promise.all([
+        const [birds, pairs, movements, transactions, deletedTransactions, settings, medications, applications, clutches, treatments, tasks, tournaments, deletedTournaments, medicationCatalog] = await Promise.all([
           getBirds(newUserId),
           getPairs(newUserId),
           getMovements(newUserId),
           getTransactions(newUserId),
+          getDeletedTransactions(newUserId),
           getSettings(newUserId),
           getMedications(newUserId),
           getApplications(newUserId),
@@ -326,6 +344,7 @@ const App: React.FC = () => {
           getTreatments(newUserId),
           getTasks(newUserId),
           getTournaments(newUserId),
+          getDeletedTournaments(newUserId),
           getMedicationCatalog()
         ]);
 
@@ -378,6 +397,7 @@ const App: React.FC = () => {
           movements: normalMovements,
           deletedMovements: deletedMovements,
           transactions: transactions || [],
+          deletedTransactions: deletedTransactions || [],
           settings: mergedSettings,
           medications: medications && medications.length > 0 ? medications : MOCK_MEDS,
           applications: applications || [],
@@ -385,7 +405,8 @@ const App: React.FC = () => {
           clutches: clutches || [],
           treatments: treatments || [],
           tasks: tasks || [],
-          tournaments: tournaments || []
+          tournaments: tournaments || [],
+          deletedTournaments: deletedTournaments || []
         });
 
         setHasHydratedOnce(true);
@@ -1314,6 +1335,9 @@ const App: React.FC = () => {
     }
 
     try {
+      // Salvar no Firestore
+      await saveTransactionToFirestore(userId, t);
+      
       setState(prev => ({
         ...prev,
         transactions: [...prev.transactions, t]
@@ -1335,6 +1359,12 @@ const App: React.FC = () => {
       setState(prev => {
         const found = prev.transactions.find(tx => tx.id === id);
         if (!found) return prev;
+        
+        // Soft delete no Firestore
+        deleteTransactionInFirestore(userId, found).catch(e =>
+          console.error('Erro ao deletar transação:', e)
+        );
+        
         return {
           ...prev,
           transactions: prev.transactions.filter(tx => tx.id !== id),
@@ -1346,22 +1376,45 @@ const App: React.FC = () => {
     }
   };
 
-  const restoreTransaction = (id: string) =>
+  const restoreTransaction = (id: string) => {
+    const userId = session?.user?.id;
+    if (!userId) return;
+    
     setState(prev => {
       const found = (prev.deletedTransactions || []).find(tx => tx.id === id);
       if (!found) return prev;
+      
+      // Remover deletedAt do Firestore
+      const cleanedTransaction = { ...found };
+      delete cleanedTransaction.deletedAt;
+      saveTransactionToFirestore(userId, cleanedTransaction).catch(e =>
+        console.error('Erro ao restaurar transação:', e)
+      );
+      
       return {
         ...prev,
-        transactions: [...prev.transactions, { ...found, deletedAt: undefined }],
+        transactions: [...prev.transactions, cleanedTransaction],
         deletedTransactions: (prev.deletedTransactions || []).filter(tx => tx.id !== id)
       };
     });
+  };
 
-  const permanentlyDeleteTransaction = (id: string) =>
-    setState(prev => ({
-      ...prev,
-      deletedTransactions: (prev.deletedTransactions || []).filter(tx => tx.id !== id)
-    }));
+  const permanentlyDeleteTransaction = async (id: string) => {
+    const userId = session?.user?.id;
+    if (!userId) return;
+    
+    try {
+      // Delete permanente do Firestore
+      await permanentlyDeleteTransactionInFirestore(userId, id);
+      
+      setState(prev => ({
+        ...prev,
+        deletedTransactions: (prev.deletedTransactions || []).filter(tx => tx.id !== id)
+      }));
+    } catch (e) {
+      console.error('Erro ao deletar permanentemente transação:', e);
+    }
+  };
 
   // ========== TASK HANDLERS ==========
 
@@ -1774,9 +1827,9 @@ const App: React.FC = () => {
       case 'documents':
         return <DocumentsManager settings={state.settings} updateSettings={updateSettings} onSave={persistSettings} />;
       case 'verification':
-        return <BirdVerification birdId="" />;
+        return <BirdVerification birdId={birdIdFromUrl || ''} />;
       case 'analytics':
-        return <VerificationAnalytics />;
+        return <AnalyticsPage />;
       default:
         return (
           <Dashboard
@@ -1791,6 +1844,17 @@ const App: React.FC = () => {
   };
 
   if (!session) {
+    // Se for rota pública (verificação de pássaro), mostra sem autenticação
+    if (isPublicRoute && birdIdFromUrl) {
+      return (
+        <Suspense fallback={<div className="flex items-center justify-center min-h-screen bg-gray-50" />}>
+          <BirdVerification birdId={birdIdFromUrl} />
+          <Toaster position="bottom-center" />
+        </Suspense>
+      );
+    }
+
+    // Caso contrário, pede login
     return (
       <Suspense fallback={<div className="flex items-center justify-center min-h-screen bg-gray-50" />}>
         <Auth onLogin={(settings) => {
@@ -1825,6 +1889,7 @@ const App: React.FC = () => {
         setActiveTab={navigateTo}
         onLogout={handleLogout}
         breederName={state.settings?.breederName || 'Criador'}
+        logoUrl={state.settings?.logoUrl}
         plan={state.settings?.plan || 'Básico'}
         trialEndDate={state.settings?.trialEndDate}
         isAdmin={isAdmin}

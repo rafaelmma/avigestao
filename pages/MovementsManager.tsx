@@ -508,7 +508,7 @@ const MovementsManager: React.FC<MovementsManagerProps> = ({ state, addMovement,
                 </div>
               )}
 
-              {newMov.type === 'Entrada' && (
+              {newMov.type === 'Entrada' || newMov.type === 'Saída' ? (
                 <div className="space-y-2">
                   <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Anexar GTR (PDF/Imagem)</label>
                   <div 
@@ -528,7 +528,7 @@ const MovementsManager: React.FC<MovementsManagerProps> = ({ state, addMovement,
                   </div>
                   <input type="file" ref={fileInputRef} className="hidden" onChange={handleFileUpload} />
                 </div>
-              )}
+              ) : null}
 
               <div className="flex gap-4 pt-4">
                 <button type="button" onClick={() => setShowModal(false)} className="flex-1 py-4 bg-slate-100 text-slate-600 font-bold rounded-2xl hover:bg-slate-200 transition-colors">Cancelar</button>

@@ -125,28 +125,37 @@ const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab, logoUrl, bre
         )}
 
         <nav className="flex-1 px-3 py-4 space-y-1 overflow-y-auto">
-          {menuItems.map((item) => (
+          {menuItems.map((item) => {
+            const isProFeature = item.pro && plan === 'Básico' && !hasTrial && !isAdmin;
+            const isDisabled = isProFeature;
+            
+            return (
             <button
               key={item.id}
-              onClick={() => handleNavigation(item.id)}
+              onClick={() => isDisabled ? goToSubscriptionPlans() : handleNavigation(item.id)}
+              disabled={isDisabled}
               className={`w-full flex items-center justify-between px-3 py-2.5 rounded-lg transition-all text-sm font-medium ${
-                activeTab === item.id
+                isDisabled
+                  ? 'text-slate-300 cursor-not-allowed bg-slate-50 opacity-50'
+                  : activeTab === item.id
                   ? 'bg-slate-900 text-white'
                   : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
               }`}
+              title={isDisabled ? 'Feature disponível apenas no plano PRO' : ''}
             >
               <div className="flex items-center gap-3">
                 <span className="flex-shrink-0 w-5 h-5 flex items-center justify-center text-slate-400">
                   {item.icon}
                 </span>
                 <span className="flex-1 text-left">{item.label}</span>
-                {item.pro && plan === 'Básico' && !hasTrial && !isAdmin && (
+                {isProFeature && (
                   <Zap size={12} className="text-amber-500 fill-amber-500 flex-shrink-0" />
                 )}
               </div>
               {activeTab === item.id && <ChevronRight size={16} className="opacity-60 flex-shrink-0" />}
             </button>
-          ))}
+            );
+          })}
         </nav>
 
         <div className="px-3 py-4 border-t border-slate-200 space-y-2">

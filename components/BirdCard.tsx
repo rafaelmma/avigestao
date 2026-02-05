@@ -29,6 +29,9 @@ const BirdCardPrint: React.FC<BirdCardPrintProps> = ({
     if (printWindow) {
       // QR Code agora aponta para a URL de verificação
       const verificationUrl = `${window.location.origin}/bird/${bird.id}`;
+      console.log('[BirdCard] URL de verificação:', verificationUrl);
+      console.log('[BirdCard] Bird ID:', bird.id);
+      
       const qrUrl = generateQRCode(verificationUrl);
       const printDate = new Date().toLocaleDateString('pt-BR');
       
@@ -49,7 +52,7 @@ const BirdCardPrint: React.FC<BirdCardPrintProps> = ({
         <html lang="pt-BR">
         <head>
           <meta charset="UTF-8">
-          <meta name="viewport" content="width=device-width, initial-scale=1.0">
+          <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=2.0, user-scalable=yes">
           <title>Cartão - ${bird.name}</title>
           <style>
             * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -61,17 +64,25 @@ const BirdCardPrint: React.FC<BirdCardPrintProps> = ({
               justify-content: center;
               align-items: center;
               min-height: 100vh;
+              zoom: 1;
+              transform: scale(1);
+              transform-origin: center center;
+              overflow: visible;
             }
             
             .print-container { 
               width: 100%;
-              max-width: 1300px;
+              max-width: 700px;
+              margin: 0 auto;
+              overflow: visible;
+              transform-origin: center center;
             }
             
             .cards-grid {
               display: grid;
-              grid-template-columns: repeat(2, 1fr);
+              grid-template-columns: 1fr;
               gap: 20px;
+              overflow: visible;
             }
             
             .card {
@@ -87,8 +98,10 @@ const BirdCardPrint: React.FC<BirdCardPrintProps> = ({
               box-shadow: 0 10px 30px ${isDark ? 'rgba(26, 54, 93, 0.4)' : 'rgba(0, 0, 0, 0.1)'};
               page-break-inside: avoid;
               position: relative;
-              overflow: hidden;
+              overflow: visible;
               ${isDark ? 'color: white;' : 'color: #1a365d;'}
+              transform: translateZ(0);
+              backface-visibility: hidden;
             }
             
             .card::before {
@@ -218,6 +231,10 @@ const BirdCardPrint: React.FC<BirdCardPrintProps> = ({
               justify-content: center;
               flex-shrink: 0;
               box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+              overflow: visible;
+              transform-origin: center center;
+              min-width: 60px;
+              min-height: 60px;
             }
 
             .qr-box img {
@@ -225,6 +242,8 @@ const BirdCardPrint: React.FC<BirdCardPrintProps> = ({
               height: 100%;
               object-fit: contain;
               image-rendering: pixelated;
+              display: block;
+              overflow: visible;
             }
 
             .footer-info {
@@ -233,30 +252,41 @@ const BirdCardPrint: React.FC<BirdCardPrintProps> = ({
               text-align: center;
               line-height: 1.2;
               word-break: break-word;
+              overflow: visible;
+              min-height: 14px;
             }
 
             .footer-date {
               font-size: 6px;
               color: ${labelColor};
               opacity: 0.8;
+              overflow: visible;
+              min-height: 10px;
             }
 
-            .empty-space {
-              background: white;
-              border: 2px dashed #e2e8f0;
-              border-radius: 10px;
-              display: flex;
-              align-items: center;
-              justify-content: center;
-              color: #94a3b8;
-              font-size: 14px;
-              font-weight: 600;
+            /* Suporte para diferentes níveis de zoom */
+            @media (zoom: 1.0) {
+              .card { padding: 14px; font-size: 100%; }
+            }
+            
+            @media (zoom: 1.25) {
+              .card { padding: 17.5px; }
+              .data-row { font-size: 10px; }
+            }
+            
+            @media (zoom: 1.5) {
+              .card { padding: 21px; }
+              .data-row { font-size: 12px; }
+            }
+            
+            @media (zoom: 2.0) {
+              .card { padding: 28px; }
+              .data-row { font-size: 16px; }
             }
 
             @media print {
               html, body { background: white; padding: 0; }
               .card { box-shadow: none; }
-              .empty-space { display: none; }
             }
           </style>
         </head>
@@ -299,11 +329,6 @@ const BirdCardPrint: React.FC<BirdCardPrintProps> = ({
                   <div class="footer-info">ID:<br/>${bird.id.substring(0, 8).toUpperCase()}</div>
                   <div class="footer-date">${printDate}</div>
                 </div>
-              </div>
-
-              <!-- Espaço para segundo cartão -->
-              <div class="empty-space">
-                Espaço para outro cartão
               </div>
             </div>
           </div>

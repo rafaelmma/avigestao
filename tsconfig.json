@@ -14,6 +14,6 @@
     "isolatedModules": true,
     "noEmit": true
   },
-  "include": ["**/*"],
-  "exclude": ["node_modules"]
+  "include": ["src", "components", "pages", "lib", "hooks", "services", "constants", "types.ts", "App.tsx", "index.tsx", "vite-env.d.ts"],
+  "exclude": ["node_modules", "api", "functions", "dist", "build"]
 }

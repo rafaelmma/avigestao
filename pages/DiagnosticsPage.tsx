@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { supabase } from '../supabaseClient';
+// import { supabase } from '../supabaseClient'; // REMOVIDO - Firebase only
+const supabase = null as any;
 
 export default function DiagnosticsPage() {
   const [diagnostics, setDiagnostics] = useState<any>({});

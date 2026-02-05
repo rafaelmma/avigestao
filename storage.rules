@@ -2,6 +2,15 @@ rules_version = '2';
 
 service firebase.storage {
   match /b/{bucket}/o {
+    // Regra para logos dos usuários
+    match /logos/{userId}/{allPaths=**} {
+      // Apenas o dono pode ler e escrever suas logos
+      allow read: if true; // Permite ler para exibir no app
+      allow write: if request.auth != null && request.auth.uid == userId 
+                      && request.resource.size < 5 * 1024 * 1024 // Max 5MB
+                      && request.resource.contentType.matches('image/.*');
+    }
+    
     // Regra para arquivos de usuários
     match /users/{userId}/{allPaths=**} {
       // Apenas o dono pode ler e escrever seus próprios arquivos

@@ -1,7 +1,13 @@
 
 import React, { useMemo, useState } from 'react';
 import { HelpCircle, Book, MessageCircle, ShieldQuestion, ExternalLink, Zap, Sparkles, Send, X } from 'lucide-react';
-import { askAI, isAIAvailable } from '../lib/gemini';
+// import { askAI, isAIAvailable } from '../lib/gemini'; // Gemini API rodará no backend
+
+// Mock functions para compatibilidade
+const askAI = async (question: string) => {
+  throw new Error('Assistente AI temporariamente indisponível. Em breve via backend!');
+};
+const isAIAvailable = () => false;
 
 const HelpCenter: React.FC = () => {
   const faqs = [

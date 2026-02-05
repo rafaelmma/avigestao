@@ -1,37 +1,31 @@
 import Stripe from "stripe";
-import { createClient } from "@supabase/supabase-js";
+import * as admin from "firebase-admin";
 
-// ===============================
-// Stripe client
-// ===============================
-// Se o seu pacote stripe está tipado exigindo "2025-12-15.clover",
-// mantemos isso para compilar. (Depois te mostro como alinhar a lib.)
+// Initialize Firebase Admin
+if (!admin.apps.length) {
+  admin.initializeApp({
+    credential: admin.credential.cert({
+      projectId: process.env.FIREBASE_PROJECT_ID,
+      clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
+      privateKey: process.env.FIREBASE_PRIVATE_KEY?.replace(/\\n/g, '\n'),
+    }),
+  });
+}
+
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY as string, {
   apiVersion: "2025-12-15.clover" as any,
 });
 
-// ===============================
-// Supabase client
-// ===============================
-const supabase = createClient(
-  process.env.SUPABASE_URL as string,
-  process.env.SUPABASE_SERVICE_ROLE_KEY as string
-);
+const db = admin.firestore();
 
-// ===============================
 // Disable body parser (Vercel)
-// ===============================
 export const config = {
   api: { bodyParser: false },
 };
 
-// ===============================
-// Minimal request typing (Vercel Node)
-// ===============================
 type VercelReq = {
   method?: string;
   headers: Record<string, string | string[] | undefined>;
-  // req é async iterable no Node
   [Symbol.asyncIterator](): AsyncIterator<Buffer>;
 };
 
@@ -41,41 +35,51 @@ type VercelRes = {
   send: (data: any) => void;
 };
 
-// ===============================
-// Webhook handler
-// ===============================
+// Set user as Pro in Firestore
 const setUserAsPro = async (userId: string | null | undefined, customerId?: string | null) => {
   if (!userId) return;
   try {
-    await supabase
-      .from("settings")
-      .upsert(
-        {
-          user_id: userId,
-          plan: "Profissional",
-          trial_end_date: null,
-          stripe_customer_id: customerId || null,
-        } as any,
-        { onConflict: "user_id" }
-      );
+    await db.collection('users').doc(userId).set({
+      plan: "Profissional",
+      trialEndDate: null,
+      stripeCustomerId: customerId || null,
+      updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+    }, { merge: true });
   } catch (e) {
     console.error("Failed to mark user as PRO:", e);
   }
 };
 
+// Resolve userId from Stripe customer or subscription
 const resolveUserIdFromStripe = async (params: { customerId?: string | null; subscriptionId?: string | null; }) => {
   const { customerId, subscriptionId } = params;
+  
   if (customerId) {
-    const { data } = await supabase.from('subscriptions').select('user_id').eq('stripe_customer_id', customerId).maybeSingle();
-    if (data?.user_id) return data.user_id as string;
+    const usersSnapshot = await db.collection('users')
+      .where('stripeCustomerId', '==', customerId)
+      .limit(1)
+      .get();
+    
+    if (!usersSnapshot.empty) {
+      return usersSnapshot.docs[0].id;
+    }
   }
+  
   if (subscriptionId) {
-    const { data } = await supabase.from('subscriptions').select('user_id').eq('stripe_subscription_id', subscriptionId).maybeSingle();
-    return data?.user_id as string | null;
+    const usersSnapshot = await db.collection('users')
+      .where('subscription.stripeSubscriptionId', '==', subscriptionId)
+      .limit(1)
+      .get();
+    
+    if (!usersSnapshot.empty) {
+      return usersSnapshot.docs[0].id;
+    }
   }
+  
   return null;
 };
 
+// Record billing metrics
 const recordBillingMetric = async (payload: {
   eventType: string;
   userId: string | null;
@@ -85,13 +89,14 @@ const recordBillingMetric = async (payload: {
   rawEvent: Stripe.Event;
 }) => {
   try {
-    await supabase.from('billing_metrics').insert({
-      event_type: payload.eventType,
-      user_id: payload.userId,
-      subscription_id: payload.subscriptionId,
+    await db.collection('billing_metrics').add({
+      eventType: payload.eventType,
+      userId: payload.userId,
+      subscriptionId: payload.subscriptionId,
       amount: payload.amount ?? null,
       currency: payload.currency ?? null,
-      raw_event: payload.rawEvent,
+      rawEvent: JSON.parse(JSON.stringify(payload.rawEvent)),
+      createdAt: admin.firestore.FieldValue.serverTimestamp(),
     });
   } catch (e) {
     console.error(`Failed to write billing metric for ${payload.eventType}`, e);
@@ -106,16 +111,22 @@ const handleCheckoutCompleted = async (event: Stripe.Event) => {
     const subscription = await stripe.subscriptions.retrieve(session.subscription as string);
     const currentPeriodEnd = (subscription as any)?.current_period_end ?? null;
 
-    await supabase.from("subscriptions").upsert({
-      user_id: userId,
-      user_email: session.customer_email ?? null,
-      stripe_customer_id: session.customer ?? null,
-      stripe_subscription_id: subscription.id,
-      status: subscription.status,
-      current_period_end: currentPeriodEnd ? new Date(currentPeriodEnd * 1000) : null,
-    });
+    // Save subscription to user document in Firestore
+    if (userId) {
+      await db.collection('users').doc(userId).set({
+        email: session.customer_email ?? null,
+        stripeCustomerId: session.customer ?? null,
+        subscription: {
+          stripeSubscriptionId: subscription.id,
+          status: subscription.status,
+          currentPeriodEnd: currentPeriodEnd ? new Date(currentPeriodEnd * 1000) : null,
+          cancelAtPeriodEnd: false,
+        },
+        updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+      }, { merge: true });
 
-    await setUserAsPro(userId, session.customer as string);
+      await setUserAsPro(userId, session.customer as string);
+    }
   }
 
   await recordBillingMetric({
@@ -131,25 +142,22 @@ const handleSubscriptionUpdated = async (event: Stripe.Event) => {
   const currentPeriodEnd = (subscription as any)?.current_period_end ?? null;
   const cancelAtPeriodEnd = (subscription as any)?.cancel_at_period_end ?? null;
 
-  await supabase
-    .from("subscriptions")
-    .update({
-      status: subscription.status,
-      current_period_end: currentPeriodEnd ? new Date(currentPeriodEnd * 1000) : null,
-      cancel_at_period_end: cancelAtPeriodEnd,
-    })
-    .eq("stripe_subscription_id", subscription.id);
+  // Find user by subscription ID
+  const userId = await resolveUserIdFromStripe({ subscriptionId: subscription.id });
 
-  if (subscription.status === "active" || subscription.status === "trialing") {
-    try {
-      const { data: subRow } = await supabase
-        .from("subscriptions")
-        .select("user_id")
-        .eq("stripe_subscription_id", subscription.id)
-        .maybeSingle();
-      await setUserAsPro(subRow?.user_id, (subscription as any)?.customer);
-    } catch (e) {
-      console.error("Failed to sync PRO on subscription.updated", e);
+  if (userId) {
+    await db.collection('users').doc(userId).set({
+      subscription: {
+        stripeSubscriptionId: subscription.id,
+        status: subscription.status,
+        currentPeriodEnd: currentPeriodEnd ? new Date(currentPeriodEnd * 1000) : null,
+        cancelAtPeriodEnd: cancelAtPeriodEnd,
+      },
+      updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+    }, { merge: true });
+
+    if (subscription.status === "active" || subscription.status === "trialing") {
+      await setUserAsPro(userId, (subscription as any)?.customer);
     }
   }
 };
@@ -159,7 +167,16 @@ const handleInvoicePaymentFailed = async (event: Stripe.Event) => {
   const subId = (invoice as any)?.subscription ?? null;
 
   if (subId) {
-    await supabase.from("subscriptions").update({ status: "past_due" }).eq("stripe_subscription_id", subId);
+    const userId = await resolveUserIdFromStripe({ subscriptionId: subId });
+    
+    if (userId) {
+      await db.collection('users').doc(userId).set({
+        subscription: {
+          status: "past_due",
+        },
+        updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+      }, { merge: true });
+    }
   }
 
   const customerId = (invoice as any)?.customer ?? null;
@@ -199,10 +216,16 @@ const handleInvoicePaymentSucceeded = async (event: Stripe.Event) => {
 
 const handleSubscriptionDeleted = async (event: Stripe.Event) => {
   const subscription = event.data.object as Stripe.Subscription;
-  await supabase
-    .from("subscriptions")
-    .update({ status: "canceled" })
-    .eq("stripe_subscription_id", subscription.id);
+  const userId = await resolveUserIdFromStripe({ subscriptionId: subscription.id });
+
+  if (userId) {
+    await db.collection('users').doc(userId).set({
+      subscription: {
+        status: "canceled",
+      },
+      updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+    }, { merge: true });
+  }
 };
 
 export default async function handler(req: VercelReq, res: VercelRes) {
