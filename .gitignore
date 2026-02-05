@@ -12,13 +12,15 @@ dist
 dist-ssr
 *.local
 
-# Editor directories and files
-.vscode/*
-!.vscode/extensions.json
-.idea
-.DS_Store
-*.suo
-*.ntvs*
-*.njsproj
-*.sln
-*.sw?
+# Environment variables
+.env
+.env.local
+.env.*.local
+functions/.env
+
+# Sensitive files
+DEPLOY_COMPLETO_2025.md
+*.key
+*.pem
+secrets.json
+
