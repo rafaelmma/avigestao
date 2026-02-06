@@ -4,6 +4,7 @@ import toast from 'react-hot-toast';
 import { deleteBird as svcDeleteBird } from '../services/birds';
 import ConfirmDialog from '../components/ConfirmDialog';
 import BirdCardPrint from '../components/BirdCard';
+import TagGenerator from '../components/TagGenerator';
 import ViewSettings from '../components/ViewSettings';
 import { HelpIcon } from '../components/Tooltip';
 import Badge from '../components/ui/Badge';
@@ -14,6 +15,7 @@ import Tabs, { TabItem } from '../components/ui/Tabs';
 import BirdListTabs from '../components/BirdListTabs';
 import { Bird, AppState, Sex, TrainingStatus, BirdClassification, BirdDocument, MovementRecord, MovementType, ViewPreferences } from '../types';
 import { getStatusBadgeVariant } from '../lib/designSystem';
+import { syncPublicBirdsForUser } from '../services/firestoreService';
 import { 
   Plus, 
   Search, 
@@ -54,7 +56,6 @@ import {
 } from 'lucide-react';
 import { BRAZILIAN_SPECIES, MAX_FREE_BIRDS, SPECIES_IMAGES, getDefaultBirdImage, isDefaultBirdImage } from '../constants';
 import PedigreeTree from '../components/PedigreeTreeNew';
-import { BirdIdentificationCard } from '../components/BirdIdentificationCard';
 const TipCarousel = React.lazy(() => import('../components/TipCarousel'));
 
 // Função para normalizar nomes de espécies (corrigir erros comuns)
@@ -171,11 +172,16 @@ const BirdManager: React.FC<BirdManagerProps> = ({
     }
   }, [viewPreferences, saveSettings, state.settings]);
 
+  useEffect(() => {
+    if (!state.settings?.userId || !state.birds?.length) return;
+    syncPublicBirdsForUser(state.settings.userId, state.birds);
+  }, [state.settings?.userId, state.birds]);
+
   // State for Add/Edit Tabs
   const [activeTab, setActiveTab] = useState<'dados' | 'genealogia' | 'docs'>('dados');
   
   const [selectedBird, setSelectedBird] = useState<Bird | null>(null);
-  const [viewMode, setViewMode] = useState<'details' | 'pedigree' | 'card'>('details');
+  const [viewMode, setViewMode] = useState<'details' | 'pedigree'>('details');
   const [isEditing, setIsEditing] = useState(false);
   const [editingBird, setEditingBird] = useState<Partial<Bird>>({});
   
@@ -1380,6 +1386,13 @@ const BirdManager: React.FC<BirdManagerProps> = ({
             <p className="text-rose-600 text-xs mt-1">Itens ficam disponiveis por ate 30 dias na lixeira antes de serem removidos automaticamente.</p>
          </div>
       )}
+
+      {/* Seção de Gerador de Etiquetas */}
+      {currentList === 'plantel' && (
+        <div className="bg-gradient-to-r from-blue-50 to-slate-50 rounded-2xl p-6 border border-blue-200">
+          <TagGenerator birds={state.birds} settings={state.settings} />
+        </div>
+      )}
       
       {currentList !== 'sexagem' && (
       <div className={`grid ${viewPreferences.compactMode ? 'gap-3' : 'gap-6'} ${
@@ -1708,12 +1721,6 @@ const BirdManager: React.FC<BirdManagerProps> = ({
                     >
                       Árvore Genealógica
                     </button>
-                    <button 
-                      onClick={() => setViewMode('card')} 
-                      className={viewMode === 'card' ? 'btn-primary' : 'btn-secondary'}
-                    >
-                      Cartão Identificação
-                    </button>
                   </>
                 ) : (
                   <h3 className="text-lg font-bold text-slate-900 flex items-center gap-2">
@@ -1842,6 +1849,24 @@ const BirdManager: React.FC<BirdManagerProps> = ({
                                  <label className="text-label">Tipo de Canto (Opcional)</label>
                                  <input type="text" placeholder="Ex: Praia Clássico, Curió, etc" value={editingBird.songType || ''} onChange={e => setEditingBird({...editingBird, songType: e.target.value})} className="w-full p-3.5 bg-white border border-slate-300 rounded-lg font-medium text-slate-900 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500" />
                               </div>
+                          </div>
+
+                          {/* Visibilidade Pública */}
+                          <div className="p-4 bg-purple-50 border-2 border-purple-200 rounded-xl">
+                            <label className="flex items-center gap-3 cursor-pointer">
+                              <input
+                                type="checkbox"
+                                checked={editingBird.isPublic || false}
+                                onChange={(e) => setEditingBird({...editingBird, isPublic: e.target.checked})}
+                                className="w-5 h-5 text-purple-600 bg-white border-purple-300 rounded focus:ring-purple-500 focus:ring-2"
+                              />
+                              <div className="flex-1">
+                                <span className="font-bold text-purple-900">Tornar este pássaro público</span>
+                                <p className="text-xs text-purple-700 mt-1">
+                                  Pássaros públicos podem ser visualizados por qualquer pessoa na galeria pública, incluindo sua árvore genealógica.
+                                </p>
+                              </div>
+                            </label>
                           </div>
 
                           {/* Controle de Registro IBAMA */}
@@ -2247,6 +2272,7 @@ const BirdManager: React.FC<BirdManagerProps> = ({
                               breederName={state.settings?.breederName || 'AviGestão'}
                               breederLogo={state.settings?.logoUrl}
                               sispassNumber={state.settings?.sispassNumber}
+                              allBirds={state.birds}
                             />
                           )}
                         </div>
@@ -2367,14 +2393,6 @@ const BirdManager: React.FC<BirdManagerProps> = ({
 
                      </div>
                   </div>
-                 ) : viewMode === 'card' ? (
-                   /* Cartão de Identificação com Frente e Verso */
-                   <div className="space-y-6">
-                       <div className="flex justify-end gap-2 no-print">
-                          <button onClick={() => window.print()} className="py-3 px-6 bg-brand text-white rounded-2xl font-black text-xs uppercase tracking-widest flex items-center justify-center gap-2 shadow-lg">Imprimir Cartões</button>
-                       </div>
-                       <BirdIdentificationCard bird={selectedBird} settings={state.settings} />
-                   </div>
                  ) : (
                    /* Genealogy Tree View */
                    <div className="flex flex-col lg:flex-row gap-12">

@@ -51,6 +51,70 @@ const timestampToISO = (timestamp: any): string => {
   return timestamp;
 };
 
+const getBreederPublicProfile = async (userId: string): Promise<{ breederName?: string; logoUrl?: string; accentColor?: string; primaryColor?: string } | null> => {
+  try {
+    const settingsRef = doc(db, 'users', userId, 'settings', 'preferences');
+    const snapshot = await getDoc(settingsRef);
+    if (snapshot.exists()) {
+      const data = snapshot.data();
+      return {
+        breederName: data.breederName || undefined,
+        logoUrl: data.logoUrl || undefined,
+        accentColor: data.accentColor || undefined,
+        primaryColor: data.primaryColor || undefined
+      };
+    }
+  } catch (error) {
+    console.error('Erro ao buscar nome do criador:', error);
+  }
+  return null;
+};
+
+const buildPublicBirdPayload = (
+  birdId: string,
+  bird: Bird,
+  userId: string,
+  breederProfile?: { breederName?: string; logoUrl?: string; accentColor?: string; primaryColor?: string } | null
+) => {
+  return cleanUndefined({
+    id: birdId,
+    breederId: bird.breederId || userId,
+    breederName: breederProfile?.breederName,
+    breederLogo: breederProfile?.logoUrl,
+    breederAccentColor: breederProfile?.accentColor,
+    breederPrimaryColor: breederProfile?.primaryColor,
+    name: bird.name,
+    species: bird.species,
+    sex: bird.sex || 'Desconhecido',
+    status: bird.status || 'Ativo',
+    ringNumber: bird.ringNumber,
+    birthDate: bird.birthDate,
+    colorMutation: bird.colorMutation,
+    classification: bird.classification,
+    fatherId: bird.fatherId,
+    motherId: bird.motherId,
+    manualAncestors: bird.manualAncestors,
+    photoUrl: bird.photoUrl,
+    createdAt: bird.createdAt || Timestamp.now(),
+    updatedAt: Timestamp.now(),
+    isPublic: true
+  });
+};
+
+const syncPublicBird = async (userId: string, birdId: string, bird: Bird): Promise<void> => {
+  try {
+    const publicRef = doc(db, 'public_birds', birdId);
+    if (bird.isPublic) {
+      const breederProfile = await getBreederPublicProfile(userId);
+      await setDoc(publicRef, buildPublicBirdPayload(birdId, bird, userId, breederProfile), { merge: true });
+    } else {
+      await deleteDoc(publicRef);
+    }
+  } catch (error) {
+    console.error('Erro ao sincronizar pássaro público:', error);
+  }
+};
+
 // ============= BIRDS =============
 export const getBirds = async (userId: string): Promise<Bird[]> => {
   try {
@@ -87,6 +151,10 @@ export const addBird = async (userId: string, bird: Omit<Bird, 'id'>): Promise<s
     });
     
     console.log('[addBird] Índice público criado para:', docRef.id);
+
+    if (bird.isPublic) {
+      await syncPublicBird(userId, docRef.id, { ...bird, id: docRef.id } as Bird);
+    }
     
     return docRef.id;
   } catch (error) {
@@ -116,11 +184,53 @@ export const updateBird = async (userId: string, birdId: string, updates: Partia
       });
       console.log('[updateBird] Índice público criado para pássaro existente:', birdId);
     }
+
+    const updatedSnapshot = await getDoc(birdRef);
+    if (updatedSnapshot.exists()) {
+      await syncPublicBird(userId, birdId, updatedSnapshot.data() as Bird);
+    }
     
     return true;
   } catch (error) {
     console.error('Erro ao atualizar bird:', error);
     return false;
+  }
+};
+
+export const syncPublicBirdsForUser = async (userId: string, birds: Bird[]): Promise<void> => {
+  try {
+    const publicBirds = (birds || []).filter(bird => bird?.isPublic && bird.id);
+    const birdsById = new Map(birds.filter(b => b.id).map(b => [b.id, b]));
+
+    const resolveAncestor = (root: Bird, path: string): Bird | undefined => {
+      let current: Bird | undefined = root;
+      for (const step of path) {
+        if (!current) return undefined;
+        const nextId = step === 'f' ? current.fatherId : current.motherId;
+        if (!nextId) return undefined;
+        current = birdsById.get(nextId);
+      }
+      return current;
+    };
+
+    const ancestorPaths = ['f', 'm', 'ff', 'fm', 'mf', 'mm', 'fff', 'ffm', 'fmf', 'fmm', 'mff', 'mfm', 'mmf', 'mmm'];
+
+    const hydratedPublicBirds = publicBirds.map(bird => {
+      const manualAncestors = { ...(bird.manualAncestors || {}) } as Record<string, string>;
+      ancestorPaths.forEach(path => {
+        if (!manualAncestors[path]) {
+          const ancestor = resolveAncestor(bird, path);
+          if (ancestor?.name) {
+            manualAncestors[path] = ancestor.name;
+          }
+        }
+      });
+      return { ...bird, manualAncestors } as Bird;
+    });
+
+    await Promise.all(hydratedPublicBirds.map(bird => syncPublicBird(userId, bird.id, bird)));
+  } catch (error) {
+    console.error('Erro ao sincronizar pássaros públicos do usuário:', error);
   }
 };
 

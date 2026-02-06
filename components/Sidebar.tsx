@@ -47,10 +47,12 @@ const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab, logoUrl, bre
     { id: 'movements', label: 'Movimentações', icon: <ArrowRightLeft size={20} /> },
     { id: 'documents', label: 'Licenças & Docs', icon: <FileBadge size={20} /> }, 
     { id: 'tasks', label: 'Agenda / Tarefas', icon: <CalendarCheck size={20} /> },
-    { id: 'tournaments', label: 'Torneios / Eventos', icon: <Trophy size={20} /> },
+    { id: 'tournaments', label: 'Torneios & Eventos', icon: <Trophy size={20} /> },
+    { id: 'tournament-manager', label: 'Gerenciar Torneios', icon: <Trophy size={20} /> },
     { id: 'meds', label: 'Medicamentos', icon: <FlaskConical size={20} /> },
     { id: 'finance', label: 'Financeiro', icon: <DollarSign size={20} />, pro: true },
     { id: 'analytics', label: 'Analytics', icon: <BarChart3 size={20} />, pro: true },
+    { id: 'statistics', label: 'Comunidade (Público)', icon: <BarChart3 size={20} /> },
     { id: 'help', label: 'Ajuda & FAQ', icon: <HelpCircle size={20} /> },
   ];
 
@@ -125,7 +127,15 @@ const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab, logoUrl, bre
         )}
 
         <nav className="flex-1 px-3 py-4 space-y-1 overflow-y-auto">
-          {menuItems.map((item) => {
+          {menuItems
+            .filter((item) => {
+              // Hide "Gerenciar Torneios" for non-PRO users
+              if (item.id === 'tournament-manager') {
+                return plan === 'Profissional' || hasTrial || isAdmin;
+              }
+              return true;
+            })
+            .map((item) => {
             const isProFeature = item.pro && plan === 'Básico' && !hasTrial && !isAdmin;
             const isDisabled = isProFeature;
             

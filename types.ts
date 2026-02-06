@@ -51,6 +51,7 @@ export interface Bird {
   photoUrl?: string;
   createdAt?: string;
   updatedAt?: string;
+  isPublic?: boolean; // Se o pássaro é visível publicamente
   // Campos legados (para compatibilidade com dados antigos)
   manualAncestors?: Record<string, string>;
   isRepeater?: boolean;

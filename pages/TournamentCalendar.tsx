@@ -1,5 +1,5 @@
 
-import React, { useState, Suspense } from 'react';
+import React, { useState, Suspense, useEffect } from 'react';
 import { AppState, TournamentEvent, Bird } from '../types';
 import { 
   Plus, 
@@ -20,10 +20,13 @@ import {
   Medal,
   Clock,
   ArrowRight,
-  HelpCircle
+  HelpCircle,
+  ExternalLink
 } from 'lucide-react';
 const TipCarousel = React.lazy(() => import('../components/TipCarousel'));
 import BirdCertificate from '../components/BirdCertificate';
+import { db } from '../lib/firebase';
+import { collection, query, where, getDocs, orderBy } from 'firebase/firestore';
 
 interface TournamentCalendarProps {
   state: AppState;
@@ -32,6 +35,21 @@ interface TournamentCalendarProps {
   updateEvent: (e: TournamentEvent) => void;
   restoreEvent?: (id: string) => void;
   permanentlyDeleteEvent?: (id: string) => void;
+}
+
+interface SystemTournament {
+  id: string;
+  name: string;
+  description: string;
+  startDate: any;
+  endDate: any;
+  species: string[];
+  status: 'upcoming' | 'ongoing' | 'completed';
+  maxParticipants: number;
+  address?: string;
+  city?: string;
+  state?: string;
+  organizer?: string;
 }
 
 const DEFAULT_CHECKLIST_ITEMS = [
@@ -50,6 +68,8 @@ const TournamentCalendar: React.FC<TournamentCalendarProps> = ({ state, addEvent
   const [filter, setFilter] = useState<'Todos' | 'Torneio' | 'Encontro'>('Todos');
   const [currentList, setCurrentList] = useState<'active' | 'trash'>('active');
   const [activeTab, setActiveTab] = useState<'dados' | 'participantes' | 'preparacao'>('dados');
+  const [systemTournaments, setSystemTournaments] = useState<SystemTournament[]>([]);
+  const [loadingTournaments, setLoadingTournaments] = useState(false);
   
   // Estado para o input de novo item do checklist
   const [newChecklistItem, setNewChecklistItem] = useState('');
@@ -62,6 +82,33 @@ const TournamentCalendar: React.FC<TournamentCalendarProps> = ({ state, addEvent
     participatingBirds: [],
     preparationChecklist: DEFAULT_CHECKLIST_ITEMS.map(item => ({ item, checked: false }))
   });
+
+  // Buscar torneios do sistema
+  useEffect(() => {
+    const fetchSystemTournaments = async () => {
+      setLoadingTournaments(true);
+      try {
+        const tournamentsRef = collection(db, 'tournaments');
+        const q = query(
+          tournamentsRef,
+          where('status', 'in', ['upcoming', 'ongoing']),
+          orderBy('startDate', 'asc')
+        );
+        const snapshot = await getDocs(q);
+        const tournaments = snapshot.docs.map(doc => ({
+          id: doc.id,
+          ...doc.data()
+        })) as SystemTournament[];
+        setSystemTournaments(tournaments);
+      } catch (error) {
+        console.error('Erro ao buscar torneios:', error);
+      } finally {
+        setLoadingTournaments(false);
+      }
+    };
+
+    fetchSystemTournaments();
+  }, []);
 
   const listToUse = currentList === 'active' ? state.tournaments : (state.deletedTournaments || []);
 
@@ -472,6 +519,115 @@ const TournamentCalendar: React.FC<TournamentCalendarProps> = ({ state, addEvent
           </div>
         </div>
       </div>
+
+      {/* Torneios do Sistema (Públicos) */}
+      {currentList === 'active' && (
+        <div className="mt-12 space-y-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <h3 className="font-black text-slate-800 text-xl flex items-center gap-3">
+                <Trophy size={24} className="text-brand" />
+                Torneios Oficiais
+              </h3>
+              <p className="text-slate-400 text-sm mt-1">Torneios criados por criadores PRO - participe e se inscreva!</p>
+            </div>
+          </div>
+
+          {loadingTournaments ? (
+            <div className="text-center py-10">
+              <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-brand"></div>
+              <p className="text-slate-400 text-sm mt-2">Carregando torneios...</p>
+            </div>
+          ) : systemTournaments.length > 0 ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {systemTournaments.map((tournament) => {
+                const startDate = tournament.startDate?.toDate ? tournament.startDate.toDate() : new Date(tournament.startDate);
+                const endDate = tournament.endDate?.toDate ? tournament.endDate.toDate() : new Date(tournament.endDate);
+                const daysUntilStart = Math.ceil((startDate.getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24));
+                
+                return (
+                  <div 
+                    key={tournament.id}
+                    className="bg-gradient-to-br from-white to-slate-50 border border-slate-200 rounded-3xl p-6 shadow-sm hover:shadow-lg hover:border-brand/40 transition-all group cursor-pointer"
+                    onClick={() => window.location.hash = `tournament-results?id=${tournament.id}`}
+                  >
+                    {/* Badge de Status */}
+                    <div className="flex items-center justify-between mb-4">
+                      <span className={`text-[9px] font-black uppercase px-3 py-1.5 rounded-full ${
+                        tournament.status === 'ongoing' 
+                          ? 'bg-emerald-100 text-emerald-700' 
+                          : 'bg-blue-100 text-blue-700'
+                      }`}>
+                        {tournament.status === 'ongoing' ? '● Em Andamento' : `${daysUntilStart}d para iniciar`}
+                      </span>
+                      <ExternalLink size={16} className="text-slate-300 group-hover:text-brand transition-colors" />
+                    </div>
+
+                    {/* Nome do Torneio */}
+                    <h4 className="font-bold text-slate-900 text-lg mb-2 line-clamp-2 group-hover:text-brand transition-colors">
+                      {tournament.name}
+                    </h4>
+
+                    {/* Descrição */}
+                    {tournament.description && (
+                      <p className="text-slate-500 text-sm mb-4 line-clamp-2">
+                        {tournament.description}
+                      </p>
+                    )}
+
+                    {/* Informações */}
+                    <div className="space-y-2 text-xs text-slate-600">
+                      <div className="flex items-center gap-2">
+                        <Calendar size={14} className="text-brand flex-shrink-0" />
+                        <span>{startDate.toLocaleDateString('pt-BR')} - {endDate.toLocaleDateString('pt-BR')}</span>
+                      </div>
+                      
+                      {tournament.city && tournament.state && (
+                        <div className="flex items-center gap-2">
+                          <MapPin size={14} className="text-brand flex-shrink-0" />
+                          <span>{tournament.city}, {tournament.state}</span>
+                        </div>
+                      )}
+
+                      {tournament.organizer && (
+                        <div className="flex items-center gap-2">
+                          <Users size={14} className="text-brand flex-shrink-0" />
+                          <span>Org: {tournament.organizer}</span>
+                        </div>
+                      )}
+
+                      {tournament.species && tournament.species.length > 0 && (
+                        <div className="flex items-center gap-2">
+                          <BirdIcon size={14} className="text-brand flex-shrink-0" />
+                          <span className="line-clamp-1">{tournament.species.join(', ')}</span>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Call to Action */}
+                    <div className="mt-4 pt-4 border-t border-slate-200">
+                      <div className="flex items-center justify-between text-xs">
+                        <span className="text-slate-400 font-medium">
+                          Max: {tournament.maxParticipants} participantes
+                        </span>
+                        <span className="text-brand font-bold flex items-center gap-1 group-hover:gap-2 transition-all">
+                          Ver detalhes <ArrowRight size={12} />
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          ) : (
+            <div className="py-16 text-center bg-slate-50/50 border-2 border-dashed border-slate-200 rounded-[32px]">
+              <Trophy size={48} className="mx-auto text-slate-200 mb-4" strokeWidth={1} />
+              <p className="text-sm font-bold text-slate-400 uppercase tracking-widest">Nenhum torneio ativo no momento</p>
+              <p className="text-xs text-slate-400 mt-2">Novos torneios serão exibidos aqui quando criados</p>
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Modal Novo/Editar Evento */}
       {showModal && (

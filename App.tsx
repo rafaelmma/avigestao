@@ -29,12 +29,17 @@ const MovementsManager = lazy(() => import('./pages/MovementsManager'));
 const FinanceManager = lazy(() => import('./pages/FinanceManager'));
 const TaskManager = lazy(() => import('./pages/TaskManager'));
 const TournamentCalendar = lazy(() => import('./pages/TournamentCalendar'));
+const TournamentManager = lazy(() => import('./pages/TournamentManager'));
 const HelpCenter = lazy(() => import('./pages/HelpCenter'));
 const DocumentsManager = lazy(() => import('./pages/DocumentsManager'));
 const Auth = lazy(() => import('./pages/Auth'));
 const ResetPassword = lazy(() => import('./pages/ResetPassword'));
 const BirdVerification = lazy(() => import('./pages/BirdVerification'));
 const AnalyticsPage = lazy(() => import('./pages/AnalyticsPage'));
+const PublicStatistics = lazy(() => import('./pages/PublicStatistics'));
+const PublicTournaments = lazy(() => import('./pages/PublicTournaments'));
+const TournamentResults = lazy(() => import('./pages/TournamentResults'));
+const PublicBirds = lazy(() => import('./pages/PublicBirds'));
 
 // Firebase auth
 import { getAuth, onAuthStateChanged, signOut } from 'firebase/auth';
@@ -91,7 +96,8 @@ import {
   deleteTreatmentInFirestore,
   restoreTreatmentInFirestore,
   permanentlyDeleteTreatmentInFirestore,
-  saveSettings
+  saveSettings,
+  syncPublicBirdsForUser
 } from './services/firestoreService';
 
 const STORAGE_KEY = 'avigestao_state_v2';
@@ -347,6 +353,8 @@ const App: React.FC = () => {
           getDeletedTournaments(newUserId),
           getMedicationCatalog()
         ]);
+
+        syncPublicBirdsForUser(newUserId, birds);
 
         const mergedSettings: BreederSettings = {
           ...defaultState.settings,
@@ -1830,6 +1838,16 @@ const App: React.FC = () => {
         return <BirdVerification birdId={birdIdFromUrl || ''} />;
       case 'analytics':
         return <AnalyticsPage />;
+      case 'tournament-manager':
+        return <TournamentManager />;
+      case 'statistics':
+        return <PublicStatistics />;
+      case 'public-birds':
+        return <PublicBirds onNavigateToHome={() => navigateTo('dashboard')} />;
+      case 'public-tournaments':
+        return <PublicTournaments onNavigateToLogin={() => navigateTo('dashboard')} onNavigateToHome={() => navigateTo('dashboard')} birds={state.birds} />;
+      case 'tournament-results':
+        return <TournamentResults onBack={() => navigateTo('dashboard')} />;
       default:
         return (
           <Dashboard
@@ -1844,7 +1862,19 @@ const App: React.FC = () => {
   };
 
   if (!session) {
-    // Se for rota pública (verificação de pássaro), mostra sem autenticação
+    // Rotas públicas que funcionam sem login
+    const publicRoutes = ['verification', 'public-tournaments', 'tournament-results', 'statistics', 'public-birds'];
+    
+    if (publicRoutes.includes(activeTab)) {
+      return (
+        <Suspense fallback={<div className="flex items-center justify-center min-h-screen bg-gray-50" />}>
+          {renderContent()}
+          <Toaster position="bottom-center" />
+        </Suspense>
+      );
+    }
+
+    // Se for rota pública (verificação de pássaro com ID), mostra sem autenticação
     if (isPublicRoute && birdIdFromUrl) {
       return (
         <Suspense fallback={<div className="flex items-center justify-center min-h-screen bg-gray-50" />}>
@@ -1857,14 +1887,19 @@ const App: React.FC = () => {
     // Caso contrário, pede login
     return (
       <Suspense fallback={<div className="flex items-center justify-center min-h-screen bg-gray-50" />}>
-        <Auth onLogin={(settings) => {
-          if (settings) {
-            setState(prev => ({
-              ...prev,
-              settings: { ...prev.settings, ...settings }
-            }));
-          }
-        }} />
+        <Auth 
+          onLogin={(settings) => {
+            if (settings) {
+              setState(prev => ({
+                ...prev,
+                settings: { ...prev.settings, ...settings }
+              }));
+            }
+          }}
+          onNavigateToPublicTournaments={() => navigateTo('public-tournaments')}
+          onNavigateToResults={() => navigateTo('tournament-results')}
+          onNavigateToPublicBirds={() => navigateTo('public-birds')}
+        />
         <Toaster position="bottom-center" />
       </Suspense>
     );

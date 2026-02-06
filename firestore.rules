@@ -98,6 +98,20 @@ service cloud.firestore {
       allow update, delete: if false; // Não pode editar/deletar depois
     }
     
+    // Torneios públicos (coleção raiz)
+    match /tournaments/{tournamentId} {
+      allow read: if true; // Qualquer pessoa pode ver torneios
+      allow create: if isAuthenticated(); // Usuários autenticados podem criar
+      allow update, delete: if isAuthenticated() && resource.data.createdBy == request.auth.uid; // Apenas criador pode editar/deletar
+    }
+    
+    // Inscrições em torneios (coleção raiz)
+    match /tournament_inscriptions/{inscriptionId} {
+      allow read: if true; // Qualquer pessoa pode ver inscrições
+      allow create: if isAuthenticated(); // Usuários autenticados podem se inscrever
+      allow update, delete: if isAuthenticated() && resource.data.userId == request.auth.uid; // Apenas dono pode editar/deletar
+    }
+    
     // Índice público de pássaros (mapeia birdId -> userId)
     match /bird_index/{birdId} {
       allow get: if true; // Qualquer pessoa pode buscar o índice
@@ -109,6 +123,23 @@ service cloud.firestore {
     match /public_birds/{birdId} {
       allow read: if true;
       allow write: if isAuthenticated();
+    }
+    
+    // Pássaros públicos (coleção raiz)
+    match /birds/{birdId} {
+      // Qualquer pessoa pode ler pássaros marcados como públicos
+      allow read: if true;
+      // Apenas criadores autenticados podem criar/editar/deletar seus próprios pássaros
+      allow create: if isAuthenticated();
+      allow update, delete: if isAuthenticated() && resource.data.breederId == request.auth.uid;
+    }
+    
+    // Configurações de usuários (para exibir dados do criador em pássaros públicos)
+    match /settings/{userId} {
+      // Permite leitura pública de dados básicos do criador (nome, cidade, estado)
+      allow get: if true;
+      // Apenas o dono pode editar
+      allow write: if isAuthenticated() && isOwner(userId);
     }
   }
 }

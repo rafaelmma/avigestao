@@ -1,15 +1,18 @@
 
 import React, { useState } from 'react';
-import { Mail, Lock, User, ArrowRight, CheckCircle2, Zap, ShieldCheck, Star } from 'lucide-react';
+import { Mail, Lock, User, ArrowRight, CheckCircle2, Zap, ShieldCheck, Star, Trophy, Bird as BirdIcon } from 'lucide-react';
 import { BreederSettings } from '../types';
 import { APP_LOGO } from '../constants';
 import { signIn, signUp, resetPassword } from '../services/authService';
 
 interface AuthProps {
   onLogin: (settings?: Partial<BreederSettings>) => void;
+  onNavigateToPublicTournaments?: () => void;
+  onNavigateToResults?: () => void;
+  onNavigateToPublicBirds?: () => void;
 }
 
-const Auth: React.FC<AuthProps> = ({ onLogin }) => {
+const Auth: React.FC<AuthProps> = ({ onLogin, onNavigateToPublicTournaments, onNavigateToResults, onNavigateToPublicBirds }) => {
   const [isLogin, setIsLogin] = useState(true);
   const [isForgotPassword, setIsForgotPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -220,6 +223,42 @@ const Auth: React.FC<AuthProps> = ({ onLogin }) => {
                 </>
               )}
             </div>
+
+            {/* Link para Torneios Públicos */}
+            {(onNavigateToPublicTournaments || onNavigateToResults) && (
+              <div className="pt-4 border-t border-slate-200 space-y-2">
+                {onNavigateToPublicTournaments && (
+                  <button
+                    type="button"
+                    onClick={onNavigateToPublicTournaments}
+                    className="w-full py-3 bg-gradient-to-r from-amber-500 to-amber-600 text-white font-bold rounded-xl hover:from-amber-600 hover:to-amber-700 transition-all flex items-center justify-center gap-2 shadow-lg"
+                  >
+                    <Trophy size={20} />
+                    Ver Torneios Públicos (sem login)
+                  </button>
+                )}
+                {onNavigateToResults && (
+                  <button
+                    type="button"
+                    onClick={onNavigateToResults}
+                    className="w-full py-3 bg-gradient-to-r from-blue-500 to-blue-600 text-white font-bold rounded-xl hover:from-blue-600 hover:to-blue-700 transition-all flex items-center justify-center gap-2 shadow-lg"
+                  >
+                    <Trophy size={20} />
+                    Resultados e Classificações (sem login)
+                  </button>
+                )}
+                {onNavigateToPublicBirds && (
+                  <button
+                    type="button"
+                    onClick={onNavigateToPublicBirds}
+                    className="w-full py-3 bg-gradient-to-r from-purple-500 to-purple-600 text-white font-bold rounded-xl hover:from-purple-600 hover:to-purple-700 transition-all flex items-center justify-center gap-2 shadow-lg"
+                  >
+                    <BirdIcon size={20} />
+                    Galeria de Pássaros (sem login)
+                  </button>
+                )}
+              </div>
+            )}
           </form>
         </div>
       </div>

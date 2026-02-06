@@ -22,6 +22,7 @@ import {
   Zap
 } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import PublicTournamentsWidget from '../components/PublicTournamentsWidget';
 const TipCarousel = React.lazy(() => import('../components/TipCarousel'));
 
 interface DashboardProps {
@@ -201,37 +202,7 @@ const Dashboard: React.FC<DashboardProps> = ({ state, updateSettings, onSave, na
         );
 
       case 'tournaments':
-        return (
-          <div 
-            onClick={() => navigateTo('tournaments')}
-            className="h-full bg-white p-8 rounded-[32px] border border-slate-100 shadow-sm flex flex-col cursor-pointer hover:shadow-md transition-all active:scale-[0.99]"
-          >
-            <h3 className="font-black text-slate-800 flex items-center gap-3 mb-6">
-              <Trophy size={20} className="text-amber-500" />
-              Eventos Próximos
-            </h3>
-            <div className="space-y-4 flex-1">
-                {upcomingTournaments.length > 0 ? upcomingTournaments.slice(0, 3).map(event => (
-                  <div key={event.id} className="flex gap-4 p-4 bg-slate-50 rounded-2xl border border-slate-100 group transition-all hover:bg-white hover:shadow-md">
-                    <div className="flex flex-col items-center justify-center w-12 h-12 bg-white rounded-xl border border-slate-100 text-slate-800">
-                        <span className="text-[8px] font-black uppercase text-slate-400">{new Date(event.date).toLocaleDateString('pt-BR', { month: 'short' }).replace('.', '')}</span>
-                        <span className="text-sm font-black">{new Date(event.date).getDate()}</span>
-                    </div>
-                    <div className="overflow-hidden">
-                        <h4 className="text-xs font-black text-slate-800 truncate">{event.title}</h4>
-                        <p className="text-[10px] font-bold text-slate-400 flex items-center gap-1 mt-0.5">
-                          <MapPin size={10} /> {event.location}
-                        </p>
-                    </div>
-                  </div>
-                )) : (
-                  <div className="text-center py-6 text-slate-300">
-                    <p className="text-[10px] font-black uppercase tracking-widest">Nenhum evento agendado</p>
-                  </div>
-                )}
-            </div>
-          </div>
-        );
+        return <PublicTournamentsWidget onNavigateToTournaments={() => navigateTo('tournament-manager')} birds={state.birds || []} />;
       
       case 'financial':
         return (
