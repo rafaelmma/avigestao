@@ -1,6 +1,5 @@
-﻿import { getAuth } from 'firebase/auth';
+import { getAuth } from 'firebase/auth';
 
-// Usar domínio customizado para produção e fallback para ambiente de testes
 const PRIMARY_FUNCTIONS_URL = (import.meta as any)?.env?.VITE_FUNCTIONS_URL || 'https://api.avigestao.com.br';
 const FALLBACK_FUNCTIONS_URL = (import.meta as any)?.env?.VITE_FUNCTIONS_FALLBACK_URL || 'https://southamerica-east1-avigestao-cf5fe.cloudfunctions.net';
 
@@ -49,46 +48,23 @@ const requestWithFallback = async (path: string, token: string, body?: Record<st
   }
 };
 
-export async function assinarPlano(priceId: string) {
+export async function iniciarPagamentoMercadoPago(payload: {
+  planId: string;
+  planLabel: string;
+  price: number;
+  months: number;
+}) {
   const auth = getAuth();
   const user = auth.currentUser;
-  
-  if (!user) throw new Error('Usuário não autenticado');
-  
-  const token = await user.getIdToken();
 
-  const data = await requestWithFallback('createCheckoutSession', token, { priceId });
+  if (!user) throw new Error('Usuário não autenticado');
+
+  const token = await user.getIdToken();
+  const data = await requestWithFallback('createMercadoPagoCheckout', token, payload);
+
   if (data.url) {
     window.location.href = data.url;
   } else {
-    throw new Error(data.error || 'Erro ao criar sessão de checkout');
+    throw new Error(data.error || 'Erro ao abrir pagamento PIX');
   }
 }
-
-export async function abrirPortalCliente() {
-  const auth = getAuth();
-  const user = auth.currentUser;
-  
-  if (!user) throw new Error('Usuário não autenticado');
-  
-  const token = await user.getIdToken();
-
-  const data = await requestWithFallback('createPortalSession', token);
-  if (data.url) {
-    window.location.href = data.url;
-  } else {
-    throw new Error(data.error || 'Erro ao abrir portal');
-  }
-}
-
-export async function verificarAssinatura() {
-  const auth = getAuth();
-  const user = auth.currentUser;
-  
-  if (!user) return { isActive: false };
-  
-  const token = await user.getIdToken();
-
-  return await requestWithFallback('getSubscriptionStatus', token);
-}
-

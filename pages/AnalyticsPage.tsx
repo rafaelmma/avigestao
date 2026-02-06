@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { Eye, TrendingUp, Calendar, BarChart3, MapPin } from 'lucide-react';
 import { getBirdVerifications, getAllBirdVerifications, getPublicBirdById } from '../services/firestoreService';
 import { Bird } from '../types';
+import WizardShell from '../components/WizardShell';
 
 interface VerificationStats {
   birdId: string;
@@ -131,7 +132,8 @@ const AnalyticsPage: React.FC = () => {
   };
 
   return (
-    <div className="space-y-6">
+    <WizardShell title="Analytics" description="Métricas de verificação e engajamento.">
+      <div className="space-y-6">
       {/* Header */}
       <div>
         <h1 className="text-3xl font-bold text-slate-900">Analytics de Verificações</h1>
@@ -311,7 +313,8 @@ const AnalyticsPage: React.FC = () => {
           </div>
         )}
       </div>
-    </div>
+      </div>
+    </WizardShell>
   );
 };
 

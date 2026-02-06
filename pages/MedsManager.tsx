@@ -31,6 +31,7 @@ import {
   HelpCircle
 } from 'lucide-react';
 const TipCarousel = React.lazy(() => import('../components/TipCarousel'));
+import WizardLayout, { WizardStep } from '../components/WizardLayout';
 
 interface MedsManagerProps {
   state: AppState;
@@ -313,43 +314,30 @@ const MedsManager: React.FC<MedsManagerProps> = ({
   // Verifica plano para exibir restrições
   const isBasicPlan = state.settings.plan === 'Básico' && !isAdmin;
 
-  return (
+  const medWizardStepsBase: Array<{ id: typeof activeTab; label: string }> = [
+    { id: 'inventory', label: 'Estoque' },
+    { id: 'recent-applications', label: 'Aplicações' },
+    { id: 'treatments', label: 'Tratamentos' },
+    { id: 'history', label: 'Histórico' },
+  ];
+
+  const medWizardSteps: WizardStep[] = medWizardStepsBase.map(step => ({
+    id: step.id,
+    label: step.label,
+    content: null
+  }));
+
+  const activeMedStepIndex = Math.max(0, medWizardStepsBase.findIndex(step => step.id === activeTab));
+
+  const pageContent = (
     <div className="space-y-6 animate-in fade-in duration-500">
       <header className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <h2 className="text-3xl font-black text-[#0F172A] tracking-tight">Saúde e Farmácia</h2>
           <p className="text-slate-400 font-medium text-sm mt-1">Gestão de estoque de medicamentos e tratamentos.</p>
         </div>
-        
-        {/* Navegação de Abas */}
-        <div className="flex bg-white p-1.5 rounded-2xl shadow-sm border border-slate-100 overflow-x-auto">
-           <button 
-             onClick={() => { setActiveTab('inventory'); setCurrentList('active'); }}
-             className={`px-4 py-2.5 rounded-xl text-xs font-black uppercase tracking-widest transition-all flex items-center gap-2 whitespace-nowrap ${activeTab === 'inventory' ? 'bg-[#0F172A] text-white shadow-md' : 'text-slate-400 hover:text-slate-600'}`}
-           >
-             <LayoutGrid size={14} /> Estoque
-           </button>
-           <button 
-             onClick={() => { setActiveTab('recent-applications'); setCurrentList('active'); }}
-             className={`px-4 py-2.5 rounded-xl text-xs font-black uppercase tracking-widest transition-all flex items-center gap-2 whitespace-nowrap ${activeTab === 'recent-applications' ? 'bg-[#0F172A] text-white shadow-md' : 'text-slate-400 hover:text-slate-600'}`}
-           >
-             <Clock size={14} /> Aplicações Recentes
-           </button>
-           <button 
-             onClick={() => { setActiveTab('treatments'); setCurrentList('active'); }}
-             className={`px-4 py-2.5 rounded-xl text-xs font-black uppercase tracking-widest transition-all flex items-center gap-2 whitespace-nowrap ${activeTab === 'treatments' ? 'bg-[#0F172A] text-white shadow-md' : 'text-slate-400 hover:text-slate-600'}`}
-           >
-             <Repeat size={14} /> Tratamentos {isBasicPlan && <Zap size={12} className="text-amber-500 fill-amber-500" />}
-           </button>
-           <button 
-             onClick={() => { setActiveTab('history'); setCurrentList('active'); }}
-             className={`px-4 py-2.5 rounded-xl text-xs font-black uppercase tracking-widest transition-all flex items-center gap-2 whitespace-nowrap ${activeTab === 'history' ? 'bg-[#0F172A] text-white shadow-md' : 'text-slate-400 hover:text-slate-600'}`}
-           >
-             <History size={14} /> Histórico
-           </button>
-        </div>
       </header>
-      
+
       {/* Carrossel de Dicas */}
       <Suspense fallback={<div />}>
         <TipCarousel category="meds" />
@@ -1387,7 +1375,21 @@ const MedsManager: React.FC<MedsManagerProps> = ({
           </div>
         </div>
       )}
-    </div>
+      </div>
+  );
+
+  return (
+    <WizardLayout
+      title="Medicamentos"
+      steps={medWizardSteps.map(step => ({ ...step, content: pageContent }))}
+      activeStep={activeMedStepIndex}
+      showNavigation={false}
+      onStepChange={(index) => {
+        const next = medWizardStepsBase[index]?.id || 'inventory';
+        setActiveTab(next);
+        setCurrentList('active');
+      }}
+    />
   );
 };
 

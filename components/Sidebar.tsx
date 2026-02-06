@@ -18,7 +18,9 @@ import {
   FileBadge,
   Clock,
   RefreshCw,
-  BarChart3
+  BarChart3,
+  Trash2,
+  Archive
 } from 'lucide-react';
 import { SubscriptionPlan } from '../types';
 import { APP_LOGO_ICON } from '../constants';
@@ -39,21 +41,51 @@ interface SidebarProps {
 }
 
 const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab, logoUrl, breederName, plan, trialEndDate, isAdmin, onLogout, isOpen = true, onClose, onRefresh, isRefreshing }) => {
-  const menuItems = [
-    { id: 'dashboard', label: 'Dashboard', icon: <LayoutDashboard size={20} /> },
-    { id: 'birds', label: 'Plantel', icon: <BirdIcon size={20} /> },
-    { id: 'sexing', label: 'Central Sexagem', icon: <Dna size={20} /> },
-    { id: 'breeding', label: 'Acasalamentos', icon: <Heart size={20} /> },
-    { id: 'movements', label: 'Movimentações', icon: <ArrowRightLeft size={20} /> },
-    { id: 'documents', label: 'Licenças & Docs', icon: <FileBadge size={20} /> }, 
-    { id: 'tasks', label: 'Agenda / Tarefas', icon: <CalendarCheck size={20} /> },
-    { id: 'tournaments', label: 'Torneios & Eventos', icon: <Trophy size={20} /> },
-    { id: 'tournament-manager', label: 'Gerenciar Torneios', icon: <Trophy size={20} /> },
-    { id: 'meds', label: 'Medicamentos', icon: <FlaskConical size={20} /> },
-    { id: 'finance', label: 'Financeiro', icon: <DollarSign size={20} />, pro: true },
-    { id: 'analytics', label: 'Analytics', icon: <BarChart3 size={20} />, pro: true },
-    { id: 'statistics', label: 'Comunidade (Público)', icon: <BarChart3 size={20} /> },
-    { id: 'help', label: 'Ajuda & FAQ', icon: <HelpCircle size={20} /> },
+  const menuSections = [
+    {
+      title: 'Visão geral',
+      items: [
+        { id: 'dashboard', label: 'Dashboard', icon: <LayoutDashboard size={18} />, variant: 'main' },
+        { id: 'analytics', label: 'Analytics', icon: <BarChart3 size={16} />, variant: 'sub', pro: true }
+      ]
+    },
+    {
+      title: 'Plantel',
+      items: [
+        { id: 'birds', label: 'Plantel', icon: <BirdIcon size={18} />, variant: 'main' },
+        { id: 'birds-labels', label: 'Etiquetas', icon: <Archive size={16} />, variant: 'sub' },
+        { id: 'birds-history', label: 'Histórico', icon: <Archive size={16} />, variant: 'sub' },
+        { id: 'sexing', label: 'Sexagem', icon: <Dna size={16} />, variant: 'sub' },
+        { id: 'birds-ibama', label: 'IBAMA Pendentes', icon: <FileBadge size={16} />, variant: 'sub' },
+        { id: 'birds-trash', label: 'Lixeira', icon: <Trash2 size={16} />, variant: 'sub' }
+      ]
+    },
+    {
+      title: 'Gestão',
+      items: [
+        { id: 'breeding', label: 'Acasalamentos', icon: <Heart size={18} /> },
+        { id: 'movements', label: 'Movimentações', icon: <ArrowRightLeft size={18} /> },
+        { id: 'documents', label: 'Licenças & Docs', icon: <FileBadge size={18} /> },
+        { id: 'tasks', label: 'Agenda / Tarefas', icon: <CalendarCheck size={18} /> },
+        { id: 'meds', label: 'Medicamentos', icon: <FlaskConical size={18} /> },
+        { id: 'finance', label: 'Financeiro', icon: <DollarSign size={18} />, pro: true }
+      ]
+    },
+    {
+      title: 'Torneios',
+      items: [
+        { id: 'tournaments', label: 'Calendário', icon: <Trophy size={18} />, variant: 'main' },
+        { id: 'tournament-manager', label: 'Gerenciar', icon: <Trophy size={16} />, variant: 'sub' },
+        { id: 'tournament-results', label: 'Resultados', icon: <Trophy size={16} />, variant: 'sub' },
+        { id: 'statistics', label: 'Comunidade', icon: <BarChart3 size={16} />, variant: 'sub' }
+      ]
+    },
+    {
+      title: 'Suporte',
+      items: [
+        { id: 'help', label: 'Ajuda & FAQ', icon: <HelpCircle size={18} /> }
+      ]
+    }
   ];
 
   const handleNavigation = (tabId: string) => {
@@ -126,46 +158,54 @@ const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab, logoUrl, bre
           </div>
         )}
 
-        <nav className="flex-1 px-3 py-4 space-y-1 overflow-y-auto">
-          {menuItems
-            .filter((item) => {
-              // Hide "Gerenciar Torneios" for non-PRO users
-              if (item.id === 'tournament-manager') {
-                return plan === 'Profissional' || hasTrial || isAdmin;
-              }
-              return true;
-            })
-            .map((item) => {
-            const isProFeature = item.pro && plan === 'Básico' && !hasTrial && !isAdmin;
-            const isDisabled = isProFeature;
-            
-            return (
-            <button
-              key={item.id}
-              onClick={() => isDisabled ? goToSubscriptionPlans() : handleNavigation(item.id)}
-              disabled={isDisabled}
-              className={`w-full flex items-center justify-between px-3 py-2.5 rounded-lg transition-all text-sm font-medium ${
-                isDisabled
-                  ? 'text-slate-300 cursor-not-allowed bg-slate-50 opacity-50'
-                  : activeTab === item.id
-                  ? 'bg-slate-900 text-white'
-                  : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
-              }`}
-              title={isDisabled ? 'Feature disponível apenas no plano PRO' : ''}
-            >
-              <div className="flex items-center gap-3">
-                <span className="flex-shrink-0 w-5 h-5 flex items-center justify-center text-slate-400">
-                  {item.icon}
-                </span>
-                <span className="flex-1 text-left">{item.label}</span>
-                {isProFeature && (
-                  <Zap size={12} className="text-amber-500 fill-amber-500 flex-shrink-0" />
-                )}
+        <nav className="flex-1 px-3 py-4 space-y-4 overflow-y-auto">
+          {menuSections.map(section => (
+            <div key={section.title} className="space-y-2">
+              <p className="px-3 text-[10px] font-black uppercase tracking-widest text-slate-400">{section.title}</p>
+              <div className="space-y-1">
+                {section.items
+                  .filter((item: any) => {
+                    if (item.id === 'tournament-manager') {
+                      return plan === 'Profissional' || hasTrial || isAdmin;
+                    }
+                    return true;
+                  })
+                  .map((item: any) => {
+                    const isProFeature = item.pro && plan === 'Básico' && !hasTrial && !isAdmin;
+                    const isDisabled = isProFeature;
+                    const isActive = activeTab === item.id;
+                    const isSub = item.variant === 'sub';
+
+                    return (
+                      <button
+                        key={item.id}
+                        onClick={() => isDisabled ? goToSubscriptionPlans() : handleNavigation(item.id)}
+                        disabled={isDisabled}
+                        className={`w-full flex items-center justify-between ${isSub ? 'px-3 py-2' : 'px-3 py-2.5'} rounded-lg transition-all ${
+                          isDisabled
+                            ? 'text-slate-300 cursor-not-allowed bg-slate-50 opacity-50'
+                            : isActive
+                            ? 'bg-slate-900 text-white'
+                            : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
+                        } ${isSub ? 'text-[12px]' : 'text-sm font-medium'}`}
+                        title={isDisabled ? 'Feature disponível apenas no plano PRO' : ''}
+                      >
+                        <div className={`flex items-center gap-3 ${isSub ? 'pl-2' : ''}`}>
+                          <span className="flex-shrink-0 w-5 h-5 flex items-center justify-center text-slate-400">
+                            {item.icon}
+                          </span>
+                          <span className="flex-1 text-left">{item.label}</span>
+                          {isProFeature && (
+                            <Zap size={12} className="text-amber-500 fill-amber-500 flex-shrink-0" />
+                          )}
+                        </div>
+                        {isActive && <ChevronRight size={16} className="opacity-60 flex-shrink-0" />}
+                      </button>
+                    );
+                  })}
               </div>
-              {activeTab === item.id && <ChevronRight size={16} className="opacity-60 flex-shrink-0" />}
-            </button>
-            );
-          })}
+            </div>
+          ))}
         </nav>
 
         <div className="px-3 py-4 border-t border-slate-200 space-y-2">

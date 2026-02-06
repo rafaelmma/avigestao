@@ -172,9 +172,7 @@ const TournamentResults: React.FC<TournamentResultsProps> = ({ onBack }) => {
           <div className="bg-white rounded-xl border border-slate-200 p-6 space-y-4">
             <div className="grid md:grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-semibold text-slate-700 mb-2">
-                  Selecione o Campeonato
-                </label>
+                <label className="block text-sm font-semibold text-slate-700 mb-2">Selecione o Torneio</label>
                 <select
                   value={selectedTournament}
                   onChange={(e) => {
@@ -195,9 +193,7 @@ const TournamentResults: React.FC<TournamentResultsProps> = ({ onBack }) => {
 
               {selectedTournament && stages > 1 && (
                 <div>
-                  <label className="block text-sm font-semibold text-slate-700 mb-2">
-                    Selecione a Etapa
-                  </label>
+                  <label className="block text-sm font-semibold text-slate-700 mb-2">Selecione a Etapa</label>
                   <select
                     value={selectedStage}
                     onChange={(e) => setSelectedStage(Number(e.target.value))}

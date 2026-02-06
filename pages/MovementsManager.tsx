@@ -22,6 +22,7 @@ import {
   Edit
 } from 'lucide-react';
 const TipCarousel = React.lazy(() => import('../components/TipCarousel'));
+import WizardLayout, { WizardStep } from '../components/WizardLayout';
 
 interface MovementsManagerProps {
   state: AppState;
@@ -150,39 +151,28 @@ const MovementsManager: React.FC<MovementsManagerProps> = ({ state, addMovement,
 
   const getBirdById = (id: string) => state.birds.find(b => b.id === id) || state.deletedBirds?.find(b => b.id === id);
 
-  return (
+  const wizardSteps: WizardStep[] = [
+    {
+      id: 'active',
+      label: 'Ativos',
+      description: 'Histórico de entradas, saídas, vendas e transferências.',
+      content: null
+    },
+    {
+      id: 'trash',
+      label: 'Lixeira',
+      description: 'Registros removidos aguardando exclusão permanente.',
+      content: null
+    }
+  ];
+
+  const activeStepIndex = Math.max(0, wizardSteps.findIndex(step => step.id === currentList));
+
+  const pageContent = (
     <div className="space-y-6 animate-in fade-in duration-500">
-      <header className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div>
-          <h2 className="text-3xl font-black text-[#0F172A] tracking-tight">Movimentações</h2>
-                <p className="text-slate-400 font-medium text-sm mt-1">Entrada, saída, transferência, venda, doação e óbito</p>
-        </div>
-        <div className="flex gap-2">
-           <div className="flex bg-white p-1 rounded-xl shadow-sm border border-slate-100 mr-2">
-             <button 
-               onClick={() => setCurrentList('active')} 
-               className={`px-4 py-2 text-xs font-black uppercase rounded-lg transition-all ${currentList === 'active' ? 'bg-[#0F172A] text-white shadow' : 'text-slate-400'}`}
-             >
-               Histórico Ativo
-             </button>
-             <button 
-               onClick={() => setCurrentList('trash')} 
-               className={`px-4 py-2 text-xs font-black uppercase rounded-lg transition-all flex items-center gap-2 ${currentList === 'trash' ? 'bg-rose-500 text-white shadow' : 'text-slate-400'}`}
-             >
-               <Trash2 size={12} /> Lixeira
-             </button>
-           </div>
-           {currentList === 'active' && (
-             <button 
-              onClick={handleOpenAdd}
-              className="flex items-center gap-2 px-6 py-2.5 bg-[#0F172A] hover:opacity-90 text-white rounded-xl shadow-lg transition-all font-bold text-sm"
-             >
-              <Plus size={18} />
-              Nova Ocorrência
-             </button>
-           )}
-        </div>
-      </header>
+      <div>
+        <p className="text-slate-400 font-medium text-sm">Entrada, saída, transferência, venda, doação e óbito</p>
+      </div>
 
       {/* Carrossel de Dicas de Movimentação */}
       <Suspense fallback={<div />}>
@@ -541,6 +531,43 @@ const MovementsManager: React.FC<MovementsManagerProps> = ({ state, addMovement,
         </div>
       )}
     </div>
+  );
+
+  const stepsWithContent = wizardSteps.map(step => ({ ...step, content: pageContent }));
+
+  return (
+    <WizardLayout
+      title="Movimentações"
+      steps={stepsWithContent}
+      activeStep={activeStepIndex}
+      showSteps={false}
+      showNavigation={false}
+      onStepChange={(index) => setCurrentList(stepsWithContent[index]?.id as 'active' | 'trash')}
+      action={
+        <div className="flex flex-wrap items-center gap-2">
+          <button
+            onClick={() => setCurrentList(currentList === 'active' ? 'trash' : 'active')}
+            className={`flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-semibold transition-all border ${
+              currentList === 'active'
+                ? 'bg-rose-50 text-rose-600 border-rose-200 hover:bg-rose-100'
+                : 'bg-slate-100 text-slate-600 border-slate-200 hover:bg-slate-200'
+            }`}
+          >
+            {currentList === 'active' ? <Trash2 size={14} /> : <RefreshCcw size={14} />}
+            {currentList === 'active' ? 'Ver Lixeira' : 'Voltar às movimentações'}
+          </button>
+          {currentList === 'active' ? (
+            <button 
+              onClick={handleOpenAdd}
+              className="flex items-center gap-2 px-6 py-2.5 bg-[#0F172A] hover:opacity-90 text-white rounded-xl shadow-lg transition-all font-bold text-sm"
+            >
+              <Plus size={18} />
+              Nova Ocorrência
+            </button>
+          ) : null}
+        </div>
+      }
+    />
   );
 };
 

@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useRef, useState, Suspense } from 'react';
 import { BreederSettings } from '../types';
 import { getAuth } from 'firebase/auth';
 import { assinarPlano } from '../lib/stripe';
+import { iniciarPagamentoMercadoPago } from '../lib/mercadopago';
 import {
   User,
   Image as ImageIcon,
@@ -31,11 +32,25 @@ interface SettingsManagerProps {
 }
 
 const PLANS = [
-  { id: 'monthly', label: 'Mensal', price: 19.9, period: '/mes' },
-  { id: 'quarterly', label: 'Trimestral', price: 53.7, period: '/3 meses' },
-  { id: 'semiannual', label: 'Semestral', price: 95.5, period: '/6 meses' },
-  { id: 'annual', label: 'Anual', price: 167.1, period: '/ano' },
+  { id: 'monthly', label: 'Mensal', price: 19.9, period: '/mês', months: 1 },
+  { id: 'quarterly', label: 'Trimestral', price: 53.7, period: '/3 meses', months: 3 },
+  { id: 'semiannual', label: 'Semestral', price: 95.5, period: '/6 meses', months: 6 },
+  { id: 'annual', label: 'Anual', price: 167.1, period: '/ano', months: 12 },
 ];
+
+const PLAN_FEATURES = [
+  'Plantel e pedigree ilimitados',
+  'Etiquetas, certificados e relatórios',
+  'Histórico e rastreabilidade completa',
+  'Backup seguro e suporte prioritário',
+];
+
+const PLAN_BADGES: Record<string, { label: string; tone: 'amber' | 'emerald' } | null> = {
+  monthly: null,
+  quarterly: { label: 'Mais usado', tone: 'amber' },
+  semiannual: { label: 'Economia inteligente', tone: 'emerald' },
+  annual: { label: 'Melhor custo-benefício', tone: 'emerald' },
+};
 
 const PRICE_ID_MAP: Record<string, string> = {
   monthly: 'price_1SwSz20YB6ELT5UOHr8IVksz',
@@ -61,6 +76,12 @@ const maskCpfCnpj = (value: string) => {
     .replace(/\.(\d{3})(\d)/, '.$1/$2')
     .replace(/(\d{4})(\d)/, '$1-$2')
     .slice(0, 18);
+};
+
+const formatCep = (value: string) => {
+  const digits = value.replace(/\D/g, '').slice(0, 8);
+  if (digits.length <= 5) return digits;
+  return `${digits.slice(0, 5)}-${digits.slice(5)}`;
 };
 
 const daysTo = (date?: string) => {
@@ -90,14 +111,76 @@ const SettingsManager: React.FC<SettingsManagerProps> = ({ settings, updateSetti
   const [passwordSuccess, setPasswordSuccess] = useState<string | null>(null);
   const [isChangingPassword, setIsChangingPassword] = useState(false);
   const [showPasswordModal, setShowPasswordModal] = useState(false);
+  const [isFetchingCep, setIsFetchingCep] = useState(false);
+  const [cepError, setCepError] = useState<string | null>(null);
+  const lastCepLookupRef = useRef<string>('');
 
   const isTrial = !!settings.trialEndDate && !isAdmin;
   const canUseLogo = !!isAdmin || settings.plan === 'Profissional' || !!settings.trialEndDate;
   const planLabel = isAdmin ? 'Admin' : settings.plan;
+  const monthlyPrice = PLANS[0]?.price ?? 0;
+  const selectedPlan = PLANS.find((plan) => plan.id === selectedPlanId) || PLANS[0];
 
   const daysSispass = daysTo(settings.renewalDate);
   const daysCert = daysTo(settings.certificate?.expiryDate);
   const daysSubscription = settings.subscriptionEndDate ? daysTo(settings.subscriptionEndDate) : null;
+
+  const buttonBase = 'inline-flex items-center justify-center gap-2 rounded-xl text-sm font-semibold transition-all disabled:opacity-60';
+  const buttonPrimary = `${buttonBase} bg-slate-900 text-white hover:bg-slate-800`;
+  const buttonSecondary = `${buttonBase} bg-slate-100 text-slate-700 hover:bg-slate-200`;
+  const buttonAccent = `${buttonBase} bg-blue-600 text-white hover:bg-blue-700`;
+  const buttonHighlight = `${buttonBase} bg-amber-500 text-slate-900 hover:bg-amber-400`;
+
+  const wizardSteps = [
+    { id: 'resumo', label: 'Resumo' },
+    { id: 'identidade', label: 'Identidade' },
+    { id: 'perfil-criador', label: 'Perfil do criador' },
+    { id: 'aparencia', label: 'Aparência' },
+    { id: 'seguranca', label: 'Segurança' },
+  ];
+
+  const [wizardStep, setWizardStep] = useState(0);
+
+  const lookupCep = async (cepDigits: string) => {
+    if (cepDigits.length !== 8 || lastCepLookupRef.current === cepDigits) return;
+    lastCepLookupRef.current = cepDigits;
+    setIsFetchingCep(true);
+    setCepError(null);
+    try {
+      const response = await fetch(`https://viacep.com.br/ws/${cepDigits}/json/`);
+      if (!response.ok) throw new Error('Falha ao buscar CEP');
+      const data = await response.json();
+      if (data?.erro) {
+        setCepError('CEP não encontrado');
+        return;
+      }
+
+      updateSettings({
+        ...settings,
+        addressCep: formatCep(cepDigits),
+        addressCity: data.localidade || settings.addressCity,
+        addressState: data.uf || settings.addressState,
+        addressStreet: data.logradouro || settings.addressStreet,
+        addressNeighborhood: data.bairro || settings.addressNeighborhood,
+        addressComplement: data.complemento || settings.addressComplement,
+      });
+    } catch {
+      setCepError('Não foi possível buscar o endereço');
+    } finally {
+      setIsFetchingCep(false);
+    }
+  };
+
+  const handleCepChange = (value: string) => {
+    const formatted = formatCep(value);
+    updateSettings({ ...settings, addressCep: formatted });
+    const digits = formatted.replace(/\D/g, '');
+    if (digits.length === 8) {
+      lookupCep(digits);
+    } else {
+      setCepError(null);
+    }
+  };
 
   useEffect(() => {
     if (!canUseLogo && settings.logoUrl && settings.logoUrl !== APP_LOGO) {
@@ -188,6 +271,22 @@ const SettingsManager: React.FC<SettingsManagerProps> = ({ settings, updateSetti
       console.error(err);
       setPaymentStep('method');
       alert('Erro ao iniciar pagamento: ' + (err instanceof Error ? err.message : String(err)));
+    }
+  };
+
+  const startMercadoPagoCheckout = async () => {
+    try {
+      setPaymentStep('processing');
+      await iniciarPagamentoMercadoPago({
+        planId: selectedPlan.id,
+        planLabel: selectedPlan.label,
+        price: Number(selectedPlan.price),
+        months: Number(selectedPlan.months || 1)
+      });
+    } catch (err) {
+      console.error(err);
+      setPaymentStep('method');
+      alert('Erro ao iniciar pagamento PIX: ' + (err instanceof Error ? err.message : String(err)));
     }
   };
 
@@ -345,28 +444,7 @@ const SettingsManager: React.FC<SettingsManagerProps> = ({ settings, updateSetti
   };
 
   return (
-    <div className="space-y-8 max-w-6xl pb-14 animate-in fade-in">
-      {bannerMessage && bannerMessage.length > 0 && (
-        <div className="space-y-3">
-          {bannerMessage.map((banner, idx) => (
-            <div key={idx} className="flex items-center justify-between p-4 rounded-2xl border border-amber-200 bg-amber-50 text-amber-800 text-sm font-bold shadow-sm">
-              <div className="flex items-center gap-2">
-                <AlertTriangle size={18} className="text-amber-500" />
-                <span>{banner.message}</span>
-              </div>
-              {banner.action && banner.actionLabel && (
-                <button
-                  onClick={banner.action}
-                  className="text-[11px] uppercase tracking-widest font-black text-amber-700 hover:text-amber-900 transition-colors"
-                >
-                  {banner.actionLabel}
-                </button>
-              )}
-            </div>
-          ))}
-        </div>
-      )}
-
+    <div className="w-full max-w-none px-6 xl:px-10 2xl:px-16 animate-in fade-in h-[calc(100vh-140px)] flex flex-col gap-6">
       <header className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
         <div>
           <h2 className="text-3xl font-bold text-slate-900">Configurações</h2>
@@ -399,14 +477,111 @@ const SettingsManager: React.FC<SettingsManagerProps> = ({ settings, updateSetti
         </div>
       </header>
 
+      <div className="flex-1 min-h-0">
+        {bannerMessage && bannerMessage.length > 0 && (
+          <div className="space-y-3">
+            {bannerMessage.map((banner, idx) => (
+              <div key={idx} className="flex items-center justify-between p-4 rounded-2xl border border-amber-200 bg-amber-50 text-amber-800 text-sm font-bold shadow-sm">
+                <div className="flex items-center gap-2">
+                  <AlertTriangle size={18} className="text-amber-500" />
+                  <span>{banner.message}</span>
+                </div>
+                {banner.action && banner.actionLabel && (
+                  <button
+                    onClick={banner.action}
+                    className="text-[11px] uppercase tracking-widest font-black text-amber-700 hover:text-amber-900 transition-colors"
+                  >
+                    {banner.actionLabel}
+                  </button>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
+
       <Suspense fallback={<div />}>
         <TipCarousel category="settings" />
       </Suspense>
 
       {activeTab === 'perfil' && (
-        <div className="grid grid-cols-1 lg:grid-cols-[1.6fr_0.9fr] gap-6">
-          <div className="space-y-6">
-            <div className="bg-white p-8 rounded-xl border border-slate-100 shadow-sm space-y-6">
+        <div className="space-y-6">
+          <div className="bg-white border border-slate-100 rounded-2xl p-4 shadow-sm">
+            <div className="flex flex-wrap items-center gap-2">
+              {wizardSteps.map((step, idx) => (
+                <button
+                  key={step.id}
+                  type="button"
+                  onClick={() => setWizardStep(idx)}
+                  className={`px-4 py-2 rounded-xl text-xs font-black uppercase tracking-widest transition-all ${
+                    wizardStep === idx ? 'bg-slate-900 text-white' : 'bg-slate-100 text-slate-500'
+                  }`}
+                >
+                  {step.label}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {wizardStep === 0 && (
+            <section className="space-y-4">
+              <h3 className="text-sm font-black uppercase tracking-widest text-slate-400">Resumo rápido</h3>
+              <div className="grid grid-cols-1 xl:grid-cols-3 gap-4">
+                <div className="bg-white p-6 rounded-3xl border border-slate-100 shadow-sm space-y-4">
+                  <h4 className="font-black text-slate-800 flex items-center gap-2">
+                    <ShieldCheck size={16} className="text-emerald-600" /> Status rápido
+                  </h4>
+                  <div className="space-y-2">
+                    {statusItems.map((item, idx) => (
+                      <div key={idx} className="flex items-center justify-between p-3 rounded-2xl border border-slate-100">
+                        <div>
+                          <p className="text-sm font-bold text-slate-800">{item.label}</p>
+                          <p className="text-[11px] text-slate-500">{item.value}</p>
+                        </div>
+                        {item.ok ? (
+                          <CheckCircle2 size={18} className="text-emerald-500" />
+                        ) : (
+                          <AlertTriangle size={18} className="text-amber-500" />
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="bg-white p-6 rounded-3xl border border-slate-100 shadow-sm space-y-3">
+                  <h4 className="font-black text-slate-800 flex items-center gap-2">
+                    <Calendar size={16} className="text-slate-500" /> Datas importantes
+                  </h4>
+                  <div className="text-sm text-slate-600 space-y-2">
+                    <p>Renovação SISPASS: {settings.renewalDate ? new Date(settings.renewalDate).toLocaleDateString() : 'Pendente'}</p>
+                    <p>Última Renovação: {settings.lastRenewalDate ? new Date(settings.lastRenewalDate).toLocaleDateString() : 'Pendente'}</p>
+                    <p>Certificado: {settings.certificate?.expiryDate ? new Date(settings.certificate.expiryDate).toLocaleDateString() : 'Pendente'}</p>
+                  </div>
+                  <p className="text-[11px] text-slate-500">Mantenha as datas atualizadas para ver alertas no dashboard.</p>
+                </div>
+
+                <div className="bg-white p-6 rounded-3xl border border-slate-100 shadow-sm space-y-4">
+                  <h4 className="font-black text-slate-800 flex items-center gap-2">
+                    <ShieldCheck size={16} className="text-slate-600" /> Certificado digital
+                  </h4>
+                  <div className="text-sm text-slate-700 space-y-1">
+                    <p><span className="font-bold">Emissor:</span> {settings.certificate?.issuer || 'Pendente'}</p>
+                    <p><span className="font-bold">Validade:</span> {settings.certificate?.expiryDate ? new Date(settings.certificate.expiryDate).toLocaleDateString() : 'Pendente'}</p>
+                  </div>
+                  <a
+                    href="https://ccd.serpro.gov.br/testeaqui/"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-2 text-xs font-black uppercase tracking-widest text-slate-500 hover:text-slate-700"
+                  >
+                    <ExternalLink size={12} /> Testar Certificado (Serpro)
+                  </a>
+                </div>
+              </div>
+            </section>
+          )}
+
+          {wizardStep === 1 && (
+            <section className="bg-white p-8 rounded-xl border border-slate-100 shadow-sm space-y-6">
               <h3 className="font-bold flex items-center gap-2 text-slate-900">
                 <User size={18} /> Identidade do criatório
               </h3>
@@ -430,7 +605,7 @@ const SettingsManager: React.FC<SettingsManagerProps> = ({ settings, updateSetti
                       <div className="flex flex-col gap-2">
                         <button
                           onClick={() => !isUploadingLogo && fileInputRef.current?.click()}
-                          className="inline-flex items-center gap-2 px-6 py-3 bg-blue-600 text-white rounded-lg text-sm font-semibold hover:bg-blue-700 transition-all disabled:opacity-60"
+                          className={`${buttonAccent} px-6 py-3`}
                           disabled={isUploadingLogo}
                         >
                           {isUploadingLogo ? <Loader2 size={16} className="animate-spin" /> : <Upload size={16} />}
@@ -445,7 +620,7 @@ const SettingsManager: React.FC<SettingsManagerProps> = ({ settings, updateSetti
                                 console.error('Erro ao restaurar logo padrão:', err);
                               }
                             }}
-                            className="inline-flex items-center gap-2 px-6 py-3 bg-slate-600 text-white rounded-lg text-sm font-semibold hover:bg-slate-700 transition-all"
+                            className={`${buttonSecondary} px-6 py-3`}
                           >
                             Usar logo padrão
                           </button>
@@ -583,22 +758,180 @@ const SettingsManager: React.FC<SettingsManagerProps> = ({ settings, updateSetti
                   <p className="text-[11px] text-slate-500">{daysSispass !== null ? `${daysSispass} dias` : ''}</p>
                 </div>
               </div>
-            </div>
+            </section>
+          )}
 
-            <div className="bg-white p-8 rounded-3xl border border-slate-100 shadow-sm space-y-6">
+          {wizardStep === 2 && (
+            <section className="bg-white p-8 rounded-3xl border border-slate-100 shadow-sm space-y-6">
               <h3 className="font-black flex items-center gap-2 text-slate-800">
-                <Lock size={18} /> Segurança
+                <User size={18} /> Perfil do criador
               </h3>
-              <p className="text-sm text-slate-600">Proteja sua conta com uma senha segura.</p>
-              <button
-                onClick={() => setShowPasswordModal(true)}
-                className="w-full py-3 bg-slate-900 text-white rounded-2xl font-black uppercase text-sm tracking-widest hover:bg-slate-800 transition-all"
-              >
-                <Lock size={16} className="inline mr-2" /> Trocar Senha
-              </button>
-            </div>
 
-            <div className="bg-white p-8 rounded-3xl border border-slate-100 shadow-sm space-y-6">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <label className="space-y-2">
+                  <span className="text-label">Categoria do criador</span>
+                  <input
+                    className="w-full p-3.5 rounded-lg bg-white border border-slate-300 text-sm font-medium outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500"
+                    value={settings.breederCategory || ''}
+                    onChange={(e) => updateSettings({ ...settings, breederCategory: e.target.value })}
+                    placeholder="Ex: Amador"
+                  />
+                </label>
+
+                <label className="space-y-2">
+                  <span className="text-label">Nome do responsável</span>
+                  <input
+                    className="w-full p-3.5 rounded-lg bg-white border border-slate-300 text-sm font-medium outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500"
+                    value={settings.responsibleName || ''}
+                    onChange={(e) => updateSettings({ ...settings, responsibleName: e.target.value })}
+                    placeholder="Ex: João Silva"
+                  />
+                </label>
+
+                <label className="space-y-2">
+                  <span className="text-label">Espécie criada</span>
+                  <input
+                    className="w-full p-3.5 rounded-lg bg-white border border-slate-300 text-sm font-medium outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500"
+                    value={settings.speciesRaised || ''}
+                    onChange={(e) => updateSettings({ ...settings, speciesRaised: e.target.value })}
+                    placeholder="Ex: Curió"
+                  />
+                </label>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <label className="space-y-2">
+                  <span className="text-label">CEP</span>
+                  <input
+                    className="w-full p-3.5 rounded-lg bg-white border border-slate-300 text-sm font-medium outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500"
+                    value={settings.addressCep || ''}
+                    onChange={(e) => handleCepChange(e.target.value)}
+                    onBlur={(e) => {
+                      const digits = e.target.value.replace(/\D/g, '');
+                      if (digits.length === 8) lookupCep(digits);
+                    }}
+                    placeholder="00000-000"
+                  />
+                  {isFetchingCep && (
+                    <p className="text-[10px] text-slate-400">Buscando endereço pelo CEP...</p>
+                  )}
+                  {cepError && !isFetchingCep && (
+                    <p className="text-[10px] text-rose-600 font-semibold">{cepError}</p>
+                  )}
+                </label>
+
+                <label className="space-y-2">
+                  <span className="text-label">Cidade</span>
+                  <input
+                    className="w-full p-3.5 rounded-lg bg-white border border-slate-300 text-sm font-medium outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500"
+                    value={settings.addressCity || ''}
+                    onChange={(e) => updateSettings({ ...settings, addressCity: e.target.value })}
+                    placeholder="Ex: Salvador"
+                  />
+                </label>
+
+                <label className="space-y-2">
+                  <span className="text-label">UF</span>
+                  <input
+                    className="w-full p-3.5 rounded-lg bg-white border border-slate-300 text-sm font-medium outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500"
+                    value={settings.addressState || ''}
+                    onChange={(e) => updateSettings({ ...settings, addressState: e.target.value })}
+                    placeholder="Ex: BA"
+                  />
+                </label>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <label className="space-y-2">
+                  <span className="text-label">Rua</span>
+                  <input
+                    className="w-full p-3.5 rounded-lg bg-white border border-slate-300 text-sm font-medium outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500"
+                    value={settings.addressStreet || ''}
+                    onChange={(e) => updateSettings({ ...settings, addressStreet: e.target.value })}
+                    placeholder="Ex: Rua das Flores"
+                  />
+                </label>
+
+                <label className="space-y-2">
+                  <span className="text-label">Número</span>
+                  <input
+                    className="w-full p-3.5 rounded-lg bg-white border border-slate-300 text-sm font-medium outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500"
+                    value={settings.addressNumber || ''}
+                    onChange={(e) => updateSettings({ ...settings, addressNumber: e.target.value })}
+                    placeholder="Ex: 123"
+                  />
+                </label>
+
+                <label className="space-y-2">
+                  <span className="text-label">Bairro</span>
+                  <input
+                    className="w-full p-3.5 rounded-lg bg-white border border-slate-300 text-sm font-medium outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500"
+                    value={settings.addressNeighborhood || ''}
+                    onChange={(e) => updateSettings({ ...settings, addressNeighborhood: e.target.value })}
+                    placeholder="Ex: Centro"
+                  />
+                </label>
+              </div>
+
+              <label className="space-y-2">
+                <span className="text-label">Complemento</span>
+                <input
+                  className="w-full p-3.5 rounded-lg bg-white border border-slate-300 text-sm font-medium outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500"
+                  value={settings.addressComplement || ''}
+                  onChange={(e) => updateSettings({ ...settings, addressComplement: e.target.value })}
+                  placeholder="Ex: Sala 2"
+                />
+              </label>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <label className="space-y-2">
+                  <span className="text-label">E-mail</span>
+                  <input
+                    type="email"
+                    className="w-full p-3.5 rounded-lg bg-white border border-slate-300 text-sm font-medium outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500"
+                    value={settings.breederEmail || ''}
+                    onChange={(e) => updateSettings({ ...settings, breederEmail: e.target.value })}
+                    placeholder="contato@exemplo.com"
+                  />
+                </label>
+
+                <label className="space-y-2">
+                  <span className="text-label">Site</span>
+                  <input
+                    className="w-full p-3.5 rounded-lg bg-white border border-slate-300 text-sm font-medium outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500"
+                    value={settings.breederWebsite || ''}
+                    onChange={(e) => updateSettings({ ...settings, breederWebsite: e.target.value })}
+                    placeholder="www.seucriatorio.com.br"
+                  />
+                </label>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <label className="space-y-2">
+                  <span className="text-label">Telefone</span>
+                  <input
+                    className="w-full p-3.5 rounded-lg bg-white border border-slate-300 text-sm font-medium outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500"
+                    value={settings.breederPhone || ''}
+                    onChange={(e) => updateSettings({ ...settings, breederPhone: e.target.value })}
+                    placeholder="(00) 0000-0000"
+                  />
+                </label>
+
+                <label className="space-y-2">
+                  <span className="text-label">Celular</span>
+                  <input
+                    className="w-full p-3.5 rounded-lg bg-white border border-slate-300 text-sm font-medium outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500"
+                    value={settings.breederMobile || ''}
+                    onChange={(e) => updateSettings({ ...settings, breederMobile: e.target.value })}
+                    placeholder="(00) 00000-0000"
+                  />
+                </label>
+              </div>
+            </section>
+          )}
+
+          {wizardStep === 3 && (
+            <section className="bg-white p-8 rounded-3xl border border-slate-100 shadow-sm space-y-6">
               <div className="flex items-center gap-2 text-emerald-600 font-black text-sm">
                 <Palette size={18} /> Aparência e tema
               </div>
@@ -657,60 +990,44 @@ const SettingsManager: React.FC<SettingsManagerProps> = ({ settings, updateSetti
                   </div>
                 </div>
               </div>
-            </div>
-          </div>
+            </section>
+          )}
 
-          <div className="space-y-4">
-            <div className="bg-white p-6 rounded-3xl border border-slate-100 shadow-sm space-y-4">
-              <h4 className="font-black text-slate-800 flex items-center gap-2">
-                <ShieldCheck size={16} className="text-emerald-600" /> Status rápido
-              </h4>
-              <div className="space-y-2">
-                {statusItems.map((item, idx) => (
-                  <div key={idx} className="flex items-center justify-between p-3 rounded-2xl border border-slate-100">
-                    <div>
-                      <p className="text-sm font-bold text-slate-800">{item.label}</p>
-                      <p className="text-[11px] text-slate-500">{item.value}</p>
-                    </div>
-                    {item.ok ? (
-                      <CheckCircle2 size={18} className="text-emerald-500" />
-                    ) : (
-                      <AlertTriangle size={18} className="text-amber-500" />
-                    )}
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            <div className="bg-white p-6 rounded-3xl border border-slate-100 shadow-sm space-y-3">
-              <h4 className="font-black text-slate-800 flex items-center gap-2">
-                <Calendar size={16} className="text-slate-500" /> Datas importantes
-              </h4>
-              <div className="text-sm text-slate-600 space-y-2">
-                <p>Renovação SISPASS: {settings.renewalDate ? new Date(settings.renewalDate).toLocaleDateString() : 'Pendente'}</p>
-                <p>Última Renovação: {settings.lastRenewalDate ? new Date(settings.lastRenewalDate).toLocaleDateString() : 'Pendente'}</p>
-                <p>Certificado: {settings.certificate?.expiryDate ? new Date(settings.certificate.expiryDate).toLocaleDateString() : 'Pendente'}</p>
-              </div>
-              <p className="text-[11px] text-slate-500">Mantenha as datas atualizadas para ver alertas no dashboard.</p>
-            </div>
-
-            <div className="bg-white p-6 rounded-3xl border border-slate-100 shadow-sm space-y-4">
-              <h4 className="font-black text-slate-800 flex items-center gap-2">
-                <ShieldCheck size={16} className="text-slate-600" /> Certificado digital
-              </h4>
-              <div className="text-sm text-slate-700 space-y-1">
-                <p><span className="font-bold">Emissor:</span> {settings.certificate?.issuer || 'Pendente'}</p>
-                <p><span className="font-bold">Validade:</span> {settings.certificate?.expiryDate ? new Date(settings.certificate.expiryDate).toLocaleDateString() : 'Pendente'}</p>
-              </div>
-              <a
-                href="https://ccd.serpro.gov.br/testeaqui/"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center gap-2 text-xs font-black uppercase tracking-widest text-slate-500 hover:text-slate-700"
+          {wizardStep === 4 && (
+            <section className="bg-white p-8 rounded-3xl border border-slate-100 shadow-sm space-y-6">
+              <h3 className="font-black flex items-center gap-2 text-slate-800">
+                <Lock size={18} /> Segurança
+              </h3>
+              <p className="text-sm text-slate-600">Proteja sua conta com uma senha segura.</p>
+              <button
+                onClick={() => setShowPasswordModal(true)}
+                className={`${buttonPrimary} w-full py-3`}
               >
-                <ExternalLink size={12} /> Testar Certificado (Serpro)
-              </a>
+                <Lock size={16} /> Trocar Senha
+              </button>
+            </section>
+          )}
+
+          <div className="flex items-center justify-between pt-2">
+            <button
+              type="button"
+              onClick={() => setWizardStep((prev) => Math.max(0, prev - 1))}
+              className={`${buttonSecondary} px-5 py-2`}
+              disabled={wizardStep === 0}
+            >
+              Voltar
+            </button>
+            <div className="text-xs font-bold text-slate-400 uppercase tracking-widest">
+              Passo {wizardStep + 1} de {wizardSteps.length}
             </div>
+            <button
+              type="button"
+              onClick={() => setWizardStep((prev) => Math.min(wizardSteps.length - 1, prev + 1))}
+              className={`${buttonPrimary} px-5 py-2`}
+              disabled={wizardStep === wizardSteps.length - 1}
+            >
+              Próximo
+            </button>
           </div>
         </div>
       )}
@@ -742,7 +1059,7 @@ const SettingsManager: React.FC<SettingsManagerProps> = ({ settings, updateSetti
                   </div>
                   <button
                     onClick={openBillingPortal}
-                    className="px-4 py-2 bg-slate-900 text-white rounded-xl text-xs font-black uppercase tracking-widest hover:bg-slate-800 transition-all"
+                    className={`${buttonPrimary} px-4 py-2 text-xs uppercase tracking-widest`}
                   >
                     Abrir portal
                   </button>
@@ -779,28 +1096,109 @@ const SettingsManager: React.FC<SettingsManagerProps> = ({ settings, updateSetti
 
           {!isAdmin && (settings.plan !== 'Profissional' || isTrial) && (
             <>
-              <div className="grid grid-cols-2 gap-4">
-                {PLANS.map(plan => (
-                  <button
-                    key={plan.id}
-                    onClick={() => setSelectedPlanId(plan.id)}
-                    className={`p-4 rounded-xl border transition-all ${
-                      selectedPlanId === plan.id ? 'bg-amber-500 border-amber-500 text-slate-900' : 'border-white/20'
-                    }`}
-                  >
-                    <p className="text-xs uppercase font-black">{plan.label}</p>
-                    <p className="text-lg font-black">R$ {plan.price}</p>
-                    <p className="text-xs opacity-70">{plan.period}</p>
-                  </button>
-                ))}
+              <div className="bg-white/10 border border-white/10 rounded-2xl p-4 grid md:grid-cols-3 gap-3 text-xs">
+                <div className="flex items-center gap-2 text-white/80">
+                  <ShieldCheck size={14} className="text-emerald-300" />
+                  7 dias de garantia sem risco
+                </div>
+                <div className="flex items-center gap-2 text-white/80">
+                  <Calendar size={14} className="text-emerald-300" />
+                  Troque o período quando quiser
+                </div>
+                <div className="flex items-center gap-2 text-white/80">
+                  <ExternalLink size={14} className="text-emerald-300" />
+                  Pagamento seguro via Stripe
+                </div>
+              </div>
+
+              <div className="grid lg:grid-cols-4 md:grid-cols-2 gap-4">
+                {PLANS.map((plan) => {
+                  const savings =
+                    plan.id !== 'monthly' && monthlyPrice
+                      ? Math.round((1 - plan.price / (monthlyPrice * plan.months)) * 100)
+                      : null;
+                  const badge = PLAN_BADGES[plan.id];
+                  const isSelected = selectedPlanId === plan.id;
+
+                  return (
+                    <button
+                      key={plan.id}
+                      onClick={() => setSelectedPlanId(plan.id)}
+                      className={`flex flex-col text-left p-5 rounded-2xl border transition-all ${
+                        isSelected
+                          ? 'bg-amber-400/20 border-amber-400 ring-2 ring-amber-400'
+                          : 'bg-white/5 border-white/10 hover:border-white/30'
+                      }`}
+                    >
+                      <div className="flex items-start justify-between gap-3">
+                        <div>
+                          <p className="text-[11px] uppercase font-black text-slate-300">{plan.label}</p>
+                          <div className="flex items-end gap-1">
+                            <span className="text-2xl font-black text-white">R$ {plan.price}</span>
+                            <span className="text-xs text-slate-300">{plan.period}</span>
+                          </div>
+                        </div>
+                        {badge && (
+                          <span
+                            className={`text-[10px] font-black uppercase px-2 py-1 rounded-full ${
+                              badge.tone === 'amber'
+                                ? 'bg-amber-400 text-slate-900'
+                                : 'bg-emerald-400 text-emerald-950'
+                            }`}
+                          >
+                            {badge.label}
+                          </span>
+                        )}
+                      </div>
+
+                      {savings !== null && (
+                        <div className="mt-2 text-[11px] font-bold text-emerald-300">
+                          Economize {savings}% no período
+                        </div>
+                      )}
+
+                      <ul className="mt-4 space-y-2 text-[11px] text-slate-200">
+                        {PLAN_FEATURES.map((feature) => (
+                          <li key={feature} className="flex items-start gap-2">
+                            <CheckCircle2 size={12} className="text-emerald-300 mt-0.5" />
+                            <span>{feature}</span>
+                          </li>
+                        ))}
+                      </ul>
+
+                      <div
+                        className={`mt-4 text-center text-[11px] font-black uppercase tracking-widest rounded-xl py-2 ${
+                          isSelected ? 'bg-amber-400 text-slate-900' : 'bg-white/10 text-white/70'
+                        }`}
+                      >
+                        {isSelected ? 'Selecionado' : 'Selecionar'}
+                      </div>
+                    </button>
+                  );
+                })}
               </div>
 
               <button
                 onClick={() => setShowPaymentModal(true)}
-                className="w-full py-4 bg-amber-500 font-black uppercase rounded-xl text-slate-900"
+                className={`${buttonHighlight} w-full py-4 uppercase tracking-widest`}
               >
-                Assinar Agora
+                Continuar com {selectedPlan.label}
               </button>
+
+              <div className="grid md:grid-cols-2 gap-4">
+                <div className="bg-white/10 border border-white/10 rounded-2xl p-4">
+                  <p className="text-xs uppercase font-black text-slate-300">Posso cancelar quando quiser?</p>
+                  <p className="text-xs text-slate-200 mt-2">
+                    Sim. Você pode cancelar ou trocar o período diretamente no portal de cobrança, sem burocracia.
+                  </p>
+                </div>
+                <div className="bg-white/10 border border-white/10 rounded-2xl p-4">
+                  <p className="text-xs uppercase font-black text-slate-300">E se eu estiver em teste?</p>
+                  <p className="text-xs text-slate-200 mt-2">
+                    Enquanto o trial estiver ativo, você tem acesso a todos os recursos e pode decidir depois.
+                  </p>
+                </div>
+              </div>
             </>
           )}
         </div>
@@ -809,7 +1207,7 @@ const SettingsManager: React.FC<SettingsManagerProps> = ({ settings, updateSetti
       <div className="sticky bottom-4 flex justify-end">
         <button
           onClick={handleSaveClick}
-          className="inline-flex items-center gap-2 px-5 py-3 rounded-2xl text-white font-black shadow-lg shadow-emerald-300/30 hover:opacity-90 transition-all"
+          className={`${buttonPrimary} px-5 py-3 font-black shadow-lg shadow-emerald-300/30 hover:opacity-90`}
           style={{ backgroundColor: settings.primaryColor }}
         >
           <Save size={16} /> Salvar alterações
@@ -820,6 +1218,7 @@ const SettingsManager: React.FC<SettingsManagerProps> = ({ settings, updateSetti
           </span>
         )}
       </div>
+        </div>
 
       {showPaymentModal && (
         <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50">
@@ -827,12 +1226,23 @@ const SettingsManager: React.FC<SettingsManagerProps> = ({ settings, updateSetti
             {paymentStep === 'method' ? (
               <>
                 <h3 className="font-black mb-4">Pagamento</h3>
-                <button
-                  onClick={startCheckout}
-                  className="w-full py-4 bg-emerald-500 text-white font-black rounded-xl"
-                >
-                  Pagar com Stripe
-                </button>
+                <div className="space-y-3">
+                  <button
+                    onClick={startCheckout}
+                    className="w-full py-4 bg-slate-900 text-white font-black rounded-xl"
+                  >
+                    Pagar com Cartão (Stripe)
+                  </button>
+                  <button
+                    onClick={startMercadoPagoCheckout}
+                    className="w-full py-4 bg-emerald-500 text-white font-black rounded-xl"
+                  >
+                    Pagar com Pix (Mercado Pago)
+                  </button>
+                </div>
+                <p className="text-[11px] text-slate-400 mt-3">
+                  O Pix é confirmado rapidamente após o pagamento.
+                </p>
               </>
             ) : (
               <div className="text-center">
@@ -939,14 +1349,14 @@ const SettingsManager: React.FC<SettingsManagerProps> = ({ settings, updateSetti
               <div className="flex gap-3 pt-4">
                 <button
                   onClick={closePasswordModal}
-                  className="flex-1 py-3 bg-slate-100 text-slate-900 rounded-2xl font-black uppercase text-sm tracking-widest hover:bg-slate-200 transition-all"
+                  className={`${buttonSecondary} flex-1 py-3 uppercase tracking-widest`}
                 >
                   Cancelar
                 </button>
                 <button
                   onClick={handleChangePassword}
                   disabled={isChangingPassword}
-                  className="flex-1 py-3 bg-slate-900 text-white rounded-2xl font-black uppercase text-sm tracking-widest hover:bg-slate-800 transition-all disabled:opacity-60"
+                  className={`${buttonPrimary} flex-1 py-3 uppercase tracking-widest`}
                 >
                   {isChangingPassword ? 'Alterando...' : 'Alterar Senha'}
                 </button>

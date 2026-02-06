@@ -189,27 +189,27 @@ const BirdVerification: React.FC<{ birdId: string }> = ({ birdId }) => {
     );
   }
 
-  return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-slate-50 py-12 px-4">
-      <div className="max-w-4xl mx-auto">
-        {/* Header */}
-        <div className="mb-8">
-          <button
-            onClick={handleGoBack}
-            className="inline-flex items-center gap-2 text-blue-600 hover:text-blue-700 font-semibold mb-6"
-          >
-            <ArrowLeft size={20} />
-            Voltar
-          </button>
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-slate-50 py-12 px-4">
+        <div className="max-w-4xl mx-auto">
+          {/* Header */}
+          <div className="mb-8">
+            <button
+              onClick={handleGoBack}
+              className="inline-flex items-center gap-2 text-blue-600 hover:text-blue-700 font-semibold mb-6"
+            >
+              <ArrowLeft size={20} />
+              Voltar
+            </button>
           
-          <div className="flex items-center gap-3 mb-4">
-            <CheckCircle className="text-emerald-500" size={32} />
-            <div>
-              <h1 className="text-3xl font-bold text-slate-900">Pássaro Verificado</h1>
-              <p className="text-slate-600">Informações autênticas do criatório</p>
+            <div className="flex items-center gap-3 mb-4">
+              <CheckCircle className="text-emerald-500" size={32} />
+              <div>
+                <h1 className="text-2xl font-bold text-slate-900">Autenticidade verificada</h1>
+                <p className="text-slate-600 text-sm">Este pássaro está registrado no AviGestão.</p>
+              </div>
             </div>
           </div>
-        </div>
 
         {/* Cards de Verificação */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">

@@ -17,6 +17,7 @@ import {
   PlusCircle
 } from 'lucide-react';
 const TipCarousel = React.lazy(() => import('../components/TipCarousel'));
+import WizardShell from '../components/WizardShell';
 
 interface FinanceManagerProps {
   state: AppState;
@@ -172,27 +173,25 @@ const FinanceManager: React.FC<FinanceManagerProps> = ({ state, addTransaction, 
   };
 
   return (
-    <div className="space-y-6 animate-in fade-in duration-500">
+    <WizardShell title="Financeiro" description="Receitas, despesas e fluxo de caixa.">
+      <div className="space-y-6 animate-in fade-in duration-500">
       <header className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <h2 className="text-3xl font-bold text-slate-900 tracking-tight">Financeiro</h2>
           <p className="text-slate-400 font-medium text-sm mt-1">Controle de caixa detalhado por categoria e subitem.</p>
         </div>
-        <div className="flex gap-2">
-           <div className="flex bg-white p-1 rounded-xl shadow-sm border border-slate-100 mr-2">
-             <button 
-               onClick={() => setCurrentList('active')} 
-               className={`px-4 py-2 text-xs font-semibold rounded-lg transition-all whitespace-nowrap ${currentList === 'active' ? 'bg-slate-900 text-white shadow-sm' : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'}`}
-             >
-               Lançamentos
-             </button>
-             <button 
-               onClick={() => setCurrentList('trash')} 
-               className={`px-4 py-2 text-xs font-semibold rounded-lg transition-all flex items-center gap-2 whitespace-nowrap ${currentList === 'trash' ? 'bg-red-600 text-white shadow-sm' : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'}`}
-             >
-               <Trash2 size={12} /> Lixeira
-             </button>
-           </div>
+        <div className="flex flex-wrap items-center gap-2">
+           <button
+             onClick={() => setCurrentList(currentList === 'active' ? 'trash' : 'active')}
+             className={`flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-semibold transition-all border ${
+               currentList === 'active'
+                 ? 'bg-rose-50 text-rose-600 border-rose-200 hover:bg-rose-100'
+                 : 'bg-slate-100 text-slate-600 border-slate-200 hover:bg-slate-200'
+             }`}
+           >
+             {currentList === 'active' ? <Trash2 size={14} /> : <RefreshCcw size={14} />}
+             {currentList === 'active' ? 'Ver Lixeira' : 'Voltar aos lançamentos'}
+           </button>
            {currentList === 'active' && (
              <button 
               onClick={() => setShowModal(true)}
@@ -523,7 +522,8 @@ const FinanceManager: React.FC<FinanceManagerProps> = ({ state, addTransaction, 
           </div>
         </div>
       )}
-    </div>
+      </div>
+    </WizardShell>
   );
 };
 

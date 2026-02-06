@@ -25,6 +25,7 @@ import {
 } from 'lucide-react';
 const TipCarousel = React.lazy(() => import('../components/TipCarousel'));
 import BirdCertificate from '../components/BirdCertificate';
+import WizardLayout, { WizardStep } from '../components/WizardLayout';
 import { db } from '../lib/firebase';
 import { collection, query, where, getDocs, orderBy } from 'firebase/firestore';
 
@@ -234,39 +235,29 @@ const TournamentCalendar: React.FC<TournamentCalendarProps> = ({ state, addEvent
 
   const getBirdName = (id: string) => activeBirds.find(b => b.id === id)?.name || 'Ave Removida';
 
-  return (
+  const eventWizardStepsBase: Array<{ id: typeof currentList; label: string }> = [
+    { id: 'active', label: 'Calendário' },
+    { id: 'trash', label: 'Lixeira' },
+  ];
+
+  const eventWizardSteps: WizardStep[] = eventWizardStepsBase.map(step => ({
+    id: step.id,
+    label: step.label,
+    content: null
+  }));
+
+  const activeEventStepIndex = Math.max(0, eventWizardStepsBase.findIndex(step => step.id === currentList));
+
+  const pageContent = (
     <div className="space-y-6 animate-in fade-in duration-500">
       <header className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <h2 className="text-3xl font-bold text-slate-900 tracking-tight">Calendário de Eventos</h2>
           <p className="text-slate-400 font-medium text-sm mt-1">Torneios de fibra, canto e encontros regionais.</p>
         </div>
-        <div className="flex gap-2">
-           <div className="flex bg-white p-1 rounded-xl shadow-sm border border-slate-100 mr-2">
-             <button 
-               onClick={() => setCurrentList('active')} 
-               className={`px-4 py-2 text-xs font-semibold rounded-lg transition-all whitespace-nowrap ${currentList === 'active' ? 'bg-slate-900 text-white shadow-sm' : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'}`}
-             >
-               Calendário
-             </button>
-             <button 
-               onClick={() => setCurrentList('trash')} 
-               className={`px-4 py-2 text-xs font-semibold rounded-lg transition-all flex items-center gap-2 whitespace-nowrap ${currentList === 'trash' ? 'bg-red-600 text-white shadow-sm' : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'}`}
-             >
-               <Trash2 size={12} /> Lixeira
-             </button>
-           </div>
-           {currentList === 'active' && (
-             <button 
-              onClick={handleOpenAdd}
-              className="flex items-center gap-2 px-5 py-3 bg-slate-900 hover:bg-slate-800 text-white rounded-lg shadow-md transition-all font-semibold text-sm"
-             >
-              <Plus size={18} />
-              Novo Evento
-             </button>
-           )}
-        </div>
       </header>
+
+      
 
       {/* Carrossel de Dicas */}
       <Suspense fallback={<div />}>
@@ -909,7 +900,42 @@ const TournamentCalendar: React.FC<TournamentCalendarProps> = ({ state, addEvent
           </div>
         </div>
       )}
-    </div>
+      </div>
+  );
+
+  return (
+    <WizardLayout
+      title="Torneios & Eventos"
+      steps={eventWizardSteps.map(step => ({ ...step, content: pageContent }))}
+      activeStep={activeEventStepIndex}
+      showSteps={false}
+      showNavigation={false}
+      onStepChange={(index) => setCurrentList(eventWizardStepsBase[index]?.id || 'active')}
+      action={
+        <div className="flex flex-wrap items-center gap-2">
+          <button
+            onClick={() => setCurrentList(currentList === 'active' ? 'trash' : 'active')}
+            className={`flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-semibold transition-all border ${
+              currentList === 'active'
+                ? 'bg-rose-50 text-rose-600 border-rose-200 hover:bg-rose-100'
+                : 'bg-slate-100 text-slate-600 border-slate-200 hover:bg-slate-200'
+            }`}
+          >
+            {currentList === 'active' ? <Trash2 size={14} /> : <RefreshCcw size={14} />}
+            {currentList === 'active' ? 'Ver Lixeira' : 'Voltar aos eventos'}
+          </button>
+          {currentList === 'active' ? (
+            <button 
+              onClick={handleOpenAdd}
+              className="flex items-center gap-2 px-5 py-3 bg-slate-900 hover:bg-slate-800 text-white rounded-lg shadow-md transition-all font-semibold text-sm"
+            >
+              <Plus size={18} />
+              Novo Evento
+            </button>
+          ) : null}
+        </div>
+      }
+    />
   );
 };
 

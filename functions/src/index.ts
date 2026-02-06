@@ -1,11 +1,26 @@
 import * as functions from "firebase-functions/v1";
 import admin from "firebase-admin";
 import Stripe from "stripe";
+import { MercadoPagoConfig, Preference, Payment } from "mercadopago";
 import cors from "cors";
 
 // Initialize Firebase Admin
 admin.initializeApp();
 const db = admin.firestore();
+
+const getMercadoPagoClient = () => {
+  const accessToken = process.env.MERCADOPAGO_ACCESS_TOKEN;
+  if (!accessToken) {
+    throw new Error("MERCADOPAGO_ACCESS_TOKEN not configured");
+  }
+  return new MercadoPagoConfig({ accessToken });
+};
+
+const addMonths = (date: Date, months: number) => {
+  const next = new Date(date);
+  next.setMonth(next.getMonth() + months);
+  return next;
+};
 
 // CORS middleware for uploadLogo
 const corsHandler = cors({
@@ -251,6 +266,145 @@ export const createPortalSession = functions
   } catch (err: any) {
     console.error("Portal error:", err);
     res.status(500).json({error: err.message});
+  }
+});
+
+// ============================================
+// MERCADO PAGO - CREATE CHECKOUT (PIX)
+// ============================================
+export const createMercadoPagoCheckout = functions
+  .region("southamerica-east1")
+  .https.onRequest(async (req, res) => {
+  res.set("Access-Control-Allow-Origin", "*");
+  res.set("Access-Control-Allow-Methods", "POST, OPTIONS");
+  res.set("Access-Control-Allow-Headers", "Content-Type, Authorization");
+
+  if (req.method === "OPTIONS") {
+    res.status(204).send("");
+    return;
+  }
+
+  if (req.method !== "POST") {
+    res.status(405).json({error: "Method not allowed"});
+    return;
+  }
+
+  try {
+    const authHeader = req.headers.authorization;
+    if (!authHeader || typeof authHeader !== "string") {
+      res.status(401).json({error: "Missing auth token"});
+      return;
+    }
+
+    const token = authHeader.replace("Bearer ", "");
+    const decodedToken = await admin.auth().verifyIdToken(token);
+    const userId = decodedToken.uid;
+
+    if (!userId) {
+      res.status(401).json({error: "Invalid token"});
+      return;
+    }
+
+    const { planId, planLabel, price, months } = req.body || {};
+    if (!planId || !price || !months) {
+      res.status(400).json({error: "Missing plan data"});
+      return;
+    }
+
+    const mp = getMercadoPagoClient();
+    const preference = new Preference(mp);
+    const frontendUrl = process.env.FRONTEND_URL || "https://avigestao-cf5fe.web.app";
+    const webhookUrl = process.env.MERCADOPAGO_WEBHOOK_URL ||
+      "https://southamerica-east1-avigestao-cf5fe.cloudfunctions.net/mercadoPagoWebhook";
+
+    const response = await preference.create({
+      body: {
+        items: [
+          {
+            title: `Plano Profissional - ${planLabel || planId}`,
+            quantity: 1,
+            unit_price: Number(price),
+            currency_id: "BRL",
+          }
+        ],
+        external_reference: userId,
+        notification_url: webhookUrl,
+        back_urls: {
+          success: `${frontendUrl}/settings?success=true`,
+          pending: `${frontendUrl}/settings?pending=true`,
+          failure: `${frontendUrl}/settings?canceled=true`,
+        },
+        auto_return: "approved",
+        metadata: {
+          userId,
+          planId,
+          planLabel,
+          months: Number(months),
+        },
+      }
+    });
+
+    const useSandbox = process.env.MERCADOPAGO_USE_SANDBOX === "true";
+    const checkoutUrl = useSandbox ? response.sandbox_init_point : response.init_point;
+
+    res.status(200).json({ url: checkoutUrl, preferenceId: response.id });
+  } catch (err: any) {
+    console.error("MercadoPago checkout error:", err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ============================================
+// MERCADO PAGO - WEBHOOK
+// ============================================
+export const mercadoPagoWebhook = functions
+  .region("southamerica-east1")
+  .https.onRequest(async (req, res) => {
+  try {
+    if (req.method !== "POST" && req.method !== "GET") {
+      res.status(405).send("Method not allowed");
+      return;
+    }
+
+    const dataId = (req.body?.data?.id || req.query["data.id"] || req.query?.id) as string | undefined;
+    if (!dataId) {
+      res.status(200).send("ignored");
+      return;
+    }
+
+    const mp = getMercadoPagoClient();
+    const paymentApi = new Payment(mp);
+    const payment = await paymentApi.get({ id: dataId });
+
+    if (!payment) {
+      res.status(200).send("not_found");
+      return;
+    }
+
+    if (payment.status !== "approved") {
+      res.status(200).send("pending");
+      return;
+    }
+
+    const userId = (payment.metadata as any)?.userId || payment.external_reference;
+    const months = Number((payment.metadata as any)?.months || 1);
+
+    if (userId) {
+      const endDate = addMonths(new Date(), months);
+      await db.collection("users").doc(String(userId)).set({
+        plan: "Profissional",
+        trialEndDate: null,
+        subscriptionEndDate: endDate.toISOString(),
+        subscriptionCancelAtPeriodEnd: true,
+        subscriptionStatus: payment.status || "approved",
+        updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+      }, { merge: true });
+    }
+
+    res.status(200).send("ok");
+  } catch (err: any) {
+    console.error("MercadoPago webhook error:", err);
+    res.status(500).send("error");
   }
 });
 
@@ -766,6 +920,20 @@ export const initializeNewUser = functions
       trialEndDate: trialEndDate,
       breederName: "Meu Criatório",
       cpfCnpj: "",
+      breederCategory: "",
+      responsibleName: "",
+      speciesRaised: "",
+      breederEmail: "",
+      breederPhone: "",
+      breederMobile: "",
+      breederWebsite: "",
+      addressCep: "",
+      addressStreet: "",
+      addressNumber: "",
+      addressNeighborhood: "",
+      addressCity: "",
+      addressState: "",
+      addressComplement: "",
       sispassNumber: "",
       registrationDate: admin.firestore.FieldValue.serverTimestamp(),
       renewalDate: "",

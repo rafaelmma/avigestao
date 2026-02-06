@@ -10,7 +10,7 @@
 }
 
 html, body, #root { height: 100%; }
-body { margin: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; letter-spacing: -0.3px; }
+body { margin: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; letter-spacing: -0.3px; overflow: hidden; }
 
 /* Design System Profissional - Fonte Única de Verdade */
 @layer components {

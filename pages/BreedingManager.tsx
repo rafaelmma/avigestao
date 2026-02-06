@@ -23,6 +23,7 @@ import {
 } from 'lucide-react';
 const TipCarousel = React.lazy(() => import('../components/TipCarousel'));
 import { SPECIES_INCUBATION_DAYS, getDefaultBirdImage } from '../constants';
+import WizardShell from '../components/WizardShell';
 
 interface BreedingManagerProps {
   state: AppState;
@@ -401,7 +402,8 @@ const BreedingManager: React.FC<BreedingManagerProps> = ({ state, addPair, updat
     .sort((a, b) => a.hatchDate.getTime() - b.hatchDate.getTime());
 
   return (
-    <div className="space-y-6 animate-in fade-in duration-500">
+    <WizardShell title="Acasalamentos" description="Gestão de casais, posturas e filhotes.">
+      <div className="space-y-6 animate-in fade-in duration-500">
       {/* Toast Notification */}
       {notification && (
         <div className={`fixed top-8 right-8 z-[200] p-6 rounded-[24px] shadow-2xl flex items-center gap-4 border animate-in slide-in-from-right-full duration-300 ${
@@ -1118,7 +1120,8 @@ const BreedingManager: React.FC<BreedingManagerProps> = ({ state, addPair, updat
           </div>
         </div>
       )}
-    </div>
+      </div>
+    </WizardShell>
   );
 };
 

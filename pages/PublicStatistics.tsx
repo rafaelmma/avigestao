@@ -3,6 +3,7 @@ import { BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, L
 import { Users, Bird, GitBranch, Trophy } from 'lucide-react';
 import { db } from '../lib/firebase';
 import { collection, getDocs } from 'firebase/firestore';
+import WizardShell from '../components/WizardShell';
 
 interface Stats {
   totalBirds: number;
@@ -108,8 +109,9 @@ const PublicStatistics: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-slate-50 p-6">
-      <div className="max-w-7xl mx-auto space-y-8">
+    <WizardShell title="Comunidade" description="Estatísticas públicas do AviGestão.">
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-slate-50 p-6">
+        <div className="max-w-7xl mx-auto space-y-8">
         {/* Header */}
         <div className="text-center mb-12">
           <h1 className="text-4xl font-bold text-slate-900 mb-2">📊 Comunidade AviGestão</h1>
@@ -286,8 +288,9 @@ const PublicStatistics: React.FC = () => {
             Gerencie suas aves, crie genealogias, participe de torneios e conecte-se com outros criadores.
           </p>
         </div>
+        </div>
       </div>
-    </div>
+    </WizardShell>
   );
 };
 

@@ -57,6 +57,7 @@ import {
 import { BRAZILIAN_SPECIES, MAX_FREE_BIRDS, SPECIES_IMAGES, getDefaultBirdImage, isDefaultBirdImage } from '../constants';
 import PedigreeTree from '../components/PedigreeTreeNew';
 const TipCarousel = React.lazy(() => import('../components/TipCarousel'));
+import WizardLayout, { WizardStep } from '../components/WizardLayout';
 
 // Função para normalizar nomes de espécies (corrigir erros comuns)
 const normalizeSpeciesName = (species: string): string => {
@@ -78,7 +79,7 @@ interface BirdManagerProps {
   permanentlyDeleteBird?: (id: string) => void;
   saveSettings?: (settings: any) => Promise<boolean>;
   isAdmin?: boolean;
-  initialList?: 'plantel' | 'lixeira' | 'sexagem';
+  initialList?: 'plantel' | 'lixeira' | 'sexagem' | 'histórico' | 'ibama-pendentes' | 'etiquetas';
   showListTabs?: boolean;
   includeSexingTab?: boolean;
   titleOverride?: string;
@@ -102,7 +103,7 @@ const BirdManager: React.FC<BirdManagerProps> = ({
   const [searchTerm, setSearchTerm] = useState('');
   const [showModal, setShowModal] = useState(false);
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
-  const [currentList, setCurrentList] = useState<'plantel' | 'histórico' | 'lixeira' | 'sexagem' | 'ibama-pendentes'>(initialList);
+  const [currentList, setCurrentList] = useState<'plantel' | 'histórico' | 'lixeira' | 'sexagem' | 'ibama-pendentes' | 'etiquetas'>(initialList);
   
   // Confirmação de Deletar
   const [deleteConfirm, setDeleteConfirm] = useState<{ isOpen: boolean; birdId: string; birdName: string; isPermanent: boolean }>({
@@ -1035,9 +1036,32 @@ const BirdManager: React.FC<BirdManagerProps> = ({
     );
   };
 
-  const headerTitle = titleOverride || (currentList === 'sexagem' ? 'Central de Sexagem' : 'Plantel');
+  const headerTitle = titleOverride || (
+    currentList === 'sexagem'
+      ? 'Central de Sexagem'
+      : currentList === 'etiquetas'
+      ? 'Gerador de Etiquetas'
+      : 'Plantel'
+  );
 
-  return (
+  const birdWizardStepsBase: Array<{ id: typeof currentList; label: string }> = [
+    { id: 'plantel', label: 'Plantel' },
+    { id: 'etiquetas', label: 'Etiquetas' },
+    { id: 'histórico', label: 'Histórico' },
+    { id: 'sexagem', label: 'Sexagem' },
+    { id: 'ibama-pendentes', label: 'IBAMA' },
+    { id: 'lixeira', label: 'Lixeira' },
+  ];
+
+  const birdWizardSteps: WizardStep[] = birdWizardStepsBase.map(step => ({
+    id: step.id,
+    label: step.label,
+    content: null
+  }));
+
+  const activeWizardIndex = Math.max(0, birdWizardStepsBase.findIndex(step => step.id === currentList));
+
+  const pageContent = (
     <div className="space-y-6 animate-in fade-in duration-500">
       <header className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
@@ -1056,18 +1080,6 @@ const BirdManager: React.FC<BirdManagerProps> = ({
             </div>
           )}
         </div>
-        {showListTabs && (
-          <BirdListTabs
-            currentList={currentList}
-            onChange={setCurrentList}
-            activeBirdsCount={state.birds.filter(b => b.status === 'Ativo' && !b.deletedAt).length}
-            historicCount={state.birds.filter(b => b.status !== 'Ativo' && !b.deletedAt).length}
-            sexingWaitingCount={pendingSexingBirds.length}
-            trashCount={state.deletedBirds?.length || 0}
-            ibamaPendingCount={state.birds.filter(b => b.ibamaBaixaPendente && !b.deletedAt).length}
-            includeSexingTab={includeSexingTab}
-          />
-        )}
       </header>
 
       {/* --- MODO CENTRAL DE SEXAGEM --- */}
@@ -1388,13 +1400,13 @@ const BirdManager: React.FC<BirdManagerProps> = ({
       )}
 
       {/* Seção de Gerador de Etiquetas */}
-      {currentList === 'plantel' && (
+      {currentList === 'etiquetas' && (
         <div className="bg-gradient-to-r from-blue-50 to-slate-50 rounded-2xl p-6 border border-blue-200">
           <TagGenerator birds={state.birds} settings={state.settings} />
         </div>
       )}
       
-      {currentList !== 'sexagem' && (
+      {currentList !== 'sexagem' && currentList !== 'etiquetas' && (
       <div className={`grid ${viewPreferences.compactMode ? 'gap-3' : 'gap-6'} ${
         viewPreferences.badgeSize === 'lg' 
           ? 'grid-cols-1 sm:grid-cols-1 lg:grid-cols-2 xl:grid-cols-2' 
@@ -2953,7 +2965,17 @@ const BirdManager: React.FC<BirdManagerProps> = ({
         isDangerous={false}
         isLoading={isDeletingBird}
       />
-    </div>
+      </div>
+  );
+
+  return (
+    <WizardLayout
+      title="Plantel"
+      steps={birdWizardSteps.map(step => ({ ...step, content: pageContent }))}
+      activeStep={activeWizardIndex}
+      showNavigation={false}
+      onStepChange={(index) => setCurrentList(birdWizardStepsBase[index]?.id || 'plantel')}
+    />
   );
 };
 

@@ -1720,6 +1720,70 @@ const App: React.FC = () => {
             isAdmin={isAdmin}
           />
         );
+      case 'birds-labels':
+        return (
+          <BirdManager
+            state={state}
+            addBird={addBird}
+            addMovement={addMovement}
+            updateBird={updateBird}
+            deleteBird={deleteBird}
+            restoreBird={restoreBird}
+            permanentlyDeleteBird={permanentlyDeleteBird}
+            saveSettings={handleSaveSettings}
+            initialList="etiquetas"
+            titleOverride="Etiquetas"
+            isAdmin={isAdmin}
+          />
+        );
+      case 'birds-history':
+        return (
+          <BirdManager
+            state={state}
+            addBird={addBird}
+            addMovement={addMovement}
+            updateBird={updateBird}
+            deleteBird={deleteBird}
+            restoreBird={restoreBird}
+            permanentlyDeleteBird={permanentlyDeleteBird}
+            saveSettings={handleSaveSettings}
+            initialList="histórico"
+            titleOverride="Histórico do Plantel"
+            isAdmin={isAdmin}
+          />
+        );
+      case 'birds-ibama':
+        return (
+          <BirdManager
+            state={state}
+            addBird={addBird}
+            addMovement={addMovement}
+            updateBird={updateBird}
+            deleteBird={deleteBird}
+            restoreBird={restoreBird}
+            permanentlyDeleteBird={permanentlyDeleteBird}
+            saveSettings={handleSaveSettings}
+            initialList="ibama-pendentes"
+            titleOverride="IBAMA Pendentes"
+            isAdmin={isAdmin}
+          />
+        );
+      case 'birds-trash':
+        return (
+          <BirdManager
+            state={state}
+            addBird={addBird}
+            addMovement={addMovement}
+            updateBird={updateBird}
+            deleteBird={deleteBird}
+            restoreBird={restoreBird}
+            permanentlyDeleteBird={permanentlyDeleteBird}
+            saveSettings={handleSaveSettings}
+            initialList="lixeira"
+            titleOverride="Lixeira do Plantel"
+            isAdmin={isAdmin}
+          />
+        );
       case 'sexing':
         return (
           <BirdManager

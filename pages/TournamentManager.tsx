@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Plus, Trash2, Edit2, Eye, Trophy, Clock, Users, AlertCircle, CheckCircle, MapPin, User } from 'lucide-react';
 import { db, auth } from '../lib/firebase';
 import { collection, addDoc, updateDoc, deleteDoc, doc, getDocs, query, where, orderBy, Timestamp } from 'firebase/firestore';
+import WizardShell from '../components/WizardShell';
 
 interface Tournament {
   id?: string;
@@ -259,7 +260,8 @@ const TournamentManager: React.FC = () => {
   };
 
   return (
-    <div className="space-y-6">
+    <WizardShell title="Gerenciar Torneios" description="Cadastro e acompanhamento de torneios.">
+      <div className="space-y-6">
       {viewMode === 'list' && (
         <>
           <div className="flex items-center justify-between">
@@ -710,7 +712,8 @@ const TournamentManager: React.FC = () => {
           )}
         </div>
       )}
-    </div>
+      </div>
+    </WizardShell>
   );
 };
 

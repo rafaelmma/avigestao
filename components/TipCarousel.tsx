@@ -116,11 +116,14 @@ const TIPS_DB: Record<TipCategory, Tip[]> = {
 
 interface TipCarouselProps {
   category: TipCategory;
+  defaultOpen?: boolean;
+  compact?: boolean;
 }
 
-const TipCarousel: React.FC<TipCarouselProps> = ({ category }) => {
+const TipCarousel: React.FC<TipCarouselProps> = ({ category, defaultOpen = false, compact = true }) => {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isAnimating, setIsAnimating] = useState(false);
+  const [isOpen, setIsOpen] = useState(defaultOpen);
   
   const tips = TIPS_DB[category] || TIPS_DB.dashboard;
 
@@ -138,32 +141,64 @@ const TipCarousel: React.FC<TipCarouselProps> = ({ category }) => {
 
   const currentTip = tips[currentIndex];
 
-  return (
-    <div className={`relative overflow-hidden bg-gradient-to-br ${currentTip.bgGradient} rounded-xl border-2 border-slate-200 shadow-md p-6 group transition-all duration-500 hover:shadow-lg`}>
-       <div className="relative z-10">
-          <div className="flex items-center gap-3 mb-4">
-             <div className={`p-3 rounded-xl text-white shadow-lg transition-all duration-500 ${currentTip.color} group-hover:scale-110 transform`}>
-                {currentTip.icon}
-             </div>
-             <h4 className="text-xs font-bold text-slate-700 uppercase tracking-wide">🐦 Dica de Manejo</h4>
+  if (!isOpen) {
+    return (
+      <div className="flex items-center justify-between gap-3 rounded-xl border border-slate-200 bg-white px-4 py-3 shadow-sm">
+        <div className="flex items-center gap-2">
+          <div className={`h-8 w-8 rounded-lg text-white flex items-center justify-center ${currentTip.color}`}>{currentTip.icon}</div>
+          <div>
+            <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Dica rápida</p>
+            <p className="text-xs font-semibold text-slate-700">Clique para ver uma dica</p>
           </div>
-          
-          <div className={`transition-all duration-500 transform ${isAnimating ? 'opacity-0 translate-y-4' : 'opacity-100 translate-y-0'}`}>
-             <p className="text-sm font-medium text-slate-800 leading-relaxed min-h-[72px] text-justify">
-               "{currentTip.text}"
-             </p>
-          </div>
+        </div>
+        <button
+          type="button"
+          onClick={() => setIsOpen(true)}
+          className="text-xs font-black uppercase tracking-widest text-blue-600 hover:text-blue-700"
+        >
+          Mostrar
+        </button>
+      </div>
+    );
+  }
 
-          <div className="flex gap-2 mt-6 justify-center">
-            {tips.map((_, idx) => (
-              <button
-                key={idx}
-                onClick={() => setCurrentIndex(idx)}
-                className={`h-2 rounded-full transition-all duration-500 cursor-pointer hover:opacity-70 ${idx === currentIndex ? `w-8 ${currentTip.color} shadow-md` : 'w-2 bg-slate-300'}`}
-              ></button>
-            ))}
+  return (
+    <div className={`relative overflow-hidden bg-gradient-to-br ${currentTip.bgGradient} rounded-xl border border-slate-200 shadow-sm ${compact ? 'p-4' : 'p-6'} group transition-all duration-500 hover:shadow-md`}>
+      <div className="relative z-10">
+        <div className="flex items-center justify-between gap-3 mb-3">
+          <div className="flex items-center gap-2">
+            <div className={`h-9 w-9 rounded-xl text-white flex items-center justify-center shadow-sm ${currentTip.color}`}>
+              {currentTip.icon}
+            </div>
+            <div>
+              <h4 className="text-[10px] font-black uppercase tracking-widest text-slate-500">Dica de manejo</h4>
+            </div>
           </div>
-       </div>
+          <button
+            type="button"
+            onClick={() => setIsOpen(false)}
+            className="text-[10px] font-black uppercase tracking-widest text-slate-400 hover:text-slate-600"
+          >
+            Ocultar
+          </button>
+        </div>
+
+        <div className={`transition-all duration-500 transform ${isAnimating ? 'opacity-0 translate-y-2' : 'opacity-100 translate-y-0'}`}>
+          <p className={`font-medium text-slate-800 leading-relaxed ${compact ? 'text-xs line-clamp-2' : 'text-sm'}`}>
+            {currentTip.text}
+          </p>
+        </div>
+
+        <div className="flex gap-1.5 mt-3 justify-center">
+          {tips.map((_, idx) => (
+            <button
+              key={idx}
+              onClick={() => setCurrentIndex(idx)}
+              className={`h-1.5 rounded-full transition-all duration-500 cursor-pointer hover:opacity-70 ${idx === currentIndex ? `w-6 ${currentTip.color}` : 'w-1.5 bg-slate-300'}`}
+            ></button>
+          ))}
+        </div>
+      </div>
     </div>
   );
 };

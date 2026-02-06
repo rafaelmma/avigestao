@@ -1,6 +1,7 @@
 
 import React, { useMemo, useState } from 'react';
 import { HelpCircle, Book, MessageCircle, ShieldQuestion, ExternalLink, Zap, Sparkles, Send, X } from 'lucide-react';
+import WizardShell from '../components/WizardShell';
 // import { askAI, isAIAvailable } from '../lib/gemini'; // Gemini API rodará no backend
 
 // Mock functions para compatibilidade
@@ -62,7 +63,8 @@ const HelpCenter: React.FC = () => {
   }, [faqs, search]);
 
   return (
-    <div className="space-y-8 animate-in fade-in duration-500 pb-20">
+    <WizardShell title="Ajuda & FAQ" description="Central de ajuda e respostas rápidas.">
+      <div className="space-y-8 animate-in fade-in duration-500 pb-20">
       <header className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
         <div>
           <h2 className="text-3xl font-black text-[#0F172A] tracking-tight">Ajuda & Suporte</h2>
@@ -267,7 +269,8 @@ const HelpCenter: React.FC = () => {
           </div>
         </div>
       )}
-    </div>
+      </div>
+    </WizardShell>
   );
 };
 

@@ -24,6 +24,7 @@ import {
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import PublicTournamentsWidget from '../components/PublicTournamentsWidget';
 const TipCarousel = React.lazy(() => import('../components/TipCarousel'));
+import WizardShell from '../components/WizardShell';
 
 interface DashboardProps {
   state: AppState;
@@ -159,41 +160,42 @@ const Dashboard: React.FC<DashboardProps> = ({ state, updateSettings, onSave, na
                   </span>
                 </div>
               </div>
-            )}<div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 h-full">
-            <StatCard 
-              icon={<Users size={20} className="text-emerald-600" />} 
-              label="Plantel" 
-              value={totalBirds} 
-              subValue={`${activeBirds} ativos`} 
-              onClick={() => navigateTo('birds')}
-            />
-            <StatCard 
-              icon={<Wallet size={20} className="text-blue-600" />} 
-              label="Saldo Mensal" 
-              value={`R$ ${balance.toLocaleString('pt-BR')}`} 
-              subValue={`${income > 0 ? ((balance/income)*100).toFixed(0) : 0}% margem`}
-              isPositive={balance >= 0}
-              onClick={() => navigateTo('finance')}
-            />
-            <StatCard 
-              icon={<ListTodo size={20} className="text-purple-600" />} 
-              label="Tarefas" 
-              value={pendingTasks} 
-              subValue="Pendentes para hoje" 
-              onClick={() => navigateTo('tasks')}
-            />
-            <StatCard 
-              icon={<Clock size={20} className="text-orange-500" />} 
-              label="SISPASS" 
-              value={`${diffDays}d`} 
-              subValue={diffDays < 30 ? "Renovação Urgente" : "Situação Regular"}
-              isWarning={diffDays < 30}
-              onClick={() => navigateTo('documents')}
-            />
+            )}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 h-full">
+              <StatCard 
+                icon={<Users size={20} className="text-emerald-600" />} 
+                label="Plantel" 
+                value={totalBirds} 
+                subValue={`${activeBirds} ativos`} 
+                onClick={() => navigateTo('birds')}
+              />
+              <StatCard 
+                icon={<Wallet size={20} className="text-blue-600" />} 
+                label="Saldo Mensal" 
+                value={`R$ ${balance.toLocaleString('pt-BR')}`} 
+                subValue={`${income > 0 ? ((balance/income)*100).toFixed(0) : 0}% margem`}
+                isPositive={balance >= 0}
+                onClick={() => navigateTo('finance')}
+              />
+              <StatCard 
+                icon={<ListTodo size={20} className="text-purple-600" />} 
+                label="Tarefas" 
+                value={pendingTasks} 
+                subValue="Pendentes para hoje" 
+                onClick={() => navigateTo('tasks')}
+              />
+              <StatCard 
+                icon={<Clock size={20} className="text-orange-500" />} 
+                label="SISPASS" 
+                value={`${diffDays}d`} 
+                subValue={diffDays < 30 ? "Renovação Urgente" : "Situação Regular"}
+                isWarning={diffDays < 30}
+                onClick={() => navigateTo('documents')}
+              />
             </div>
           </div>
         );
-      
+
       case 'tips':
         return (
           <Suspense fallback={<div />}> 
@@ -342,81 +344,99 @@ const Dashboard: React.FC<DashboardProps> = ({ state, updateSettings, onSave, na
     : 0;
 
   return (
-    <div className="space-y-6 animate-in fade-in duration-500 pb-12">
-      <header className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-        <div>
-          <div className="flex items-center gap-3 mb-1">
-            <h2 className="text-3xl font-black text-[#0F172A] tracking-tight">Painel Geral</h2>
-            
-            {/* BADGE DE TRIAL NO HEADER */}
-            {state.settings.trialEndDate && trialDays >= 0 && !isAdmin && (
-              <span className="flex items-center gap-1 bg-amber-100 text-amber-700 px-3 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest border border-amber-200 shadow-sm animate-in fade-in">
-                <Zap size={10} fill="currentColor" /> Trial: {trialDays} dias restantes
-              </span>
-            )}
-          </div>
-          <p className="text-slate-500 font-medium">Bem-vindo ao centro de comando do {state.settings?.breederName || 'Seu Criatório'}.</p>
-        </div>
-        <button 
-          onClick={() => setShowCustomizer(true)}
-          className="flex items-center gap-2 px-4 py-2 bg-white border border-slate-200 text-slate-500 rounded-xl hover:text-brand hover:border-brand transition-all font-bold text-xs shadow-sm"
-        >
-          <Settings2 size={16} />
-          Customizar
-        </button>
-      </header>
+    <WizardShell title="Dashboard" description="Visão geral do criatório, finanças e tarefas.">
+      <div className="w-full max-w-none px-6 xl:px-10 2xl:px-16 grid grid-cols-1 lg:grid-cols-[220px_1fr] gap-6 animate-in fade-in duration-500 pb-12">
+      <aside className="lg:sticky lg:top-24 h-fit bg-white border border-slate-100 rounded-2xl p-3 shadow-sm">
+        <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 px-3 py-2">Seções</p>
+        <nav className="flex flex-col gap-1">
+          <a href="#resumo" className="px-3 py-2 rounded-xl text-sm font-semibold text-slate-600 hover:bg-slate-100">Resumo</a>
+          <a href="#alertas" className="px-3 py-2 rounded-xl text-sm font-semibold text-slate-600 hover:bg-slate-100">Alertas</a>
+          <a href="#widgets" className="px-3 py-2 rounded-xl text-sm font-semibold text-slate-600 hover:bg-slate-100">Widgets</a>
+        </nav>
+      </aside>
 
-      {/* Alerta de Registro IBAMA Pendente */}
-      {state.birds.some(b => b.ibamaBaixaPendente) && (
-        <div className="bg-amber-50 border-2 border-amber-300 rounded-3xl p-6 shadow-sm animate-in slide-in-from-top-2">
-          <div className="flex items-start gap-4">
-            <div className="p-3 bg-amber-100 rounded-2xl">
-              <Zap size={24} className="text-amber-700" />
+      <div className="space-y-6">
+        <section id="resumo">
+          <header className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+            <div>
+              <div className="flex items-center gap-3 mb-1">
+                <h2 className="text-3xl font-black text-[#0F172A] tracking-tight">Painel Geral</h2>
+                
+                {/* BADGE DE TRIAL NO HEADER */}
+                {state.settings.trialEndDate && trialDays >= 0 && !isAdmin && (
+                  <span className="flex items-center gap-1 bg-amber-100 text-amber-700 px-3 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest border border-amber-200 shadow-sm animate-in fade-in">
+                    <Zap size={10} fill="currentColor" /> Trial: {trialDays} dias restantes
+                  </span>
+                )}
+              </div>
+              <p className="text-slate-500 font-medium">Bem-vindo ao centro de comando do {state.settings?.breederName || 'Seu Criatório'}.</p>
             </div>
-            <div className="flex-1">
-              <h3 className="text-sm font-black text-amber-800 uppercase tracking-widest mb-1">
-                ⚠️ Registro IBAMA Pendente
-              </h3>
-              <p className="text-sm text-amber-700 font-bold mb-3">
-                {state.birds.filter(b => b.ibamaBaixaPendente).length} {state.birds.filter(b => b.ibamaBaixaPendente).length === 1 ? 'ave necessita' : 'aves necessitam'} de registro no sistema IBAMA (óbito, fuga, venda ou doação).
-              </p>
-              <button 
-                onClick={() => navigateTo('birds')}
-                className="px-4 py-2 bg-amber-600 text-white rounded-xl font-bold text-xs uppercase tracking-widest hover:bg-amber-700 transition-all shadow-md"
+            <button 
+              onClick={() => setShowCustomizer(true)}
+              className="btn-secondary"
+            >
+              <Settings2 size={16} />
+              Customizar
+            </button>
+          </header>
+        </section>
+
+        <section id="alertas">
+          {/* Alerta de Registro IBAMA Pendente */}
+          {state.birds.some(b => b.ibamaBaixaPendente) && (
+            <div className="bg-amber-50 border-2 border-amber-300 rounded-3xl p-6 shadow-sm animate-in slide-in-from-top-2">
+              <div className="flex items-start gap-4">
+                <div className="p-3 bg-amber-100 rounded-2xl">
+                  <Zap size={24} className="text-amber-700" />
+                </div>
+                <div className="flex-1">
+                  <h3 className="text-sm font-black text-amber-800 uppercase tracking-widest mb-1">
+                    ⚠️ Registro IBAMA Pendente
+                  </h3>
+                  <p className="text-sm text-amber-700 font-bold mb-3">
+                    {state.birds.filter(b => b.ibamaBaixaPendente).length} {state.birds.filter(b => b.ibamaBaixaPendente).length === 1 ? 'ave necessita' : 'aves necessitam'} de registro no sistema IBAMA (óbito, fuga, venda ou doação).
+                  </p>
+                  <button 
+                    onClick={() => navigateTo('birds')}
+                    className="btn-primary"
+                  >
+                    Ver Aves
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+        </section>
+
+        <section id="widgets">
+          {/* Dynamic Grid Layout */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {visibleWidgets.map((widgetId, index) => (
+              <div 
+                key={widgetId}
+                draggable
+                onDragStart={(e) => handleDragStart(e, index)}
+                onDragEnter={(e) => handleDragEnter(e, index)}
+                onDragEnd={handleDragEnd}
+                onDragOver={(e) => e.preventDefault()}
+                className={`
+                  relative group transition-all duration-300
+                  ${widgetId === 'stats' ? 'lg:col-span-3' : 'lg:col-span-1'}
+                `}
               >
-                Ver Aves
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+                {/* Drag Handle (Visible on Hover) */}
+                <div className="absolute -top-3 left-1/2 -translate-x-1/2 z-20 opacity-0 group-hover:opacity-100 transition-opacity cursor-move bg-slate-800 text-white p-1 rounded-md shadow-lg">
+                  <GripVertical size={14} />
+                </div>
 
-      {/* Dynamic Grid Layout */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {visibleWidgets.map((widgetId, index) => (
-          <div 
-            key={widgetId}
-            draggable
-            onDragStart={(e) => handleDragStart(e, index)}
-            onDragEnter={(e) => handleDragEnter(e, index)}
-            onDragEnd={handleDragEnd}
-            onDragOver={(e) => e.preventDefault()}
-            className={`
-              relative group transition-all duration-300
-              ${widgetId === 'stats' ? 'lg:col-span-3' : 'lg:col-span-1'}
-            `}
-          >
-            {/* Drag Handle (Visible on Hover) */}
-            <div className="absolute -top-3 left-1/2 -translate-x-1/2 z-20 opacity-0 group-hover:opacity-100 transition-opacity cursor-move bg-slate-800 text-white p-1 rounded-md shadow-lg">
-              <GripVertical size={14} />
-            </div>
-
-            {/* Widget Content */}
-            <div className="h-full">
-               {renderWidgetContent(widgetId)}
-            </div>
+                {/* Widget Content */}
+                <div className="h-full">
+                   {renderWidgetContent(widgetId)}
+                </div>
+              </div>
+            ))}
           </div>
-        ))}
+        </section>
       </div>
 
       {showCustomizer && (
@@ -461,7 +481,7 @@ const Dashboard: React.FC<DashboardProps> = ({ state, updateSettings, onSave, na
             <div className="p-8 pt-0">
                <button 
                 onClick={() => setShowCustomizer(false)}
-                className="w-full py-5 bg-[#0F172A] text-white font-black text-xs uppercase tracking-widest rounded-2xl shadow-xl hover:opacity-90 transition-all"
+                className="btn-primary w-full py-4 uppercase tracking-widest"
                >
                  Confirmar
                </button>
@@ -469,7 +489,8 @@ const Dashboard: React.FC<DashboardProps> = ({ state, updateSettings, onSave, na
           </div>
         </div>
       )}
-    </div>
+      </div>
+    </WizardShell>
   );
 };
 

@@ -22,6 +22,7 @@ import {
   HelpCircle
 } from 'lucide-react';
 const TipCarousel = React.lazy(() => import('../components/TipCarousel'));
+import WizardLayout, { WizardStep } from '../components/WizardLayout';
 
 interface TaskManagerProps {
   state: AppState;
@@ -195,37 +196,25 @@ const TaskManager: React.FC<TaskManagerProps> = ({ state, addTask, updateTask, t
 
   const getBirdById = (id?: string) => state.birds.find(b => b.id === id);
 
-  return (
+  const taskWizardStepsBase: Array<{ id: typeof currentList; label: string }> = [
+    { id: 'active', label: 'Ativos' },
+    { id: 'trash', label: 'Lixeira' },
+  ];
+
+  const taskWizardSteps: WizardStep[] = taskWizardStepsBase.map(step => ({
+    id: step.id,
+    label: step.label,
+    content: null
+  }));
+
+  const activeTaskStepIndex = Math.max(0, taskWizardStepsBase.findIndex(step => step.id === currentList));
+
+  const pageContent = (
     <div className="space-y-6 animate-in fade-in duration-500">
       <header className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <h2 className="text-3xl font-bold text-slate-900 tracking-tight">Agenda de Manejo</h2>
           <p className="text-slate-400 font-medium text-sm mt-1">Organize as tarefas diárias e semanais do criatório.</p>
-        </div>
-        <div className="flex gap-2">
-           <div className="flex bg-white p-1 rounded-xl shadow-sm border border-slate-100 mr-2">
-             <button 
-               onClick={() => setCurrentList('active')} 
-               className={`px-4 py-2 text-xs font-semibold rounded-lg transition-all whitespace-nowrap ${currentList === 'active' ? 'bg-slate-900 text-white shadow-sm' : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'}`}
-             >
-               Agenda Ativa
-             </button>
-             <button 
-               onClick={() => setCurrentList('trash')} 
-               className={`px-4 py-2 text-xs font-semibold rounded-lg transition-all flex items-center gap-2 whitespace-nowrap ${currentList === 'trash' ? 'bg-red-600 text-white shadow-sm' : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'}`}
-             >
-               <Trash2 size={12} /> Lixeira
-             </button>
-           </div>
-           {currentList === 'active' && (
-             <button 
-              onClick={handleOpenAdd}
-              className="flex items-center gap-2 px-5 py-3 bg-slate-900 hover:bg-slate-800 text-white rounded-lg shadow-md transition-all font-semibold text-sm"
-             >
-              <Plus size={18} />
-              Nova Tarefa
-             </button>
-           )}
         </div>
       </header>
 
@@ -589,7 +578,42 @@ const TaskManager: React.FC<TaskManagerProps> = ({ state, addTask, updateTask, t
           </div>
         </div>
       )}
-    </div>
+      </div>
+  );
+
+  return (
+    <WizardLayout
+      title="Agenda / Tarefas"
+      steps={taskWizardSteps.map(step => ({ ...step, content: pageContent }))}
+      activeStep={activeTaskStepIndex}
+      showSteps={false}
+      showNavigation={false}
+      onStepChange={(index) => setCurrentList(taskWizardStepsBase[index]?.id || 'active')}
+      action={
+        <div className="flex flex-wrap items-center gap-2">
+          <button
+            onClick={() => setCurrentList(currentList === 'active' ? 'trash' : 'active')}
+            className={`flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-semibold transition-all border ${
+              currentList === 'active'
+                ? 'bg-rose-50 text-rose-600 border-rose-200 hover:bg-rose-100'
+                : 'bg-slate-100 text-slate-600 border-slate-200 hover:bg-slate-200'
+            }`}
+          >
+            {currentList === 'active' ? <Trash2 size={14} /> : <RefreshCcw size={14} />}
+            {currentList === 'active' ? 'Ver Lixeira' : 'Voltar às tarefas'}
+          </button>
+          {currentList === 'active' ? (
+            <button 
+              onClick={handleOpenAdd}
+              className="flex items-center gap-2 px-5 py-3 bg-slate-900 hover:bg-slate-800 text-white rounded-lg shadow-md transition-all font-semibold text-sm"
+            >
+              <Plus size={18} />
+              Nova Tarefa
+            </button>
+          ) : null}
+        </div>
+      }
+    />
   );
 };
 

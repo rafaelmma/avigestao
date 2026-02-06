@@ -401,8 +401,8 @@ const PublicTournaments: React.FC<PublicTournamentsProps> = ({ onNavigateToLogin
           <div className="bg-white rounded-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto p-6">
             <div className="flex items-start justify-between mb-4">
               <div>
-                <h2 className="text-2xl font-bold text-slate-900 mb-2">{selectedTournament.name}</h2>
-                {getStatusBadge(selectedTournament.status)}
+                <h2 className="text-2xl font-bold text-slate-900">{selectedTournament.name}</h2>
+                <p className="text-sm text-slate-500">{selectedTournament.status === 'completed' ? 'Finalizado' : selectedTournament.status === 'ongoing' ? 'Em andamento' : 'Próximo'}</p>
               </div>
               <button
                 onClick={() => setSelectedTournament(null)}
