@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 /* eslint-disable @typescript-eslint/no-unused-vars */
 import React, { useState, useRef, Suspense, useEffect } from 'react';
-import { AppState, BreederSettings } from '../types';
+import { AppState, BreederSettings, WidgetSize, AlertPreferences } from '../types';
 import {
   Users,
   Heart,
@@ -21,6 +21,10 @@ import {
   Clock,
   DollarSign,
   Zap,
+  Maximize2,
+  Minimize2,
+  Bell,
+  BellOff,
 } from 'lucide-react';
 
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
@@ -89,6 +93,7 @@ const Dashboard: React.FC<DashboardProps> = ({
   isAdmin,
 }) => {
   const [showCustomizer, setShowCustomizer] = useState(false);
+  const [customizerTab, setCustomizerTab] = useState<'widgets' | 'alerts'>('widgets');
 
   const dragItem = useRef<number | null>(null);
   const dragOverItem = useRef<number | null>(null);
@@ -100,6 +105,17 @@ const Dashboard: React.FC<DashboardProps> = ({
 
   const visibleWidgets = currentLayout.filter((id) => ALL_WIDGETS.some((w) => w.id === id));
 
+  const alertPrefs: AlertPreferences = state.settings?.alertPreferences || {
+    showSispassAlert: true,
+    showCertificateAlert: true,
+    showSubscriptionAlert: true,
+    sispassWarningDays: 30,
+    certificateWarningDays: 30,
+    subscriptionWarningDays: 10,
+  };
+
+  const widgetSizes = state.settings?.widgetSizes || {};
+
   const toggleWidget = (id: string) => {
     let newLayout: string[];
     if (visibleWidgets.includes(id)) {
@@ -110,6 +126,40 @@ const Dashboard: React.FC<DashboardProps> = ({
     const updatedSettings = { ...state.settings, dashboardLayout: newLayout };
     updateSettings(updatedSettings);
     onSave?.(updatedSettings);
+  };
+
+  const toggleAlert = (alertKey: keyof AlertPreferences) => {
+    const updatedPrefs = { ...alertPrefs, [alertKey]: !alertPrefs[alertKey] };
+    const updatedSettings = { ...state.settings, alertPreferences: updatedPrefs };
+    updateSettings(updatedSettings);
+    onSave?.(updatedSettings);
+  };
+
+  const cycleWidgetSize = (widgetId: string) => {
+    const currentSize = widgetSizes[widgetId] || 'medium';
+    const sizes: WidgetSize[] = ['small', 'medium', 'large'];
+    const nextIndex = (sizes.indexOf(currentSize) + 1) % sizes.length;
+    const newSize = sizes[nextIndex];
+    
+    const updatedSizes = { ...widgetSizes, [widgetId]: newSize };
+    const updatedSettings = { ...state.settings, widgetSizes: updatedSizes };
+    updateSettings(updatedSettings);
+    onSave?.(updatedSettings);
+  };
+
+  const getWidgetSize = (widgetId: string): WidgetSize => {
+    return widgetSizes[widgetId] || 'medium';
+  };
+
+  const getGridColSpan = (widgetId: string): string => {
+    if (widgetId === 'stats') return 'lg:col-span-3';
+    
+    const size = getWidgetSize(widgetId);
+    switch(size) {
+      case 'small': return 'lg:col-span-1';
+      case 'large': return 'lg:col-span-2';
+      default: return 'lg:col-span-1';
+    }
   };
 
   const handleDragStart = (e: React.DragEvent<HTMLDivElement>, position: number) => {
@@ -183,34 +233,36 @@ const Dashboard: React.FC<DashboardProps> = ({
     : null;
   const cancelAtPeriodEnd = !!state.settings?.subscriptionCancelAtPeriodEnd;
 
+  // Calcular quais alertas devem ser mostrados
+  const alerts: string[] = [];
+  
+  if (alertPrefs.showSispassAlert && diffDays < (alertPrefs.sispassWarningDays || 30)) {
+    alerts.push(`SISPASS vence em ${diffDays} dias`);
+  }
+  
+  if (alertPrefs.showCertificateAlert && certDiff !== null && certDiff < (alertPrefs.certificateWarningDays || 30)) {
+    alerts.push(`Certificado vence em ${certDiff} dias`);
+  }
+  
+  if (alertPrefs.showSubscriptionAlert) {
+    if (subDiff !== null && subDiff < (alertPrefs.subscriptionWarningDays || 10) && subDiff > 0) {
+      alerts.push(`⚠️ Assinatura PRO vence em ${subDiff} dias - Renove agora!`);
+    }
+    if (cancelAtPeriodEnd && subDiff !== null) {
+      alerts.push(`Plano profissional termina em ${subDiff} dias (renovacao cancelada)`);
+    }
+  }
+
   const renderWidgetContent = (id: string) => {
     switch (id) {
       case 'stats':
         return (
           <div className="space-y-4">
-            {(diffDays < 30 ||
-              (certDiff !== null && certDiff < 30) ||
-              (subDiff !== null && subDiff < 10 && subDiff > 0) ||
-              (cancelAtPeriodEnd && subDiff !== null)) && (
+            {alerts.length > 0 && (
               <div className="flex items-center justify-between p-3 rounded-2xl border border-amber-200 bg-amber-50 text-amber-800 text-sm font-bold">
                 <div className="flex items-center gap-2">
                   <Clock size={16} className="text-amber-600" />
-                  <span>
-                    {[
-                      diffDays < 30 ? `SISPASS vence em ${diffDays} dias` : null,
-                      certDiff !== null && certDiff < 30
-                        ? `Certificado vence em ${certDiff} dias`
-                        : null,
-                      subDiff !== null && subDiff < 10 && subDiff > 0
-                        ? `⚠️ Assinatura PRO vence em ${subDiff} dias - Renove agora!`
-                        : null,
-                      cancelAtPeriodEnd && subDiff !== null
-                        ? `Plano profissional termina em ${subDiff} dias (renovacao cancelada)`
-                        : null,
-                    ]
-                      .filter(Boolean)
-                      .join(' | ')}
-                  </span>
+                  <span>{alerts.join(' | ')}</span>
                 </div>
               </div>
             )}
@@ -458,35 +510,9 @@ const Dashboard: React.FC<DashboardProps> = ({
 
   return (
     <WizardShell title="Dashboard" description="Visão geral do criatório, finanças e tarefas.">
-      <div className="w-full max-w-none px-6 xl:px-10 2xl:px-16 grid grid-cols-1 lg:grid-cols-[220px_1fr] gap-6 animate-in fade-in duration-500 pb-12">
-        <aside className="lg:sticky lg:top-24 h-fit bg-white border border-slate-100 rounded-2xl p-3 shadow-sm">
-          <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 px-3 py-2">
-            Seções
-          </p>
-          <nav className="flex flex-col gap-1">
-            <a
-              href="#resumo"
-              className="px-3 py-2 rounded-xl text-sm font-semibold text-slate-600 hover:bg-slate-100"
-            >
-              Resumo
-            </a>
-            <a
-              href="#alertas"
-              className="px-3 py-2 rounded-xl text-sm font-semibold text-slate-600 hover:bg-slate-100"
-            >
-              Alertas
-            </a>
-            <a
-              href="#widgets"
-              className="px-3 py-2 rounded-xl text-sm font-semibold text-slate-600 hover:bg-slate-100"
-            >
-              Widgets
-            </a>
-          </nav>
-        </aside>
-
+      <div className="w-full max-w-none px-6 xl:px-10 2xl:px-16 space-y-6 animate-in fade-in duration-500 pb-12">
         <div className="space-y-6">
-          <section id="resumo">
+          <section>
             <PageHeader
               title={<>Painel Geral</>}
               subtitle={`Bem-vindo ao centro de comando do ${
@@ -508,7 +534,7 @@ const Dashboard: React.FC<DashboardProps> = ({
             )}
           </section>
 
-          <section id="alertas">
+          <section>
             {/* Alerta de Registro IBAMA Pendente */}
             {state.birds.some((b) => b.ibamaBaixaPendente) && (
               <div className="bg-amber-50 border-2 border-amber-300 rounded-3xl p-6 shadow-sm animate-in slide-in-from-top-2">
@@ -534,7 +560,7 @@ const Dashboard: React.FC<DashboardProps> = ({
             )}
           </section>
 
-          <section id="widgets">
+          <section>
             {/* Dynamic Grid Layout */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {visibleWidgets.map((widgetId, index) => (
@@ -547,13 +573,26 @@ const Dashboard: React.FC<DashboardProps> = ({
                   onDragOver={(e) => e.preventDefault()}
                   className={`
                   relative group transition-all duration-300
-                  ${widgetId === 'stats' ? 'lg:col-span-3' : 'lg:col-span-1'}
+                  ${getGridColSpan(widgetId)}
                 `}
                 >
                   {/* Drag Handle (Visible on Hover) */}
                   <div className="absolute -top-3 left-1/2 -translate-x-1/2 z-20 opacity-0 group-hover:opacity-100 transition-opacity cursor-move bg-slate-800 text-white p-1 rounded-md shadow-lg">
                     <GripVertical size={14} />
                   </div>
+
+                  {/* Resize Button (Visible on Hover) - Except for Stats */}
+                  {widgetId !== 'stats' && (
+                    <button
+                      onClick={() => cycleWidgetSize(widgetId)}
+                      className="absolute -top-3 right-4 z-20 opacity-0 group-hover:opacity-100 transition-opacity bg-brand text-white p-1.5 rounded-md shadow-lg hover:bg-brand/80"
+                      title="Alterar tamanho"
+                    >
+                      {getWidgetSize(widgetId) === 'small' ? <Minimize2 size={12} /> : 
+                       getWidgetSize(widgetId) === 'large' ? <Maximize2 size={12} /> : 
+                       <LayoutGrid size={12} />}
+                    </button>
+                  )}
 
                   {/* Widget Content */}
                   <div className="h-full">{renderWidgetContent(widgetId)}</div>
@@ -565,12 +604,12 @@ const Dashboard: React.FC<DashboardProps> = ({
 
         {showCustomizer && (
           <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4 animate-in fade-in duration-200">
-            <div className="bg-white rounded-[40px] w-full max-w-lg shadow-2xl overflow-hidden">
+            <div className="bg-white rounded-[40px] w-full max-w-lg shadow-2xl overflow-hidden max-h-[90vh] flex flex-col">
               <div className="p-8 border-b border-slate-100 flex justify-between items-center">
                 <div>
                   <h3 className="text-2xl font-black text-slate-800">Personalizar Dashboard</h3>
                   <p className="text-slate-400 text-xs font-bold uppercase mt-1">
-                    Ativar módulos e arraste no painel para ordenar
+                    Configure widgets e alertas
                   </p>
                 </div>
                 <button
@@ -581,40 +620,193 @@ const Dashboard: React.FC<DashboardProps> = ({
                 </button>
               </div>
 
-              <div className="p-8 space-y-3">
-                {ALL_WIDGETS.map((widget) => (
-                  <button
-                    key={widget.id}
-                    onClick={() => toggleWidget(widget.id)}
-                    className={`w-full flex items-center justify-between p-5 rounded-2xl border transition-all ${
-                      visibleWidgets.includes(widget.id)
-                        ? 'bg-brand/5 border-brand text-brand'
-                        : 'bg-slate-50 border-slate-100 text-slate-400 opacity-60'
-                    }`}
-                  >
-                    <div className="flex items-center gap-4">
-                      <div
-                        className={`p-2 rounded-xl ${
+              {/* Tabs */}
+              <div className="flex border-b border-slate-100 px-8">
+                <button
+                  onClick={() => setCustomizerTab('widgets')}
+                  className={`px-4 py-3 font-bold text-sm transition-all relative ${
+                    customizerTab === 'widgets'
+                      ? 'text-brand'
+                      : 'text-slate-400 hover:text-slate-600'
+                  }`}
+                >
+                  <LayoutGrid size={16} className="inline mr-2" />
+                  Widgets
+                  {customizerTab === 'widgets' && (
+                    <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-brand" />
+                  )}
+                </button>
+                <button
+                  onClick={() => setCustomizerTab('alerts')}
+                  className={`px-4 py-3 font-bold text-sm transition-all relative ${
+                    customizerTab === 'alerts'
+                      ? 'text-brand'
+                      : 'text-slate-400 hover:text-slate-600'
+                  }`}
+                >
+                  <Bell size={16} className="inline mr-2" />
+                  Alertas
+                  {customizerTab === 'alerts' && (
+                    <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-brand" />
+                  )}
+                </button>
+              </div>
+
+              {/* Content */}
+              <div className="p-8 space-y-3 overflow-y-auto flex-1">
+                {customizerTab === 'widgets' ? (
+                  <>
+                    <p className="text-xs text-slate-500 mb-4 font-semibold">
+                      Ative os módulos e arraste no painel para reordenar
+                    </p>
+                    {ALL_WIDGETS.map((widget) => (
+                      <button
+                        key={widget.id}
+                        onClick={() => toggleWidget(widget.id)}
+                        className={`w-full flex items-center justify-between p-5 rounded-2xl border transition-all ${
                           visibleWidgets.includes(widget.id)
-                            ? 'bg-brand text-white'
-                            : 'bg-slate-200'
+                            ? 'bg-brand/5 border-brand text-brand'
+                            : 'bg-slate-50 border-slate-100 text-slate-400 opacity-60'
                         }`}
                       >
-                        {widget.icon}
-                      </div>
-                      <span className="font-bold text-sm tracking-tight">{widget.label}</span>
-                    </div>
-                    <div
-                      className={`w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all ${
-                        visibleWidgets.includes(widget.id)
-                          ? 'bg-brand border-brand text-white'
-                          : 'border-slate-300'
+                        <div className="flex items-center gap-4">
+                          <div
+                            className={`p-2 rounded-xl ${
+                              visibleWidgets.includes(widget.id)
+                                ? 'bg-brand text-white'
+                                : 'bg-slate-200'
+                            }`}
+                          >
+                            {widget.icon}
+                          </div>
+                          <span className="font-bold text-sm tracking-tight">{widget.label}</span>
+                        </div>
+                        <div
+                          className={`w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all ${
+                            visibleWidgets.includes(widget.id)
+                              ? 'bg-brand border-brand text-white'
+                              : 'border-slate-300'
+                          }`}
+                        >
+                          {visibleWidgets.includes(widget.id) && <Check size={14} strokeWidth={4} />}
+                        </div>
+                      </button>
+                    ))}
+                  </>
+                ) : (
+                  <>
+                    <p className="text-xs text-slate-500 mb-4 font-semibold">
+                      Escolha quais alertas mostrar no topo do dashboard
+                    </p>
+                    <button
+                      onClick={() => toggleAlert('showSispassAlert')}
+                      className={`w-full flex items-center justify-between p-5 rounded-2xl border transition-all ${
+                        alertPrefs.showSispassAlert
+                          ? 'bg-amber-50 border-amber-200 text-amber-700'
+                          : 'bg-slate-50 border-slate-100 text-slate-400 opacity-60'
                       }`}
                     >
-                      {visibleWidgets.includes(widget.id) && <Check size={14} strokeWidth={4} />}
-                    </div>
-                  </button>
-                ))}
+                      <div className="flex items-center gap-4">
+                        <div
+                          className={`p-2 rounded-xl ${
+                            alertPrefs.showSispassAlert
+                              ? 'bg-amber-500 text-white'
+                              : 'bg-slate-200'
+                          }`}
+                        >
+                          <Clock size={16} />
+                        </div>
+                        <div className="text-left">
+                          <span className="font-bold text-sm block">Alerta SISPASS</span>
+                          <span className="text-xs opacity-70">
+                            Avisa {alertPrefs.sispassWarningDays || 30} dias antes do vencimento
+                          </span>
+                        </div>
+                      </div>
+                      <div
+                        className={`w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all ${
+                          alertPrefs.showSispassAlert
+                            ? 'bg-amber-500 border-amber-500 text-white'
+                            : 'border-slate-300'
+                        }`}
+                      >
+                        {alertPrefs.showSispassAlert && <Check size={14} strokeWidth={4} />}
+                      </div>
+                    </button>
+
+                    <button
+                      onClick={() => toggleAlert('showCertificateAlert')}
+                      className={`w-full flex items-center justify-between p-5 rounded-2xl border transition-all ${
+                        alertPrefs.showCertificateAlert
+                          ? 'bg-blue-50 border-blue-200 text-blue-700'
+                          : 'bg-slate-50 border-slate-100 text-slate-400 opacity-60'
+                      }`}
+                    >
+                      <div className="flex items-center gap-4">
+                        <div
+                          className={`p-2 rounded-xl ${
+                            alertPrefs.showCertificateAlert
+                              ? 'bg-blue-500 text-white'
+                              : 'bg-slate-200'
+                          }`}
+                        >
+                          <Clock size={16} />
+                        </div>
+                        <div className="text-left">
+                          <span className="font-bold text-sm block">Alerta Certificado</span>
+                          <span className="text-xs opacity-70">
+                            Avisa {alertPrefs.certificateWarningDays || 30} dias antes do vencimento
+                          </span>
+                        </div>
+                      </div>
+                      <div
+                        className={`w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all ${
+                          alertPrefs.showCertificateAlert
+                            ? 'bg-blue-500 border-blue-500 text-white'
+                            : 'border-slate-300'
+                        }`}
+                      >
+                        {alertPrefs.showCertificateAlert && <Check size={14} strokeWidth={4} />}
+                      </div>
+                    </button>
+
+                    <button
+                      onClick={() => toggleAlert('showSubscriptionAlert')}
+                      className={`w-full flex items-center justify-between p-5 rounded-2xl border transition-all ${
+                        alertPrefs.showSubscriptionAlert
+                          ? 'bg-purple-50 border-purple-200 text-purple-700'
+                          : 'bg-slate-50 border-slate-100 text-slate-400 opacity-60'
+                      }`}
+                    >
+                      <div className="flex items-center gap-4">
+                        <div
+                          className={`p-2 rounded-xl ${
+                            alertPrefs.showSubscriptionAlert
+                              ? 'bg-purple-500 text-white'
+                              : 'bg-slate-200'
+                          }`}
+                        >
+                          <Zap size={16} />
+                        </div>
+                        <div className="text-left">
+                          <span className="font-bold text-sm block">Alerta Assinatura</span>
+                          <span className="text-xs opacity-70">
+                            Avisa {alertPrefs.subscriptionWarningDays || 10} dias antes do vencimento
+                          </span>
+                        </div>
+                      </div>
+                      <div
+                        className={`w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all ${
+                          alertPrefs.showSubscriptionAlert
+                            ? 'bg-purple-500 border-purple-500 text-white'
+                            : 'border-slate-300'
+                        }`}
+                      >
+                        {alertPrefs.showSubscriptionAlert && <Check size={14} strokeWidth={4} />}
+                      </div>
+                    </button>
+                  </>
+                )}
               </div>
 
               <div className="p-8 pt-0">
@@ -634,3 +826,8 @@ const Dashboard: React.FC<DashboardProps> = ({
 };
 
 export default Dashboard;
+
+
+
+
+

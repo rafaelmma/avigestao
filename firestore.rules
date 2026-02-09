@@ -19,19 +19,30 @@ service cloud.firestore {
       return !isAuthenticated();
     }
     
+    // Função helper para verificar se o usuário autenticado é admin
+    function isAdminUser() {
+      return isAuthenticated() && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.isAdmin == true;
+    }
+    
     // Regras para dados de usuários
     match /users/{userId} {
+      // Permite que usuário autenticado leia seu próprio documento e permite que admins leiam todos os usuários
+      allow read: if isAuthenticated() && (isOwner(userId) || isAdminUser());
+      
       // Settings do usuário
       match /settings/{settingId} {
-        allow read, write: if isAuthenticated() && isOwner(userId);
+        // Leitura permitida ao dono ou a admins; escrita apenas ao dono
+        allow read: if isAuthenticated() && (isOwner(userId) || isAdminUser());
+        allow write: if isAuthenticated() && isOwner(userId);
       }
       
       // Birds (pássaros)
       match /birds/{birdId} {
         // Permite get individual sem auth (para QR codes), mas não list
         allow get: if true;
-        // List e write apenas para o dono
-        allow list, write: if isAuthenticated() && isOwner(userId);
+        // List permitido ao dono e a admins; escrita apenas ao dono
+        allow list: if isAuthenticated() && (isOwner(userId) || isAdminUser());
+        allow write: if isAuthenticated() && isOwner(userId);
       }
       
       // Pairs (casais)

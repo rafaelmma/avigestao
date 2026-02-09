@@ -99,10 +99,13 @@ import {
   saveSettings,
   syncPublicBirdsForUser,
   checkIfUserIsAdmin,
+  checkIfUserIsAdminOnly,
 } from './services/firestoreService';
 
 const STORAGE_KEY = 'avigestao_state_v2';
 const storageKeyForUser = (userId?: string) => (userId ? `${STORAGE_KEY}::${userId}` : STORAGE_KEY);
+
+// adminOnly state will be created inside the App component
 
 const loadCachedState = (userId?: string): { state: AppState; hasCache: boolean } => {
   if (typeof localStorage === 'undefined') return { state: defaultState, hasCache: false };
@@ -196,6 +199,7 @@ const App: React.FC = () => {
   const [state, setState] = useState<AppState>(() => defaultState);
   const [session, setSession] = useState<any>(null);
   const [isAdmin, setIsAdmin] = useState(false);
+  const [isAdminOnly, setIsAdminOnly] = useState(false);
 
   // Verifica se é uma rota pública (verificação de pássaro)
   const isPublicRoute = React.useMemo(() => {
@@ -340,6 +344,9 @@ const App: React.FC = () => {
         // Verificar se o usuário é admin
         const adminStatus = await checkIfUserIsAdmin(newUserId);
         setIsAdmin(adminStatus);
+        // Verificar se o usuário é adminOnly (conta apenas administrativa)
+        const adminOnlyStatus = await checkIfUserIsAdminOnly(newUserId);
+        setIsAdminOnly(adminOnlyStatus);
         
         const [
           birds,
@@ -2114,6 +2121,7 @@ const App: React.FC = () => {
         plan={state.settings?.plan || 'Básico'}
         trialEndDate={state.settings?.trialEndDate}
         isAdmin={isAdmin}
+        adminOnly={isAdminOnly}
       />
       <main id="main-content" className="flex-1 overflow-auto ml-0 lg:ml-64">
         <div className="p-3 md:p-4 lg:p-6 pb-24">

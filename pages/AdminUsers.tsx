@@ -1,3 +1,31 @@
+// Função auxiliar para determinar tipo de período de assinatura (heurística por meses restantes)
+const getSubscriptionPeriodType = (endDateString: string): string => {
+  try {
+    const endDate = new Date(endDateString);
+    const now = new Date();
+    const diffMs = endDate.getTime() - now.getTime();
+    if (isNaN(diffMs)) return 'Desconhecido';
+    const diffDays = Math.ceil(diffMs / (1000 * 60 * 60 * 24));
+    const months = Math.round(diffDays / 30);
+
+    if (months <= 1) return 'Mensal';
+    if (months <= 3) return 'Trimestral';
+    if (months <= 6) return 'Semestral';
+    return 'Anual';
+  } catch {
+    return 'Desconhecido';
+  }
+};
+
+const getProviderLabel = (provider?: string) => {
+  if (!provider) return 'Desconhecido';
+  const p = provider.toLowerCase();
+  if (p.includes('mercado')) return 'Mercado Pago';
+  if (p.includes('stripe')) return 'Stripe';
+  if (p.includes('manual')) return 'Pagamento Manual';
+  return provider;
+};
+
 import React, { useEffect, useState, useMemo } from 'react';
 import {
   Search,
@@ -16,6 +44,8 @@ import {
   Loader2,
   Download,
   Zap,
+  User,
+  Clock,
 } from 'lucide-react';
 import { db } from '../lib/firebase';
 import { collection, getDocs, query, where, updateDoc, doc, Timestamp } from 'firebase/firestore';
@@ -25,14 +55,36 @@ import toast from 'react-hot-toast';
 interface UserData {
   id: string;
   email?: string;
+  phone?: string;
   breederName: string;
   plan: string;
   createdAt?: string;
   active: boolean;
   isAdmin: boolean;
+  adminOnly?: boolean;
   totalBirds?: number;
   lastLogin?: string;
   subscriptionStatus?: string;
+  displayName?: string;
+  trialEndDate?: string;
+  subscriptionEndDate?: string;
+  subscriptionCancelAtPeriodEnd?: boolean;
+  subscriptionDaysRemaining?: number;
+  subscriptionPeriodType?: string; // 'monthly', 'quarterly', 'semiannual', 'annual'
+  subscriptionProvider?: string;
+  subscriptionMonths?: number;
+  // Campos de endereço e contato
+  endereco?: string;
+  numero?: string;
+  complemento?: string;
+  bairro?: string;
+  cidade?: string;
+  uf?: string;
+  cep?: string;
+  celular?: string;
+  site?: string;
+  responsavel?: string;
+  categoria?: string;
 }
 
 interface AdminUsersProps {
@@ -82,14 +134,42 @@ const AdminUsers: React.FC<AdminUsersProps> = ({ currentUserId }) => {
 
           usersData.push({
             id: userId,
+            email: userDoc.data()?.email || undefined,
+            phone: userDoc.data()?.phone || undefined,
+            displayName: userDoc.data()?.displayName || undefined,
+            trialEndDate: userDoc.data()?.trialEndDate || undefined,
+            adminOnly: userDoc.data()?.adminOnly || false,
             breederName: userSettings.breederName || 'Sem Nome',
             plan: userSettings.plan || 'Básico',
-            createdAt: userDoc.data()?.createdAt,
+            createdAt: userDoc.data()?.createdAt?.toDate?.().toLocaleDateString?.('pt-BR') || userDoc.data()?.createdAt,
             active: !userDoc.data()?.disabled,
             isAdmin: userDoc.data()?.isAdmin || false,
             totalBirds: birdsSnapshot.size,
-            lastLogin: userDoc.data()?.lastLogin,
+            lastLogin: userDoc.data()?.lastLogin?.toDate?.().toLocaleString?.('pt-BR') || userDoc.data()?.lastLogin,
             subscriptionStatus: userDoc.data()?.subscriptionStatus || 'inactive',
+            // Dados do settings (endereço e contato) - usando nomes corretos
+                // Calcular dias restantes e tipo de período
+                subscriptionEndDate: userSettings.subscriptionEndDate || undefined,
+                subscriptionCancelAtPeriodEnd: userSettings.subscriptionCancelAtPeriodEnd || false,
+                subscriptionDaysRemaining: userSettings.subscriptionEndDate 
+                  ? Math.ceil((new Date(userSettings.subscriptionEndDate).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24))
+                  : undefined,
+                subscriptionPeriodType: userSettings.subscriptionEndDate 
+                  ? getSubscriptionPeriodType(userSettings.subscriptionEndDate)
+                  : undefined,
+                subscriptionProvider: userSettings.subscriptionProvider || userDoc.data()?.subscriptionProvider || undefined,
+                subscriptionMonths: userSettings.subscriptionMonths || userDoc.data()?.subscriptionMonths || undefined,
+            endereco: userSettings.addressStreet || undefined,
+            numero: userSettings.addressNumber || undefined,
+            complemento: userSettings.addressComplement || undefined,
+            bairro: userSettings.addressNeighborhood || undefined,
+            cidade: userSettings.addressCity || undefined,
+            uf: userSettings.addressState || undefined,
+            cep: userSettings.addressCep || undefined,
+            celular: userSettings.breederMobile || undefined,
+            site: userSettings.breederWebsite || undefined,
+            responsavel: userSettings.responsibleName || undefined,
+            categoria: userSettings.breederCategory || undefined,
           });
         }
 
@@ -190,6 +270,29 @@ const AdminUsers: React.FC<AdminUsersProps> = ({ currentUserId }) => {
     } catch (error) {
       console.error('Erro ao promover:', error);
       toast.error('Erro ao promover usuário');
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const setAdminOnlyFlag = async (userId: string, value: boolean) => {
+    try {
+      setActionLoading(true);
+      const userRef = doc(db, 'users', userId);
+      await updateDoc(userRef, {
+        adminOnly: value,
+        updatedAt: Timestamp.now(),
+      });
+
+      setUsers((prev) => prev.map((u) => (u.id === userId ? { ...u, adminOnly: value } : u)));
+
+      toast.success(value ? 'Conta marcada como administrativa' : 'Conta marcada como normal');
+      if (selectedUser?.id === userId) {
+        setSelectedUser({ ...selectedUser, adminOnly: value });
+      }
+    } catch (error) {
+      console.error('Erro ao atualizar adminOnly:', error);
+      toast.error('Erro ao atualizar flag adminOnly');
     } finally {
       setActionLoading(false);
     }
@@ -406,6 +509,9 @@ const AdminUsers: React.FC<AdminUsersProps> = ({ currentUserId }) => {
                       <div className="flex flex-col">
                         <span className="font-bold text-slate-900">{user.breederName}</span>
                         <span className="text-xs text-slate-500 font-mono">{user.id}</span>
+                        {user.email && (
+                          <span className="text-xs text-slate-500">{user.email}</span>
+                        )}
                       </div>
                     </td>
                     <td className="px-6 py-4">
@@ -515,44 +621,256 @@ const AdminUsers: React.FC<AdminUsersProps> = ({ currentUserId }) => {
                 </button>
               </div>
 
-              {/* Informações Gerais */}
-              <div className="bg-slate-50 rounded-xl p-4 space-y-3">
-                <div className="flex justify-between items-center">
-                  <span className="text-slate-600 font-semibold">Plano:</span>
-                  <span className="font-bold text-slate-900">{selectedUser.plan}</span>
+              {/* Dados Completos do Usuário - Organizado por Seções */}
+              <div className="space-y-6">
+                
+                {/* Informações Pessoais */}
+                <div className="space-y-3 border-b border-slate-200 pb-6">
+                  <h3 className="font-bold text-slate-900 flex items-center gap-2">
+                    <User size={18} />
+                    Informações Pessoais
+                  </h3>
+                  <div className="space-y-2 ml-6">
+                    {selectedUser.displayName && (
+                      <div className="flex justify-between items-center">
+                        <span className="text-slate-600 text-sm">Nome Completo:</span>
+                        <span className="font-semibold text-slate-900">{selectedUser.displayName}</span>
+                      </div>
+                    )}
+                    {selectedUser.responsavel && (
+                      <div className="flex justify-between items-center">
+                        <span className="text-slate-600 text-sm">Responsável:</span>
+                        <span className="font-semibold text-slate-900">{selectedUser.responsavel}</span>
+                      </div>
+                    )}
+                    <div className="flex justify-between items-center">
+                      <span className="text-slate-600 text-sm">Criador/Apelido:</span>
+                      <span className="font-semibold text-slate-900">{selectedUser.breederName}</span>
+                    </div>
+                    {selectedUser.categoria && (
+                      <div className="flex justify-between items-center">
+                        <span className="text-slate-600 text-sm">Categoria:</span>
+                        <span className="font-semibold text-slate-900">{selectedUser.categoria}</span>
+                      </div>
+                    )}
+                    {selectedUser.email && (
+                      <div className="flex justify-between items-center">
+                        <span className="text-slate-600 text-sm">E-mail:</span>
+                        <span className="font-mono text-slate-900 break-all">{selectedUser.email}</span>
+                      </div>
+                    )}
+                    {selectedUser.phone && (
+                      <div className="flex justify-between items-center">
+                        <span className="text-slate-600 text-sm">Telefone:</span>
+                        <span className="font-semibold text-slate-900">{selectedUser.phone}</span>
+                      </div>
+                    )}
+                    {selectedUser.celular && (
+                      <div className="flex justify-between items-center">
+                        <span className="text-slate-600 text-sm">Celular:</span>
+                        <span className="font-semibold text-slate-900">{selectedUser.celular}</span>
+                      </div>
+                    )}
+                    {selectedUser.site && (
+                      <div className="flex justify-between items-center">
+                        <span className="text-slate-600 text-sm">Site:</span>
+                        <span className="font-mono text-blue-600 text-sm break-all">{selectedUser.site}</span>
+                      </div>
+                    )}
+                    <div className="flex justify-between items-center">
+                      <span className="text-slate-600 text-sm">ID da Conta:</span>
+                      <span className="text-xs font-mono text-slate-700 bg-slate-100 px-2 py-1 rounded">{selectedUser.id}</span>
+                    </div>
+                  </div>
                 </div>
-                <div className="flex justify-between items-center">
-                  <span className="text-slate-600 font-semibold">Aves:</span>
-                  <span className="font-bold text-slate-900">{selectedUser.totalBirds || 0}</span>
-                </div>
-                <div className="flex justify-between items-center">
-                  <span className="text-slate-600 font-semibold">Status:</span>
-                  <span className={`font-bold ${selectedUser.active ? 'text-green-700' : 'text-red-700'}`}>
-                    {selectedUser.active ? 'Ativo' : 'Inativo'}
-                  </span>
-                </div>
-                {selectedUser.createdAt && (
-                  <div className="flex justify-between items-center">
-                    <span className="text-slate-600 font-semibold">Membro desde:</span>
-                    <span className="font-bold text-slate-900">
-                      {new Date(selectedUser.createdAt).toLocaleDateString('pt-BR')}
-                    </span>
+
+                {/* Endereço */}
+                {(selectedUser.endereco || selectedUser.cep || selectedUser.cidade) && (
+                  <div className="space-y-3 border-b border-slate-200 pb-6">
+                    <h3 className="font-bold text-slate-900 flex items-center gap-2">
+                      📍 Endereço
+                    </h3>
+                    <div className="space-y-2 ml-6">
+                      {selectedUser.cep && (
+                        <div className="flex justify-between items-center">
+                          <span className="text-slate-600 text-sm">CEP:</span>
+                          <span className="font-semibold text-slate-900">{selectedUser.cep}</span>
+                        </div>
+                      )}
+                      {selectedUser.endereco && (
+                        <div className="flex justify-between items-start">
+                          <span className="text-slate-600 text-sm">Rua:</span>
+                          <span className="font-semibold text-slate-900 text-right max-w-[60%]">{selectedUser.endereco}</span>
+                        </div>
+                      )}
+                      {selectedUser.numero && (
+                        <div className="flex justify-between items-center">
+                          <span className="text-slate-600 text-sm">Número:</span>
+                          <span className="font-semibold text-slate-900">{selectedUser.numero}</span>
+                        </div>
+                      )}
+                      {selectedUser.complemento && (
+                        <div className="flex justify-between items-start">
+                          <span className="text-slate-600 text-sm">Complemento:</span>
+                          <span className="font-semibold text-slate-900 text-right max-w-[60%]">{selectedUser.complemento}</span>
+                        </div>
+                      )}
+                      {selectedUser.bairro && (
+                        <div className="flex justify-between items-center">
+                          <span className="text-slate-600 text-sm">Bairro:</span>
+                          <span className="font-semibold text-slate-900">{selectedUser.bairro}</span>
+                        </div>
+                      )}
+                      {(selectedUser.cidade || selectedUser.uf) && (
+                        <div className="flex justify-between items-center">
+                          <span className="text-slate-600 text-sm">Cidade/UF:</span>
+                          <span className="font-semibold text-slate-900">
+                            {selectedUser.cidade}{selectedUser.uf ? ` - ${selectedUser.uf}` : ''}
+                          </span>
+                        </div>
+                      )}
+                    </div>
                   </div>
                 )}
-                {selectedUser.lastLogin && (
-                  <div className="flex justify-between items-center">
-                    <span className="text-slate-600 font-semibold">Último acesso:</span>
-                    <span className="font-bold text-slate-900">
-                      {new Date(selectedUser.lastLogin).toLocaleString('pt-BR')}
-                    </span>
+
+                {/* Status da Conta */}
+                <div className="space-y-3 border-b border-slate-200 pb-6">
+                  <h3 className="font-bold text-slate-900 flex items-center gap-2">
+                    <Lock size={18} />
+                    Status da Conta
+                  </h3>
+                  <div className="space-y-2 ml-6">
+                    <div className="flex justify-between items-center">
+                      <span className="text-slate-600 text-sm">Acesso:</span>
+                      <span className={`font-bold px-3 py-1 rounded-full text-xs ${selectedUser.active ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
+                        {selectedUser.active ? 'Ativo' : 'Inativo'}
+                      </span>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span className="text-slate-600 text-sm">Administrador:</span>
+                      <span className={`font-bold px-3 py-1 rounded-full text-xs ${selectedUser.isAdmin ? 'bg-blue-100 text-blue-700' : 'bg-slate-100 text-slate-700'}`}>
+                        {selectedUser.isAdmin ? 'Sim' : 'Não'}
+                      </span>
+                    </div>
+                    {selectedUser.adminOnly && (
+                      <div className="flex justify-between items-center">
+                        <span className="text-slate-600 text-sm">Modo Admin:</span>
+                        <span className="font-bold px-3 py-1 rounded-full text-xs bg-purple-100 text-purple-700">
+                          Apenas Administrativo
+                        </span>
+                      </div>
+                    )}
                   </div>
-                )}
-                <div className="flex justify-between items-center">
-                  <span className="text-slate-600 font-semibold">Admin:</span>
-                  <span className={`font-bold ${selectedUser.isAdmin ? 'text-blue-700' : 'text-slate-500'}`}>
-                    {selectedUser.isAdmin ? 'Sim' : 'Não'}
-                  </span>
                 </div>
+
+                {/* Plano e Assinatura */}
+                <div className="space-y-3 border-b border-slate-200 pb-6">
+                  <h3 className="font-bold text-slate-900 flex items-center gap-2">
+                    <Zap size={18} />
+                    Plano e Assinatura
+                  </h3>
+                  <div className="space-y-2 ml-6">
+                    <div className="flex justify-between items-center">
+                      <span className="text-slate-600 text-sm">Plano Atual:</span>
+                      <span className={`font-bold px-3 py-1 rounded-full text-xs ${selectedUser.plan === 'Profissional' ? 'bg-blue-100 text-blue-700' : 'bg-slate-100 text-slate-700'}`}>
+                        {selectedUser.plan}
+                      </span>
+                    </div>
+                    {selectedUser.subscriptionStatus && (
+                      <div className="flex justify-between items-center">
+                        <span className="text-slate-600 text-sm">Status Assinatura:</span>
+                        <span className="font-semibold text-slate-900">{selectedUser.subscriptionStatus}</span>
+                      </div>
+                    )}
+                    {selectedUser.trialEndDate && (
+                      <div className="flex justify-between items-center">
+                        <span className="text-slate-600 text-sm">Período Teste Até:</span>
+                        <span className="font-semibold text-slate-900">
+                          {new Date(selectedUser.trialEndDate).toLocaleDateString('pt-BR')}
+                        </span>
+                      </div>
+                    )}
+
+                    {/* Assinatura: provider, tipo, vencimento e dias restantes */}
+                    {selectedUser.subscriptionEndDate && (
+                      <>
+                        {selectedUser.subscriptionProvider && (
+                          <div className="flex justify-between items-center">
+                            <span className="text-slate-600 text-sm">Pagamento via:</span>
+                            <span className="font-semibold text-slate-900">{getProviderLabel(selectedUser.subscriptionProvider)}</span>
+                          </div>
+                        )}
+                        {selectedUser.subscriptionMonths && (
+                          <div className="flex justify-between items-center">
+                            <span className="text-slate-600 text-sm">Período contratado:</span>
+                            <span className="font-semibold text-slate-900">{selectedUser.subscriptionMonths} mês(es) — {selectedUser.subscriptionPeriodType}</span>
+                          </div>
+                        )}
+                        <div className="flex justify-between items-center">
+                          <span className="text-slate-600 text-sm">Tipo de Período:</span>
+                          <span className="font-bold px-3 py-1 rounded-full text-xs bg-amber-100 text-amber-700">
+                            {selectedUser.subscriptionPeriodType || 'Desconhecido'}
+                          </span>
+                        </div>
+                        <div className="flex justify-between items-center">
+                          <span className="text-slate-600 text-sm">Vencimento:</span>
+                          <span className="font-semibold text-slate-900">
+                            {new Date(selectedUser.subscriptionEndDate).toLocaleDateString('pt-BR')}
+                          </span>
+                        </div>
+                        <div className="flex justify-between items-center">
+                          <span className="text-slate-600 text-sm">Tempo Restante:</span>
+                          <span className={`font-bold px-3 py-1 rounded-full text-xs ${
+                            selectedUser.subscriptionDaysRemaining && selectedUser.subscriptionDaysRemaining > 0 
+                              ? selectedUser.subscriptionDaysRemaining > 30 
+                                ? 'bg-green-100 text-green-700'
+                                : 'bg-orange-100 text-orange-700'
+                              : 'bg-red-100 text-red-700'
+                          }`}>
+                            {selectedUser.subscriptionDaysRemaining ? `${selectedUser.subscriptionDaysRemaining} dias` : 'Expirada'}
+                          </span>
+                        </div>
+                        {selectedUser.subscriptionCancelAtPeriodEnd && (
+                          <div className="flex justify-between items-start gap-2 rounded-lg bg-amber-50 border border-amber-200 px-3 py-2">
+                            <span className="text-slate-600 text-sm">Status Renovação:</span>
+                            <span className="font-bold text-amber-700 text-sm">❌ Cancelada</span>
+                          </div>
+                        )}
+                      </>
+                    )}
+                  </div>
+                </div>
+
+                {/* Dados de Criação e Uso */}
+                <div className="space-y-3">
+                  <h3 className="font-bold text-slate-900 flex items-center gap-2">
+                    <Clock size={18} />
+                    Histórico
+                  </h3>
+                  <div className="space-y-2 ml-6">
+                    {selectedUser.createdAt && (
+                      <div className="flex justify-between items-center">
+                        <span className="text-slate-600 text-sm">Cadastrado em:</span>
+                        <span className="font-semibold text-slate-900">
+                          {new Date(selectedUser.createdAt).toLocaleDateString('pt-BR')}
+                        </span>
+                      </div>
+                    )}
+                    {selectedUser.lastLogin && (
+                      <div className="flex justify-between items-center">
+                        <span className="text-slate-600 text-sm">Último Acesso:</span>
+                        <span className="font-semibold text-slate-900">
+                          {new Date(selectedUser.lastLogin).toLocaleString('pt-BR')}
+                        </span>
+                      </div>
+                    )}
+                    <div className="flex justify-between items-center">
+                      <span className="text-slate-600 text-sm">Total de Aves:</span>
+                      <span className="font-bold text-slate-900 text-lg">{selectedUser.totalBirds || 0}</span>
+                    </div>
+                  </div>
+                </div>
+
               </div>
 
               {/* Ações */}
@@ -596,6 +914,25 @@ const AdminUsers: React.FC<AdminUsersProps> = ({ currentUserId }) => {
                       Promover a Admin
                     </button>
                   )}
+
+                  {/* Admin-only toggle (accounts that only administer site) */}
+                  <button
+                    onClick={() => setAdminOnlyFlag(selectedUser.id, !selectedUser.adminOnly)}
+                    disabled={actionLoading}
+                    className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-slate-100 text-slate-900 rounded-xl hover:bg-slate-200 transition-all font-bold disabled:opacity-50"
+                  >
+                    {selectedUser.adminOnly ? (
+                      <>
+                        <Shield size={20} />
+                        Remover modo administrativo
+                      </>
+                    ) : (
+                      <>
+                        <Shield size={20} />
+                        Marcar como conta administrativa
+                      </>
+                    )}
+                  </button>
 
                   {selectedUser.plan === 'Básico' ? (
                     <button

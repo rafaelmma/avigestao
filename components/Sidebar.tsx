@@ -35,6 +35,7 @@ interface SidebarProps {
   plan: SubscriptionPlan;
   trialEndDate?: string;
   isAdmin?: boolean;
+  adminOnly?: boolean;
   onLogout: () => void;
   isOpen?: boolean;
   onClose?: () => void;
@@ -50,12 +51,16 @@ const Sidebar: React.FC<SidebarProps> = ({
   plan,
   trialEndDate,
   isAdmin,
+  adminOnly,
   onLogout,
   isOpen = true,
   onClose,
   onRefresh,
   isRefreshing,
 }) => {
+  // DEBUG: Log do status admin
+  console.log('🔍 [Sidebar] isAdmin value:', isAdmin, 'type:', typeof isAdmin);
+  
   const menuSections = [
     {
       title: 'Visão geral',
@@ -75,32 +80,42 @@ const Sidebar: React.FC<SidebarProps> = ({
         },
       ],
     },
-    {
-      title: 'Aves & Plantel',
-      items: [
-        { id: 'birds', label: 'Plantel', icon: <BirdIcon size={18} />, variant: 'main' },
-        { id: 'birds-labels', label: 'Etiquetas', icon: <Archive size={16} />, variant: 'sub' },
-        { id: 'birds-history', label: 'Histórico', icon: <Archive size={16} />, variant: 'sub' },
-        { id: 'sexing', label: 'Sexagem', icon: <Dna size={16} />, variant: 'sub' },
-        {
-          id: 'birds-ibama',
-          label: 'IBAMA Pendentes',
-          icon: <FileBadge size={16} />,
-          variant: 'sub',
-        },
-        { id: 'birds-trash', label: 'Lixeira', icon: <Trash2 size={16} />, variant: 'sub' },
-      ],
-    },
-    {
-      title: 'Gestão do Criatório',
-      items: [
-        { id: 'breeding', label: 'Acasalamentos', icon: <Heart size={18} /> },
-        { id: 'movements', label: 'Movimentações', icon: <ArrowRightLeft size={18} /> },
-        { id: 'documents', label: 'Licenças & Docs', icon: <FileBadge size={18} /> },
-        { id: 'meds', label: 'Medicamentos', icon: <FlaskConical size={18} /> },
-        { id: 'finance', label: 'Financeiro', icon: <DollarSign size={18} />, pro: true },
-      ],
-    },
+    // Aves & Plantel: apenas para usuários que NÃO são adminOnly
+    ...(adminOnly
+      ? []
+      : [
+          {
+            title: 'Aves & Plantel',
+            items: [
+              { id: 'birds', label: 'Plantel', icon: <BirdIcon size={18} />, variant: 'main' },
+              { id: 'birds-labels', label: 'Etiquetas', icon: <Archive size={16} />, variant: 'sub' },
+              { id: 'birds-history', label: 'Histórico', icon: <Archive size={16} />, variant: 'sub' },
+              { id: 'sexing', label: 'Sexagem', icon: <Dna size={16} />, variant: 'sub' },
+              {
+                id: 'birds-ibama',
+                label: 'IBAMA Pendentes',
+                icon: <FileBadge size={16} />,
+                variant: 'sub',
+              },
+              { id: 'birds-trash', label: 'Lixeira', icon: <Trash2 size={16} />, variant: 'sub' },
+            ],
+          },
+        ]),
+    // Gestão do Criatório: apenas para usuários que NÃO são adminOnly
+    ...(adminOnly
+      ? []
+      : [
+          {
+            title: 'Gestão do Criatório',
+            items: [
+              { id: 'breeding', label: 'Acasalamentos', icon: <Heart size={18} /> },
+              { id: 'movements', label: 'Movimentações', icon: <ArrowRightLeft size={18} /> },
+              { id: 'documents', label: 'Licenças & Docs', icon: <FileBadge size={18} /> },
+              { id: 'meds', label: 'Medicamentos', icon: <FlaskConical size={18} /> },
+              { id: 'finance', label: 'Financeiro', icon: <DollarSign size={18} />, pro: true },
+            ],
+          },
+        ]),
     {
       title: 'Agenda',
       items: [{ id: 'tasks', label: 'Agenda & Tarefas', icon: <CalendarCheck size={18} /> }],

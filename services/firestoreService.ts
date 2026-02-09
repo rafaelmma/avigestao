@@ -1724,6 +1724,20 @@ export const checkIfUserIsAdmin = async (userId: string): Promise<boolean> => {
   }
 };
 
+export const checkIfUserIsAdminOnly = async (userId: string): Promise<boolean> => {
+  try {
+    const userRef = doc(db, 'users', userId);
+    const userSnapshot = await getDoc(userRef);
+    if (userSnapshot.exists()) {
+      return userSnapshot.data().adminOnly || false;
+    }
+    return false;
+  } catch (error: unknown) {
+    console.error('[checkIfUserIsAdminOnly] Erro ao verificar adminOnly:', getErrorMessage(error));
+    return false;
+  }
+};
+
 export const updateUserAdminStatus = async (userId: string, isAdmin: boolean): Promise<boolean> => {
   try {
     const userRef = doc(db, 'users', userId);

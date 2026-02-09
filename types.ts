@@ -249,6 +249,21 @@ export interface ViewPreferences {
   compactMode?: boolean; // Modo compacto (menos espaçamento)
 }
 
+export interface AlertPreferences {
+  showSispassAlert?: boolean; // Mostrar alerta de SISPASS
+  showCertificateAlert?: boolean; // Mostrar alerta de Certificado
+  showSubscriptionAlert?: boolean; // Mostrar alerta de Assinatura
+  sispassWarningDays?: number; // Dias antes para alertar SISPASS (padrão: 30)
+  certificateWarningDays?: number; // Dias antes para alertar Certificado (padrão: 30)
+  subscriptionWarningDays?: number; // Dias antes para alertar Assinatura (padrão: 10)
+}
+
+export type WidgetSize = 'small' | 'medium' | 'large';
+
+export interface WidgetSizeConfig {
+  [widgetId: string]: WidgetSize;
+}
+
 export interface BreederSettings {
   breederName: string;
   userId?: string;
@@ -282,7 +297,11 @@ export interface BreederSettings {
   subscriptionEndDate?: string; // Fim do periodo atual da assinatura
   subscriptionCancelAtPeriodEnd?: boolean; // Se a recorrencia foi cancelada
   subscriptionStatus?: string; // Estado bruto vindo do Stripe (active, trialing, etc)
+  subscriptionProvider?: string; // ex: 'mercadopago', 'stripe', 'manual'
+  subscriptionMonths?: number; // número de meses comprados (1,3,6,12)
   viewPreferences?: ViewPreferences; // Preferências de visualização do usuário
+  alertPreferences?: AlertPreferences; // Preferências de alertas do dashboard
+  widgetSizes?: WidgetSizeConfig; // Tamanhos personalizados dos widgets
 }
 // Estado global da aplicação
 export interface AppState {
