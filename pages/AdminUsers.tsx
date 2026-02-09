@@ -15,6 +15,7 @@ import {
   XCircle,
   Loader2,
   Download,
+  Zap,
 } from 'lucide-react';
 import { db } from '../lib/firebase';
 import { collection, getDocs, query, where, updateDoc, doc, Timestamp } from 'firebase/firestore';
@@ -221,6 +222,42 @@ const AdminUsers: React.FC<AdminUsersProps> = ({ currentUserId }) => {
     } catch (error) {
       console.error('Erro ao remover admin:', error);
       toast.error('Erro ao remover permissões');
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const changePlan = async (userId: string, newPlan: 'Básico' | 'Profissional') => {
+    try {
+      setActionLoading(true);
+      const userRef = doc(db, 'users', userId);
+      const settingsRef = doc(db, 'users', userId, 'settings', 'preferences');
+      
+      // Atualizar em ambos os locais
+      await Promise.all([
+        updateDoc(userRef, {
+          plan: newPlan,
+          updatedAt: Timestamp.now(),
+        }),
+        updateDoc(settingsRef, {
+          plan: newPlan,
+          updatedAt: Timestamp.now(),
+        }),
+      ]);
+
+      setUsers((prev) =>
+        prev.map((u) =>
+          u.id === userId ? { ...u, plan: newPlan } : u
+        )
+      );
+
+      toast.success(`Plano alterado para ${newPlan}`);
+      if (selectedUser?.id === userId) {
+        setSelectedUser({ ...selectedUser, plan: newPlan });
+      }
+    } catch (error) {
+      console.error('Erro ao mudar plano:', error);
+      toast.error('Erro ao mudar plano do usuário');
     } finally {
       setActionLoading(false);
     }
@@ -557,6 +594,26 @@ const AdminUsers: React.FC<AdminUsersProps> = ({ currentUserId }) => {
                     >
                       <Shield size={20} />
                       Promover a Admin
+                    </button>
+                  )}
+
+                  {selectedUser.plan === 'Básico' ? (
+                    <button
+                      onClick={() => changePlan(selectedUser.id, 'Profissional')}
+                      disabled={actionLoading}
+                      className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-xl hover:from-blue-700 hover:to-indigo-700 transition-all font-bold disabled:opacity-50"
+                    >
+                      <Zap size={20} />
+                      Upgrade para Profissional
+                    </button>
+                  ) : (
+                    <button
+                      onClick={() => changePlan(selectedUser.id, 'Básico')}
+                      disabled={actionLoading}
+                      className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-slate-200 text-slate-900 rounded-xl hover:bg-slate-300 transition-all font-bold disabled:opacity-50"
+                    >
+                      <Zap size={20} />
+                      Downgrade para Básico
                     </button>
                   )}
                 </div>

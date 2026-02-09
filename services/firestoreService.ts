@@ -1765,3 +1765,27 @@ export const enableUser = async (userId: string): Promise<boolean> => {
     return false;
   }
 };
+
+export const updateUserPlan = async (userId: string, plan: 'Básico' | 'Profissional'): Promise<boolean> => {
+  try {
+    const userRef = doc(db, 'users', userId);
+    const settingsRef = doc(db, 'users', userId, 'settings', 'preferences');
+    
+    // Atualizar plano no documento principal
+    await updateDoc(userRef, {
+      plan,
+      updatedAt: Timestamp.now(),
+    });
+    
+    // Atualizar plano nas settings também
+    await updateDoc(settingsRef, {
+      plan,
+      updatedAt: Timestamp.now(),
+    });
+    
+    return true;
+  } catch (error: unknown) {
+    console.error('[updateUserPlan] Erro ao atualizar plano:', getErrorMessage(error));
+    return false;
+  }
+};
