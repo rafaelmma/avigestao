@@ -40,7 +40,23 @@ Quer remover admin?
   (Mas mantém dados de suas aves)
 ```
 
-### 4️⃣ **Exportar Dados**
+### 4️⃣ **Mudar Plano do Usuário** ⚡ (NOVO)
+```
+Um usuário quer virar Pro?
+  → Clique em Ver Detalhes (👁️)
+  → Clique em "Upgrade para Profissional" (botão azul)
+  → Usuário agora tem acesso a TUDO
+  → Toast confirma: "Plano alterado para Profissional"
+
+Um usuário quer voltar pro plano Básico?
+  → Clique em Ver Detalhes (👁️)
+  → Clique em "Downgrade para Básico" (botão cinza)
+  → Usuário volta ao plano básico
+  → Aves não são deletadas
+  → Toast confirma: "Plano alterado para Básico"
+```
+
+### 5️⃣ **Exportar Dados**
 ```
 Quer analisar usuários no Excel?
   → Clique em "Exportar"

@@ -32,7 +32,16 @@ removeAdmin(userId)
 // Proteção: Não permite remover suas próprias permissões
 ```
 
-#### c) **Visualizar Detalhes** 👁️
+#### c) **Mudar Plano** ⚡
+```typescript
+changePlan(userId, newPlan)
+// Upgrade: Básico → Profissional
+// Downgrade: Profissional → Básico
+// Atualiza campos 'plan' em 2 documentos Firestore
+// Ícone: Zap em gradiente azul/cinza
+```
+
+#### d) **Visualizar Detalhes** 👁️
 ```typescript
 showUserDetails(user)
 // Abre modal com informações completas
@@ -64,6 +73,10 @@ export const updateUserAdminStatus = async (userId: string, isAdmin: boolean): P
 // Desabilitar/Habilitar
 export const disableUser = async (userId: string): Promise<boolean>
 export const enableUser = async (userId: string): Promise<boolean>
+
+// Mudar Plano (NEW)
+export const updateUserPlan = async (userId: string, plan: 'Básico' | 'Profissional'): Promise<boolean>
+// Atualiza plan em users/{userId} e users/{userId}/settings/preferences
 ```
 
 ### 6. **Importação de Admin Check**
@@ -82,10 +95,10 @@ setIsAdmin(adminStatus);
 
 | Arquivo | Mudanças |
 |---------|----------|
-| **pages/AdminUsers.tsx** | ✨ NOVO arquivo (600+ linhas) |
+| **pages/AdminUsers.tsx** | ✨ NOVO arquivo (650+ linhas, incluindo changePlan) |
 | **App.tsx** | +3 linhas: import, lazy load, case switch |
 | **components/Sidebar.tsx** | +3 ícones, seção "Administração" |
-| **services/firestoreService.ts** | +5 funções de admin (50 linhas) |
+| **services/firestoreService.ts** | +6 funções de admin (65 linhas, incluindo updateUserPlan) |
 | **PORTAL_ADMINISTRATIVO.md** | ✨ NOVO arquivo de documentação |
 
 ## 📊 Build & Deploy
@@ -163,15 +176,16 @@ URL: https://avigestao-cf5fe.web.app
 ## 🔄 Próximos Passos (Sugerido)
 
 ### Curto Prazo (1-2 semanas):
-1. [ ] Adicionar deletar permanente com confirmação dupla
-2. [ ] Implementar logs de auditoria
-3. [ ] Melhorar exportação (Excel, PDF)
+1. [x] ~~Gerenciar planos dos usuários~~ ✅ PRONTO
+2. [ ] Adicionar deletar permanente com confirmação dupla
+3. [ ] Implementar logs de auditoria
+4. [ ] Melhorar exportação (Excel, PDF)
 
 ### Médio Prazo (1 mês):
 1. [ ] Adicionar dashboard com gráficos
-2. [ ] Gerenciar planos dos usuários
-3. [ ] Enviar notificações/emails
-4. [ ] Visualizar histórico de login
+2. [ ] Enviar notificações/emails
+3. [ ] Visualizar histórico de login
+4. [ ] Editar dados do usuário (email, telefone)
 
 ### Longo Prazo (2+ meses):
 1. [ ] Sistema de quotas

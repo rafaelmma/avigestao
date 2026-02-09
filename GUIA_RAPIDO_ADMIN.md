@@ -46,7 +46,7 @@ Clique no ícone de olho para abrir modal com:
 - Informações completo do usuário
 - Plano e data de membro
 - Número de aves e estatísticas
-- Botões de ação (disable/enable, admin/remove)
+- Botões de ação (disable/enable, admin/remove, mudar plano)
 
 ### 2️⃣ Habilitar/Desabilitar (🔒/🔓)
 - Vermelho 🔒 = Usuário ATIVO → Clique para DESABILITAR
@@ -57,6 +57,16 @@ Clique no ícone de olho para abrir modal com:
 - Azul 🛡️ = Admin → Clique para REMOVER
 - Cinza 🛡️ = Não-admin → Clique para PROMOVER
 - ⚠️ Você NÃO pode remover suas próprias permissões
+
+### 4️⃣ Mudar Plano (⚡)
+- **Upgrade para Profissional** (botão gradiente azul)
+  - Transforma Básico → Profissional
+  - Usuário ganha acesso a TODAS as features Pro
+  
+- **Downgrade para Básico** (botão cinza)
+  - Transforma Profissional → Básico
+  - Usuário perde acesso aos features exclusivos Pro
+  - ⚠️ Aves não são deletadas, apenas ficam sem acesso a features Pro
 
 ## Exemplos de Uso
 

@@ -25,6 +25,14 @@ Cada usuário pode ter as seguintes ações executadas:
 - **Remover Admin**: Revoga permissões administrativas
 - ⚠️ Você não pode remover suas próprias permissões de admin
 
+#### ⚡ Mudar Plano do Usuário (NOVO)
+- **Upgrade para Profissional**: Transforma um usuário Básico em Pro
+- **Downgrade para Básico**: Retorna um usuário Pro ao plano Básico
+- Mudança é refletida imediatamente em todas as aves e funções
+- Usuários não perdem dados ao mudar de plano
+- Botões aparecem apenas no modal de detalhes
+- Ícone Zap (⚡) indica mudança de plano
+
 ### 3. **Visualizar Detalhes do Usuário**
 Clique no ícone de olho (👁️) para abrir uma modal com:
 - Nome do criatório
@@ -121,7 +129,10 @@ Exporte a lista filtrada de usuários em formato CSV:
 - 🛡️ **Shield**: Promove/remove admin (cor azul ou vermelho)
 
 ### Na modal de detalhes:
-Acesso às mesmas ações com interface mais intuitiva
+Acesso às mesmas ações com interface mais intuitiva:
+- 🔓/🔒 Habilitar ou desabilitar
+- 🛡️ Promover ou remover admin  
+- ⚡ Upgrade/Downgrade de plano
 
 ## 🔐 Segurança
 
@@ -160,7 +171,17 @@ Acesso às mesmas ações com interface mais intuitiva
 3. O usuário agora tem acesso ao portal administrativo
 4. Seção "Administração" aparece na sidebar dele
 
-### Exemplo 3: Exportar lista de usuários
+### Exemplo 3: Mudar o plano de um usuário
+1. Localize o usuário na tabela
+2. Clique no ícone 👁️ (Ver Detalhes)
+3. No modal, você verá:
+   - Se é **Básico**: Botão azul "Upgrade para Profissional"
+   - Se é **Profissional**: Botão cinza "Downgrade para Básico"
+4. Clique no botão desejado
+5. Plano é atualizado instantaneamente
+6. Toast de confirmação aparece
+
+### Exemplo 4: Exportar lista de usuários
 1. Configure os filtros desejados
 2. Clique no botão "Exportar"
 3. Um arquivo CSV é baixado com a data atual
