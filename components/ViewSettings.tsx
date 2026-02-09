@@ -12,27 +12,27 @@ const ViewSettings: React.FC<ViewSettingsProps> = ({ preferences, onPreferencesC
     showBirdImages: true,
     badgeSize: 'xs',
     compactMode: false,
-    ...preferences
+    ...preferences,
   };
 
   const handleToggleImages = () => {
     onPreferencesChange({
       ...defaultPrefs,
-      showBirdImages: !defaultPrefs.showBirdImages
+      showBirdImages: !defaultPrefs.showBirdImages,
     });
   };
 
   const handleBadgeSizeChange = (size: 'xxs' | 'xs' | 'sm' | 'md' | 'lg') => {
     onPreferencesChange({
       ...defaultPrefs,
-      badgeSize: size
+      badgeSize: size,
     });
   };
 
   const handleToggleCompact = () => {
     onPreferencesChange({
       ...defaultPrefs,
-      compactMode: !defaultPrefs.compactMode
+      compactMode: !defaultPrefs.compactMode,
     });
   };
 
@@ -43,9 +43,7 @@ const ViewSettings: React.FC<ViewSettingsProps> = ({ preferences, onPreferencesC
         onClick={handleToggleImages}
         title={defaultPrefs.showBirdImages ? 'Ocultar imagens' : 'Mostrar imagens'}
         className={`p-2 rounded-lg transition-colors ${
-          defaultPrefs.showBirdImages
-            ? 'bg-blue-100 text-blue-600'
-            : 'bg-slate-100 text-slate-600'
+          defaultPrefs.showBirdImages ? 'bg-blue-100 text-blue-600' : 'bg-slate-100 text-slate-600'
         }`}
       >
         {defaultPrefs.showBirdImages ? <Eye size={18} /> : <EyeOff size={18} />}
@@ -53,7 +51,7 @@ const ViewSettings: React.FC<ViewSettingsProps> = ({ preferences, onPreferencesC
 
       {/* Badge Size */}
       <div className="flex items-center gap-1 bg-slate-100 rounded-lg p-1">
-        {(['xxs', 'xs', 'sm', 'md', 'lg'] as const).map(size => (
+        {(['xxs', 'xs', 'sm', 'md', 'lg'] as const).map((size) => (
           <button
             key={size}
             onClick={() => handleBadgeSizeChange(size)}
@@ -74,9 +72,7 @@ const ViewSettings: React.FC<ViewSettingsProps> = ({ preferences, onPreferencesC
         onClick={handleToggleCompact}
         title={defaultPrefs.compactMode ? 'Modo normal' : 'Modo compacto'}
         className={`p-2 rounded-lg transition-colors ${
-          defaultPrefs.compactMode
-            ? 'bg-green-100 text-green-600'
-            : 'bg-slate-100 text-slate-600'
+          defaultPrefs.compactMode ? 'bg-green-100 text-green-600' : 'bg-slate-100 text-slate-600'
         }`}
       >
         {defaultPrefs.compactMode ? <Minimize2 size={18} /> : <Maximize2 size={18} />}

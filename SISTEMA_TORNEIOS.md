@@ -11,6 +11,7 @@ O Sistema de Torneios permite criar, gerenciar e participar de competições de 
 ### 1️⃣ **Quem Pode Criar Torneios?**
 
 ✅ **Qualquer usuário LOGADO** pode criar torneios
+
 - Não precisa ser admin
 - Basta estar autenticado no sistema
 - Você se torna o "organizador" do torneio que criar
@@ -20,6 +21,7 @@ O Sistema de Torneios permite criar, gerenciar e participar de competições de 
 1. **Acesse**: Menu → "Gerenciar Torneios"
 2. **Clique**: Botão "+ Criar Torneio"
 3. **Preencha**:
+
    - **Nome**: Ex: "Copa de Canto 2026"
    - **Descrição**: Detalhes do torneio
    - **Data Início/Fim**: Período do evento
@@ -37,6 +39,7 @@ O Sistema de Torneios permite criar, gerenciar e participar de competições de 
 ### 3️⃣ **Visualização Pública na Tela Inicial**
 
 ✅ **Torneios aparecem SEM precisar login!**
+
 - Widget no Dashboard mostra próximos 3 torneios
 - Mostra: Nome, data, local, organizador, espécies
 - Botão "Inscrever-se" disponível
@@ -47,10 +50,12 @@ O Sistema de Torneios permite criar, gerenciar e participar de competições de 
 #### Processo de Inscrição (3 passos):
 
 1. **Ver Torneio**
+
    - Dashboard inicial (sem login) mostra torneios públicos
    - Ou acesse "Gerenciar Torneios" para ver todos
 
 2. **Clicar "Inscrever-se"**
+
    - Sistema verifica se está logado
    - Se não: pede login
    - Se sim: abre modal de inscrição
@@ -64,6 +69,7 @@ O Sistema de Torneios permite criar, gerenciar e participar de competições de 
 **Pronto!** Inscrição realizada ✅
 
 #### Validações Automáticas:
+
 - ✅ Verifica se usuário está logado
 - ✅ Filtra pássaros compatíveis com espécies do torneio
 - ✅ Impede inscrição sem pássaro compatível
@@ -72,12 +78,14 @@ O Sistema de Torneios permite criar, gerenciar e participar de competições de 
 ### 5️⃣ **O Que Acontece Depois da Criação?**
 
 #### Para o Organizador (Quem Criou):
+
 - ✏️ Pode editar o torneio (ícone lápis)
 - 🗑️ Pode deletar o torneio (ícone lixeira)
 - 👥 Pode visualizar inscritos
 - 📊 Pode gerenciar classificação e resultados
 
 #### Para Outros Usuários:
+
 - 👀 Podem VER o torneio (público no dashboard)
 - 📝 Podem SE INSCREVER com seus pássaros
 - 🔔 Veem organizador, local e número de etapas
@@ -86,6 +94,7 @@ O Sistema de Torneios permite criar, gerenciar e participar de competições de 
 ### 6️⃣ **Gerenciamento de Inscrições**
 
 O organizador pode:
+
 - Ver lista de todos os inscritos
 - Ver detalhes: Nome do criador, ave inscrita, data de registro
 - Adicionar colocação (1º, 2º, 3º lugar)
@@ -95,6 +104,7 @@ O organizador pode:
 ### 7️⃣ **Visualização Pública**
 
 **SEM LOGIN necessário:**
+
 - ✅ Dashboard inicial mostra próximos 3 torneios
 - ✅ Card com: Nome, descrição, data, local
 - ✅ Organizador e número de etapas visíveis
@@ -102,6 +112,7 @@ O organizador pode:
 - ✅ Botão "Inscrever-se" (pede login se não estiver)
 
 **Informações Visíveis:**
+
 - Nome do torneio
 - Descrição curta
 - Data início
@@ -137,6 +148,7 @@ tournament_inscriptions/{inscriptionId}
 ## Estrutura de Dados
 
 ### Torneio:
+
 ```typescript
 {
   id: "abc123",
@@ -150,7 +162,7 @@ tournament_inscriptions/{inscriptionId}
   createdAt: "2026-02-05",
   maxParticipants: 50,
   rules: "Regras detalhadas...",
-  
+
   // NOVOS CAMPOS:
   organizer: "Associação de Criadores ABC",
   numberOfStages: 3,
@@ -161,6 +173,7 @@ tournament_inscriptions/{inscriptionId}
 ```
 
 ### Inscrição:
+
 ```typescript
 {
   id: "xyz789",
@@ -182,11 +195,13 @@ tournament_inscriptions/{inscriptionId}
 ## Feedback Visual
 
 ### Estados do Botão:
+
 - **Salvando...**: Durante o salvamento (botão desabilitado)
 - **✅ Torneio salvo com sucesso!**: Caixa verde após salvar
 - **❌ Erro ao salvar**: Caixa vermelha se houver problema
 
 ### Mensagens de Erro:
+
 - "Você precisa estar logado para criar torneios!" → Se não estiver autenticado
 - "Erro ao salvar torneio. Verifique sua conexão." → Se falhar salvamento
 
@@ -195,20 +210,26 @@ tournament_inscriptions/{inscriptionId}
 ## Casos de Uso
 
 ### 1. Associação de Criadores
+
 Uma associação pode:
+
 - Criar torneios oficiais
 - Gerenciar inscrições
 - Publicar resultados
 - Criar regulamentos
 
 ### 2. Criador Individual
+
 Um criador pode:
+
 - Criar desafio entre amigos
 - Organizar mini-torneios locais
 - Compartilhar com comunidade
 
 ### 3. Participante
+
 Um participante pode:
+
 - Ver torneios disponíveis
 - Se inscrever em competições
 - Acompanhar resultados
@@ -218,6 +239,7 @@ Um participante pode:
 ## Próximas Funcionalidades
 
 ### ✅ Implementado:
+
 - [x] Widget público de torneios no dashboard (SEM login)
 - [x] Sistema de inscrição com seleção de pássaro
 - [x] Filtro automático por espécie compatível
@@ -226,6 +248,7 @@ Um participante pode:
 - [x] Feedback visual de sucesso/erro
 
 ### Em Desenvolvimento:
+
 - [ ] Notificações de novos torneios
 - [ ] Ranking geral de criadores
 - [ ] Histórico de participações do pássaro
@@ -235,6 +258,7 @@ Um participante pode:
 - [ ] Limite de inscrições por torneio
 
 ### Modo Associação (Futuro):
+
 - [ ] Tipo de conta especial para associações
 - [ ] Torneios oficiais vs amistosos
 - [ ] Sistema de validação de membros
@@ -245,6 +269,7 @@ Um participante pode:
 ## Como Testar?
 
 ### 1. Criar Torneio:
+
 1. Acesse: https://avigestao-cf5fe.web.app
 2. Faça login com sua conta
 3. Menu → "Gerenciar Torneios"
@@ -255,12 +280,14 @@ Um participante pode:
 8. Aguarde mensagem de sucesso ✅
 
 ### 2. Ver Torneio na Tela Inicial:
+
 1. Saia do sistema (ou abra aba anônima)
 2. Acesse: https://avigestao-cf5fe.web.app
 3. **SEM fazer login**, você verá o widget "Próximos Torneios"
 4. O torneio criado deve aparecer lá!
 
 ### 3. Inscrever-se no Torneio:
+
 1. Faça login
 2. Na tela inicial, veja o widget de torneios
 3. Clique "Inscrever-se" no torneio desejado
@@ -269,6 +296,7 @@ Um participante pode:
 6. Aguarde mensagem de sucesso ✅
 
 ### 4. Verificar Inscrição:
+
 1. Menu → "Gerenciar Torneios"
 2. Clique no ícone 👥 "Inscritos" do torneio
 3. Sua inscrição deve aparecer na lista!
@@ -280,11 +308,13 @@ Um participante pode:
 ## Problemas Resolvidos
 
 ### ❌ Problema Anterior:
+
 - Torneios não estavam sendo salvos no Firebase
 - Regras do Firestore estavam incorretas
 - Faltava capturar usuário autenticado
 
 ### ✅ Solução Aplicada:
+
 - ✔️ Regras do Firestore atualizadas
 - ✔️ Código captura `auth.currentUser`
 - ✔️ Feedback visual de erro/sucesso
@@ -295,6 +325,7 @@ Um participante pode:
 ## Suporte
 
 Se encontrar problemas:
+
 1. Verifique se está logado
 2. Veja o console do navegador (F12)
 3. Recarregue a página (F5)

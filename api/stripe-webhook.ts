@@ -1,5 +1,5 @@
-import Stripe from "stripe";
-import * as admin from "firebase-admin";
+import Stripe from 'stripe';
+import * as admin from 'firebase-admin';
 
 // Initialize Firebase Admin
 if (!admin.apps.length) {
@@ -13,7 +13,7 @@ if (!admin.apps.length) {
 }
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY as string, {
-  apiVersion: "2025-12-15.clover" as any,
+  apiVersion: '2025-12-15.clover' as any,
 });
 
 const db = admin.firestore();
@@ -39,43 +39,54 @@ type VercelRes = {
 const setUserAsPro = async (userId: string | null | undefined, customerId?: string | null) => {
   if (!userId) return;
   try {
-    await db.collection('users').doc(userId).set({
-      plan: "Profissional",
-      trialEndDate: null,
-      stripeCustomerId: customerId || null,
-      updatedAt: admin.firestore.FieldValue.serverTimestamp(),
-    }, { merge: true });
+    await db
+      .collection('users')
+      .doc(userId)
+      .set(
+        {
+          plan: 'Profissional',
+          trialEndDate: null,
+          stripeCustomerId: customerId || null,
+          updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+        },
+        { merge: true },
+      );
   } catch (e) {
-    console.error("Failed to mark user as PRO:", e);
+    console.error('Failed to mark user as PRO:', e);
   }
 };
 
 // Resolve userId from Stripe customer or subscription
-const resolveUserIdFromStripe = async (params: { customerId?: string | null; subscriptionId?: string | null; }) => {
+const resolveUserIdFromStripe = async (params: {
+  customerId?: string | null;
+  subscriptionId?: string | null;
+}) => {
   const { customerId, subscriptionId } = params;
-  
+
   if (customerId) {
-    const usersSnapshot = await db.collection('users')
+    const usersSnapshot = await db
+      .collection('users')
       .where('stripeCustomerId', '==', customerId)
       .limit(1)
       .get();
-    
+
     if (!usersSnapshot.empty) {
       return usersSnapshot.docs[0].id;
     }
   }
-  
+
   if (subscriptionId) {
-    const usersSnapshot = await db.collection('users')
+    const usersSnapshot = await db
+      .collection('users')
       .where('subscription.stripeSubscriptionId', '==', subscriptionId)
       .limit(1)
       .get();
-    
+
     if (!usersSnapshot.empty) {
       return usersSnapshot.docs[0].id;
     }
   }
-  
+
   return null;
 };
 
@@ -107,23 +118,29 @@ const handleCheckoutCompleted = async (event: Stripe.Event) => {
   const session = event.data.object as Stripe.Checkout.Session;
   const userId = (session.metadata?.userId || session.metadata?.user_id || null) as string | null;
 
-  if (session.mode === "subscription" && session.subscription) {
+  if (session.mode === 'subscription' && session.subscription) {
     const subscription = await stripe.subscriptions.retrieve(session.subscription as string);
     const currentPeriodEnd = (subscription as any)?.current_period_end ?? null;
 
     // Save subscription to user document in Firestore
     if (userId) {
-      await db.collection('users').doc(userId).set({
-        email: session.customer_email ?? null,
-        stripeCustomerId: session.customer ?? null,
-        subscription: {
-          stripeSubscriptionId: subscription.id,
-          status: subscription.status,
-          currentPeriodEnd: currentPeriodEnd ? new Date(currentPeriodEnd * 1000) : null,
-          cancelAtPeriodEnd: false,
-        },
-        updatedAt: admin.firestore.FieldValue.serverTimestamp(),
-      }, { merge: true });
+      await db
+        .collection('users')
+        .doc(userId)
+        .set(
+          {
+            email: session.customer_email ?? null,
+            stripeCustomerId: session.customer ?? null,
+            subscription: {
+              stripeSubscriptionId: subscription.id,
+              status: subscription.status,
+              currentPeriodEnd: currentPeriodEnd ? new Date(currentPeriodEnd * 1000) : null,
+              cancelAtPeriodEnd: false,
+            },
+            updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+          },
+          { merge: true },
+        );
 
       await setUserAsPro(userId, session.customer as string);
     }
@@ -146,17 +163,23 @@ const handleSubscriptionUpdated = async (event: Stripe.Event) => {
   const userId = await resolveUserIdFromStripe({ subscriptionId: subscription.id });
 
   if (userId) {
-    await db.collection('users').doc(userId).set({
-      subscription: {
-        stripeSubscriptionId: subscription.id,
-        status: subscription.status,
-        currentPeriodEnd: currentPeriodEnd ? new Date(currentPeriodEnd * 1000) : null,
-        cancelAtPeriodEnd: cancelAtPeriodEnd,
-      },
-      updatedAt: admin.firestore.FieldValue.serverTimestamp(),
-    }, { merge: true });
+    await db
+      .collection('users')
+      .doc(userId)
+      .set(
+        {
+          subscription: {
+            stripeSubscriptionId: subscription.id,
+            status: subscription.status,
+            currentPeriodEnd: currentPeriodEnd ? new Date(currentPeriodEnd * 1000) : null,
+            cancelAtPeriodEnd: cancelAtPeriodEnd,
+          },
+          updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+        },
+        { merge: true },
+      );
 
-    if (subscription.status === "active" || subscription.status === "trialing") {
+    if (subscription.status === 'active' || subscription.status === 'trialing') {
       await setUserAsPro(userId, (subscription as any)?.customer);
     }
   }
@@ -168,14 +191,20 @@ const handleInvoicePaymentFailed = async (event: Stripe.Event) => {
 
   if (subId) {
     const userId = await resolveUserIdFromStripe({ subscriptionId: subId });
-    
+
     if (userId) {
-      await db.collection('users').doc(userId).set({
-        subscription: {
-          status: "past_due",
-        },
-        updatedAt: admin.firestore.FieldValue.serverTimestamp(),
-      }, { merge: true });
+      await db
+        .collection('users')
+        .doc(userId)
+        .set(
+          {
+            subscription: {
+              status: 'past_due',
+            },
+            updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+          },
+          { merge: true },
+        );
     }
   }
 
@@ -186,7 +215,7 @@ const handleInvoicePaymentFailed = async (event: Stripe.Event) => {
     eventType: 'invoice.payment_failed',
     userId,
     subscriptionId: subId,
-    amount: (invoice.amount_due ?? null) ? Number((invoice.amount_due as number) / 100) : null,
+    amount: invoice.amount_due ?? null ? Number((invoice.amount_due as number) / 100) : null,
     currency: invoice.currency ?? null,
     rawEvent: event,
   });
@@ -203,7 +232,7 @@ const handleInvoicePaymentSucceeded = async (event: Stripe.Event) => {
     eventType: 'invoice.payment_succeeded',
     userId,
     subscriptionId: subId,
-    amount: (invoice.amount_paid ?? null) ? Number((invoice.amount_paid as number) / 100) : null,
+    amount: invoice.amount_paid ?? null ? Number((invoice.amount_paid as number) / 100) : null,
     currency: invoice.currency ?? null,
     rawEvent: event,
   });
@@ -219,25 +248,31 @@ const handleSubscriptionDeleted = async (event: Stripe.Event) => {
   const userId = await resolveUserIdFromStripe({ subscriptionId: subscription.id });
 
   if (userId) {
-    await db.collection('users').doc(userId).set({
-      subscription: {
-        status: "canceled",
-      },
-      updatedAt: admin.firestore.FieldValue.serverTimestamp(),
-    }, { merge: true });
+    await db
+      .collection('users')
+      .doc(userId)
+      .set(
+        {
+          subscription: {
+            status: 'canceled',
+          },
+          updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+        },
+        { merge: true },
+      );
   }
 };
 
 export default async function handler(req: VercelReq, res: VercelRes) {
-  if (req.method !== "POST") {
-    return res.status(405).send("Method Not Allowed");
+  if (req.method !== 'POST') {
+    return res.status(405).send('Method Not Allowed');
   }
 
-  const sig = req.headers["stripe-signature"];
+  const sig = req.headers['stripe-signature'];
   const signature = Array.isArray(sig) ? sig[0] : sig;
 
   if (!signature) {
-    return res.status(400).send("Missing Stripe signature");
+    return res.status(400).send('Missing Stripe signature');
   }
 
   const chunks: Buffer[] = [];
@@ -247,28 +282,32 @@ export default async function handler(req: VercelReq, res: VercelRes) {
   let event: Stripe.Event;
 
   try {
-    event = stripe.webhooks.constructEvent(buf, signature, process.env.STRIPE_WEBHOOK_SECRET as string);
+    event = stripe.webhooks.constructEvent(
+      buf,
+      signature,
+      process.env.STRIPE_WEBHOOK_SECRET as string,
+    );
   } catch (err: any) {
-    console.error("❌ Webhook signature error:", err?.message);
+    console.error('❌ Webhook signature error:', err?.message);
     return res.status(400).send(`Webhook Error: ${err?.message}`);
   }
 
   try {
     switch (event.type) {
-      case "checkout.session.completed":
+      case 'checkout.session.completed':
         await handleCheckoutCompleted(event);
         break;
-      case "customer.subscription.updated":
+      case 'customer.subscription.updated':
         await handleSubscriptionUpdated(event);
         break;
-      case "invoice.payment_failed":
+      case 'invoice.payment_failed':
         await handleInvoicePaymentFailed(event);
         break;
-      case "invoice.payment_succeeded":
-      case "invoice.paid":
+      case 'invoice.payment_succeeded':
+      case 'invoice.paid':
         await handleInvoicePaymentSucceeded(event);
         break;
-      case "customer.subscription.deleted":
+      case 'customer.subscription.deleted':
         await handleSubscriptionDeleted(event);
         break;
       default:
@@ -278,7 +317,7 @@ export default async function handler(req: VercelReq, res: VercelRes) {
 
     return res.status(200).json({ received: true });
   } catch (err) {
-    console.error("❌ Webhook handler error:", err);
-    return res.status(500).send("Webhook handler failed");
+    console.error('❌ Webhook handler error:', err);
+    return res.status(500).send('Webhook handler failed');
   }
 }

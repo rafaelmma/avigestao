@@ -1,9 +1,10 @@
-
-import React, { useState, useRef, Suspense } from 'react';
+/* eslint-disable @typescript-eslint/no-explicit-any */
+/* eslint-disable @typescript-eslint/no-unused-vars */
+import React, { useState, useRef, Suspense, useEffect } from 'react';
 import { AppState, BreederSettings } from '../types';
-import { 
-  Users, 
-  Heart, 
+import {
+  Users,
+  Heart,
   ListTodo,
   Bird as BirdIcon,
   Trophy,
@@ -19,12 +20,16 @@ import {
   ArrowRight,
   Clock,
   DollarSign,
-  Zap
+  Zap,
 } from 'lucide-react';
+
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import PublicTournamentsWidget from '../components/PublicTournamentsWidget';
 const TipCarousel = React.lazy(() => import('../components/TipCarousel'));
 import WizardShell from '../components/WizardShell';
+import PageHeader from '../components/ui/PageHeader';
+import PrimaryButton from '../components/ui/PrimaryButton';
+import SecondaryButton from '../components/ui/SecondaryButton';
 
 interface DashboardProps {
   state: AppState;
@@ -35,7 +40,11 @@ interface DashboardProps {
 }
 
 const ALL_WIDGETS = [
-  { id: 'stats', label: 'Resumo Superior (Plantel/Financeiro/Tarefas)', icon: <LayoutGrid size={16} /> },
+  {
+    id: 'stats',
+    label: 'Resumo Superior (Plantel/Financeiro/Tarefas)',
+    icon: <LayoutGrid size={16} />,
+  },
   { id: 'tournaments', label: 'Próximos Torneios', icon: <Trophy size={16} /> },
   { id: 'financial', label: 'Fluxo de Caixa', icon: <Wallet size={16} /> },
   { id: 'species_chart', label: 'Gráfico de Espécies', icon: <TrendingUp size={16} /> },
@@ -45,39 +54,56 @@ const ALL_WIDGETS = [
 ];
 
 const StatCard = ({ icon, label, value, subValue, isWarning, isPositive, onClick }: any) => (
-  <div 
+  <div
     onClick={onClick}
-    className={`bg-white p-5 rounded-lg border transition-all h-full ${isWarning ? 'border-amber-200 bg-amber-50/40' : 'border-slate-200'} ${onClick ? 'cursor-pointer hover:shadow-md hover:border-slate-300 active:scale-95' : 'shadow-sm'}`}
+    className={`bg-white p-5 rounded-lg border transition-all h-full ${
+      isWarning ? 'border-amber-200 bg-amber-50/40' : 'border-slate-200'
+    } ${
+      onClick
+        ? 'cursor-pointer hover:shadow-md hover:border-slate-300 active:scale-95'
+        : 'shadow-sm'
+    }`}
   >
     <div className="flex items-center gap-3 mb-4">
       <div className="p-2 bg-slate-100 rounded-lg text-slate-600">{icon}</div>
       <span className="text-xs font-semibold text-slate-500 uppercase tracking-wide">{label}</span>
     </div>
     <div>
-      <h4 className={`text-2xl font-bold tracking-tight ${isWarning ? 'text-amber-700' : isPositive === false ? 'text-red-600' : 'text-slate-900'}`}>{value}</h4>
+      <h4
+        className={`text-2xl font-bold tracking-tight ${
+          isWarning ? 'text-amber-700' : isPositive === false ? 'text-red-600' : 'text-slate-900'
+        }`}
+      >
+        {value}
+      </h4>
       <p className="text-xs font-medium text-slate-500 uppercase mt-1">{subValue}</p>
     </div>
   </div>
 );
 
-const Dashboard: React.FC<DashboardProps> = ({ state, updateSettings, onSave, navigateTo, isAdmin }) => {
+const Dashboard: React.FC<DashboardProps> = ({
+  state,
+  updateSettings,
+  onSave,
+  navigateTo,
+  isAdmin,
+}) => {
   const [showCustomizer, setShowCustomizer] = useState(false);
-  
+
   const dragItem = useRef<number | null>(null);
   const dragOverItem = useRef<number | null>(null);
-  
-  const currentLayout = state.settings?.dashboardLayout && state.settings.dashboardLayout.length > 0
-    ? state.settings.dashboardLayout
-    : ALL_WIDGETS.map(w => w.id);
 
-  const visibleWidgets = currentLayout.filter(id => 
-    ALL_WIDGETS.some(w => w.id === id)
-  );
+  const currentLayout =
+    state.settings?.dashboardLayout && state.settings.dashboardLayout.length > 0
+      ? state.settings.dashboardLayout
+      : ALL_WIDGETS.map((w) => w.id);
+
+  const visibleWidgets = currentLayout.filter((id) => ALL_WIDGETS.some((w) => w.id === id));
 
   const toggleWidget = (id: string) => {
     let newLayout: string[];
     if (visibleWidgets.includes(id)) {
-      newLayout = visibleWidgets.filter(wId => wId !== id);
+      newLayout = visibleWidgets.filter((wId) => wId !== id);
     } else {
       newLayout = [...visibleWidgets, id];
     }
@@ -98,17 +124,17 @@ const Dashboard: React.FC<DashboardProps> = ({ state, updateSettings, onSave, na
 
   const handleDragEnd = (e: React.DragEvent<HTMLDivElement>) => {
     e.currentTarget.classList.remove('opacity-50', 'scale-95');
-    
+
     if (dragItem.current !== null && dragOverItem.current !== null) {
       const copyListItems = [...visibleWidgets];
       const dragItemContent = copyListItems[dragItem.current];
-      
+
       copyListItems.splice(dragItem.current, 1);
       copyListItems.splice(dragOverItem.current, 0, dragItemContent);
-      
+
       dragItem.current = null;
       dragOverItem.current = null;
-      
+
       const updatedSettings = { ...state.settings, dashboardLayout: copyListItems };
       updateSettings(updatedSettings);
       onSave?.(updatedSettings);
@@ -116,79 +142,106 @@ const Dashboard: React.FC<DashboardProps> = ({ state, updateSettings, onSave, na
   };
 
   const totalBirds = state.birds?.length || 0;
-  const activeBirds = state.birds?.filter(b => b.status === 'Ativo').length || 0;
-  const income = state.transactions?.filter(t => t.type === 'Receita').reduce((sum, t) => sum + t.amount, 0) || 0;
-  const expense = state.transactions?.filter(t => t.type === 'Despesa').reduce((sum, t) => sum + t.amount, 0) || 0;
+  const activeBirds = state.birds?.filter((b) => b.status === 'Ativo').length || 0;
+  const income =
+    state.transactions?.filter((t) => t.type === 'Receita').reduce((sum, t) => sum + t.amount, 0) ||
+    0;
+  const expense =
+    state.transactions?.filter((t) => t.type === 'Despesa').reduce((sum, t) => sum + t.amount, 0) ||
+    0;
   const balance = income - expense;
-  const pendingTasks = state.tasks?.filter(t => !t.isCompleted).length || 0;
+  const pendingTasks = state.tasks?.filter((t) => !t.isCompleted).length || 0;
 
   const upcomingTournaments = (state.tournaments || [])
-    .filter(e => new Date(e.date) >= new Date())
+    .filter((e) => new Date(e.date) >= new Date())
     .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
 
   const speciesData = (state.birds || []).reduce((acc: any[], bird) => {
-    const existing = acc.find(i => i.name === bird.species);
+    const existing = acc.find((i) => i.name === bird.species);
     if (existing) existing.value += 1;
     else acc.push({ name: bird.species, value: 1 });
     return acc;
   }, []);
 
-  const sispassRenewalDate = state.settings?.renewalDate ? new Date(state.settings.renewalDate) : new Date();
-  const diffDays = Math.ceil((sispassRenewalDate.getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24));
-  const certDate = state.settings?.certificate?.expiryDate ? new Date(state.settings.certificate.expiryDate) : null;
-  const certDiff = certDate ? Math.ceil((certDate.getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24)) : null;
-  const subEndDate = state.settings?.subscriptionEndDate ? new Date(state.settings.subscriptionEndDate) : null;
-  const subDiff = subEndDate ? Math.ceil((subEndDate.getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24)) : null;
+  const sispassRenewalDate = state.settings?.renewalDate
+    ? new Date(state.settings.renewalDate)
+    : new Date();
+  const diffDays = Math.ceil(
+    (sispassRenewalDate.getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24),
+  );
+  const certDate = state.settings?.certificate?.expiryDate
+    ? new Date(state.settings.certificate.expiryDate)
+    : null;
+  const certDiff = certDate
+    ? Math.ceil((certDate.getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24))
+    : null;
+  const subEndDate = state.settings?.subscriptionEndDate
+    ? new Date(state.settings.subscriptionEndDate)
+    : null;
+  const subDiff = subEndDate
+    ? Math.ceil((subEndDate.getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24))
+    : null;
   const cancelAtPeriodEnd = !!state.settings?.subscriptionCancelAtPeriodEnd;
-  
+
   const renderWidgetContent = (id: string) => {
-    switch(id) {
+    switch (id) {
       case 'stats':
         return (
           <div className="space-y-4">
-            {(diffDays < 30 || (certDiff !== null && certDiff < 30) || (subDiff !== null && subDiff < 10 && subDiff > 0) || (cancelAtPeriodEnd && subDiff !== null)) && (
+            {(diffDays < 30 ||
+              (certDiff !== null && certDiff < 30) ||
+              (subDiff !== null && subDiff < 10 && subDiff > 0) ||
+              (cancelAtPeriodEnd && subDiff !== null)) && (
               <div className="flex items-center justify-between p-3 rounded-2xl border border-amber-200 bg-amber-50 text-amber-800 text-sm font-bold">
                 <div className="flex items-center gap-2">
                   <Clock size={16} className="text-amber-600" />
                   <span>
                     {[
                       diffDays < 30 ? `SISPASS vence em ${diffDays} dias` : null,
-                      certDiff !== null && certDiff < 30 ? `Certificado vence em ${certDiff} dias` : null,
-                      subDiff !== null && subDiff < 10 && subDiff > 0 ? `⚠️ Assinatura PRO vence em ${subDiff} dias - Renove agora!` : null,
-                      cancelAtPeriodEnd && subDiff !== null ? `Plano profissional termina em ${subDiff} dias (renovacao cancelada)` : null
-                    ].filter(Boolean).join(' | ')}
+                      certDiff !== null && certDiff < 30
+                        ? `Certificado vence em ${certDiff} dias`
+                        : null,
+                      subDiff !== null && subDiff < 10 && subDiff > 0
+                        ? `⚠️ Assinatura PRO vence em ${subDiff} dias - Renove agora!`
+                        : null,
+                      cancelAtPeriodEnd && subDiff !== null
+                        ? `Plano profissional termina em ${subDiff} dias (renovacao cancelada)`
+                        : null,
+                    ]
+                      .filter(Boolean)
+                      .join(' | ')}
                   </span>
                 </div>
               </div>
             )}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 h-full">
-              <StatCard 
-                icon={<Users size={20} className="text-emerald-600" />} 
-                label="Plantel" 
-                value={totalBirds} 
-                subValue={`${activeBirds} ativos`} 
+              <StatCard
+                icon={<Users size={20} className="text-emerald-600" />}
+                label="Plantel"
+                value={totalBirds}
+                subValue={`${activeBirds} ativos`}
                 onClick={() => navigateTo('birds')}
               />
-              <StatCard 
-                icon={<Wallet size={20} className="text-blue-600" />} 
-                label="Saldo Mensal" 
-                value={`R$ ${balance.toLocaleString('pt-BR')}`} 
-                subValue={`${income > 0 ? ((balance/income)*100).toFixed(0) : 0}% margem`}
+              <StatCard
+                icon={<Wallet size={20} className="text-blue-600" />}
+                label="Saldo Mensal"
+                value={`R$ ${balance.toLocaleString('pt-BR')}`}
+                subValue={`${income > 0 ? ((balance / income) * 100).toFixed(0) : 0}% margem`}
                 isPositive={balance >= 0}
                 onClick={() => navigateTo('finance')}
               />
-              <StatCard 
-                icon={<ListTodo size={20} className="text-purple-600" />} 
-                label="Tarefas" 
-                value={pendingTasks} 
-                subValue="Pendentes para hoje" 
+              <StatCard
+                icon={<ListTodo size={20} className="text-purple-600" />}
+                label="Tarefas"
+                value={pendingTasks}
+                subValue="Pendentes para hoje"
                 onClick={() => navigateTo('tasks')}
               />
-              <StatCard 
-                icon={<Clock size={20} className="text-orange-500" />} 
-                label="SISPASS" 
-                value={`${diffDays}d`} 
-                subValue={diffDays < 30 ? "Renovação Urgente" : "Situação Regular"}
+              <StatCard
+                icon={<Clock size={20} className="text-orange-500" />}
+                label="SISPASS"
+                value={`${diffDays}d`}
+                subValue={diffDays < 30 ? 'Renovação Urgente' : 'Situação Regular'}
                 isWarning={diffDays < 30}
                 onClick={() => navigateTo('documents')}
               />
@@ -198,77 +251,108 @@ const Dashboard: React.FC<DashboardProps> = ({ state, updateSettings, onSave, na
 
       case 'tips':
         return (
-          <Suspense fallback={<div />}> 
+          <Suspense fallback={<div />}>
             <TipCarousel category="dashboard" />
           </Suspense>
         );
 
       case 'tournaments':
-        return <PublicTournamentsWidget onNavigateToTournaments={() => navigateTo('tournament-manager')} birds={state.birds || []} />;
-      
+        return (
+          <PublicTournamentsWidget
+            onNavigateToTournaments={() => navigateTo('tournament-manager')}
+            birds={state.birds || []}
+          />
+        );
+
       case 'financial':
         return (
-          <div 
+          <div
             onClick={() => navigateTo('finance')}
             className="h-full bg-white p-8 rounded-[32px] border border-slate-100 shadow-sm flex flex-col justify-between cursor-pointer hover:shadow-md hover:border-emerald-100 transition-all active:scale-[0.99] relative overflow-hidden group"
           >
             <div className="absolute top-0 right-0 p-6 opacity-5 group-hover:opacity-10 transition-opacity">
-                <Wallet size={120} className="text-emerald-500" />
+              <Wallet size={120} className="text-emerald-500" />
             </div>
 
             <div>
-                <div className="flex justify-between items-start mb-6">
-                    <h3 className="font-black text-slate-800 flex items-center gap-3">
-                      <div className="p-2 bg-emerald-50 text-emerald-600 rounded-xl"><DollarSign size={18} /></div>
-                      Fluxo de Caixa
-                    </h3>
-                    <div className="p-2 rounded-full bg-slate-50 text-slate-400">
-                        <ArrowRight size={16} />
-                    </div>
+              <div className="flex justify-between items-start mb-6">
+                <h3 className="font-black text-slate-800 flex items-center gap-3">
+                  <div className="p-2 bg-emerald-50 text-emerald-600 rounded-xl">
+                    <DollarSign size={18} />
+                  </div>
+                  Fluxo de Caixa
+                </h3>
+                <div className="p-2 rounded-full bg-slate-50 text-slate-400">
+                  <ArrowRight size={16} />
                 </div>
+              </div>
 
-                <div className="space-y-4">
-                  <div className="flex items-center justify-between p-3 rounded-2xl bg-emerald-50/50 border border-emerald-100">
-                      <div className="flex items-center gap-2">
-                        <div className="p-1.5 bg-white rounded-lg text-emerald-500 shadow-sm"><TrendingUp size={14} /></div>
-                        <span className="text-[10px] font-black uppercase text-emerald-700 tracking-widest">Entradas</span>
-                      </div>
-                      <span className="text-sm font-black text-emerald-700">R$ {income.toLocaleString('pt-BR')}</span>
+              <div className="space-y-4">
+                <div className="flex items-center justify-between p-3 rounded-2xl bg-emerald-50/50 border border-emerald-100">
+                  <div className="flex items-center gap-2">
+                    <div className="p-1.5 bg-white rounded-lg text-emerald-500 shadow-sm">
+                      <TrendingUp size={14} />
+                    </div>
+                    <span className="text-[10px] font-black uppercase text-emerald-700 tracking-widest">
+                      Entradas
+                    </span>
                   </div>
-                  <div className="flex items-center justify-between p-3 rounded-2xl bg-rose-50/50 border border-rose-100">
-                      <div className="flex items-center gap-2">
-                        <div className="p-1.5 bg-white rounded-lg text-rose-500 shadow-sm"><TrendingDown size={14} /></div>
-                        <span className="text-[10px] font-black uppercase text-rose-700 tracking-widest">Saídas</span>
-                      </div>
-                      <span className="text-sm font-black text-rose-700">R$ {expense.toLocaleString('pt-BR')}</span>
-                  </div>
+                  <span className="text-sm font-black text-emerald-700">
+                    R$ {income.toLocaleString('pt-BR')}
+                  </span>
                 </div>
+                <div className="flex items-center justify-between p-3 rounded-2xl bg-rose-50/50 border border-rose-100">
+                  <div className="flex items-center gap-2">
+                    <div className="p-1.5 bg-white rounded-lg text-rose-500 shadow-sm">
+                      <TrendingDown size={14} />
+                    </div>
+                    <span className="text-[10px] font-black uppercase text-rose-700 tracking-widest">
+                      Saídas
+                    </span>
+                  </div>
+                  <span className="text-sm font-black text-rose-700">
+                    R$ {expense.toLocaleString('pt-BR')}
+                  </span>
+                </div>
+              </div>
             </div>
-            
+
             <div className="mt-6 pt-6 border-t border-slate-50">
-                <p className="text-slate-400 text-[10px] font-black uppercase tracking-widest mb-1">Resultado do Período</p>
-                <div className="flex items-end gap-2">
-                    <p className={`text-3xl font-black tracking-tight ${balance >= 0 ? 'text-slate-800' : 'text-rose-500'}`}>
-                        R$ {balance.toLocaleString('pt-BR')}
-                    </p>
-                    {income > 0 && (
-                        <span className={`text-[10px] font-bold px-2 py-1 rounded-lg mb-1.5 ${balance >= 0 ? 'bg-emerald-100 text-emerald-700' : 'bg-rose-100 text-rose-700'}`}>
-                            {((balance/income)*100).toFixed(0)}%
-                        </span>
-                    )}
-                </div>
+              <p className="text-slate-400 text-[10px] font-black uppercase tracking-widest mb-1">
+                Resultado do Período
+              </p>
+              <div className="flex items-end gap-2">
+                <p
+                  className={`text-3xl font-black tracking-tight ${
+                    balance >= 0 ? 'text-slate-800' : 'text-rose-500'
+                  }`}
+                >
+                  R$ {balance.toLocaleString('pt-BR')}
+                </p>
+                {income > 0 && (
+                  <span
+                    className={`text-[10px] font-bold px-2 py-1 rounded-lg mb-1.5 ${
+                      balance >= 0 ? 'bg-emerald-100 text-emerald-700' : 'bg-rose-100 text-rose-700'
+                    }`}
+                  >
+                    {((balance / income) * 100).toFixed(0)}%
+                  </span>
+                )}
+              </div>
             </div>
           </div>
         );
 
       case 'species_chart':
         return (
-          <div 
+          <div
             onClick={() => navigateTo('birds')}
             className="h-full bg-white p-8 rounded-[32px] border border-slate-100 shadow-sm flex flex-col cursor-pointer hover:shadow-md transition-all active:scale-[0.99]"
           >
             <h3 className="font-black text-slate-800 mb-6 flex items-center gap-3">
-              <div className="p-2 bg-blue-50 text-blue-600 rounded-xl"><TrendingUp size={18} /></div>
+              <div className="p-2 bg-blue-50 text-blue-600 rounded-xl">
+                <TrendingUp size={18} />
+              </div>
               Espécies
             </h3>
             <div className="flex-1 min-h-[150px] w-full">
@@ -283,52 +367,78 @@ const Dashboard: React.FC<DashboardProps> = ({ state, updateSettings, onSave, na
             </div>
           </div>
         );
-      
+
       case 'tasks':
         return (
-          <div 
+          <div
             onClick={() => navigateTo('tasks')}
             className="h-full bg-white p-8 rounded-[32px] border border-slate-100 shadow-sm flex flex-col cursor-pointer hover:shadow-md transition-all active:scale-[0.99]"
           >
-             <h3 className="font-black text-slate-800 mb-6 flex items-center gap-3">
-              <div className="p-2 bg-purple-50 text-purple-600 rounded-xl"><ListTodo size={18} /></div>
+            <h3 className="font-black text-slate-800 mb-6 flex items-center gap-3">
+              <div className="p-2 bg-purple-50 text-purple-600 rounded-xl">
+                <ListTodo size={18} />
+              </div>
               Últimas Tarefas
             </h3>
             <div className="space-y-3 flex-1 overflow-auto max-h-[200px] no-scrollbar">
-              {state.tasks.slice(0, 4).map(t => (
-                <div key={t.id} className="flex items-center gap-3 p-3 bg-slate-50 rounded-xl border border-slate-100">
-                  <div className={`w-2 h-2 rounded-full ${t.isCompleted ? 'bg-emerald-400' : 'bg-amber-400'}`}></div>
-                  <span className={`text-xs font-bold truncate ${t.isCompleted ? 'text-slate-400 line-through' : 'text-slate-700'}`}>{t.title}</span>
+              {state.tasks.slice(0, 4).map((t) => (
+                <div
+                  key={t.id}
+                  className="flex items-center gap-3 p-3 bg-slate-50 rounded-xl border border-slate-100"
+                >
+                  <div
+                    className={`w-2 h-2 rounded-full ${
+                      t.isCompleted ? 'bg-emerald-400' : 'bg-amber-400'
+                    }`}
+                  ></div>
+                  <span
+                    className={`text-xs font-bold truncate ${
+                      t.isCompleted ? 'text-slate-400 line-through' : 'text-slate-700'
+                    }`}
+                  >
+                    {t.title}
+                  </span>
                 </div>
               ))}
-              {state.tasks.length === 0 && <p className="text-xs text-slate-300 text-center italic mt-4">Sem tarefas</p>}
+              {state.tasks.length === 0 && (
+                <p className="text-xs text-slate-300 text-center italic mt-4">Sem tarefas</p>
+              )}
             </div>
           </div>
         );
 
       case 'breeding':
         return (
-          <div 
+          <div
             onClick={() => navigateTo('breeding')}
             className="h-full bg-white p-8 rounded-[32px] border border-slate-100 shadow-sm flex flex-col cursor-pointer hover:shadow-md transition-all active:scale-[0.99]"
           >
-             <h3 className="font-black text-slate-800 mb-6 flex items-center gap-3">
-              <div className="p-2 bg-rose-50 text-rose-600 rounded-xl"><Heart size={18} /></div>
+            <h3 className="font-black text-slate-800 mb-6 flex items-center gap-3">
+              <div className="p-2 bg-rose-50 text-rose-600 rounded-xl">
+                <Heart size={18} />
+              </div>
               Ninhadas Recentes
             </h3>
             <div className="space-y-3 flex-1 overflow-auto max-h-[200px] no-scrollbar">
-              {state.clutches.slice(0, 3).map(c => (
-                <div key={c.id} className="flex items-center justify-between p-3 bg-rose-50/50 rounded-xl border border-rose-100">
+              {state.clutches.slice(0, 3).map((c) => (
+                <div
+                  key={c.id}
+                  className="flex items-center justify-between p-3 bg-rose-50/50 rounded-xl border border-rose-100"
+                >
                   <div className="flex flex-col">
-                     <span className="text-[9px] font-black text-rose-400 uppercase">Postura</span>
-                     <span className="text-xs font-bold text-rose-800">{new Date(c.layDate).toLocaleDateString('pt-BR')}</span>
+                    <span className="text-[9px] font-black text-rose-400 uppercase">Postura</span>
+                    <span className="text-xs font-bold text-rose-800">
+                      {new Date(c.layDate).toLocaleDateString('pt-BR')}
+                    </span>
                   </div>
                   <div className="px-2 py-1 bg-white rounded-lg text-[10px] font-black text-rose-500 shadow-sm">
                     {c.eggCount} ovos
                   </div>
                 </div>
               ))}
-              {state.clutches.length === 0 && <p className="text-xs text-slate-300 text-center italic mt-4">Sem registros</p>}
+              {state.clutches.length === 0 && (
+                <p className="text-xs text-slate-300 text-center italic mt-4">Sem registros</p>
+              )}
             </div>
           </div>
         );
@@ -339,161 +449,188 @@ const Dashboard: React.FC<DashboardProps> = ({ state, updateSettings, onSave, na
   };
 
   // Cálculo de dias restantes do Trial
-  const trialDays = state.settings.trialEndDate 
-    ? Math.ceil((new Date(state.settings.trialEndDate).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24)) 
+  const trialDays = state.settings.trialEndDate
+    ? Math.ceil(
+        (new Date(state.settings.trialEndDate).getTime() - new Date().getTime()) /
+          (1000 * 60 * 60 * 24),
+      )
     : 0;
 
   return (
     <WizardShell title="Dashboard" description="Visão geral do criatório, finanças e tarefas.">
       <div className="w-full max-w-none px-6 xl:px-10 2xl:px-16 grid grid-cols-1 lg:grid-cols-[220px_1fr] gap-6 animate-in fade-in duration-500 pb-12">
-      <aside className="lg:sticky lg:top-24 h-fit bg-white border border-slate-100 rounded-2xl p-3 shadow-sm">
-        <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 px-3 py-2">Seções</p>
-        <nav className="flex flex-col gap-1">
-          <a href="#resumo" className="px-3 py-2 rounded-xl text-sm font-semibold text-slate-600 hover:bg-slate-100">Resumo</a>
-          <a href="#alertas" className="px-3 py-2 rounded-xl text-sm font-semibold text-slate-600 hover:bg-slate-100">Alertas</a>
-          <a href="#widgets" className="px-3 py-2 rounded-xl text-sm font-semibold text-slate-600 hover:bg-slate-100">Widgets</a>
-        </nav>
-      </aside>
-
-      <div className="space-y-6">
-        <section id="resumo">
-          <header className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-            <div>
-              <div className="flex items-center gap-3 mb-1">
-                <h2 className="text-3xl font-black text-[#0F172A] tracking-tight">Painel Geral</h2>
-                
-                {/* BADGE DE TRIAL NO HEADER */}
-                {state.settings.trialEndDate && trialDays >= 0 && !isAdmin && (
-                  <span className="flex items-center gap-1 bg-amber-100 text-amber-700 px-3 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest border border-amber-200 shadow-sm animate-in fade-in">
-                    <Zap size={10} fill="currentColor" /> Trial: {trialDays} dias restantes
-                  </span>
-                )}
-              </div>
-              <p className="text-slate-500 font-medium">Bem-vindo ao centro de comando do {state.settings?.breederName || 'Seu Criatório'}.</p>
-            </div>
-            <button 
-              onClick={() => setShowCustomizer(true)}
-              className="btn-secondary"
+        <aside className="lg:sticky lg:top-24 h-fit bg-white border border-slate-100 rounded-2xl p-3 shadow-sm">
+          <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 px-3 py-2">
+            Seções
+          </p>
+          <nav className="flex flex-col gap-1">
+            <a
+              href="#resumo"
+              className="px-3 py-2 rounded-xl text-sm font-semibold text-slate-600 hover:bg-slate-100"
             >
-              <Settings2 size={16} />
-              Customizar
-            </button>
-          </header>
-        </section>
+              Resumo
+            </a>
+            <a
+              href="#alertas"
+              className="px-3 py-2 rounded-xl text-sm font-semibold text-slate-600 hover:bg-slate-100"
+            >
+              Alertas
+            </a>
+            <a
+              href="#widgets"
+              className="px-3 py-2 rounded-xl text-sm font-semibold text-slate-600 hover:bg-slate-100"
+            >
+              Widgets
+            </a>
+          </nav>
+        </aside>
 
-        <section id="alertas">
-          {/* Alerta de Registro IBAMA Pendente */}
-          {state.birds.some(b => b.ibamaBaixaPendente) && (
-            <div className="bg-amber-50 border-2 border-amber-300 rounded-3xl p-6 shadow-sm animate-in slide-in-from-top-2">
-              <div className="flex items-start gap-4">
-                <div className="p-3 bg-amber-100 rounded-2xl">
-                  <Zap size={24} className="text-amber-700" />
-                </div>
-                <div className="flex-1">
-                  <h3 className="text-sm font-black text-amber-800 uppercase tracking-widest mb-1">
-                    ⚠️ Registro IBAMA Pendente
-                  </h3>
-                  <p className="text-sm text-amber-700 font-bold mb-3">
-                    {state.birds.filter(b => b.ibamaBaixaPendente).length} {state.birds.filter(b => b.ibamaBaixaPendente).length === 1 ? 'ave necessita' : 'aves necessitam'} de registro no sistema IBAMA (óbito, fuga, venda ou doação).
-                  </p>
-                  <button 
-                    onClick={() => navigateTo('birds')}
-                    className="btn-primary"
-                  >
-                    Ver Aves
-                  </button>
+        <div className="space-y-6">
+          <section id="resumo">
+            <PageHeader
+              title={<>Painel Geral</>}
+              subtitle={`Bem-vindo ao centro de comando do ${
+                state.settings?.breederName || 'Seu Criatório'
+              }.`}
+              actions={
+                <SecondaryButton onClick={() => setShowCustomizer(true)}>
+                  <Settings2 size={16} />
+                  <span className="ml-2">Customizar</span>
+                </SecondaryButton>
+              }
+            />
+            {state.settings.trialEndDate && trialDays >= 0 && !isAdmin && (
+              <div className="mb-2">
+                <span className="flex items-center gap-1 bg-amber-100 text-amber-700 px-3 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest border border-amber-200 shadow-sm animate-in fade-in">
+                  <Zap size={10} fill="currentColor" /> Trial: {trialDays} dias restantes
+                </span>
+              </div>
+            )}
+          </section>
+
+          <section id="alertas">
+            {/* Alerta de Registro IBAMA Pendente */}
+            {state.birds.some((b) => b.ibamaBaixaPendente) && (
+              <div className="bg-amber-50 border-2 border-amber-300 rounded-3xl p-6 shadow-sm animate-in slide-in-from-top-2">
+                <div className="flex items-start gap-4">
+                  <div className="p-3 bg-amber-100 rounded-2xl">
+                    <Zap size={24} className="text-amber-700" />
+                  </div>
+                  <div className="flex-1">
+                    <h3 className="text-sm font-black text-amber-800 uppercase tracking-widest mb-1">
+                      ⚠️ Registro IBAMA Pendente
+                    </h3>
+                    <p className="text-sm text-amber-700 font-bold mb-3">
+                      {state.birds.filter((b) => b.ibamaBaixaPendente).length}{' '}
+                      {state.birds.filter((b) => b.ibamaBaixaPendente).length === 1
+                        ? 'ave necessita'
+                        : 'aves necessitam'}{' '}
+                      de registro no sistema IBAMA (óbito, fuga, venda ou doação).
+                    </p>
+                    <PrimaryButton onClick={() => navigateTo('birds')}>Ver Aves</PrimaryButton>
+                  </div>
                 </div>
               </div>
-            </div>
-          )}
-        </section>
+            )}
+          </section>
 
-        <section id="widgets">
-          {/* Dynamic Grid Layout */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {visibleWidgets.map((widgetId, index) => (
-              <div 
-                key={widgetId}
-                draggable
-                onDragStart={(e) => handleDragStart(e, index)}
-                onDragEnter={(e) => handleDragEnter(e, index)}
-                onDragEnd={handleDragEnd}
-                onDragOver={(e) => e.preventDefault()}
-                className={`
+          <section id="widgets">
+            {/* Dynamic Grid Layout */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {visibleWidgets.map((widgetId, index) => (
+                <div
+                  key={widgetId}
+                  draggable
+                  onDragStart={(e) => handleDragStart(e, index)}
+                  onDragEnter={(e) => handleDragEnter(e, index)}
+                  onDragEnd={handleDragEnd}
+                  onDragOver={(e) => e.preventDefault()}
+                  className={`
                   relative group transition-all duration-300
                   ${widgetId === 'stats' ? 'lg:col-span-3' : 'lg:col-span-1'}
                 `}
-              >
-                {/* Drag Handle (Visible on Hover) */}
-                <div className="absolute -top-3 left-1/2 -translate-x-1/2 z-20 opacity-0 group-hover:opacity-100 transition-opacity cursor-move bg-slate-800 text-white p-1 rounded-md shadow-lg">
-                  <GripVertical size={14} />
-                </div>
-
-                {/* Widget Content */}
-                <div className="h-full">
-                   {renderWidgetContent(widgetId)}
-                </div>
-              </div>
-            ))}
-          </div>
-        </section>
-      </div>
-
-      {showCustomizer && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4 animate-in fade-in duration-200">
-          <div className="bg-white rounded-[40px] w-full max-w-lg shadow-2xl overflow-hidden">
-            <div className="p-8 border-b border-slate-100 flex justify-between items-center">
-              <div>
-                <h3 className="text-2xl font-black text-slate-800">Personalizar Dashboard</h3>
-                <p className="text-slate-400 text-xs font-bold uppercase mt-1">Ativar módulos e arraste no painel para ordenar</p>
-              </div>
-              <button onClick={() => setShowCustomizer(false)} className="text-slate-400 hover:text-slate-600 transition-colors">
-                <X size={24} />
-              </button>
-            </div>
-            
-            <div className="p-8 space-y-3">
-              {ALL_WIDGETS.map(widget => (
-                <button 
-                  key={widget.id}
-                  onClick={() => toggleWidget(widget.id)}
-                  className={`w-full flex items-center justify-between p-5 rounded-2xl border transition-all ${
-                    visibleWidgets.includes(widget.id) 
-                      ? 'bg-brand/5 border-brand text-brand' 
-                      : 'bg-slate-50 border-slate-100 text-slate-400 opacity-60'
-                  }`}
                 >
-                  <div className="flex items-center gap-4">
-                    <div className={`p-2 rounded-xl ${visibleWidgets.includes(widget.id) ? 'bg-brand text-white' : 'bg-slate-200'}`}>
-                      {widget.icon}
-                    </div>
-                    <span className="font-bold text-sm tracking-tight">{widget.label}</span>
+                  {/* Drag Handle (Visible on Hover) */}
+                  <div className="absolute -top-3 left-1/2 -translate-x-1/2 z-20 opacity-0 group-hover:opacity-100 transition-opacity cursor-move bg-slate-800 text-white p-1 rounded-md shadow-lg">
+                    <GripVertical size={14} />
                   </div>
-                  <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all ${
-                    visibleWidgets.includes(widget.id) ? 'bg-brand border-brand text-white' : 'border-slate-300'
-                  }`}>
-                    {visibleWidgets.includes(widget.id) && <Check size={14} strokeWidth={4} />}
-                  </div>
-                </button>
+
+                  {/* Widget Content */}
+                  <div className="h-full">{renderWidgetContent(widgetId)}</div>
+                </div>
               ))}
             </div>
+          </section>
+        </div>
 
-            <div className="p-8 pt-0">
-               <button 
-                onClick={() => setShowCustomizer(false)}
-                className="btn-primary w-full py-4 uppercase tracking-widest"
-               >
-                 Confirmar
-               </button>
+        {showCustomizer && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4 animate-in fade-in duration-200">
+            <div className="bg-white rounded-[40px] w-full max-w-lg shadow-2xl overflow-hidden">
+              <div className="p-8 border-b border-slate-100 flex justify-between items-center">
+                <div>
+                  <h3 className="text-2xl font-black text-slate-800">Personalizar Dashboard</h3>
+                  <p className="text-slate-400 text-xs font-bold uppercase mt-1">
+                    Ativar módulos e arraste no painel para ordenar
+                  </p>
+                </div>
+                <button
+                  onClick={() => setShowCustomizer(false)}
+                  className="text-slate-400 hover:text-slate-600 transition-colors"
+                >
+                  <X size={24} />
+                </button>
+              </div>
+
+              <div className="p-8 space-y-3">
+                {ALL_WIDGETS.map((widget) => (
+                  <button
+                    key={widget.id}
+                    onClick={() => toggleWidget(widget.id)}
+                    className={`w-full flex items-center justify-between p-5 rounded-2xl border transition-all ${
+                      visibleWidgets.includes(widget.id)
+                        ? 'bg-brand/5 border-brand text-brand'
+                        : 'bg-slate-50 border-slate-100 text-slate-400 opacity-60'
+                    }`}
+                  >
+                    <div className="flex items-center gap-4">
+                      <div
+                        className={`p-2 rounded-xl ${
+                          visibleWidgets.includes(widget.id)
+                            ? 'bg-brand text-white'
+                            : 'bg-slate-200'
+                        }`}
+                      >
+                        {widget.icon}
+                      </div>
+                      <span className="font-bold text-sm tracking-tight">{widget.label}</span>
+                    </div>
+                    <div
+                      className={`w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all ${
+                        visibleWidgets.includes(widget.id)
+                          ? 'bg-brand border-brand text-white'
+                          : 'border-slate-300'
+                      }`}
+                    >
+                      {visibleWidgets.includes(widget.id) && <Check size={14} strokeWidth={4} />}
+                    </div>
+                  </button>
+                ))}
+              </div>
+
+              <div className="p-8 pt-0">
+                <PrimaryButton
+                  onClick={() => setShowCustomizer(false)}
+                  className="w-full py-4 uppercase tracking-widest"
+                >
+                  Confirmar
+                </PrimaryButton>
+              </div>
             </div>
           </div>
-        </div>
-      )}
+        )}
       </div>
     </WizardShell>
   );
 };
 
 export default Dashboard;
-
-

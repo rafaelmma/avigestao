@@ -5,20 +5,25 @@
 A partir de agora, sempre que fizer alterações no projeto, seguirei este fluxo:
 
 ### 1. **npm build** ✅
+
 ```bash
 npm run build
 ```
+
 - Verifica se há erros de compilação
 - Valida TypeScript/JSX
 - Gera build otimizado
 
 ### 2. **git add** ✅
+
 ```bash
 git add -A
 ```
+
 - Adiciona todos os arquivos modificados
 
 ### 3. **git commit** ✅
+
 ```bash
 git commit -m "tipo: descrição curta
 
@@ -28,6 +33,7 @@ git commit -m "tipo: descrição curta
 ```
 
 **Tipos de commit:**
+
 - `fix:` - Correção de bugs
 - `feat:` - Nova funcionalidade
 - `refactor:` - Refatoração de código
@@ -37,13 +43,17 @@ git commit -m "tipo: descrição curta
 - `test:` - Testes
 
 ### 4. **git push** ✅
+
 ```bash
 git push origin main
 ```
+
 - Envia para repositório remoto
 
 ### 5. **Resumo** 📝
+
 Trazer um resumo visual:
+
 ```
 ✅ RESUMO DAS ALTERAÇÕES
 
@@ -86,6 +96,7 @@ Trazer um resumo visual:
 ## ⚠️ Possíveis Cenários
 
 ### Cenário A: Build com erros
+
 ```
 ❌ npm run build → FALHA
    └─ Mostrar erro ao usuário
@@ -94,6 +105,7 @@ Trazer um resumo visual:
 ```
 
 ### Cenário B: Push falhar
+
 ```
 ✅ npm run build → OK
 ✅ git add -A
@@ -104,6 +116,7 @@ Trazer um resumo visual:
 ```
 
 ### Cenário C: Tudo OK
+
 ```
 ✅ npm run build → OK
 ✅ git add -A
@@ -117,6 +130,7 @@ Trazer um resumo visual:
 ## 🔍 Informações no Resumo
 
 Cada resumo incluirá:
+
 - ✅ Status de cada etapa (build, commit, push)
 - 📝 Mensagem do commit
 - 📊 Número de arquivos alterados

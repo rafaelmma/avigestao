@@ -1,7 +1,22 @@
-﻿
-import React, { useState, useEffect, useRef } from 'react';
+﻿import React, { useState, useEffect, useRef } from 'react';
 import { BreederSettings, CertificateType } from '../types';
-import { FileBadge, ShieldCheck, ExternalLink, CreditCard, Cloud, FileKey, Usb, AlertTriangle, CheckCircle2, CalendarClock, Save, X, Calendar, Info, Pencil } from 'lucide-react';
+import {
+  FileBadge,
+  ShieldCheck,
+  ExternalLink,
+  CreditCard,
+  Cloud,
+  FileKey,
+  Usb,
+  AlertTriangle,
+  CheckCircle2,
+  CalendarClock,
+  Save,
+  X,
+  Calendar,
+  Info,
+  Pencil,
+} from 'lucide-react';
 import WizardLayout, { WizardStep } from '../components/WizardLayout';
 
 interface DocumentsManagerProps {
@@ -10,15 +25,23 @@ interface DocumentsManagerProps {
   onSave?: (settings: BreederSettings) => void;
 }
 
-const CERTIFICATE_TYPES: CertificateType[] = ['A1 (Arquivo)', 'A3 (Token USB)', 'A3 (Cartão)', 'Nuvem (BirdID/Vidaas)'];
+const CERTIFICATE_TYPES: CertificateType[] = [
+  'A1 (Arquivo)',
+  'A3 (Token USB)',
+  'A3 (Cartão)',
+  'Nuvem (BirdID/Vidaas)',
+];
 
-const DocumentsManager: React.FC<DocumentsManagerProps> = ({ settings, updateSettings, onSave }) => {
-  
+const DocumentsManager: React.FC<DocumentsManagerProps> = ({
+  settings,
+  updateSettings,
+  onSave,
+}) => {
   // State para o Modal de Renovação
   const [renewingItem, setRenewingItem] = useState<'sispass' | 'certificate' | null>(null);
   const [renewalForm, setRenewalForm] = useState({
     renewalDate: new Date().toISOString().split('T')[0], // Data que foi feita a renovação (Hoje)
-    newExpiryDate: '' // Nova data de vencimento
+    newExpiryDate: '', // Nova data de vencimento
   });
 
   // Funções Auxiliares de Data e Progresso
@@ -67,7 +90,7 @@ const DocumentsManager: React.FC<DocumentsManagerProps> = ({ settings, updateSet
       window.location.href = url;
     }
   };
-const calculateProgress = (startDateStr?: string, endDateStr?: string) => {
+  const calculateProgress = (startDateStr?: string, endDateStr?: string) => {
     if (!startDateStr || !endDateStr) return 0;
     const start = new Date(startDateStr).getTime();
     const end = new Date(endDateStr).getTime();
@@ -91,24 +114,29 @@ const calculateProgress = (startDateStr?: string, endDateStr?: string) => {
 
   const renderCertIcon = (type: CertificateType) => {
     switch (type) {
-        case 'A1 (Arquivo)': return <FileKey size={24} />;
-        case 'A3 (Token USB)': return <Usb size={24} />;
-        case 'A3 (Cartão)': return <CreditCard size={24} />;
-        case 'Nuvem (BirdID/Vidaas)': return <Cloud size={24} />;
-        default: return <ShieldCheck size={24} />;
+      case 'A1 (Arquivo)':
+        return <FileKey size={24} />;
+      case 'A3 (Token USB)':
+        return <Usb size={24} />;
+      case 'A3 (Cartão)':
+        return <CreditCard size={24} />;
+      case 'Nuvem (BirdID/Vidaas)':
+        return <Cloud size={24} />;
+      default:
+        return <ShieldCheck size={24} />;
     }
   };
 
   const handleOpenRenewal = (type: 'sispass' | 'certificate') => {
     setRenewingItem(type);
-    
+
     // Tenta sugerir uma data de validade (1 ano para frente)
     const nextYear = new Date();
     nextYear.setFullYear(nextYear.getFullYear() + 1);
-    
+
     setRenewalForm({
       renewalDate: new Date().toISOString().split('T')[0],
-      newExpiryDate: nextYear.toISOString().split('T')[0]
+      newExpiryDate: nextYear.toISOString().split('T')[0],
     });
   };
 
@@ -118,7 +146,7 @@ const calculateProgress = (startDateStr?: string, endDateStr?: string) => {
       const updatedSettings = {
         ...settings,
         lastRenewalDate: renewalForm.renewalDate,
-        renewalDate: renewalForm.newExpiryDate
+        renewalDate: renewalForm.newExpiryDate,
       };
       updateSettings(updatedSettings);
       onSave?.(updatedSettings);
@@ -127,8 +155,8 @@ const calculateProgress = (startDateStr?: string, endDateStr?: string) => {
         ...settings,
         certificate: {
           ...settings.certificate!,
-          expiryDate: renewalForm.newExpiryDate
-        }
+          expiryDate: renewalForm.newExpiryDate,
+        },
       };
       updateSettings(updatedSettings);
       onSave?.(updatedSettings);
@@ -137,27 +165,34 @@ const calculateProgress = (startDateStr?: string, endDateStr?: string) => {
   };
 
   const isSispassConfigured = !!settings.sispassNumber && settings.sispassNumber !== '1234567-8';
-  const isCertificateConfigured = !!settings.certificate?.issuer || !!settings.certificate?.expiryDate || !!settings.certificate?.installed;
+  const isCertificateConfigured =
+    !!settings.certificate?.issuer ||
+    !!settings.certificate?.expiryDate ||
+    !!settings.certificate?.installed;
   const daysSispass = isSispassConfigured ? getDaysRemaining(settings.renewalDate) : 0;
   const daysCert = isCertificateConfigured ? getDaysRemaining(settings.certificate?.expiryDate) : 0;
   const hasAnyDocs = isSispassConfigured || isCertificateConfigured;
-  
+
   const overallStatus = !hasAnyDocs
     ? 'neutral'
-    : (daysSispass > 30 && daysCert > 30)
-      ? 'good'
-      : (daysSispass < 0 || daysCert < 0)
-        ? 'critical'
-        : 'warning';
+    : daysSispass > 30 && daysCert > 30
+    ? 'good'
+    : daysSispass < 0 || daysCert < 0
+    ? 'critical'
+    : 'warning';
 
   const sispassNumberValue = isSispassConfigured ? settings.sispassNumber : '';
   const renewalDateValue = isSispassConfigured ? settings.renewalDate : '';
-  const lastRenewalValue = isSispassConfigured ? (settings.lastRenewalDate || '') : '';
-  const certificateIssuerValue = isCertificateConfigured ? (settings.certificate?.issuer || '') : '';
-  const certificateExpiryValue = isCertificateConfigured ? (settings.certificate?.expiryDate || '') : '';
+  const lastRenewalValue = isSispassConfigured ? settings.lastRenewalDate || '' : '';
+  const certificateIssuerValue = isCertificateConfigured ? settings.certificate?.issuer || '' : '';
+  const certificateExpiryValue = isCertificateConfigured
+    ? settings.certificate?.expiryDate || ''
+    : '';
   const sispassActionLabel = isSispassConfigured ? 'Registrar Renovação' : 'Registrar Licença';
-  const certificateActionLabel = isCertificateConfigured ? 'Atualizar Validade' : 'Registrar Certificado';
-  
+  const certificateActionLabel = isCertificateConfigured
+    ? 'Atualizar Validade'
+    : 'Registrar Certificado';
+
   useEffect(() => {
     if (!isSispassConfigured) {
       setEditSispassNumber(true);
@@ -183,41 +218,75 @@ const calculateProgress = (startDateStr?: string, endDateStr?: string) => {
             </div>
             <div>
               <p className="text-xs font-black uppercase tracking-widest">Importante</p>
-              <p className="text-xs text-slate-600">As licenças ficam vinculadas aos dados cadastrados em Configurações (CPF/CNPJ, número SISPASS e datas).</p>
+              <p className="text-xs text-slate-600">
+                As licenças ficam vinculadas aos dados cadastrados em Configurações (CPF/CNPJ,
+                número SISPASS e datas).
+              </p>
             </div>
           </div>
 
-          <div className={`p-6 rounded-[24px] border flex items-start gap-4 ${
-            overallStatus === 'neutral' ? 'bg-slate-50 border-slate-100' :
-            overallStatus === 'good' ? 'bg-emerald-50 border-emerald-100' : 
-            overallStatus === 'warning' ? 'bg-amber-50 border-amber-100' : 'bg-rose-50 border-rose-100'
-          }`}>
-            <div className={`p-3 rounded-xl shadow-sm ${
-              overallStatus === 'neutral' ? 'bg-slate-200 text-slate-600' :
-              overallStatus === 'good' ? 'bg-emerald-500 text-white' : 
-              overallStatus === 'warning' ? 'bg-amber-500 text-white' : 'bg-rose-500 text-white'
-            }`}>
+          <div
+            className={`p-6 rounded-[24px] border flex items-start gap-4 ${
+              overallStatus === 'neutral'
+                ? 'bg-slate-50 border-slate-100'
+                : overallStatus === 'good'
+                ? 'bg-emerald-50 border-emerald-100'
+                : overallStatus === 'warning'
+                ? 'bg-amber-50 border-amber-100'
+                : 'bg-rose-50 border-rose-100'
+            }`}
+          >
+            <div
+              className={`p-3 rounded-xl shadow-sm ${
+                overallStatus === 'neutral'
+                  ? 'bg-slate-200 text-slate-600'
+                  : overallStatus === 'good'
+                  ? 'bg-emerald-500 text-white'
+                  : overallStatus === 'warning'
+                  ? 'bg-amber-500 text-white'
+                  : 'bg-rose-500 text-white'
+              }`}
+            >
               {overallStatus === 'good' ? <CheckCircle2 size={24} /> : <AlertTriangle size={24} />}
             </div>
             <div>
-              <h3 className={`text-lg font-black ${
-                overallStatus === 'neutral' ? 'text-slate-800' :
-                overallStatus === 'good' ? 'text-emerald-800' : 
-                overallStatus === 'warning' ? 'text-amber-800' : 'text-rose-800'
-              }`}>
-                {overallStatus === 'neutral' ? 'Comece por aqui' :
-                  overallStatus === 'good' ? 'Documentação Regular' : 
-                  overallStatus === 'warning' ? 'Atenção Necessária' : 'Situação Irregular'}
+              <h3
+                className={`text-lg font-black ${
+                  overallStatus === 'neutral'
+                    ? 'text-slate-800'
+                    : overallStatus === 'good'
+                    ? 'text-emerald-800'
+                    : overallStatus === 'warning'
+                    ? 'text-amber-800'
+                    : 'text-rose-800'
+                }`}
+              >
+                {overallStatus === 'neutral'
+                  ? 'Comece por aqui'
+                  : overallStatus === 'good'
+                  ? 'Documentação Regular'
+                  : overallStatus === 'warning'
+                  ? 'Atenção Necessária'
+                  : 'Situação Irregular'}
               </h3>
-              <p className={`text-sm font-medium mt-1 ${
-                overallStatus === 'neutral' ? 'text-slate-600' :
-                overallStatus === 'good' ? 'text-emerald-700' : 
-                overallStatus === 'warning' ? 'text-amber-700' : 'text-rose-700'
-              }`}>
-                {overallStatus === 'neutral' ? 'Registre sua licença SISPASS e seu certificado digital para acompanhar a validade.' :
-                  overallStatus === 'good' ? 'Todas as suas licenças e certificados estão em dia.' :
-                  overallStatus === 'warning' ? 'Alguns documentos estão próximos do vencimento. Verifique abaixo.' :
-                  'Um ou mais documentos essenciais estão vencidos. Regularize imediatamente.'}
+              <p
+                className={`text-sm font-medium mt-1 ${
+                  overallStatus === 'neutral'
+                    ? 'text-slate-600'
+                    : overallStatus === 'good'
+                    ? 'text-emerald-700'
+                    : overallStatus === 'warning'
+                    ? 'text-amber-700'
+                    : 'text-rose-700'
+                }`}
+              >
+                {overallStatus === 'neutral'
+                  ? 'Registre sua licença SISPASS e seu certificado digital para acompanhar a validade.'
+                  : overallStatus === 'good'
+                  ? 'Todas as suas licenças e certificados estão em dia.'
+                  : overallStatus === 'warning'
+                  ? 'Alguns documentos estão próximos do vencimento. Verifique abaixo.'
+                  : 'Um ou mais documentos essenciais estão vencidos. Regularize imediatamente.'}
               </p>
             </div>
           </div>
@@ -227,15 +296,27 @@ const calculateProgress = (startDateStr?: string, endDateStr?: string) => {
               <div className="flex justify-between items-start">
                 <div>
                   <h3 className="text-lg font-black text-slate-800 flex items-center gap-2">
-                    <div className="p-2 bg-blue-50 text-blue-500 rounded-lg"><FileBadge size={20} /></div>
+                    <div className="p-2 bg-blue-50 text-blue-500 rounded-lg">
+                      <FileBadge size={20} />
+                    </div>
                     Licença SISPASS
                   </h3>
-                  <p className="text-slate-400 text-[10px] font-medium mt-1 ml-11">CTF Federal / IBAMA</p>
+                  <p className="text-slate-400 text-[10px] font-medium mt-1 ml-11">
+                    CTF Federal / IBAMA
+                  </p>
                 </div>
                 {isSispassConfigured && (
                   <div className="text-right">
-                    <span className={`block text-3xl font-black ${daysSispass < 30 ? 'text-amber-500' : 'text-slate-800'}`}>{daysSispass}</span>
-                    <span className="text-[9px] font-black uppercase text-slate-400">Dias Restantes</span>
+                    <span
+                      className={`block text-3xl font-black ${
+                        daysSispass < 30 ? 'text-amber-500' : 'text-slate-800'
+                      }`}
+                    >
+                      {daysSispass}
+                    </span>
+                    <span className="text-[9px] font-black uppercase text-slate-400">
+                      Dias Restantes
+                    </span>
                   </div>
                 )}
               </div>
@@ -243,20 +324,31 @@ const calculateProgress = (startDateStr?: string, endDateStr?: string) => {
               {isSispassConfigured ? (
                 <div className="space-y-2">
                   <div className="flex justify-between text-[10px] font-bold text-slate-400 uppercase">
-                    <span>Renovação: {new Date(lastRenewalValue || '').toLocaleDateString('pt-BR')}</span>
-                    <span>Vencimento: {new Date(renewalDateValue).toLocaleDateString('pt-BR')}</span>
+                    <span>
+                      Renovação: {new Date(lastRenewalValue || '').toLocaleDateString('pt-BR')}
+                    </span>
+                    <span>
+                      Vencimento: {new Date(renewalDateValue).toLocaleDateString('pt-BR')}
+                    </span>
                   </div>
                   <div className="w-full bg-slate-100 rounded-full h-3 overflow-hidden border border-slate-50">
-                    <div 
+                    <div
                       className={`h-full transition-all duration-1000 ${
-                        daysSispass < 30 ? 'bg-amber-500' : 
-                        daysSispass < 0 ? 'bg-rose-500' : 'bg-blue-500'
+                        daysSispass < 30
+                          ? 'bg-amber-500'
+                          : daysSispass < 0
+                          ? 'bg-rose-500'
+                          : 'bg-blue-500'
                       }`}
                       style={{ width: `${calculateProgress(lastRenewalValue, renewalDateValue)}%` }}
                     ></div>
                   </div>
                   <div className="flex justify-between items-center">
-                    <span className={`text-[10px] font-black uppercase px-2 py-0.5 rounded ${getStatusColor(daysSispass)}`}>
+                    <span
+                      className={`text-[10px] font-black uppercase px-2 py-0.5 rounded ${getStatusColor(
+                        daysSispass,
+                      )}`}
+                    >
                       {getStatusText(daysSispass)}
                     </span>
                   </div>
@@ -279,18 +371,28 @@ const calculateProgress = (startDateStr?: string, endDateStr?: string) => {
                     <div className="relative">
                       <input
                         className={`w-full font-mono font-bold text-slate-800 outline-none text-sm rounded-xl px-3 py-2 transition-all ${
-                          editSispassNumber 
-                            ? 'bg-blue-50 border-2 border-blue-400 focus:border-blue-500' 
+                          editSispassNumber
+                            ? 'bg-blue-50 border-2 border-blue-400 focus:border-blue-500'
                             : 'bg-white border border-blue-200 focus:border-blue-400'
-                        } ${isSispassConfigured && !editSispassNumber ? 'cursor-pointer hover:bg-blue-50' : ''}`}
+                        } ${
+                          isSispassConfigured && !editSispassNumber
+                            ? 'cursor-pointer hover:bg-blue-50'
+                            : ''
+                        }`}
                         placeholder="Ex: 1234567-8 (numero do registro)"
                         value={sispassNumberValue}
-                        onChange={(e) => updateSettings({ ...settings, sispassNumber: e.target.value })}
+                        onChange={(e) =>
+                          updateSettings({ ...settings, sispassNumber: e.target.value })
+                        }
                         disabled={isSispassConfigured && !editSispassNumber}
-                        onBlur={() => { if (isSispassConfigured) setEditSispassNumber(false); }}
+                        onBlur={() => {
+                          if (isSispassConfigured) setEditSispassNumber(false);
+                        }}
                       />
                     </div>
-                    <p className="text-[10px] text-slate-400 mt-1">Digite o numero do registro da sua licenca no SISPASS.</p>
+                    <p className="text-[10px] text-slate-400 mt-1">
+                      Digite o numero do registro da sua licenca no SISPASS.
+                    </p>
                     {isSispassConfigured && !editSispassNumber && (
                       <button
                         type="button"
@@ -312,7 +414,9 @@ const calculateProgress = (startDateStr?: string, endDateStr?: string) => {
                     )}
                   </div>
                   <div>
-                    <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest block mb-1">Renovacao</label>
+                    <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest block mb-1">
+                      Renovacao
+                    </label>
                     <input
                       type="date"
                       className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 font-bold text-slate-700 outline-none text-xs"
@@ -324,8 +428,12 @@ const calculateProgress = (startDateStr?: string, endDateStr?: string) => {
                 <div className="bg-white border border-blue-100 rounded-2xl p-4 flex flex-col gap-3">
                   <div className="flex items-center justify-between">
                     <div>
-                      <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Anexo SISPASS (registro de aves)</p>
-                      <p className="text-[10px] text-slate-400 mt-1">Envie o PDF ou imagem com a relacao dos passaros.</p>
+                      <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest">
+                        Anexo SISPASS (registro de aves)
+                      </p>
+                      <p className="text-[10px] text-slate-400 mt-1">
+                        Envie o PDF ou imagem com a relacao dos passaros.
+                      </p>
                     </div>
                     <button
                       type="button"
@@ -353,7 +461,9 @@ const calculateProgress = (startDateStr?: string, endDateStr?: string) => {
                       </a>
                     </div>
                   ) : (
-                    <p className="text-[10px] text-slate-300 font-bold uppercase tracking-widest">Sem anexo</p>
+                    <p className="text-[10px] text-slate-300 font-bold uppercase tracking-widest">
+                      Sem anexo
+                    </p>
                   )}
                   <input
                     type="file"
@@ -365,15 +475,15 @@ const calculateProgress = (startDateStr?: string, endDateStr?: string) => {
                 </div>
               </div>
               <div className="pt-2 flex flex-col gap-2">
-                <button 
+                <button
                   onClick={() => handleOpenRenewal('sispass')}
                   className="w-full py-3 bg-emerald-500 text-white shadow-lg shadow-emerald-500/20 hover:bg-emerald-600 rounded-xl text-xs font-black uppercase tracking-widest flex items-center justify-center gap-2 transition-all"
                 >
                   <CalendarClock size={16} /> {sispassActionLabel}
                 </button>
-                <a 
-                  href="https://servicos.ibama.gov.br/ctf/" 
-                  target="_blank" 
+                <a
+                  href="https://servicos.ibama.gov.br/ctf/"
+                  target="_blank"
                   rel="noopener noreferrer"
                   className="w-full py-3 bg-blue-50 text-blue-600 border border-blue-100 hover:bg-blue-100 rounded-xl text-xs font-black uppercase tracking-widest flex items-center justify-center gap-2 transition-all"
                 >
@@ -383,7 +493,7 @@ const calculateProgress = (startDateStr?: string, endDateStr?: string) => {
             </div>
           </div>
         </div>
-      )
+      ),
     },
     {
       id: 'certificado',
@@ -400,29 +510,48 @@ const calculateProgress = (startDateStr?: string, endDateStr?: string) => {
                   </div>
                   Certificado Digital
                 </h3>
-                <p className="text-slate-400 text-[10px] font-medium mt-1 ml-11">e-CPF / A3 / Nuvem</p>
+                <p className="text-slate-400 text-[10px] font-medium mt-1 ml-11">
+                  e-CPF / A3 / Nuvem
+                </p>
               </div>
               {isCertificateConfigured && (
                 <div className="text-right">
-                  <span className={`block text-3xl font-black ${daysCert < 30 ? 'text-amber-500' : 'text-slate-800'}`}>{daysCert}</span>
-                  <span className="text-[9px] font-black uppercase text-slate-400">Dias Restantes</span>
+                  <span
+                    className={`block text-3xl font-black ${
+                      daysCert < 30 ? 'text-amber-500' : 'text-slate-800'
+                    }`}
+                  >
+                    {daysCert}
+                  </span>
+                  <span className="text-[9px] font-black uppercase text-slate-400">
+                    Dias Restantes
+                  </span>
                 </div>
               )}
             </div>
 
             <div>
-              <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Modelo do Certificado</label>
+              <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">
+                Modelo do Certificado
+              </label>
               <div className="relative">
-                <select 
+                <select
                   className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl font-bold text-slate-700 outline-none focus:border-emerald-500 appearance-none text-xs"
                   value={settings.certificate?.type || 'A1 (Arquivo)'}
-                  onChange={(e) => updateSettings({
-                    ...settings,
-                    certificate: { ...settings.certificate!, type: e.target.value as CertificateType }
-                  })}
+                  onChange={(e) =>
+                    updateSettings({
+                      ...settings,
+                      certificate: {
+                        ...settings.certificate!,
+                        type: e.target.value as CertificateType,
+                      },
+                    })
+                  }
                 >
-                  {CERTIFICATE_TYPES.map(type => (
-                    <option key={type} value={type}>{type}</option>
+                  {CERTIFICATE_TYPES.map((type) => (
+                    <option key={type} value={type}>
+                      {type}
+                    </option>
                   ))}
                 </select>
                 <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400">
@@ -440,39 +569,43 @@ const calculateProgress = (startDateStr?: string, endDateStr?: string) => {
                   )}
                 </label>
                 <div className="relative">
-                  <input 
+                  <input
                     type="text"
                     placeholder="Ex: Serasa"
                     className={`w-full px-3 py-2 rounded-xl font-bold text-slate-700 outline-none text-xs transition-all ${
                       editCertificateIssuer
                         ? 'bg-emerald-50 border-2 border-emerald-400 focus:border-emerald-500'
                         : 'bg-white border border-slate-200 focus:border-emerald-500'
-                    } ${isCertificateConfigured && !editCertificateIssuer ? 'cursor-pointer hover:bg-emerald-50' : ''}`}
+                    } ${
+                      isCertificateConfigured && !editCertificateIssuer
+                        ? 'cursor-pointer hover:bg-emerald-50'
+                        : ''
+                    }`}
                     value={certificateIssuerValue}
                     disabled={isCertificateConfigured && !editCertificateIssuer}
                     onBlur={(e) => {
                       if (isCertificateConfigured) setEditCertificateIssuer(false);
                       const newSettings = {
-                        ...settings, 
-                        certificate: { 
-                          issuer: e.target.value, 
-                          expiryDate: settings.certificate?.expiryDate || '', 
+                        ...settings,
+                        certificate: {
+                          issuer: e.target.value,
+                          expiryDate: settings.certificate?.expiryDate || '',
                           installed: true,
-                          type: settings.certificate?.type || 'A1 (Arquivo)'
-                        }
+                          type: settings.certificate?.type || 'A1 (Arquivo)',
+                        },
                       };
                       updateSettings(newSettings);
                       onSave?.(newSettings);
                     }}
                     onChange={(e) => {
                       updateSettings({
-                        ...settings, 
-                        certificate: { 
-                          issuer: e.target.value, 
-                          expiryDate: settings.certificate?.expiryDate || '', 
+                        ...settings,
+                        certificate: {
+                          issuer: e.target.value,
+                          expiryDate: settings.certificate?.expiryDate || '',
                           installed: true,
-                          type: settings.certificate?.type || 'A1 (Arquivo)'
-                        }
+                          type: settings.certificate?.type || 'A1 (Arquivo)',
+                        },
                       });
                     }}
                   />
@@ -498,33 +631,35 @@ const calculateProgress = (startDateStr?: string, endDateStr?: string) => {
                 )}
               </div>
               <div>
-                <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Validade</label>
-                <input 
+                <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">
+                  Validade
+                </label>
+                <input
                   type="date"
                   className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl font-bold text-slate-700 outline-none text-xs focus:border-emerald-500"
                   value={certificateExpiryValue}
                   onBlur={(e) => {
                     const newSettings = {
-                      ...settings, 
-                      certificate: { 
-                        issuer: settings.certificate?.issuer || '', 
-                        expiryDate: e.target.value, 
+                      ...settings,
+                      certificate: {
+                        issuer: settings.certificate?.issuer || '',
+                        expiryDate: e.target.value,
                         installed: true,
-                        type: settings.certificate?.type || 'A1 (Arquivo)'
-                      }
+                        type: settings.certificate?.type || 'A1 (Arquivo)',
+                      },
                     };
                     updateSettings(newSettings);
                     onSave?.(newSettings);
                   }}
                   onChange={(e) => {
                     updateSettings({
-                      ...settings, 
-                      certificate: { 
-                        issuer: settings.certificate?.issuer || '', 
-                        expiryDate: e.target.value, 
+                      ...settings,
+                      certificate: {
+                        issuer: settings.certificate?.issuer || '',
+                        expiryDate: e.target.value,
                         installed: true,
-                        type: settings.certificate?.type || 'A1 (Arquivo)'
-                      }
+                        type: settings.certificate?.type || 'A1 (Arquivo)',
+                      },
                     });
                   }}
                 />
@@ -532,7 +667,7 @@ const calculateProgress = (startDateStr?: string, endDateStr?: string) => {
             </div>
 
             <div className="pt-2 flex flex-col gap-2">
-              <button 
+              <button
                 onClick={() => handleOpenRenewal('certificate')}
                 className="w-full py-3 bg-emerald-600 text-white shadow-lg shadow-emerald-200 hover:bg-emerald-700 rounded-xl text-xs font-black uppercase tracking-widest flex items-center justify-center gap-2 transition-all"
               >
@@ -550,8 +685,8 @@ const calculateProgress = (startDateStr?: string, endDateStr?: string) => {
             </div>
           </div>
         </div>
-      )
-    }
+      ),
+    },
   ];
 
   return (
@@ -559,86 +694,76 @@ const calculateProgress = (startDateStr?: string, endDateStr?: string) => {
       <WizardLayout title="Licenças & Documentos" steps={wizardSteps} showNavigation={false} />
 
       {renewingItem && (
-          <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4 animate-in fade-in zoom-in-95 duration-200">
-            <div className="bg-white rounded-[32px] w-full max-w-md shadow-2xl overflow-hidden">
-              <div className="p-6 border-b border-slate-100 flex justify-between items-center bg-slate-50">
-                <h3 className="text-lg font-black text-slate-800 flex items-center gap-2">
-                  <CalendarClock size={20} className="text-brand" />
-                  Renovar {renewingItem === 'sispass' ? 'SISPASS' : 'Certificado'}
-                </h3>
-                <button onClick={() => setRenewingItem(null)} className="text-slate-400 hover:text-slate-600">
-                  <X size={24} />
-                </button>
-              </div>
-              
-              <form onSubmit={handleConfirmRenewal} className="p-8 space-y-6">
-                 <div className="bg-blue-50 p-4 rounded-2xl border border-blue-100 flex items-start gap-3">
-                    <Calendar className="text-blue-500 flex-shrink-0 mt-0.5" size={18} />
-                    <div>
-                       <p className="text-xs font-bold text-blue-800 mb-1">Atualização de Datas</p>
-                       <p className="text-[10px] text-blue-600 leading-relaxed">
-                         Informe quando a renovação foi realizada e qual a nova data limite para manter o painel atualizado.
-                       </p>
-                    </div>
-                 </div>
-
-                 <div className="space-y-4">
-                    <div>
-                       <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">
-                         Data da Renovação (Pagamento/Emissão)
-                       </label>
-                       <input 
-                         required
-                         type="date"
-                         className="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl outline-none focus:border-brand font-bold text-slate-700"
-                         value={renewalForm.renewalDate}
-                         onChange={(e) => setRenewalForm({...renewalForm, renewalDate: e.target.value})}
-                       />
-                    </div>
-                    <div>
-                       <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">
-                         Nova Data de Vencimento
-                       </label>
-                       <input 
-                         required
-                         type="date"
-                         className="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl outline-none focus:border-brand font-bold text-slate-700"
-                         value={renewalForm.newExpiryDate}
-                         onChange={(e) => setRenewalForm({...renewalForm, newExpiryDate: e.target.value})}
-                       />
-                    </div>
-                 </div>
-
-                 <button type="submit" className="w-full py-4 bg-[#0F172A] text-white font-black text-xs uppercase tracking-widest rounded-2xl shadow-xl flex items-center justify-center gap-2 hover:bg-slate-800 transition-all">
-                    <Save size={18} /> Salvar Nova Validade
-                 </button>
-              </form>
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4 animate-in fade-in zoom-in-95 duration-200">
+          <div className="bg-white rounded-[32px] w-full max-w-md shadow-2xl overflow-hidden">
+            <div className="p-6 border-b border-slate-100 flex justify-between items-center bg-slate-50">
+              <h3 className="text-lg font-black text-slate-800 flex items-center gap-2">
+                <CalendarClock size={20} className="text-brand" />
+                Renovar {renewingItem === 'sispass' ? 'SISPASS' : 'Certificado'}
+              </h3>
+              <button
+                onClick={() => setRenewingItem(null)}
+                className="text-slate-400 hover:text-slate-600"
+              >
+                <X size={24} />
+              </button>
             </div>
+
+            <form onSubmit={handleConfirmRenewal} className="p-8 space-y-6">
+              <div className="bg-blue-50 p-4 rounded-2xl border border-blue-100 flex items-start gap-3">
+                <Calendar className="text-blue-500 flex-shrink-0 mt-0.5" size={18} />
+                <div>
+                  <p className="text-xs font-bold text-blue-800 mb-1">Atualização de Datas</p>
+                  <p className="text-[10px] text-blue-600 leading-relaxed">
+                    Informe quando a renovação foi realizada e qual a nova data limite para manter o
+                    painel atualizado.
+                  </p>
+                </div>
+              </div>
+
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">
+                    Data da Renovação (Pagamento/Emissão)
+                  </label>
+                  <input
+                    required
+                    type="date"
+                    className="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl outline-none focus:border-brand font-bold text-slate-700"
+                    value={renewalForm.renewalDate}
+                    onChange={(e) =>
+                      setRenewalForm({ ...renewalForm, renewalDate: e.target.value })
+                    }
+                  />
+                </div>
+                <div>
+                  <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">
+                    Nova Data de Vencimento
+                  </label>
+                  <input
+                    required
+                    type="date"
+                    className="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl outline-none focus:border-brand font-bold text-slate-700"
+                    value={renewalForm.newExpiryDate}
+                    onChange={(e) =>
+                      setRenewalForm({ ...renewalForm, newExpiryDate: e.target.value })
+                    }
+                  />
+                </div>
+              </div>
+
+              <button
+                type="submit"
+                className="w-full py-4 bg-[#0F172A] text-white font-black text-xs uppercase tracking-widest rounded-2xl shadow-xl flex items-center justify-center gap-2 hover:bg-slate-800 transition-all"
+              >
+                <Save size={18} /> Salvar Nova Validade
+              </button>
+            </form>
           </div>
+        </div>
       )}
     </div>
   );
 };
 
 export default DocumentsManager;
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

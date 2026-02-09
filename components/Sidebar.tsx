@@ -1,10 +1,10 @@
 import React from 'react';
-import { 
-  LayoutDashboard, 
-  Bird as BirdIcon, 
-  Heart, 
-  FlaskConical, 
-  Settings, 
+import {
+  LayoutDashboard,
+  Bird as BirdIcon,
+  Heart,
+  FlaskConical,
+  Settings,
   ChevronRight,
   ArrowRightLeft,
   DollarSign,
@@ -20,7 +20,9 @@ import {
   RefreshCw,
   BarChart3,
   Trash2,
-  Archive
+  Archive,
+  Shield,
+  Users,
 } from 'lucide-react';
 import { SubscriptionPlan } from '../types';
 import { APP_LOGO_ICON } from '../constants';
@@ -34,63 +36,118 @@ interface SidebarProps {
   trialEndDate?: string;
   isAdmin?: boolean;
   onLogout: () => void;
-  isOpen?: boolean; 
+  isOpen?: boolean;
   onClose?: () => void;
   onRefresh?: () => void;
   isRefreshing?: boolean;
 }
 
-const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab, logoUrl, breederName, plan, trialEndDate, isAdmin, onLogout, isOpen = true, onClose, onRefresh, isRefreshing }) => {
+const Sidebar: React.FC<SidebarProps> = ({
+  activeTab,
+  setActiveTab,
+  logoUrl,
+  breederName,
+  plan,
+  trialEndDate,
+  isAdmin,
+  onLogout,
+  isOpen = true,
+  onClose,
+  onRefresh,
+  isRefreshing,
+}) => {
   const menuSections = [
     {
       title: 'Visão geral',
       items: [
-        { id: 'dashboard', label: 'Dashboard', icon: <LayoutDashboard size={18} />, variant: 'main' },
-        { id: 'analytics', label: 'Analytics', icon: <BarChart3 size={16} />, variant: 'sub', pro: true }
-      ]
+        {
+          id: 'dashboard',
+          label: 'Dashboard',
+          icon: <LayoutDashboard size={18} />,
+          variant: 'main',
+        },
+        {
+          id: 'analytics',
+          label: 'Relatórios',
+          icon: <BarChart3 size={16} />,
+          variant: 'sub',
+          pro: true,
+        },
+      ],
     },
     {
-      title: 'Plantel',
+      title: 'Aves & Plantel',
       items: [
         { id: 'birds', label: 'Plantel', icon: <BirdIcon size={18} />, variant: 'main' },
         { id: 'birds-labels', label: 'Etiquetas', icon: <Archive size={16} />, variant: 'sub' },
         { id: 'birds-history', label: 'Histórico', icon: <Archive size={16} />, variant: 'sub' },
         { id: 'sexing', label: 'Sexagem', icon: <Dna size={16} />, variant: 'sub' },
-        { id: 'birds-ibama', label: 'IBAMA Pendentes', icon: <FileBadge size={16} />, variant: 'sub' },
-        { id: 'birds-trash', label: 'Lixeira', icon: <Trash2 size={16} />, variant: 'sub' }
-      ]
+        {
+          id: 'birds-ibama',
+          label: 'IBAMA Pendentes',
+          icon: <FileBadge size={16} />,
+          variant: 'sub',
+        },
+        { id: 'birds-trash', label: 'Lixeira', icon: <Trash2 size={16} />, variant: 'sub' },
+      ],
     },
     {
-      title: 'Gestão',
+      title: 'Gestão do Criatório',
       items: [
         { id: 'breeding', label: 'Acasalamentos', icon: <Heart size={18} /> },
         { id: 'movements', label: 'Movimentações', icon: <ArrowRightLeft size={18} /> },
         { id: 'documents', label: 'Licenças & Docs', icon: <FileBadge size={18} /> },
-        { id: 'tasks', label: 'Agenda / Tarefas', icon: <CalendarCheck size={18} /> },
         { id: 'meds', label: 'Medicamentos', icon: <FlaskConical size={18} /> },
-        { id: 'finance', label: 'Financeiro', icon: <DollarSign size={18} />, pro: true }
-      ]
+        { id: 'finance', label: 'Financeiro', icon: <DollarSign size={18} />, pro: true },
+      ],
     },
     {
-      title: 'Torneios',
+      title: 'Agenda',
+      items: [{ id: 'tasks', label: 'Agenda & Tarefas', icon: <CalendarCheck size={18} /> }],
+    },
+    {
+      title: 'Torneios & Eventos',
       items: [
         { id: 'tournaments', label: 'Calendário', icon: <Trophy size={18} />, variant: 'main' },
-        { id: 'tournament-manager', label: 'Gerenciar', icon: <Trophy size={16} />, variant: 'sub' },
-        { id: 'tournament-results', label: 'Resultados', icon: <Trophy size={16} />, variant: 'sub' },
-        { id: 'statistics', label: 'Comunidade', icon: <BarChart3 size={16} />, variant: 'sub' }
-      ]
+        {
+          id: 'tournament-manager',
+          label: 'Gerenciar Torneios',
+          icon: <Trophy size={16} />,
+          variant: 'sub',
+        },
+        {
+          id: 'tournament-results',
+          label: 'Resultados',
+          icon: <Trophy size={16} />,
+          variant: 'sub',
+        },
+        { id: 'statistics', label: 'Comunidade', icon: <BarChart3 size={16} />, variant: 'sub' },
+      ],
     },
     {
       title: 'Suporte',
-      items: [
-        { id: 'help', label: 'Ajuda & FAQ', icon: <HelpCircle size={18} /> }
-      ]
-    }
+      items: [{ id: 'help', label: 'Ajuda & FAQ', icon: <HelpCircle size={18} /> }],
+    },
+    ...(isAdmin
+      ? [
+          {
+            title: 'Administração',
+            items: [
+              {
+                id: 'admin-users',
+                label: 'Gerenciar Usuários',
+                icon: <Users size={18} />,
+                adminOnly: true,
+              },
+            ],
+          },
+        ]
+      : []),
   ];
 
   const handleNavigation = (tabId: string) => {
     setActiveTab(tabId);
-    if (onClose) onClose(); 
+    if (onClose) onClose();
   };
 
   const goToSubscriptionPlans = () => {
@@ -108,31 +165,36 @@ const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab, logoUrl, bre
   let trialDaysLeft = 0;
   if (hasTrial && trialEndDate) {
     const diffTime = new Date(trialEndDate).getTime() - new Date().getTime();
-    trialDaysLeft = Math.ceil(diffTime / (1000 * 60 * 60 * 24)); 
+    trialDaysLeft = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
   }
 
   return (
     <>
       {isOpen && (
-        <div 
+        <div
           className="fixed inset-0 bg-slate-900/50 z-40 lg:hidden backdrop-blur-sm animate-in fade-in"
           onClick={onClose}
         ></div>
       )}
 
-      <div className={`
+      <div
+        className={`
         fixed left-0 top-0 h-screen w-64 bg-white border-r border-slate-200 flex flex-col z-50 shadow-xl lg:shadow-none transition-transform duration-300
         ${isOpen ? 'translate-x-0' : '-translate-x-full'} lg:translate-x-0
-      `}>
+      `}
+      >
         <div className="p-6 pb-4 flex flex-col items-center justify-center border-b border-slate-200 gap-3 relative">
-          <button onClick={onClose} className="absolute top-4 right-4 lg:hidden text-slate-400 hover:text-slate-600">
+          <button
+            onClick={onClose}
+            className="absolute top-4 right-4 lg:hidden text-slate-400 hover:text-slate-600"
+          >
             <X size={20} />
           </button>
           <div className="w-20 h-20 bg-gradient-to-br from-blue-50 to-slate-50 border-2 border-slate-300 rounded-lg p-2 flex items-center justify-center flex-shrink-0 shadow-md hover:shadow-lg transition-shadow">
-            <img 
-              src={logoUrl || APP_LOGO_ICON} 
-              alt="Logo" 
-              className="w-full h-full object-contain" 
+            <img
+              src={logoUrl || APP_LOGO_ICON}
+              alt="Logo"
+              className="w-full h-full object-contain"
             />
           </div>
           <div className="text-center">
@@ -142,7 +204,16 @@ const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab, logoUrl, bre
             >
               {breederName || 'AviGestão'}
             </h1>
-            <span className={`text-[10px] font-semibold uppercase tracking-wide px-2 py-1 rounded inline-block mt-2 ${isAdmin ? 'bg-red-100 text-red-700' : plan === 'Profissional' ? 'bg-blue-100 text-blue-700' : 'bg-slate-100 text-slate-600'}`}>
+            <span
+              className={`mt-2 inline-flex items-center gap-1 rounded-full px-3 py-1 text-[10px] font-bold uppercase tracking-wider ring-1 ring-inset ${
+                isAdmin
+                  ? 'bg-red-50 text-red-700 ring-red-200'
+                  : plan === 'Profissional'
+                  ? 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white ring-blue-200'
+                  : 'bg-slate-50 text-slate-700 ring-slate-200'
+              }`}
+            >
+              <Zap size={12} className={isAdmin ? 'text-red-600' : plan === 'Profissional' ? 'text-white' : 'text-slate-500'} />
               {planLabel}
             </span>
           </div>
@@ -150,26 +221,36 @@ const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab, logoUrl, bre
 
         {hasTrial && trialDaysLeft >= 0 && (
           <div className="px-4 py-4 bg-blue-50 border-b border-blue-200">
-             <div className="flex items-center gap-2 mb-1">
-                <Clock size={16} className="text-blue-600 flex-shrink-0" />
-                <span className="text-xs font-semibold text-blue-900 uppercase tracking-wide">Teste</span>
-             </div>
-             <p className="text-lg font-bold text-blue-900">{trialDaysLeft} dias</p>
+            <div className="flex items-center gap-2 mb-1">
+              <Clock size={16} className="text-blue-600 flex-shrink-0" />
+              <span className="text-xs font-semibold text-blue-900 uppercase tracking-wide">
+                Teste
+              </span>
+            </div>
+            <p className="text-lg font-bold text-blue-900">{trialDaysLeft} dias</p>
           </div>
         )}
 
-        <nav className="flex-1 px-3 py-4 space-y-4 overflow-y-auto">
-          {menuSections.map(section => (
+        <nav
+          className="flex-1 px-3 py-4 space-y-4 overflow-y-auto"
+          role="navigation"
+          aria-label="Menu principal"
+        >
+          {menuSections.map((section) => (
             <div key={section.title} className="space-y-2">
-              <p className="px-3 text-[10px] font-black uppercase tracking-widest text-slate-400">{section.title}</p>
+              <p className="px-3 text-[10px] font-black uppercase tracking-widest text-slate-400">
+                {section.title}
+              </p>
               <div className="space-y-1">
                 {section.items
+                  // eslint-disable-next-line @typescript-eslint/no-explicit-any
                   .filter((item: any) => {
                     if (item.id === 'tournament-manager') {
                       return plan === 'Profissional' || hasTrial || isAdmin;
                     }
                     return true;
                   })
+                  // eslint-disable-next-line @typescript-eslint/no-explicit-any
                   .map((item: any) => {
                     const isProFeature = item.pro && plan === 'Básico' && !hasTrial && !isAdmin;
                     const isDisabled = isProFeature;
@@ -179,9 +260,16 @@ const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab, logoUrl, bre
                     return (
                       <button
                         key={item.id}
-                        onClick={() => isDisabled ? goToSubscriptionPlans() : handleNavigation(item.id)}
+                        onClick={() =>
+                          isDisabled ? goToSubscriptionPlans() : handleNavigation(item.id)
+                        }
                         disabled={isDisabled}
-                        className={`w-full flex items-center justify-between ${isSub ? 'px-3 py-2' : 'px-3 py-2.5'} rounded-lg transition-all ${
+                        aria-current={isActive ? 'page' : undefined}
+                        aria-disabled={isDisabled}
+                        aria-label={item.label + (isProFeature ? ' (recurso PRO)' : '')}
+                        className={`w-full flex items-center justify-between ${
+                          isSub ? 'px-3 py-2' : 'px-3 py-2.5'
+                        } rounded-lg transition-all ${
                           isDisabled
                             ? 'text-slate-300 cursor-not-allowed bg-slate-50 opacity-50'
                             : isActive
@@ -196,10 +284,15 @@ const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab, logoUrl, bre
                           </span>
                           <span className="flex-1 text-left">{item.label}</span>
                           {isProFeature && (
-                            <Zap size={12} className="text-amber-500 fill-amber-500 flex-shrink-0" />
+                            <Zap
+                              size={12}
+                              className="text-amber-500 fill-amber-500 flex-shrink-0"
+                            />
                           )}
                         </div>
-                        {isActive && <ChevronRight size={16} className="opacity-60 flex-shrink-0" />}
+                        {isActive && (
+                          <ChevronRight size={16} className="opacity-60 flex-shrink-0" />
+                        )}
                       </button>
                     );
                   })}
@@ -210,11 +303,11 @@ const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab, logoUrl, bre
 
         <div className="px-3 py-4 border-t border-slate-200 space-y-2">
           {(plan === 'Básico' || hasTrial) && !isAdmin && (
-            <button 
+            <button
               onClick={goToSubscriptionPlans}
               className={`w-full flex items-center gap-2 px-3 py-2.5 rounded-lg font-semibold text-xs uppercase tracking-wide transition-all ${
-                hasTrial 
-                  ? 'bg-green-50 text-green-700 hover:bg-green-100' 
+                hasTrial
+                  ? 'bg-green-50 text-green-700 hover:bg-green-100'
                   : 'bg-blue-50 text-blue-700 hover:bg-blue-100'
               }`}
             >
@@ -225,7 +318,9 @@ const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab, logoUrl, bre
           <button
             onClick={() => handleNavigation('settings')}
             className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all ${
-              activeTab === 'settings' ? 'bg-slate-100 text-slate-900' : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
+              activeTab === 'settings'
+                ? 'bg-slate-100 text-slate-900'
+                : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
             }`}
           >
             <Settings size={18} className="flex-shrink-0" />
@@ -237,7 +332,10 @@ const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab, logoUrl, bre
               disabled={isRefreshing}
               className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all text-green-700 hover:bg-green-50 disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              <RefreshCw size={18} className={`flex-shrink-0 ${isRefreshing ? 'animate-spin' : ''}`} />
+              <RefreshCw
+                size={18}
+                className={`flex-shrink-0 ${isRefreshing ? 'animate-spin' : ''}`}
+              />
               {isRefreshing ? 'Atualizando...' : 'Atualizar'}
             </button>
           )}

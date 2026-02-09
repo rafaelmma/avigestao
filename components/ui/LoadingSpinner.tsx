@@ -7,35 +7,33 @@ interface LoadingSpinnerProps {
   fullScreen?: boolean;
 }
 
-const LoadingSpinner: React.FC<LoadingSpinnerProps> = ({ 
-  size = 'md', 
+const LoadingSpinner: React.FC<LoadingSpinnerProps> = ({
+  size = 'md',
   variant = 'dark',
   text,
-  fullScreen = false
+  fullScreen = false,
 }) => {
   const sizeClasses = {
     sm: 'w-4 h-4',
     md: 'w-8 h-8',
-    lg: 'w-12 h-12'
+    lg: 'w-12 h-12',
   };
 
   const colorClasses = {
     dark: 'border-slate-300 border-t-slate-900',
-    light: 'border-white/30 border-t-white'
+    light: 'border-white/30 border-t-white',
   };
 
   const spinnerContent = (
     <div className="flex flex-col items-center justify-center gap-2">
-      <div 
+      <div
         className={`
           ${sizeClasses[size]} border-2 ${colorClasses[variant]} 
           rounded-full animate-spin
-        `} 
+        `}
       />
       {text && (
-        <p className={`text-sm ${variant === 'dark' ? 'text-slate-600' : 'text-white'}`}>
-          {text}
-        </p>
+        <p className={`text-sm ${variant === 'dark' ? 'text-slate-600' : 'text-white'}`}>{text}</p>
       )}
     </div>
   );

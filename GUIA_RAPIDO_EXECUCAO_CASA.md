@@ -47,12 +47,14 @@ git log --oneline -3
 **Tempo:** ~3 horas
 
 #### Fase 1: Criar Design System Token
+
 ```bash
 # Criar novo arquivo
 # lib/designSystem.ts (copiar do plano)
 ```
 
 **O que fazer:**
+
 1. Abrir [PLANO_IMPLEMENTACAO_OPCAO2.md](file:///c:/avigestao/PLANO_IMPLEMENTACAO_OPCAO2.md) → Seção "FASE 1"
 2. Copiar código de `lib/designSystem.ts`
 3. Criar arquivo em `c:\avigestao\lib\designSystem.ts`
@@ -60,11 +62,13 @@ git log --oneline -3
 5. Salvar
 
 #### Fase 2: Atualizar Tipografia em CSS
+
 ```bash
 # Editar index.css
 ```
 
 **O que fazer:**
+
 1. Abrir [PLANO_IMPLEMENTACAO_OPCAO2.md](file:///c:/avigestao/PLANO_IMPLEMENTACAO_OPCAO2.md) → "Fase 1: Atualizar Classes Globais"
 2. Copiar novo conteúdo de CSS
 3. Abrir `c:\avigestao\index.css`
@@ -72,6 +76,7 @@ git log --oneline -3
 5. Salvar
 
 #### Fase 2: Criar 6 Componentes UI
+
 ```bash
 # Criar diretório
 mkdir components/ui
@@ -86,6 +91,7 @@ mkdir components/ui
 ```
 
 **Para cada arquivo:**
+
 1. Abrir [PLANO_IMPLEMENTACAO_OPCAO2.md](file:///c:/avigestao/PLANO_IMPLEMENTACAO_OPCAO2.md) → Seção "FASE 2"
 2. Copiar código do componente
 3. Criar arquivo em `components/ui/NomeComponente.tsx`
@@ -115,6 +121,7 @@ git push origin feature/refactor-uxui-design-system
 #### Fase 3: Refatorar Cards
 
 **O que fazer:**
+
 1. Abrir [PLANO_IMPLEMENTACAO_OPCAO2.md](file:///c:/avigestao/PLANO_IMPLEMENTACAO_OPCAO2.md) → "FASE 3: Refatorar Cards"
 2. Copiar seção "Imports" e atualizar imports do BirdManager
 3. Copiar seção "Simplificar Renderização de Cards"
@@ -140,6 +147,7 @@ git push origin feature/refactor-uxui-design-system
 **Criar novo arquivo:** `components/BirdDetailModal.tsx`
 
 **O que fazer:**
+
 1. Abrir [PLANO_IMPLEMENTACAO_OPCAO2.md](file:///c:/avigestao/PLANO_IMPLEMENTACAO_OPCAO2.md) → "FASE 4: Refatorar Modais"
 2. Copiar código completo do `BirdDetailModal.tsx`
 3. Criar arquivo em `components/BirdDetailModal.tsx`
@@ -155,6 +163,7 @@ mkdir components/sections
 ```
 
 **O que fazer:**
+
 1. Copiar código de cada seção do plano
 2. Criar arquivo em `components/sections/NomeDaSecao.tsx`
 3. Salvar
@@ -181,6 +190,7 @@ git push origin feature/refactor-uxui-design-system
 **Criar novo arquivo:** `components/BirdListTabs.tsx`
 
 **O que fazer:**
+
 1. Copiar código de [PLANO_IMPLEMENTACAO_OPCAO2.md](file:///c:/avigestao/PLANO_IMPLEMENTACAO_OPCAO2.md) → "FASE 5"
 2. Criar arquivo em `components/BirdListTabs.tsx`
 3. Colar
@@ -201,12 +211,14 @@ git push origin feature/refactor-uxui-design-system
 **Onde fazer:** Espalhado por `Dashboard.tsx`, `Sidebar.tsx`, `index.css`
 
 **O que fazer:**
+
 1. Revisar cores gradientes e simplificar
 2. Ajustar espaçamentos (usar classes padrão)
 3. Remover animações excessivas (pulse desnecessário)
 4. Adicionar loading states onde falta
 
 **Checklist:**
+
 - [ ] Remover gradientes desnecessários em Dashboard
 - [ ] Simplificar cores em Sidebar
 - [ ] Ajustar espaçamentos globais
@@ -266,6 +278,7 @@ git push origin feature/refactor-uxui-design-system
 ## 📋 CHECKLIST POR DIA
 
 ### DIA 1 - À NOITE (3h)
+
 ```
 [ ] Setup Git - nova branch
 [ ] Criar lib/designSystem.ts
@@ -276,6 +289,7 @@ git push origin feature/refactor-uxui-design-system
 ```
 
 ### DIA 2 - MANHÃ (4-5h)
+
 ```
 [ ] Refatorar cards do BirdManager
 [ ] Criar BirdDetailModal + seções
@@ -285,6 +299,7 @@ git push origin feature/refactor-uxui-design-system
 ```
 
 ### DIA 3 - TARDE (3h)
+
 ```
 [ ] Criar BirdListTabs
 [ ] Polimento visual em Dashboard/Sidebar
@@ -298,10 +313,12 @@ git push origin feature/refactor-uxui-design-system
 ## 🔗 REFERÊNCIAS RÁPIDAS
 
 ### Arquivos de Planejamento (Leia ao fazer cada fase):
+
 - 📄 **AUDITORIA_UX_UI.md** - Entender os problemas
 - 📄 **PLANO_IMPLEMENTACAO_OPCAO2.md** - Código de cada fase
 
 ### Estrutura de Pasta Final:
+
 ```
 components/
 ├── ui/
@@ -343,17 +360,21 @@ lib/
 ## 🆘 SE TIVER DÚVIDA DURANTE A EXECUÇÃO
 
 ### Erro ao compilar?
+
 ```bash
 npm run build 2>&1 | head -20  # Ver primeiro erro
 ```
 
 ### Tipografia errada?
+
 Consulte: `lib/designSystem.ts` → `typography`
 
 ### Cores não batem?
+
 Consulte: `index.css` → seção `@layer components`
 
 ### Componente não renderiza?
+
 Verifique imports em `BirdManager.tsx`
 
 ---
@@ -376,6 +397,7 @@ ANTES                          DEPOIS
 ## 🚀 PRÓXIMO PASSO
 
 ### HOJE À NOITE:
+
 1. Sair do trabalho
 2. Chegar em casa
 3. Abrir VS Code
@@ -384,9 +406,11 @@ ANTES                          DEPOIS
 6. Dormir feliz sabendo que começou! 😴
 
 ### AMANHÃ:
+
 Acordar e continuar com **PASSO 3** (Fase 3 + 4)
 
 ### DEPOIS DE AMANHÃ:
+
 Finalizar com **PASSO 4** (Fase 5 + 6 + 7) e fazer deploy
 
 ---
@@ -394,6 +418,7 @@ Finalizar com **PASSO 4** (Fase 5 + 6 + 7) e fazer deploy
 ## 📞 DÚVIDAS ENQUANTO EXECUTA?
 
 Você pode:
+
 1. ✅ Consultar arquivos de planejamento (`.md`)
 2. ✅ Copiar códigos direto do plano
 3. ✅ Quando compiler, é porque está certo

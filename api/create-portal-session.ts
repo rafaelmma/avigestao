@@ -1,5 +1,5 @@
-import Stripe from "stripe";
-import * as admin from "firebase-admin";
+import Stripe from 'stripe';
+import * as admin from 'firebase-admin';
 
 // Initialize Firebase Admin (reuse if already initialized)
 if (!admin.apps.length) {
@@ -13,14 +13,14 @@ if (!admin.apps.length) {
 }
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-  apiVersion: "2026-01-28.clover",
+  apiVersion: '2026-01-28.clover',
 });
 
 const db = admin.firestore();
 
 export default async function handler(req: any, res: any) {
-  if (req.method !== "POST") {
-    return res.status(405).json({ error: "Method not allowed" });
+  if (req.method !== 'POST') {
+    return res.status(405).json({ error: 'Method not allowed' });
   }
 
   try {
@@ -38,7 +38,7 @@ export default async function handler(req: any, res: any) {
     const customerId = userDoc.data()?.stripeCustomerId;
 
     if (!customerId) {
-      return res.status(400).json({ error: "No Stripe customer found" });
+      return res.status(400).json({ error: 'No Stripe customer found' });
     }
 
     const session = await stripe.billingPortal.sessions.create({
@@ -48,7 +48,7 @@ export default async function handler(req: any, res: any) {
 
     return res.status(200).json({ url: session.url });
   } catch (err: any) {
-    console.error("Stripe portal error:", err);
+    console.error('Stripe portal error:', err);
     return res.status(500).json({ error: err.message });
   }
 }

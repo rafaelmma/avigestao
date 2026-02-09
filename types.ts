@@ -1,22 +1,43 @@
 ﻿// ============================================================================
 // TIPOS ENUMERADOS (correspondentes aos enums do banco Supabase)
 // ============================================================================
-export type BirdStatus = 'Ativo' | 'Inativo' | 'Vendido' | 'Doado' | 'Falecido' | 'Criação' | 'Óbito' | 'Fuga' | 'Transferência';
+export type BirdStatus =
+  | 'Ativo'
+  | 'Inativo'
+  | 'Vendido'
+  | 'Doado'
+  | 'Falecido'
+  | 'Criação'
+  | 'Óbito'
+  | 'Fuga'
+  | 'Transferência';
 export type Sex = 'Macho' | 'Fêmea' | 'Desconhecido';
 export type BirdClassification = 'Exemplar' | 'Reprodutor' | 'Descarte';
 export type TrainingStatus = 'Não Iniciado' | 'Em Progresso' | 'Concluído' | 'Certificado';
-export type MovementType = 'Entrada' | 'Saída' | 'Transferência' | 'Venda' | 'Doação' | 'Óbito' | 'Fuga';
-export type MedicationType = 'Antibiótico' | 'Vitamina' | 'Antiparasitário' | 'Desinfetante' | 'Outro';
+export type MovementType =
+  | 'Entrada'
+  | 'Saída'
+  | 'Transferência'
+  | 'Venda'
+  | 'Doação'
+  | 'Óbito'
+  | 'Fuga';
+export type MedicationType =
+  | 'Antibiótico'
+  | 'Vitamina'
+  | 'Antiparasitário'
+  | 'Desinfetante'
+  | 'Outro';
 export type EventType = 'Nascimento' | 'Sexagem' | 'Certificação' | 'Concurso' | 'Venda' | 'Outro';
 export type SharePlatform = 'WhatsApp' | 'Email' | 'Facebook' | 'Instagram' | 'Twitter' | 'Outro';
 export type SubscriptionPlan = 'Básico' | 'Profissional';
 
 export interface SexingData {
-  protocol: string;        // Número do pedido/sexagem
-  laboratory: string;      // Laboratório
-  sentDate: string;        // Data de envio
-  resultDate?: string;     // Data do resultado/chegada
-  attachmentUrl?: string;  // Anexo do laudo (Base64)
+  protocol: string; // Número do pedido/sexagem
+  laboratory: string; // Laboratório
+  sentDate: string; // Data de envio
+  resultDate?: string; // Data do resultado/chegada
+  attachmentUrl?: string; // Anexo do laudo (Base64)
   notes?: string;
 }
 
@@ -55,21 +76,21 @@ export interface Bird {
   // Campos legados (para compatibilidade com dados antigos)
   manualAncestors?: Record<string, string>;
   isRepeater?: boolean;
-  sexing?: SexingData; 
+  sexing?: SexingData;
   documents?: BirdDocument[];
   ibamaBaixaPendente?: boolean;
   ibamaBaixaData?: string;
   deletedAt?: string;
 }
 
-export type TransactionCategory = 
-  | 'Venda de Aves' 
-  | 'Serviços' 
-  | 'Alimentação' 
-  | 'Saúde' 
-  | 'Manejo e Insumos' 
-  | 'Estrutura' 
-  | 'Taxas e Licenças' 
+export type TransactionCategory =
+  | 'Venda de Aves'
+  | 'Serviços'
+  | 'Alimentação'
+  | 'Saúde'
+  | 'Manejo e Insumos'
+  | 'Estrutura'
+  | 'Taxas e Licenças'
   | 'Outros';
 
 export interface Transaction {
@@ -92,6 +113,9 @@ export interface MaintenanceTask {
   birdId?: string;
   frequency?: 'Única' | 'Diária' | 'Semanal' | 'Mensal'; // Adicionado
   remindMe?: boolean; // Adicionado: Flag para destacar aviso
+  tournamentId?: string;
+  tournamentName?: string;
+  notes?: string;
   deletedAt?: string;
 }
 
@@ -104,12 +128,12 @@ export interface TournamentEvent {
   category: 'Fibra' | 'Canto' | 'Morfologia' | 'Social';
   notes?: string;
   organizer?: string;
-  
+
   // Novos Campos Melhorados
   result?: string; // Mantido para compatibilidade (ex: "1º Lugar")
   trophy?: boolean; // Se ganhou troféu
   score?: number; // Pontuação ou Cantos
-  
+
   participatingBirds?: string[]; // IDs dos pássaros
   preparationChecklist?: { item: string; checked: boolean }[]; // Checklist
   deletedAt?: string;
@@ -206,19 +230,23 @@ export interface ContinuousTreatment {
   deletedAt?: string;
 }
 
-export type CertificateType = 'A1 (Arquivo)' | 'A3 (Token USB)' | 'A3 (Cartão)' | 'Nuvem (BirdID/Vidaas)';
+export type CertificateType =
+  | 'A1 (Arquivo)'
+  | 'A3 (Token USB)'
+  | 'A3 (Cartão)'
+  | 'Nuvem (BirdID/Vidaas)';
 
 export interface DigitalCertificateData {
-  issuer: string;       // Órgão emissor (ex: Serasa, Certisign)
-  expiryDate: string;   // Validade
-  installed: boolean;   // Se está configurado/detectado (simulação)
+  issuer: string; // Órgão emissor (ex: Serasa, Certisign)
+  expiryDate: string; // Validade
+  installed: boolean; // Se está configurado/detectado (simulação)
   type: CertificateType; // Novo Campo
 }
 
 export interface ViewPreferences {
-  showBirdImages?: boolean;      // Mostrar imagens dos pássaros
+  showBirdImages?: boolean; // Mostrar imagens dos pássaros
   badgeSize?: 'xxs' | 'xs' | 'sm' | 'md' | 'lg'; // Tamanho da badge de status
-  compactMode?: boolean;          // Modo compacto (menos espaçamento)
+  compactMode?: boolean; // Modo compacto (menos espaçamento)
 }
 
 export interface BreederSettings {
@@ -242,7 +270,7 @@ export interface BreederSettings {
   sispassNumber: string;
   sispassDocumentUrl?: string;
   registrationDate: string;
-  renewalDate: string;      // Vencimento Licenca SISPASS
+  renewalDate: string; // Vencimento Licenca SISPASS
   lastRenewalDate?: string; // Ultima Renovacao SISPASS
   logoUrl?: string;
   primaryColor: string;

@@ -1,4 +1,3 @@
-
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 
@@ -6,7 +5,7 @@ export default defineConfig({
   plugins: [react()],
   server: {
     port: 5173,
-    open: true
+    open: true,
   },
   build: {
     chunkSizeWarningLimit: 1600,
@@ -19,8 +18,8 @@ export default defineConfig({
             if (id.includes('lucide-react')) return 'vendor.icons';
             return 'vendor';
           }
-        }
-      }
-    }
-  }
+        },
+      },
+    },
+  },
 });

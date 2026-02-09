@@ -21,18 +21,18 @@ CREATE TABLE birds (
 );
 
 -- ❌ PROBLEMA 2: Sem Foreign Keys
-INSERT INTO applications (medication_id) 
+INSERT INTO applications (medication_id)
 VALUES ('nao-existe-e-ninguem-valida');  -- ❌ Sem validação!
 
 -- ❌ PROBLEMA 3: Valores Inválidos Possíveis
-INSERT INTO birds (status) 
+INSERT INTO birds (status)
 VALUES ('Status Inválido');              -- ❌ Sem validação!
 
-INSERT INTO birds (sex) 
+INSERT INTO birds (sex)
 VALUES ('Hermafrodita');                 -- ❌ Sem validação!
 
 -- ❌ PROBLEMA 4: Sem Índices
-SELECT * FROM birds 
+SELECT * FROM birds
 WHERE breeder_id = $1;                   -- ❌ Full table scan (500ms+)!
 
 -- ❌ PROBLEMA 5: RLS com Conversão Desnecessária
@@ -67,11 +67,11 @@ ALTER TABLE birds
 
 -- ✅ SOLUÇÃO 2: Foreign Keys Adicionadas
 ALTER TABLE bird_certificates
-  ADD CONSTRAINT fk_bird_certificates_bird_id 
+  ADD CONSTRAINT fk_bird_certificates_bird_id
   FOREIGN KEY (bird_id) REFERENCES birds(id) ON DELETE CASCADE;
 
 ALTER TABLE birds
-  ADD CONSTRAINT fk_birds_father_id 
+  ADD CONSTRAINT fk_birds_father_id
   FOREIGN KEY (father_id) REFERENCES birds(id) ON DELETE SET NULL;
 
 -- ✅ SOLUÇÃO 3: ENUMs para Validação Automática
@@ -125,9 +125,9 @@ export interface Bird {
   ringNumber: string;
   species: string;
   name: string;
-  sex: Sex;  // ❌ Sex = 'Macho' | 'Fêmea' | 'Indeterminado'
-  status: BirdStatus;  // ❌ 'Ativo' | 'Óbito' | 'Fuga' | 'Vendido' | 'Doado'
-  classification: BirdClassification;  // ❌ 'Galador' | 'Pássaro de Canto' | 'Ambos'
+  sex: Sex; // ❌ Sex = 'Macho' | 'Fêmea' | 'Indeterminado'
+  status: BirdStatus; // ❌ 'Ativo' | 'Óbito' | 'Fuga' | 'Vendido' | 'Doado'
+  classification: BirdClassification; // ❌ 'Galador' | 'Pássaro de Canto' | 'Ambos'
   fatherId?: string;
   motherId?: string;
   // ❌ Sem breederId!
@@ -138,11 +138,11 @@ export interface Bird {
 export const mapBirdFromDb = (row: any): Bird => {
   return {
     id: row.id,
-    ringNumber: row.ring_number ?? "",
-    species: row.species ?? "",
+    ringNumber: row.ring_number ?? '',
+    species: row.species ?? '',
     // ❌ Sem breederId
     // ❌ Sem tipagem segura para status
-    status: row.status ?? "Ativo",
+    status: row.status ?? 'Ativo',
     // ... faltam mapeamentos!
   };
 };
@@ -157,21 +157,26 @@ export type Sex = 'Macho' | 'Fêmea' | 'Desconhecido';
 export type BirdClassification = 'Exemplar' | 'Reprodutor' | 'Descarte';
 export type TrainingStatus = 'Não Iniciado' | 'Em Progresso' | 'Concluído' | 'Certificado';
 export type MovementType = 'Entrada' | 'Saída' | 'Transferência' | 'Venda' | 'Doação' | 'Óbito';
-export type MedicationType = 'Antibiótico' | 'Vitamina' | 'Antiparasitário' | 'Desinfetante' | 'Outro';
+export type MedicationType =
+  | 'Antibiótico'
+  | 'Vitamina'
+  | 'Antiparasitário'
+  | 'Desinfetante'
+  | 'Outro';
 
 export interface Bird {
   id: string;
-  breederId: string;  // ✅ Novo! Obrigatório
+  breederId: string; // ✅ Novo! Obrigatório
   name: string;
   species: string;
-  sex?: Sex;  // ✅ Tipado como ENUM
-  status: BirdStatus;  // ✅ Tipado como ENUM
+  sex?: Sex; // ✅ Tipado como ENUM
+  status: BirdStatus; // ✅ Tipado como ENUM
   ringNumber?: string;
   birthDate?: string;
-  classification?: BirdClassification;  // ✅ Tipado como ENUM
-  songTrainingStatus?: TrainingStatus;  // ✅ Tipado como ENUM
-  fatherId?: string;  // ✅ Referência correta
-  motherId?: string;  // ✅ Referência correta
+  classification?: BirdClassification; // ✅ Tipado como ENUM
+  songTrainingStatus?: TrainingStatus; // ✅ Tipado como ENUM
+  fatherId?: string; // ✅ Referência correta
+  motherId?: string; // ✅ Referência correta
   // ... mais campos
 }
 
@@ -179,15 +184,15 @@ export interface Bird {
 export const mapBirdFromDb = (row: any): Bird => {
   return {
     id: row.id,
-    breederId: row.breeder_id ?? "",  // ✅ Agora temos!
-    name: row.name ?? "",
-    species: row.species ?? "",
-    sex: (row.sex ?? "Desconhecido") as Sex,  // ✅ Tipado
-    status: (row.status ?? "Ativo") as BirdStatus,  // ✅ Tipado
-    ringNumber: row.ring_number ?? "",
+    breederId: row.breeder_id ?? '', // ✅ Agora temos!
+    name: row.name ?? '',
+    species: row.species ?? '',
+    sex: (row.sex ?? 'Desconhecido') as Sex, // ✅ Tipado
+    status: (row.status ?? 'Ativo') as BirdStatus, // ✅ Tipado
+    ringNumber: row.ring_number ?? '',
     birthDate: row.birth_date ?? undefined,
-    classification: (row.classification ?? "Exemplar") as BirdClassification,  // ✅ Tipado
-    songTrainingStatus: (row.song_training_status ?? "Não Iniciado") as TrainingStatus,  // ✅ Tipado
+    classification: (row.classification ?? 'Exemplar') as BirdClassification, // ✅ Tipado
+    songTrainingStatus: (row.song_training_status ?? 'Não Iniciado') as TrainingStatus, // ✅ Tipado
     fatherId: row.father_id ?? undefined,
     motherId: row.mother_id ?? undefined,
     // ... mapeamentos completos
@@ -217,16 +222,16 @@ SELECT * FROM birds WHERE breeder_id = 'user-123'
 
 ```typescript
 // ❌ ANTES: Muito lento (2-5s)
-SELECT * FROM birds 
-WHERE breeder_id = 'user-123' 
-  AND species = 'Bicudo' 
+SELECT * FROM birds
+WHERE breeder_id = 'user-123'
+  AND species = 'Bicudo'
   AND status = 'Ativo'
 └─ Seq Scan (2-5s) - Sem índices
 
 // ✅ DEPOIS: Muito rápido (<100ms)
-SELECT * FROM birds 
-WHERE breeder_id = 'user-123' 
-  AND species = 'Bicudo' 
+SELECT * FROM birds
+WHERE breeder_id = 'user-123'
+  AND species = 'Bicudo'
   AND status = 'Ativo'
 └─ Index Scan (50-100ms) - Usa múltiplos índices
 ```
@@ -235,12 +240,12 @@ WHERE breeder_id = 'user-123'
 
 ```typescript
 // ❌ ANTES: Sem proteção
-INSERT INTO applications (medication_id) 
+INSERT INTO applications (medication_id)
 VALUES ('medicamento-que-nao-existe')
 └─ ✓ SUCESSO - Sem validação!  ❌ Dados órfãos!
 
 // ✅ DEPOIS: Com proteção
-INSERT INTO applications (medication_id) 
+INSERT INTO applications (medication_id)
 VALUES ('medicamento-que-nao-existe')
 └─ ✗ ERRO: Foreign key constraint violated  ✅ Evita dados órfãos!
 ```
@@ -261,35 +266,38 @@ INSERT INTO birds (status) VALUES ('Status Completamente Inválido');
 
 ## 🎯 Comparação Geral
 
-| Aspecto | ❌ Antes | ✅ Depois | 
-|---------|---------|----------|
-| **Tipo de IDs** | Inconsistente (TEXT/UUID) | Padronizado (UUID) |
-| **Foreign Keys** | 0 (nenhuma) | 10+ (todas as relacionadas) |
-| **Validação de Status** | Nenhuma (TEXT) | Automática (ENUM) |
-| **Validação de Sexo** | Nenhuma (TEXT) | Automática (ENUM) |
-| **Validação de Movimento** | Nenhuma (TEXT) | Automática (ENUM) |
-| **Índices em breeder_id** | ❌ Não | ✅ Sim |
-| **Índices em species** | ❌ Não | ✅ Sim |
-| **Índices em status** | ❌ Não | ✅ Sim |
-| **Índices em date** | ❌ Não | ✅ Sim |
-| **Performance de Busca** | 500-1000ms | 50-100ms |
-| **Integridade de Dados** | Frágil (70%) | Garantida (100%) |
-| **Dados Órfãos** | Possível | Impossível |
-| **Valores Inválidos** | Possível | Impossível |
-| **RLS Cast Desnecessário** | Sim (::text) | Não (UUID puro) |
-| **Dashboard Lento?** | Sim (2-5s) | Não (<200ms) |
+| Aspecto                    | ❌ Antes                  | ✅ Depois                   |
+| -------------------------- | ------------------------- | --------------------------- |
+| **Tipo de IDs**            | Inconsistente (TEXT/UUID) | Padronizado (UUID)          |
+| **Foreign Keys**           | 0 (nenhuma)               | 10+ (todas as relacionadas) |
+| **Validação de Status**    | Nenhuma (TEXT)            | Automática (ENUM)           |
+| **Validação de Sexo**      | Nenhuma (TEXT)            | Automática (ENUM)           |
+| **Validação de Movimento** | Nenhuma (TEXT)            | Automática (ENUM)           |
+| **Índices em breeder_id**  | ❌ Não                    | ✅ Sim                      |
+| **Índices em species**     | ❌ Não                    | ✅ Sim                      |
+| **Índices em status**      | ❌ Não                    | ✅ Sim                      |
+| **Índices em date**        | ❌ Não                    | ✅ Sim                      |
+| **Performance de Busca**   | 500-1000ms                | 50-100ms                    |
+| **Integridade de Dados**   | Frágil (70%)              | Garantida (100%)            |
+| **Dados Órfãos**           | Possível                  | Impossível                  |
+| **Valores Inválidos**      | Possível                  | Impossível                  |
+| **RLS Cast Desnecessário** | Sim (::text)              | Não (UUID puro)             |
+| **Dashboard Lento?**       | Sim (2-5s)                | Não (<200ms)                |
 
 ---
 
 ## 💡 Conclusão
 
 ### O Problema
+
 Seu banco estava **frágil, lento e sem validação**. Dados inválidos eram possíveis, queries lentas eram comuns, e não havia integridade referencial.
 
 ### A Solução
+
 **Tudo foi corrigido** com padronização UUID, ENUMs, Foreign Keys e Índices. Agora é rápido, confiável e impossível ter dados inválidos.
 
 ### O Resultado
+
 - 🚀 **90% mais rápido** em buscas
 - 🔒 **100% integridade** de dados
 - ✅ **Impossível** valores inválidos
@@ -298,4 +306,3 @@ Seu banco estava **frágil, lento e sem validação**. Dados inválidos eram pos
 ---
 
 **Próximo passo**: Executar migração no Supabase (ver QUICK_START_MIGRATION_005.md)
-

@@ -1,9 +1,14 @@
 import React, { useEffect, useState } from 'react';
-// import { supabase } from '../supabaseClient'; // REMOVIDO - Firebase only
-const supabase = null as any;
+import { auth } from '../lib/firebase';
+type AdminMetrics = {
+  mrr?: number;
+  activeSubscribers?: number;
+  churnPercent?: number;
+  recentEvents?: Array<{ id: string; created_at: string; event_type?: string; amount?: number }>;
+};
 
 const AdminDashboard: React.FC = () => {
-  const [metrics, setMetrics] = useState<any>(null);
+  const [metrics, setMetrics] = useState<AdminMetrics | null>(null);
   const [loading, setLoading] = useState(true);
   const [promoteEmail, setPromoteEmail] = useState('');
   const [promoting, setPromoting] = useState(false);
@@ -12,12 +17,14 @@ const AdminDashboard: React.FC = () => {
     const load = async () => {
       setLoading(true);
       try {
-        const session = await supabase.auth.getSession();
-        const res = await fetch('/api/admin/metrics', {
-          headers: {
-            Authorization: `Bearer ${session.data.session?.access_token}`,
-          },
-        });
+        // Use Firebase auth token (if available) to call admin APIs
+        let token: string | undefined;
+        if (auth.currentUser) {
+          token = await auth.currentUser.getIdToken();
+        }
+        const headers: Record<string, string> = {};
+        if (token) headers.Authorization = `Bearer ${token}`;
+        const res = await fetch('/api/admin/metrics', { headers });
         if (!res.ok) throw new Error('Failed to load metrics');
         const data = await res.json();
         setMetrics(data);
@@ -55,11 +62,17 @@ const AdminDashboard: React.FC = () => {
       <div className="bg-white rounded p-4">
         <h3 className="font-bold mb-2">Últimos eventos Stripe</h3>
         <div className="space-y-2">
-          {metrics.recentEvents.length === 0 && <div className="text-sm text-slate-500">Nenhum evento recente.</div>}
-          {metrics.recentEvents.map((e: any) => (
+          {(!metrics?.recentEvents || metrics.recentEvents.length === 0) && (
+            <div className="text-sm text-slate-500">Nenhum evento recente.</div>
+          )}
+          {(metrics?.recentEvents || []).map((e) => (
             <div key={e.id} className="p-2 border rounded">
-              <div className="text-xs text-slate-500">{new Date(e.created_at).toLocaleString()}</div>
-              <div className="font-mono text-sm">{e.event_type} — {e.amount ? `R$ ${e.amount}` : ''}</div>
+              <div className="text-xs text-slate-500">
+                {new Date(e.created_at).toLocaleString()}
+              </div>
+              <div className="font-mono text-sm">
+                {e.event_type} — {e.amount ? `R$ ${e.amount}` : ''}
+              </div>
             </div>
           ))}
         </div>
@@ -79,13 +92,13 @@ const AdminDashboard: React.FC = () => {
             onClick={async () => {
               setPromoting(true);
               try {
-                const session = await supabase.auth.getSession();
+                let token: string | undefined;
+                if (auth.currentUser) token = await auth.currentUser.getIdToken();
+                const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+                if (token) headers.Authorization = `Bearer ${token}`;
                 const res = await fetch('/api/admin/promote', {
                   method: 'POST',
-                  headers: {
-                    'Content-Type': 'application/json',
-                    Authorization: `Bearer ${session.data.session?.access_token}`,
-                  },
+                  headers,
                   body: JSON.stringify({ email: promoteEmail }),
                 });
                 if (!res.ok) throw new Error('Falha ao promover');

@@ -19,4 +19,4 @@ export const TIMEZONES = [
   'Australia/Sydney',
 ] as const;
 
-export type Timezone = typeof TIMEZONES[number];
+export type Timezone = (typeof TIMEZONES)[number];

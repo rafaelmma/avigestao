@@ -16,13 +16,13 @@ const WizardShell: React.FC<WizardShellProps> = ({
   steps = ['Resumo', 'Detalhes'],
   action,
   children,
-  compact = true
+  compact = true,
 }) => {
   const wizardSteps: WizardStep[] = steps.map((label, index) => ({
     id: `step-${index}`,
     label,
     description: index === 0 ? description : undefined,
-    content: children
+    content: children,
   }));
 
   return (

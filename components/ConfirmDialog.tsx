@@ -22,16 +22,25 @@ const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
   confirmText = 'Confirmar',
   cancelText = 'Cancelar',
   isDangerous = false,
-  isLoading = false
+  isLoading = false,
 }) => {
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm animate-in fade-in">
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm animate-in fade-in"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="confirm-dialog-title"
+    >
       <div className="bg-white rounded-xl shadow-2xl max-w-md w-full mx-4 p-6 animate-in zoom-in-95 duration-200">
         {/* Header */}
         <div className="flex items-start gap-3 mb-4">
-          <div className={`p-2.5 rounded-lg flex-shrink-0 ${isDangerous ? 'bg-red-100' : 'bg-blue-100'}`}>
+          <div
+            className={`p-2.5 rounded-lg flex-shrink-0 ${
+              isDangerous ? 'bg-red-100' : 'bg-blue-100'
+            }`}
+          >
             {isDangerous ? (
               <Trash2 className="text-red-600" size={20} />
             ) : (
@@ -39,7 +48,9 @@ const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
             )}
           </div>
           <div className="flex-1">
-            <h2 className="text-lg font-bold text-slate-900">{title}</h2>
+            <h2 id="confirm-dialog-title" className="text-lg font-bold text-slate-900">
+              {title}
+            </h2>
           </div>
           <button
             onClick={onCancel}
@@ -75,8 +86,8 @@ const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
             onClick={onConfirm}
             disabled={isLoading}
             className={`flex-1 px-4 py-2.5 rounded-lg font-semibold text-sm transition-colors disabled:opacity-50 ${
-              isDangerous 
-                ? 'bg-red-600 text-white hover:bg-red-700' 
+              isDangerous
+                ? 'bg-red-600 text-white hover:bg-red-700'
                 : 'bg-slate-900 text-white hover:bg-black'
             }`}
           >

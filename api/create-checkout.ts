@@ -1,5 +1,5 @@
-import Stripe from "stripe";
-import * as admin from "firebase-admin";
+import Stripe from 'stripe';
+import * as admin from 'firebase-admin';
 
 // Initialize Firebase Admin
 if (!admin.apps.length) {
@@ -13,14 +13,14 @@ if (!admin.apps.length) {
 }
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-  apiVersion: "2026-01-28.clover",
+  apiVersion: '2026-01-28.clover',
 });
 
 const db = admin.firestore();
 
 export default async function handler(req: any, res: any) {
-  if (req.method !== "POST") {
-    return res.status(405).json({ error: "Method not allowed" });
+  if (req.method !== 'POST') {
+    return res.status(405).json({ error: 'Method not allowed' });
   }
 
   try {
@@ -30,7 +30,7 @@ export default async function handler(req: any, res: any) {
     }
 
     const token = auth.replace('Bearer ', '');
-    
+
     // Verify Firebase token
     const decodedToken = await admin.auth().verifyIdToken(token);
     const userId = decodedToken.uid;
@@ -58,9 +58,12 @@ export default async function handler(req: any, res: any) {
       customerId = customer.id;
 
       // Save customer ID to Firestore
-      await db.collection('users').doc(userId).set({
-        stripeCustomerId: customerId,
-      }, { merge: true });
+      await db.collection('users').doc(userId).set(
+        {
+          stripeCustomerId: customerId,
+        },
+        { merge: true },
+      );
     }
 
     const session = await stripe.checkout.sessions.create({
@@ -68,8 +71,12 @@ export default async function handler(req: any, res: any) {
       customer: customerId,
       payment_method_types: ['card'],
       line_items: [{ price: priceId, quantity: 1 }],
-      success_url: `${process.env.FRONTEND_URL || 'https://avigestao-cf5fe.web.app'}/settings?success=true`,
-      cancel_url: `${process.env.FRONTEND_URL || 'https://avigestao-cf5fe.web.app'}/settings?canceled=true`,
+      success_url: `${
+        process.env.FRONTEND_URL || 'https://avigestao-cf5fe.web.app'
+      }/settings?success=true`,
+      cancel_url: `${
+        process.env.FRONTEND_URL || 'https://avigestao-cf5fe.web.app'
+      }/settings?canceled=true`,
       metadata: { userId },
     });
 

@@ -1,4 +1,4 @@
-import * as admin from "firebase-admin";
+import * as admin from 'firebase-admin';
 
 // Initialize Firebase Admin
 if (!admin.apps.length) {
@@ -14,13 +14,14 @@ if (!admin.apps.length) {
 const db = admin.firestore();
 
 export default async function handler(req: any, res: any) {
-  if (req.method !== "POST") {
-    return res.status(405).json({ error: "Method not allowed" });
+  if (req.method !== 'POST') {
+    return res.status(405).json({ error: 'Method not allowed' });
   }
 
   try {
     const authHeader = req.headers?.authorization || req.headers?.Authorization;
-    const token = authHeader && typeof authHeader === 'string' ? authHeader.replace('Bearer ', '') : null;
+    const token =
+      authHeader && typeof authHeader === 'string' ? authHeader.replace('Bearer ', '') : null;
 
     if (!token) {
       return res.status(401).json({ error: 'Missing Authorization token' });
@@ -38,14 +39,14 @@ export default async function handler(req: any, res: any) {
     }
 
     const subscription = userData.subscription;
-    const isActive = subscription.status === "active" || subscription.status === "trialing";
+    const isActive = subscription.status === 'active' || subscription.status === 'trialing';
 
     return res.status(200).json({
       isActive,
       status: subscription.status,
       current_period_end: subscription.currentPeriodEnd,
       cancel_at_period_end: subscription.cancelAtPeriodEnd || false,
-      isTrial: subscription.status === "trialing",
+      isTrial: subscription.status === 'trialing',
     });
   } catch (error: any) {
     console.error('Subscription status error:', error);

@@ -1,16 +1,38 @@
-import { supabase } from "../lib/supabase";
+// Helpers de escrita: delegam para `persistRecord` quando possível.
+import { persistRecord } from './persist';
 
-export async function insertRow(table: string, payload: any) {
-  const { error } = await supabase.from(table).insert(payload);
-  if (error) throw error;
+export async function insertRow(
+  table?: string,
+  data?: Record<string, unknown>,
+  userId?: string,
+) {
+  if (!table || !userId) {
+    console.warn('insertRow: parâmetros insuficientes, operação ignorada.');
+    return false;
+  }
+  return persistRecord(table, data || {}, userId, 'insert');
 }
 
-export async function updateRow(table: string, id: string, payload: any) {
-  const { error } = await supabase.from(table).update(payload).eq("id", id);
-  if (error) throw error;
+export async function updateRow(
+  table?: string,
+  data?: Record<string, unknown>,
+  userId?: string,
+) {
+  if (!table || !userId) {
+    console.warn('updateRow: parâmetros insuficientes, operação ignorada.');
+    return false;
+  }
+  return persistRecord(table, data || {}, userId, 'update');
 }
 
-export async function deleteRow(table: string, id: string) {
-  const { error } = await supabase.from(table).delete().eq("id", id);
-  if (error) throw error;
+export async function deleteRow(
+  table?: string,
+  data?: Record<string, unknown>,
+  userId?: string,
+) {
+  if (!table || !userId) {
+    console.warn('deleteRow: parâmetros insuficientes, operação ignorada.');
+    return false;
+  }
+  return persistRecord(table, data || {}, userId, 'delete');
 }

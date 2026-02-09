@@ -1,14 +1,15 @@
-
 # Roteiro de Implementação Backend (AviGestão)
 
 Para transformar o AviGestão em um sistema multi-usuário com dados reais, siga este roteiro utilizando o **Supabase** (a melhor opção para React + Vercel).
 
 ## Passo 1: Criar o Projeto no Supabase
+
 1. Acesse [supabase.com](https://supabase.com) e crie uma conta.
 2. Crie um novo projeto chamado `avigestao`.
 3. Anote a `SUPABASE_URL` e a `SUPABASE_ANON_KEY` (você precisará delas no Vercel).
 
 ## Passo 2: Criar o Banco de Dados (Schema)
+
 Vá até a aba "SQL Editor" no Supabase e cole o código abaixo para criar todas as tabelas necessárias:
 
 ```sql
@@ -104,6 +105,7 @@ with check ( auth.uid() = user_id );
 ```
 
 ## Passo 3: Conectar o Frontend
+
 1. Instale o cliente do Supabase no seu projeto:
    `npm install @supabase/supabase-js`
 
@@ -115,11 +117,14 @@ with check ( auth.uid() = user_id );
    - Use `supabase.from('birds').select('*')` para carregar dados.
 
 ## Passo 4: Conta de Administrador
+
 No Supabase, a "Conta de Administrador" é gerenciada na aba **Authentication**.
+
 1. Você não precisa criar uma tabela de admins manual.
 2. Basta criar um usuário com seu email/senha na aba Auth ou pelo seu próprio App na tela de registro.
 3. Esse usuário terá um `user_id` único que será usado para "carimbar" todas as aves e dados criados, garantindo que só ele veja esses dados.
 
 ## Resumo da Migração
+
 1. **Hoje:** `App.tsx` usa `useState` e `localStorage`.
 2. **Futuro:** `App.tsx` usará `useEffect` para chamar a API do Supabase e popular o estado.

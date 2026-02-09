@@ -5,6 +5,7 @@
 ✅ **100% Firebase** - Cloud Functions + Firestore + Hosting
 
 Firebase Cloud Functions criadas:
+
 - `createCheckoutSession` - Criar sessão de pagamento
 - `createPortalSession` - Portal do cliente Stripe
 - `getSubscriptionStatus` - Verificar status da assinatura
@@ -39,7 +40,7 @@ STRIPE_WEBHOOK_SECRET=whsec_xxxxx
 3. Copie a **Secret Key** (começa com `sk_test_` ou `sk_live_`)
 4. Para o webhook secret:
    - Vá em **Developers → Webhooks**
-   - Crie um novo webhook apontando para: 
+   - Crie um novo webhook apontando para:
      ```
      https://us-central1-avigestao-cf5fe.cloudfunctions.net/stripeWebhook
      ```
@@ -65,11 +66,11 @@ STRIPE_WEBHOOK_SECRET=whsec_xxxxx
     currentPeriodEnd: Timestamp,
     cancelAtPeriodEnd: boolean
   },
-  
+
   // Plano
   plan: "Gratuito" | "Profissional",
   trialEndDate: Timestamp | null,
-  
+
   // Metadata
   email: "usuario@exemplo.com",
   updatedAt: Timestamp
@@ -180,31 +181,40 @@ await assinarPlano(PLANO_MENSAL);
 ## 🐛 Troubleshooting
 
 ### Erro: "CORS policy" ao chamar function
+
 ✅ **Solução**: As functions já têm CORS configurado. Certifique-se de estar usando a URL correta:
+
 ```
 https://us-central1-avigestao-cf5fe.cloudfunctions.net/createCheckoutSession
 ```
 
 ### Erro: "Missing Stripe credentials"
+
 ✅ **Solução**: Configure as variáveis:
+
 ```bash
 firebase functions:config:set stripe.secret_key="sk_xxxxx"
 firebase deploy --only functions
 ```
 
 ### Erro: "Webhook signature verification failed"
-✅ **Solução**: 
+
+✅ **Solução**:
+
 1. Verifique se o webhook no Stripe aponta para a URL correta
 2. Copie o Signing Secret correto do webhook
 3. Configure: `firebase functions:config:set stripe.webhook_secret="whsec_xxxxx"`
 
 ### Subscription não aparece no Firestore
+
 ✅ **Solução**:
+
 1. Verifique os logs: `firebase functions:log`
 2. Confirme que o webhook está recebendo eventos
 3. Teste o webhook no Stripe Dashboard (Send test webhook)
 
 ### Function timeout
+
 ✅ **Solução**: Aumente o timeout nas functions (já configurado para 60s)
 
 ## 📞 Comandos Úteis
@@ -234,6 +244,7 @@ npm run serve
 ## 💰 Custos Firebase
 
 Cloud Functions tier gratuito:
+
 - 2M invocações/mês
 - 400K GB-segundos/mês
 - 200K CPU-segundos/mês
@@ -245,4 +256,3 @@ Suficiente para começar! 🚀
 - [Stripe Docs](https://stripe.com/docs)
 - [Firebase Functions](https://firebase.google.com/docs/functions)
 - [Firebase Config](https://firebase.google.com/docs/functions/config-env)
-

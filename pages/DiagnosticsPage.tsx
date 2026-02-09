@@ -1,47 +1,87 @@
 import React, { useState, useEffect } from 'react';
-// import { supabase } from '../supabaseClient'; // REMOVIDO - Firebase only
-const supabase = null as any;
+import { auth, db } from '../lib/firebase';
+import { collection, query, where, getDocs } from 'firebase/firestore';
 
 export default function DiagnosticsPage() {
-  const [diagnostics, setDiagnostics] = useState<any>({});
+  const [diagnostics, setDiagnostics] = useState<Record<string, unknown>>({});
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const runDiagnostics = async () => {
       try {
-        // 1. Verificar sessão
-        const { data: sessionData } = await supabase.auth.getSession();
-        const userId = sessionData?.session?.user?.id;
-        const email = sessionData?.session?.user?.email;
+        const user = auth.currentUser;
+        const userId = user?.uid;
+        const email = user?.email;
 
-        // 2. Tentar carregar birds
-        const { data: birds, error: birdsError } = await supabase
-          .from('birds')
-          .select('*')
-          .eq('breeder_id', userId);
+        if (!userId) {
+          setDiagnostics({ loggedIn: false });
+          setLoading(false);
+          return;
+        }
 
-        // 3. Tentar carregar pairs
-        const { data: pairs, error: pairsError } = await supabase
-          .from('pairs')
-          .select('*')
-          .eq('user_id', userId);
+        // Try subcollection users/{userId}/birds
+        let birdsCount = 0;
+        let pairsCount = 0;
+        let birdsError: string | undefined;
+        let pairsError: string | undefined;
 
-        // 4. Verificar localStorage
+        try {
+          const birdsRef = collection(db, 'users', userId, 'birds');
+          const birdsSnap = await getDocs(birdsRef);
+          birdsCount = birdsSnap.size;
+        } catch (e) {
+          birdsError = String(e);
+        }
+
+        try {
+          const pairsRef = collection(db, 'users', userId, 'pairs');
+          const pairsSnap = await getDocs(pairsRef);
+          pairsCount = pairsSnap.size;
+        } catch (e) {
+          pairsError = String(e);
+        }
+
+        // Fallback: try global collections with breeder_id / user_id fields
+        if (birdsCount === 0) {
+          try {
+            const q = query(collection(db, 'birds'), where('breeder_id', '==', userId));
+            const snap = await getDocs(q);
+            birdsCount = snap.size;
+          } catch (e) {
+            birdsError = birdsError || String(e);
+          }
+        }
+
+        if (pairsCount === 0) {
+          try {
+            const q = query(collection(db, 'pairs'), where('user_id', '==', userId));
+            const snap = await getDocs(q);
+            pairsCount = snap.size;
+          } catch (e) {
+            pairsError = pairsError || String(e);
+          }
+        }
+
         const cachedState = localStorage.getItem(`avigestao_state_${userId}`);
 
         setDiagnostics({
-          loggedIn: !!userId,
+          loggedIn: true,
           userId,
           email,
-          birdsCount: birds?.length || 0,
-          birdsError: birdsError?.message,
-          pairsCount: pairs?.length || 0,
-          pairsError: pairsError?.message,
+          birdsCount,
+          birdsError,
+          pairsCount,
+          pairsError,
           hasCachedState: !!cachedState,
-          supabaseConnected: !birdsError && !pairsError,
+          firebaseConnected: true,
         });
-      } catch (err: any) {
-        setDiagnostics({ error: err.message });
+      } catch (err: unknown) {
+        const messageProp =
+          err && typeof err === 'object' && 'message' in err
+            ? (err as { message?: unknown }).message
+            : undefined;
+        const msg = typeof messageProp === 'string' ? messageProp : String(err);
+        setDiagnostics({ error: msg });
       } finally {
         setLoading(false);
       }
@@ -55,7 +95,7 @@ export default function DiagnosticsPage() {
   return (
     <div className="p-6 bg-white rounded-lg shadow">
       <h2 className="text-2xl font-bold mb-4">🔍 Diagnóstico</h2>
-      
+
       <div className="grid grid-cols-2 gap-4">
         {Object.entries(diagnostics).map(([key, value]) => (
           <div key={key} className="p-3 bg-gray-100 rounded">
@@ -68,14 +108,14 @@ export default function DiagnosticsPage() {
       </div>
 
       <div className="mt-4 p-4 bg-blue-100 rounded">
+        <p className="text-sm">{diagnostics.loggedIn ? '✅ Usuário logado' : '❌ Não logado'}</p>
         <p className="text-sm">
-          {diagnostics.loggedIn ? '✅ Usuário logado' : '❌ Não logado'}
+          {Number(diagnostics.birdsCount || 0) > 0
+            ? `✅ ${Number(diagnostics.birdsCount || 0)} pássaros encontrados`
+            : '❌ Nenhum pássaro'}
         </p>
         <p className="text-sm">
-          {diagnostics.birdsCount > 0 ? `✅ ${diagnostics.birdsCount} pássaros encontrados` : '❌ Nenhum pássaro'}
-        </p>
-        <p className="text-sm">
-          {diagnostics.supabaseConnected ? '✅ Supabase conectado' : '❌ Erro na conexão'}
+          {diagnostics.firebaseConnected ? '✅ Firebase disponível' : '❌ Erro na conexão'}
         </p>
       </div>
     </div>

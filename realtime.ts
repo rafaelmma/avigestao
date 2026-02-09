@@ -1,11 +1,7 @@
 // import { supabase } from './supabaseClient'; // REMOVIDO - Firebase only
 const supabase = null as any;
 
-export const subscribeTable = (
-  table: string,
-  userId: string,
-  onChange: (payload: any) => void
-) => {
+export const subscribeTable = (table: string, userId: string, onChange: (payload: any) => void) => {
   return supabase
     .channel(`realtime-${table}`)
     .on(
@@ -16,7 +12,7 @@ export const subscribeTable = (
         table,
         filter: `user_id=eq.${userId}`,
       },
-      (payload: any) => onChange(payload)
+      (payload: any) => onChange(payload),
     )
     .subscribe();
 };

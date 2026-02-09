@@ -1,5 +1,18 @@
 import React, { useState, useEffect } from 'react';
-import { Bird as BirdIcon, Search, Filter, MapPin, Calendar, Eye, ChevronDown, X, Users, Award, TreePine, ArrowLeft } from 'lucide-react';
+import {
+  Bird as BirdIcon,
+  Search,
+  Filter,
+  MapPin,
+  Calendar,
+  Eye,
+  ChevronDown,
+  X,
+  Users,
+  Award,
+  TreePine,
+  ArrowLeft,
+} from 'lucide-react';
 import { db } from '../lib/firebase';
 import { collection, query, where, getDocs } from 'firebase/firestore';
 import { Bird, BreederSettings } from '../types';
@@ -37,18 +50,17 @@ const PublicBirds: React.FC<PublicBirdsProps> = ({ onNavigateToHome }) => {
     setLoading(true);
     try {
       const birdsRef = collection(db, 'public_birds');
-      const q = query(
-        birdsRef,
-        where('isPublic', '==', true),
-        where('status', '==', 'Ativo')
-      );
-      
+      const q = query(birdsRef, where('isPublic', '==', true), where('status', '==', 'Ativo'));
+
       const snapshot = await getDocs(q);
-      const birdsData = snapshot.docs.map(birdDoc => ({
-        id: birdDoc.id,
-        ...birdDoc.data()
-      } as PublicBird));
-      
+      const birdsData = snapshot.docs.map(
+        (birdDoc) =>
+          ({
+            id: birdDoc.id,
+            ...birdDoc.data(),
+          } as PublicBird),
+      );
+
       setBirds(birdsData);
     } catch (error) {
       console.error('Erro ao buscar pássaros públicos:', error);
@@ -59,15 +71,15 @@ const PublicBirds: React.FC<PublicBirdsProps> = ({ onNavigateToHome }) => {
 
   const fetchBirdFamily = async (bird: PublicBird) => {
     if (!bird.breederId) return;
-    
+
     try {
       // Buscar todos os pássaros do mesmo criador para árvore genealógica
       const birdsRef = collection(db, 'public_birds');
       const q = query(birdsRef, where('breederId', '==', bird.breederId));
       const snapshot = await getDocs(q);
-      const familyBirds = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Bird));
+      const familyBirds = snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() } as Bird));
       setAllBirds(familyBirds);
-      
+
       // Configurações padrão mínimas para renderizar a árvore
       setBreederSettings({
         breederName: bird.breederName || 'Criador',
@@ -78,23 +90,24 @@ const PublicBirds: React.FC<PublicBirdsProps> = ({ onNavigateToHome }) => {
         sispassNumber: '',
         registrationDate: '',
         renewalDate: '',
-        plan: 'Básico'
+        plan: 'Básico',
       } as BreederSettings);
-      
+
       setSelectedBird(bird);
     } catch (error) {
       console.error('Erro ao buscar família do pássaro:', error);
     }
   };
 
-  const species = ['Todas', ...Array.from(new Set(birds.map(b => b.species)))];
+  const species = ['Todas', ...Array.from(new Set(birds.map((b) => b.species)))];
   const sexOptions = ['Todos', 'Macho', 'Fêmea', 'Desconhecido'];
 
-  const filteredBirds = birds.filter(bird => {
-    const matchesSearch = bird.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         bird.species.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         bird.ringNumber?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         bird.breederName?.toLowerCase().includes(searchTerm.toLowerCase());
+  const filteredBirds = birds.filter((bird) => {
+    const matchesSearch =
+      bird.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      bird.species.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      bird.ringNumber?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      bird.breederName?.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesSpecies = selectedSpecies === 'Todas' || bird.species === selectedSpecies;
     const matchesSex = selectedSex === 'Todos' || bird.sex === selectedSex;
     return matchesSearch && matchesSpecies && matchesSex;
@@ -134,9 +147,10 @@ const PublicBirds: React.FC<PublicBirdsProps> = ({ onNavigateToHome }) => {
             <h1 className="text-4xl font-black text-slate-900">Galeria de Pássaros</h1>
           </div>
           <p className="text-slate-600 text-lg max-w-2xl mx-auto">
-            Explore os pássaros cadastrados pelos criadores da plataforma e veja suas árvores genealógicas
+            Explore os pássaros cadastrados pelos criadores da plataforma e veja suas árvores
+            genealógicas
           </p>
-          
+
           {/* Stats */}
           <div className="flex items-center justify-center gap-8 mt-6">
             <div className="flex items-center gap-2 text-slate-600">
@@ -146,7 +160,7 @@ const PublicBirds: React.FC<PublicBirdsProps> = ({ onNavigateToHome }) => {
             </div>
             <div className="flex items-center gap-2 text-slate-600">
               <Users size={20} className="text-purple-600" />
-              <span className="font-bold">{new Set(birds.map(b => b.breederId)).size}</span>
+              <span className="font-bold">{new Set(birds.map((b) => b.breederId)).size}</span>
               <span className="text-sm">Criadores</span>
             </div>
           </div>
@@ -173,30 +187,45 @@ const PublicBirds: React.FC<PublicBirdsProps> = ({ onNavigateToHome }) => {
           >
             <Filter size={16} />
             {showFilters ? 'Ocultar Filtros' : 'Mostrar Filtros'}
-            <ChevronDown size={16} className={`transition-transform ${showFilters ? 'rotate-180' : ''}`} />
+            <ChevronDown
+              size={16}
+              className={`transition-transform ${showFilters ? 'rotate-180' : ''}`}
+            />
           </button>
 
           {/* Filters */}
           {showFilters && (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-4 border-t border-slate-100">
               <div>
-                <label className="block text-xs font-bold text-slate-600 uppercase mb-2">Espécie</label>
+                <label className="block text-xs font-bold text-slate-600 uppercase mb-2">
+                  Espécie
+                </label>
                 <select
                   value={selectedSpecies}
                   onChange={(e) => setSelectedSpecies(e.target.value)}
                   className="w-full px-4 py-3 bg-slate-50 rounded-xl text-slate-900 focus:outline-none focus:ring-2 focus:ring-brand/30"
                 >
-                  {species.map(s => <option key={s} value={s}>{s}</option>)}
+                  {species.map((s) => (
+                    <option key={s} value={s}>
+                      {s}
+                    </option>
+                  ))}
                 </select>
               </div>
               <div>
-                <label className="block text-xs font-bold text-slate-600 uppercase mb-2">Sexo</label>
+                <label className="block text-xs font-bold text-slate-600 uppercase mb-2">
+                  Sexo
+                </label>
                 <select
                   value={selectedSex}
                   onChange={(e) => setSelectedSex(e.target.value)}
                   className="w-full px-4 py-3 bg-slate-50 rounded-xl text-slate-900 focus:outline-none focus:ring-2 focus:ring-brand/30"
                 >
-                  {sexOptions.map(s => <option key={s} value={s}>{s}</option>)}
+                  {sexOptions.map((s) => (
+                    <option key={s} value={s}>
+                      {s}
+                    </option>
+                  ))}
                 </select>
               </div>
             </div>
@@ -208,7 +237,10 @@ const PublicBirds: React.FC<PublicBirdsProps> = ({ onNavigateToHome }) => {
           {loading ? (
             <span>Carregando...</span>
           ) : (
-            <span>Mostrando <strong>{filteredBirds.length}</strong> de <strong>{birds.length}</strong> pássaros</span>
+            <span>
+              Mostrando <strong>{filteredBirds.length}</strong> de <strong>{birds.length}</strong>{' '}
+              pássaros
+            </span>
           )}
         </div>
 
@@ -241,15 +273,17 @@ const PublicBirds: React.FC<PublicBirdsProps> = ({ onNavigateToHome }) => {
                       <BirdIcon size={64} className="text-slate-300" />
                     </div>
                   )}
-                  
+
                   {/* Sex Badge */}
-                  <div className={`absolute top-3 right-3 px-3 py-1.5 rounded-full text-xs font-bold uppercase shadow-lg ${
-                    bird.sex === 'Macho' 
-                      ? 'bg-blue-500 text-white' 
-                      : bird.sex === 'Fêmea'
-                      ? 'bg-pink-500 text-white'
-                      : 'bg-slate-400 text-white'
-                  }`}>
+                  <div
+                    className={`absolute top-3 right-3 px-3 py-1.5 rounded-full text-xs font-bold uppercase shadow-lg ${
+                      bird.sex === 'Macho'
+                        ? 'bg-blue-500 text-white'
+                        : bird.sex === 'Fêmea'
+                        ? 'bg-pink-500 text-white'
+                        : 'bg-slate-400 text-white'
+                    }`}
+                  >
                     {bird.sex || 'N/D'}
                   </div>
 
@@ -267,7 +301,9 @@ const PublicBirds: React.FC<PublicBirdsProps> = ({ onNavigateToHome }) => {
                       {bird.name}
                     </h3>
                     {bird.ringNumber && (
-                      <p className="text-xs text-slate-400 font-mono mt-1">Anilha: {bird.ringNumber}</p>
+                      <p className="text-xs text-slate-400 font-mono mt-1">
+                        Anilha: {bird.ringNumber}
+                      </p>
                     )}
                   </div>
 
@@ -289,7 +325,9 @@ const PublicBirds: React.FC<PublicBirdsProps> = ({ onNavigateToHome }) => {
                   {bird.breederCity && bird.breederState && (
                     <div className="flex items-center gap-2 text-sm text-slate-500">
                       <MapPin size={16} className="text-slate-400 flex-shrink-0" />
-                      <span className="truncate">{bird.breederCity}, {bird.breederState}</span>
+                      <span className="truncate">
+                        {bird.breederCity}, {bird.breederState}
+                      </span>
                     </div>
                   )}
 
@@ -305,7 +343,10 @@ const PublicBirds: React.FC<PublicBirdsProps> = ({ onNavigateToHome }) => {
                   <div className="pt-3 border-t border-slate-100">
                     <div className="flex items-center justify-between text-xs">
                       <span className="text-slate-400 font-medium">Ver árvore genealógica</span>
-                      <TreePine size={16} className="text-brand group-hover:translate-x-1 transition-transform" />
+                      <TreePine
+                        size={16}
+                        className="text-brand group-hover:translate-x-1 transition-transform"
+                      />
                     </div>
                   </div>
                 </div>
@@ -365,29 +406,37 @@ const PublicBirds: React.FC<PublicBirdsProps> = ({ onNavigateToHome }) => {
                   <div className="space-y-3">
                     <div className="bg-slate-50 rounded-xl p-4">
                       <p className="text-xs font-bold text-slate-400 uppercase mb-1">Sexo</p>
-                      <p className="text-lg font-bold text-slate-900">{selectedBird.sex || 'Desconhecido'}</p>
+                      <p className="text-lg font-bold text-slate-900">
+                        {selectedBird.sex || 'Desconhecido'}
+                      </p>
                     </div>
-                    
+
                     {selectedBird.ringNumber && (
                       <div className="bg-slate-50 rounded-xl p-4">
                         <p className="text-xs font-bold text-slate-400 uppercase mb-1">Anilha</p>
-                        <p className="text-lg font-mono font-bold text-slate-900">{selectedBird.ringNumber}</p>
+                        <p className="text-lg font-mono font-bold text-slate-900">
+                          {selectedBird.ringNumber}
+                        </p>
                       </div>
                     )}
-                    
+
                     {selectedBird.birthDate && (
                       <div className="bg-slate-50 rounded-xl p-4">
-                        <p className="text-xs font-bold text-slate-400 uppercase mb-1">Data de Nascimento</p>
+                        <p className="text-xs font-bold text-slate-400 uppercase mb-1">
+                          Data de Nascimento
+                        </p>
                         <p className="text-lg font-bold text-slate-900">
                           {new Date(selectedBird.birthDate).toLocaleDateString('pt-BR')}
                         </p>
                       </div>
                     )}
-                    
+
                     {selectedBird.colorMutation && (
                       <div className="bg-slate-50 rounded-xl p-4">
                         <p className="text-xs font-bold text-slate-400 uppercase mb-1">Mutação</p>
-                        <p className="text-lg font-bold text-slate-900">{selectedBird.colorMutation}</p>
+                        <p className="text-lg font-bold text-slate-900">
+                          {selectedBird.colorMutation}
+                        </p>
                       </div>
                     )}
                   </div>

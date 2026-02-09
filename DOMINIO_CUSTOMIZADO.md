@@ -16,6 +16,7 @@ api.avigestao.com.br → Cloud Functions (Stripe Webhooks)
 ## 📋 Passo 1: Configurar DNS no RegistroBR
 
 ### Acesse seu painel:
+
 1. Vá para https://registrobr.net.br/
 2. Faça login
 3. Clique em **"Meus Domínios"**
@@ -25,12 +26,14 @@ api.avigestao.com.br → Cloud Functions (Stripe Webhooks)
 ### Adicione 2 registros:
 
 #### Registro 1: Raiz (avigestao.com.br)
+
 - **Tipo:** A
 - **Nome:** @ (ou deixe em branco)
 - **Valor:** `151.101.1.195` (será fornecido pelo Firebase)
 - **TTL:** 3600
 
 #### Registro 2: Subdomínio API (api.avigestao.com.br)
+
 - **Tipo:** CNAME
 - **Nome:** api
 - **Valor:** `us-central1-avigestao-cf5fe.cloudfunctions.net`
@@ -61,6 +64,7 @@ Resolve-DnsName api.avigestao.com.br
 ```
 
 Deve retornar:
+
 ```
 avigestao.com.br → 151.101.1.195
 api.avigestao.com.br → us-central1-avigestao-cf5fe.cloudfunctions.net
@@ -103,6 +107,7 @@ firebase functions:config:set stripe.webhook_secret="whsec_xxxxx"
 ```
 
 Verifique:
+
 ```bash
 firebase functions:config:get
 ```
@@ -131,6 +136,7 @@ firebase functions:config:get
 ## 🐛 Se algo não funcionar
 
 ### DNS não propaga:
+
 ```powershell
 # Limpar cache DNS Windows
 ipconfig /flushdns
@@ -141,6 +147,7 @@ Resolve-DnsName api.avigestao.com.br -Type CNAME
 ```
 
 ### Webhook não funciona:
+
 ```bash
 # Ver logs das functions
 firebase functions:log --limit 50
@@ -150,6 +157,7 @@ firebase functions:log --limit 50
 ```
 
 ### URL retorna erro 404:
+
 1. Verifique se o deploy foi bem-sucedido: `firebase deploy --only hosting`
 2. Aguarde cache do navegador: Ctrl+Shift+Delete (limpar cookies/cache)
 3. Verifique firewall/VPN (alguns bloqueiam domínios novos)
@@ -157,11 +165,13 @@ firebase functions:log --limit 50
 ## 📞 Próximos Passos
 
 ✅ **Feito:**
+
 - URLs customizadas configuradas no código
 - Build compilado
 - Documentação completa
 
 ⏳ **Faltando:**
+
 1. Adicionar registros DNS (você no RegistroBR)
 2. Verificar propagação (aguardar)
 3. Conectar domínio no Firebase
@@ -170,4 +180,3 @@ firebase functions:log --limit 50
 6. Testar!
 
 Quer que eu ajude com algum desses passos?
-

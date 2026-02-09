@@ -5,6 +5,7 @@
 Vi na sua imagem que havia **erros de encoding (caracteres corrompidos)** nos labels do formulário:
 
 ### ✅ CORRIGIDO:
+
 ```
 ❌ ANTES                          ✅ DEPOIS
 ────────────────────────────────────────
@@ -24,11 +25,13 @@ Muta├º├úo / Cor       →  Mutação / Cor
 O RLS é a **segurança final** que seu app precisa. É super simples:
 
 ### Passo 1: Abra o Supabase
+
 1. Acesse: https://app.supabase.com
 2. Login com sua conta
 3. Selecione seu projeto **AviGestão**
 
 ### Passo 2: Vá ao SQL Editor
+
 1. No menu à esquerda, clique em **SQL Editor** (ícone de código)
 2. Clique no botão **"+ New Query"** (verde, no topo)
 
@@ -99,11 +102,13 @@ CREATE POLICY "Users can only access their own sexing requests"
 ```
 
 ### Passo 4: Execute
+
 1. Clique no botão **"Run"** azul (ou Ctrl+Enter)
 2. Espere 5-10 segundos
 3. Veja a mensagem: **✓ Success. No rows returned**
 
 ### Passo 5: Confirme
+
 1. Vá em **Authentication > Policies** (menu esquerdo)
 2. Veja todas as 12 tabelas com um cadeado 🔒
 3. Pronto! RLS está ativo!
@@ -113,6 +118,7 @@ CREATE POLICY "Users can only access their own sexing requests"
 ## ✅ Teste Se Funciona
 
 ### Teste 1: Seu app deve continuar funcionando
+
 1. Recarregue a página
 2. Faça login
 3. Adicione uma ave
@@ -120,14 +126,13 @@ CREATE POLICY "Users can only access their own sexing requests"
 5. ✅ A ave deve estar lá (seu próprio dado funciona)
 
 ### Teste 2: Segurança ativa
+
 No console do navegador (F12):
+
 ```javascript
 // Isto deve FALHAR (segurança funcionando)
-const { data, error } = await supabase
-  .from('birds')
-  .select('*')
-  .eq('user_id', 'OUTRO_USUARIO');
-  
+const { data, error } = await supabase.from('birds').select('*').eq('user_id', 'OUTRO_USUARIO');
+
 console.log(error); // Deve mostrar "permission denied"
 ```
 
@@ -159,14 +164,14 @@ console.log(error); // Deve mostrar "permission denied"
 
 ## ⏱️ Quanto Tempo Leva?
 
-| Tarefa | Tempo |
-|--------|-------|
-| Abrir Supabase | 1 min |
-| Colar o SQL | 1 min |
-| Executar | 1 min |
-| Verificar | 1 min |
-| Testar no app | 1 min |
-| **TOTAL** | **~5 min** ✅ |
+| Tarefa         | Tempo         |
+| -------------- | ------------- |
+| Abrir Supabase | 1 min         |
+| Colar o SQL    | 1 min         |
+| Executar       | 1 min         |
+| Verificar      | 1 min         |
+| Testar no app  | 1 min         |
+| **TOTAL**      | **~5 min** ✅ |
 
 ---
 

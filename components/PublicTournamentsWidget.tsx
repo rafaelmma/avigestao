@@ -1,5 +1,15 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import React, { useState, useEffect } from 'react';
-import { Trophy, MapPin, Calendar, Users, ArrowRight, CheckCircle, AlertCircle, User } from 'lucide-react';
+import {
+  Trophy,
+  MapPin,
+  Calendar,
+  Users,
+  ArrowRight,
+  CheckCircle,
+  AlertCircle,
+  User,
+} from 'lucide-react';
 import { db, auth } from '../lib/firebase';
 import { collection, getDocs, query, where, orderBy, limit, addDoc } from 'firebase/firestore';
 import type { Bird } from '../types';
@@ -25,16 +35,18 @@ interface PublicTournamentsWidgetProps {
   birds?: Bird[];
 }
 
-const PublicTournamentsWidget: React.FC<PublicTournamentsWidgetProps> = ({ 
+const PublicTournamentsWidget: React.FC<PublicTournamentsWidgetProps> = ({
   onNavigateToTournaments,
-  birds = []
+  birds = [],
 }) => {
   const [tournaments, setTournaments] = useState<PublicTournament[]>([]);
   const [loading, setLoading] = useState(true);
   const [showEnrollModal, setShowEnrollModal] = useState(false);
   const [selectedTournament, setSelectedTournament] = useState<PublicTournament | null>(null);
   const [selectedBird, setSelectedBird] = useState<string>('');
-  const [enrollStatus, setEnrollStatus] = useState<'idle' | 'enrolling' | 'success' | 'error'>('idle');
+  const [enrollStatus, setEnrollStatus] = useState<'idle' | 'enrolling' | 'success' | 'error'>(
+    'idle',
+  );
   const [enrollMessage, setEnrollMessage] = useState('');
 
   useEffect(() => {
@@ -47,12 +59,12 @@ const PublicTournamentsWidget: React.FC<PublicTournamentsWidgetProps> = ({
         collection(db, 'tournaments'),
         where('status', 'in', ['upcoming', 'ongoing']),
         orderBy('startDate', 'asc'),
-        limit(3)
+        limit(3),
       );
       const snapshot = await getDocs(q);
-      const data = snapshot.docs.map(doc => ({
+      const data = snapshot.docs.map((doc) => ({
         id: doc.id,
-        ...doc.data()
+        ...doc.data(),
       })) as PublicTournament[];
       setTournaments(data);
     } catch (error) {
@@ -72,9 +84,7 @@ const PublicTournamentsWidget: React.FC<PublicTournamentsWidgetProps> = ({
     }
 
     // Filtrar pássaros compatíveis com as espécies do torneio
-    const compatibleBirds = birds.filter(bird => 
-      tournament.species.includes(bird.species)
-    );
+    const compatibleBirds = birds.filter((bird) => tournament.species.includes(bird.species));
 
     if (compatibleBirds.length === 0) {
       setEnrollMessage(`Você não tem pássaros das espécies: ${tournament.species.join(', ')}`);
@@ -94,7 +104,7 @@ const PublicTournamentsWidget: React.FC<PublicTournamentsWidgetProps> = ({
     const user = auth.currentUser;
     if (!user) return;
 
-    const bird = birds.find(b => b.id === selectedBird);
+    const bird = birds.find((b) => b.id === selectedBird);
     if (!bird) return;
 
     setEnrollStatus('enrolling');
@@ -108,7 +118,7 @@ const PublicTournamentsWidget: React.FC<PublicTournamentsWidgetProps> = ({
         birdId: bird.id,
         birdSpecies: bird.species,
         registeredAt: new Date(),
-        status: 'registered'
+        status: 'registered',
       });
 
       setEnrollStatus('success');
@@ -136,9 +146,17 @@ const PublicTournamentsWidget: React.FC<PublicTournamentsWidgetProps> = ({
   const getStatusBadge = (status: string) => {
     switch (status) {
       case 'upcoming':
-        return <span className="px-2 py-1 bg-blue-100 text-blue-700 text-xs rounded-full font-semibold">Próximo</span>;
+        return (
+          <span className="px-2 py-1 bg-blue-100 text-blue-700 text-xs rounded-full font-semibold">
+            Próximo
+          </span>
+        );
       case 'ongoing':
-        return <span className="px-2 py-1 bg-green-100 text-green-700 text-xs rounded-full font-semibold">Em Andamento</span>;
+        return (
+          <span className="px-2 py-1 bg-green-100 text-green-700 text-xs rounded-full font-semibold">
+            Em Andamento
+          </span>
+        );
       default:
         return null;
     }
@@ -187,7 +205,7 @@ const PublicTournamentsWidget: React.FC<PublicTournamentsWidgetProps> = ({
         </div>
 
         <div className="space-y-3">
-          {tournaments.map(tournament => (
+          {tournaments.map((tournament) => (
             <div
               key={tournament.id}
               className="border border-slate-200 rounded-lg p-4 hover:shadow-md transition-all cursor-pointer"
@@ -209,7 +227,9 @@ const PublicTournamentsWidget: React.FC<PublicTournamentsWidgetProps> = ({
                 {tournament.city && tournament.state && (
                   <div className="flex items-center gap-1">
                     <MapPin size={14} />
-                    <span>{tournament.city}/{tournament.state}</span>
+                    <span>
+                      {tournament.city}/{tournament.state}
+                    </span>
                   </div>
                 )}
                 {tournament.organizer && (
@@ -226,7 +246,7 @@ const PublicTournamentsWidget: React.FC<PublicTournamentsWidgetProps> = ({
 
               <div className="flex items-center justify-between">
                 <div className="flex flex-wrap gap-1">
-                  {tournament.species.slice(0, 3).map(species => (
+                  {tournament.species.slice(0, 3).map((species) => (
                     <span
                       key={species}
                       className="px-2 py-0.5 bg-slate-100 text-slate-700 text-xs rounded-full"
@@ -290,8 +310,8 @@ const PublicTournamentsWidget: React.FC<PublicTournamentsWidgetProps> = ({
               >
                 <option value="">Escolha um pássaro...</option>
                 {birds
-                  .filter(bird => selectedTournament.species.includes(bird.species))
-                  .map(bird => (
+                  .filter((bird) => selectedTournament.species.includes(bird.species))
+                  .map((bird) => (
                     <option key={bird.id} value={bird.id}>
                       {bird.name} - {bird.species}
                     </option>

@@ -11,18 +11,18 @@ interface BirdCardPrintProps {
   allBirds?: Bird[];
 }
 
-const BirdCardPrint: React.FC<BirdCardPrintProps> = ({ 
-  bird, 
-  breederName, 
+const BirdCardPrint: React.FC<BirdCardPrintProps> = ({
+  bird,
+  breederName,
   breederLogo,
   sispassNumber,
-  allBirds = []
+  allBirds = [],
 }) => {
   const [bgColor, setBgColor] = React.useState<'dark' | 'white' | 'custom'>('dark');
   const [customBgStart, setCustomBgStart] = React.useState('#1a365d');
   const [customBgEnd, setCustomBgEnd] = React.useState('#0f172a');
   const [customBorder, setCustomBorder] = React.useState('#d97706');
-  const [customTextTone, setCustomTextTone] = React.useState<'light' | 'dark'>('light');
+  const customTextTone = React.useState<'light' | 'dark'>('light')[0];
   const [showCustomizer, setShowCustomizer] = React.useState(false);
   const [activeCustomizerCard, setActiveCustomizerCard] = React.useState<'id' | 'cert'>('id');
   const [idCardWidth, setIdCardWidth] = React.useState(360);
@@ -36,13 +36,6 @@ const BirdCardPrint: React.FC<BirdCardPrintProps> = ({
   const [certBorderColor, setCertBorderColor] = React.useState('#f59e0b');
   const [certBgStart, setCertBgStart] = React.useState('#ffffff');
   const [certBgEnd, setCertBgEnd] = React.useState('#ffffff');
-  const previewScale = Math.min(
-    1,
-    320 / idCardWidth,
-    320 / certCardWidth,
-    200 / idCardHeight,
-    200 / certCardHeight
-  );
 
   // Gera QR code usando API pública - formato PNG para compatibilidade com PDF
   const generateQRCode = (text: string) => {
@@ -57,25 +50,36 @@ const BirdCardPrint: React.FC<BirdCardPrintProps> = ({
       const verificationUrl = `${window.location.origin}/bird/${bird.id}`;
       console.log('[BirdCard] URL de verificação:', verificationUrl);
       console.log('[BirdCard] Bird ID:', bird.id);
-      
+
       const qrUrl = generateQRCode(verificationUrl);
       const printDate = new Date().toLocaleDateString('pt-BR');
-      
+
       // Cores baseadas no fundo selecionado
       const isDark = bgColor === 'dark' || (bgColor === 'custom' && customTextTone === 'light');
-      const bgGradient = bgColor === 'custom'
-        ? `linear-gradient(135deg, ${customBgStart} 0%, ${customBgEnd} 100%)`
-        : (isDark ? 'linear-gradient(135deg, #1a365d 0%, #0f172a 100%)' : '#ffffff');
-      const borderColor = bgColor === 'custom' ? customBorder : (isDark ? '#d97706' : '#94a3b8');
-      const titleColor = bgColor === 'custom' ? customIdTextColor : (isDark ? '#fbbf24' : '#1a365d');
-      const labelColor = bgColor === 'custom'
-        ? (customTextTone === 'light' ? '#e2e8f0' : '#475569')
-        : (isDark ? '#cbd5e1' : '#64748b');
-      const valueColor = bgColor === 'custom' ? customIdTextColor : (isDark ? '#fbbf24' : '#0f172a');
-      const tagBg = bgColor === 'custom'
-        ? 'rgba(0, 0, 0, 0.12)'
-        : (isDark ? 'rgba(217, 119, 6, 0.2)' : 'rgba(100, 116, 139, 0.1)');
-      const tagColor = bgColor === 'custom' ? customIdTextColor : (isDark ? '#fbbf24' : '#1a365d');
+      const bgGradient =
+        bgColor === 'custom'
+          ? `linear-gradient(135deg, ${customBgStart} 0%, ${customBgEnd} 100%)`
+          : isDark
+          ? 'linear-gradient(135deg, #1a365d 0%, #0f172a 100%)'
+          : '#ffffff';
+      const borderColor = bgColor === 'custom' ? customBorder : isDark ? '#d97706' : '#94a3b8';
+      const titleColor = bgColor === 'custom' ? customIdTextColor : isDark ? '#fbbf24' : '#1a365d';
+      const labelColor =
+        bgColor === 'custom'
+          ? customTextTone === 'light'
+            ? '#e2e8f0'
+            : '#475569'
+          : isDark
+          ? '#cbd5e1'
+          : '#64748b';
+      const valueColor = bgColor === 'custom' ? customIdTextColor : isDark ? '#fbbf24' : '#0f172a';
+      const tagBg =
+        bgColor === 'custom'
+          ? 'rgba(0, 0, 0, 0.12)'
+          : isDark
+          ? 'rgba(217, 119, 6, 0.2)'
+          : 'rgba(100, 116, 139, 0.1)';
+      const tagColor = bgColor === 'custom' ? customIdTextColor : isDark ? '#fbbf24' : '#1a365d';
       const certBgGradient = `linear-gradient(135deg, ${certBgStart} 0%, ${certBgEnd} 100%)`;
 
       // Função para gerar pedigree em formato texto compacto
@@ -84,7 +88,7 @@ const BirdCardPrint: React.FC<BirdCardPrintProps> = ({
         const getBirdName = (id?: string, manualName?: string): string => {
           if (manualName) return manualName.substring(0, 15);
           if (id) {
-            const foundBird = allBirds.find(b => b.id === id);
+            const foundBird = allBirds.find((b) => b.id === id);
             if (foundBird) return foundBird.name.substring(0, 15);
             return id.substring(0, 8).toUpperCase();
           }
@@ -168,7 +172,9 @@ const BirdCardPrint: React.FC<BirdCardPrintProps> = ({
               right: -50%;
               width: 200%;
               height: 200%;
-              background: radial-gradient(circle, rgba(217, 119, 6, ${isDark ? '0.03' : '0.01'}) 1px, transparent 1px);
+              background: radial-gradient(circle, rgba(217, 119, 6, ${
+                isDark ? '0.03' : '0.01'
+              }) 1px, transparent 1px);
               background-size: 15px 15px;
               z-index: 0;
             }
@@ -190,7 +196,11 @@ const BirdCardPrint: React.FC<BirdCardPrintProps> = ({
             .logo-badge {
               width: 70px;
               height: 70px;
-              background: ${isDark ? 'linear-gradient(135deg, #eff6ff 0%, #faf5ff 100%)' : 'linear-gradient(135deg, #f0f4f8 0%, #eff6ff 100%)'};
+              background: ${
+                isDark
+                  ? 'linear-gradient(135deg, #eff6ff 0%, #faf5ff 100%)'
+                  : 'linear-gradient(135deg, #f0f4f8 0%, #eff6ff 100%)'
+              };
               border: 2px solid ${borderColor};
               border-radius: 8px;
               display: flex;
@@ -542,7 +552,9 @@ const BirdCardPrint: React.FC<BirdCardPrintProps> = ({
               <div class="card">
                 <div class="col-logo">
                   <div class="logo-badge">
-                    <img src="${breederLogo || APP_LOGO_ICON}" alt="Logo" onerror="this.style.display='none'" />
+                    <img src="${
+                      breederLogo || APP_LOGO_ICON
+                    }" alt="Logo" onerror="this.style.display='none'" />
                   </div>
                   <div class="breeder-label">${breederName.toUpperCase()}</div>
                 </div>
@@ -554,16 +566,46 @@ const BirdCardPrint: React.FC<BirdCardPrintProps> = ({
                   </div>
 
                   <div class="card-content">
-                    ${bird.ringNumber ? `<div class="data-row"><span class="data-label">Anilha:</span><span class="data-value">${bird.ringNumber}</span></div>` : ''}
-                    ${bird.sex ? `<div class="data-row"><span class="data-label">Sexo:</span><span class="data-value">${bird.sex}</span></div>` : ''}
-                    ${bird.birthDate ? `<div class="data-row"><span class="data-label">Nasc.:</span><span class="data-value">${new Date(bird.birthDate).toLocaleDateString('pt-BR')}</span></div>` : ''}
-                    ${bird.colorMutation ? `<div class="data-row"><span class="data-label">Mutação:</span><span class="data-value">${bird.colorMutation}</span></div>` : ''}
-                    ${bird.classification ? `<div class="data-row"><span class="data-label">Class.:</span><span class="data-value">${bird.classification}</span></div>` : ''}
+                    ${
+                      bird.ringNumber
+                        ? `<div class="data-row"><span class="data-label">Anilha:</span><span class="data-value">${bird.ringNumber}</span></div>`
+                        : ''
+                    }
+                    ${
+                      bird.sex
+                        ? `<div class="data-row"><span class="data-label">Sexo:</span><span class="data-value">${bird.sex}</span></div>`
+                        : ''
+                    }
+                    ${
+                      bird.birthDate
+                        ? `<div class="data-row"><span class="data-label">Nasc.:</span><span class="data-value">${new Date(
+                            bird.birthDate,
+                          ).toLocaleDateString('pt-BR')}</span></div>`
+                        : ''
+                    }
+                    ${
+                      bird.colorMutation
+                        ? `<div class="data-row"><span class="data-label">Mutação:</span><span class="data-value">${bird.colorMutation}</span></div>`
+                        : ''
+                    }
+                    ${
+                      bird.classification
+                        ? `<div class="data-row"><span class="data-label">Class.:</span><span class="data-value">${bird.classification}</span></div>`
+                        : ''
+                    }
                   </div>
 
                   <div class="card-content">
-                    ${sispassNumber ? `<div class="data-row"><span class="data-label">SISPASS:</span><span class="data-value">${sispassNumber}</span></div>` : ''}
-                    ${bird.status ? `<div class="data-row"><span class="data-label">Status:</span><span class="data-value">${bird.status}</span></div>` : ''}
+                    ${
+                      sispassNumber
+                        ? `<div class="data-row"><span class="data-label">SISPASS:</span><span class="data-value">${sispassNumber}</span></div>`
+                        : ''
+                    }
+                    ${
+                      bird.status
+                        ? `<div class="data-row"><span class="data-label">Status:</span><span class="data-value">${bird.status}</span></div>`
+                        : ''
+                    }
                   </div>
                 </div>
 
@@ -581,7 +623,9 @@ const BirdCardPrint: React.FC<BirdCardPrintProps> = ({
                 <!-- Header do Certificado -->
                 <div class="cert-header">
                   <div class="cert-logo">
-                    <img src="${breederLogo || APP_LOGO_ICON}" alt="Logo" onerror="this.style.display='none'" />
+                    <img src="${
+                      breederLogo || APP_LOGO_ICON
+                    }" alt="Logo" onerror="this.style.display='none'" />
                   </div>
                   <div class="cert-title">Certificado</div>
                   <div class="cert-bird-name">${bird.name.substring(0, 30)}</div>
@@ -631,7 +675,9 @@ const BirdCardPrint: React.FC<BirdCardPrintProps> = ({
 
                 <!-- Footer -->
                 <div class="cert-footer">
-                  <strong>${bird.ringNumber || 'S/ Anilha'}</strong> | ${new Date().toLocaleDateString('pt-BR')}
+                  <strong>${
+                    bird.ringNumber || 'S/ Anilha'
+                  }</strong> | ${new Date().toLocaleDateString('pt-BR')}
                 </div>
               </div>
             </div>
@@ -699,7 +745,9 @@ const BirdCardPrint: React.FC<BirdCardPrintProps> = ({
             <div className="sticky top-0 flex items-center justify-between bg-gradient-to-r from-blue-600 to-blue-700 px-6 py-4 rounded-t-2xl text-white">
               <div>
                 <h2 className="text-xl font-bold">Personalizar Cartão</h2>
-                <p className="text-sm text-blue-100 mt-0.5">Customize as cores e dimensões para criar seu próprio design</p>
+                <p className="text-sm text-blue-100 mt-0.5">
+                  Customize as cores e dimensões para criar seu próprio design
+                </p>
               </div>
               <button
                 onClick={() => setShowCustomizer(false)}
@@ -812,7 +860,9 @@ const BirdCardPrint: React.FC<BirdCardPrintProps> = ({
                               onChange={(e) => setIdCardWidth(Number(e.target.value))}
                               className="w-full h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer"
                             />
-                            <span className="text-xs text-slate-500 text-right">{idCardWidth}px</span>
+                            <span className="text-xs text-slate-500 text-right">
+                              {idCardWidth}px
+                            </span>
                           </label>
                           <label className="flex flex-col gap-2">
                             <span className="text-sm text-slate-700 font-medium">Altura (px)</span>
@@ -824,10 +874,14 @@ const BirdCardPrint: React.FC<BirdCardPrintProps> = ({
                               onChange={(e) => setIdCardHeight(Number(e.target.value))}
                               className="w-full h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer"
                             />
-                            <span className="text-xs text-slate-500 text-right">{idCardHeight}px</span>
+                            <span className="text-xs text-slate-500 text-right">
+                              {idCardHeight}px
+                            </span>
                           </label>
                           <label className="flex flex-col gap-2">
-                            <span className="text-sm text-slate-700 font-medium">Tamanho da Fonte</span>
+                            <span className="text-sm text-slate-700 font-medium">
+                              Tamanho da Fonte
+                            </span>
                             <input
                               type="range"
                               min={60}
@@ -836,7 +890,9 @@ const BirdCardPrint: React.FC<BirdCardPrintProps> = ({
                               onChange={(e) => setIdFontScale(Number(e.target.value))}
                               className="w-full h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer"
                             />
-                            <span className="text-xs text-slate-500 text-right">{idFontScale}%</span>
+                            <span className="text-xs text-slate-500 text-right">
+                              {idFontScale}%
+                            </span>
                           </label>
                         </div>
                       </div>
@@ -916,7 +972,9 @@ const BirdCardPrint: React.FC<BirdCardPrintProps> = ({
                               onChange={(e) => setCertCardWidth(Number(e.target.value))}
                               className="w-full h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer"
                             />
-                            <span className="text-xs text-slate-500 text-right">{certCardWidth}px</span>
+                            <span className="text-xs text-slate-500 text-right">
+                              {certCardWidth}px
+                            </span>
                           </label>
                           <label className="flex flex-col gap-2">
                             <span className="text-sm text-slate-700 font-medium">Altura (px)</span>
@@ -928,10 +986,14 @@ const BirdCardPrint: React.FC<BirdCardPrintProps> = ({
                               onChange={(e) => setCertCardHeight(Number(e.target.value))}
                               className="w-full h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer"
                             />
-                            <span className="text-xs text-slate-500 text-right">{certCardHeight}px</span>
+                            <span className="text-xs text-slate-500 text-right">
+                              {certCardHeight}px
+                            </span>
                           </label>
                           <label className="flex flex-col gap-2">
-                            <span className="text-sm text-slate-700 font-medium">Tamanho da Fonte</span>
+                            <span className="text-sm text-slate-700 font-medium">
+                              Tamanho da Fonte
+                            </span>
                             <input
                               type="range"
                               min={60}
@@ -940,7 +1002,9 @@ const BirdCardPrint: React.FC<BirdCardPrintProps> = ({
                               onChange={(e) => setCertFontScale(Number(e.target.value))}
                               className="w-full h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer"
                             />
-                            <span className="text-xs text-slate-500 text-right">{certFontScale}%</span>
+                            <span className="text-xs text-slate-500 text-right">
+                              {certFontScale}%
+                            </span>
                           </label>
                         </div>
                       </div>
@@ -955,21 +1019,30 @@ const BirdCardPrint: React.FC<BirdCardPrintProps> = ({
                     <div
                       className="rounded-lg border-2 p-2 mx-auto"
                       style={{
-                        background: activeCustomizerCard === 'id'
-                          ? `linear-gradient(135deg, ${customBgStart} 0%, ${customBgEnd} 100%)`
-                          : `linear-gradient(135deg, ${certBgStart} 0%, ${certBgEnd} 100%)`,
+                        background:
+                          activeCustomizerCard === 'id'
+                            ? `linear-gradient(135deg, ${customBgStart} 0%, ${customBgEnd} 100%)`
+                            : `linear-gradient(135deg, ${certBgStart} 0%, ${certBgEnd} 100%)`,
                         borderColor: activeCustomizerCard === 'id' ? customBorder : certBorderColor,
                         color: activeCustomizerCard === 'id' ? customIdTextColor : certTextColor,
-                        width: activeCustomizerCard === 'id' ? Math.min(idCardWidth, 240) : Math.min(certCardWidth, 240),
-                        height: activeCustomizerCard === 'id' ? Math.min(idCardHeight, 150) : Math.min(certCardHeight, 150),
-                        fontSize: `${activeCustomizerCard === 'id' ? idFontScale : certFontScale}%`
+                        width:
+                          activeCustomizerCard === 'id'
+                            ? Math.min(idCardWidth, 240)
+                            : Math.min(certCardWidth, 240),
+                        height:
+                          activeCustomizerCard === 'id'
+                            ? Math.min(idCardHeight, 150)
+                            : Math.min(certCardHeight, 150),
+                        fontSize: `${activeCustomizerCard === 'id' ? idFontScale : certFontScale}%`,
                       }}
                     >
                       <div className="text-[8px] font-bold uppercase text-center">
                         {activeCustomizerCard === 'id' ? bird.name || 'PÁSSARO' : 'CERTIFICADO'}
                       </div>
                       <div className="text-[6px] text-center opacity-75 mt-1">
-                        {activeCustomizerCard === 'id' ? bird.ringNumber || 'Anilha' : bird.name || 'PÁSSARO'}
+                        {activeCustomizerCard === 'id'
+                          ? bird.ringNumber || 'Anilha'
+                          : bird.name || 'PÁSSARO'}
                       </div>
                     </div>
                   </div>

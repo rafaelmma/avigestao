@@ -1,6 +1,7 @@
 # ✅ How to Run RLS Implementation (Step-by-Step)
 
 ## What is RLS?
+
 RLS (Row-Level Security) is a database feature that prevents users from accessing each other's data at the **database level** (not just the frontend). It's the final security piece your app needs.
 
 **Current State:** Frontend filters data (can be bypassed)  
@@ -11,16 +12,19 @@ RLS (Row-Level Security) is a database feature that prevents users from accessin
 ## 🚀 Implementation (Copy-Paste Ready)
 
 ### Step 1: Open Supabase Dashboard
+
 1. Go to https://app.supabase.com
 2. Login with your account
 3. **Select your AviGestão project**
 4. In the left sidebar, click **SQL Editor** (looks like a code icon)
 
 ### Step 2: Create a New Query
+
 1. Click the **"+ New Query"** button (top left of SQL Editor)
 2. A blank SQL editor window opens
 
 ### Step 3: Copy-Paste This SQL Code
+
 Paste the **entire code below** into the SQL editor:
 
 ```sql
@@ -115,16 +119,19 @@ CREATE POLICY "Users can only access their own sexing requests"
 ```
 
 ### Step 4: Execute the SQL
+
 1. Click the **blue "Run" button** (or press Ctrl+Enter)
 2. Wait for the query to complete (usually 5-10 seconds)
 3. You should see: **✓ Success. No rows returned**
 
 ### Step 5: Verify It Worked
+
 1. Go to **Authentication > Policies** (left sidebar under "Authentication")
 2. You should see all 12 tables listed with a policy badge
 3. Confirm each table shows: "✓ [Number] policies"
 
 **Example:**
+
 ```
 🔒 birds              ✓ 1 policy
 🔒 pairs              ✓ 1 policy
@@ -145,6 +152,7 @@ CREATE POLICY "Users can only access their own sexing requests"
 ## ✅ Test That It Works
 
 ### Test 1: Your App Should Still Work
+
 1. Refresh your app
 2. Login as your user
 3. Add a bird
@@ -152,6 +160,7 @@ CREATE POLICY "Users can only access their own sexing requests"
 5. **✅ Bird should still be there** (means RLS allows your own data)
 
 ### Test 2: Verify Security
+
 In your browser console (F12 → Console tab):
 
 ```javascript
@@ -169,43 +178,50 @@ console.log(error); // Should say "permission denied"
 ## 🚨 If Something Goes Wrong
 
 ### Error: "relation does not exist"
+
 **Cause:** Table name is wrong  
 **Fix:** Check exact table names in Supabase dashboard → Tables
 
 ### Error: "new row violates row-level security policy"
+
 **Cause:** `user_id` doesn't match your auth user  
 **Fix:** In your app code, make sure you're setting:
+
 ```typescript
-user_id: session.user.id  // This must match auth
+user_id: session.user.id; // This must match auth
 ```
 
 ### Data Disappears
+
 **Cause:** Old data doesn't have `user_id` set  
 **Fix:** Update existing rows (run this SQL):
+
 ```sql
 UPDATE birds SET user_id = 'YOUR_USER_ID_HERE' WHERE user_id IS NULL;
 -- Repeat for other tables
 ```
 
 ### Disable RLS Temporarily (for debugging)
+
 ```sql
 ALTER TABLE birds DISABLE ROW LEVEL SECURITY;
 -- Repeat for other tables
 ```
+
 ⚠️ Only use this temporarily! Re-enable when done.
 
 ---
 
 ## 🎯 Summary
 
-| Step | Action | Time | Status |
-|------|--------|------|--------|
-| 1 | Open Supabase Dashboard | 1 min | 📍 Start here |
-| 2 | Click SQL Editor | 10 sec | ✅ Easy |
-| 3 | Copy-paste SQL code | 30 sec | ✅ Easy |
-| 4 | Click Run button | 10 sec | ✅ Easy |
-| 5 | Verify in Policies tab | 30 sec | ✅ Easy |
-| 6 | Test in your app | 2 min | ✅ Should work |
+| Step | Action                  | Time   | Status         |
+| ---- | ----------------------- | ------ | -------------- |
+| 1    | Open Supabase Dashboard | 1 min  | 📍 Start here  |
+| 2    | Click SQL Editor        | 10 sec | ✅ Easy        |
+| 3    | Copy-paste SQL code     | 30 sec | ✅ Easy        |
+| 4    | Click Run button        | 10 sec | ✅ Easy        |
+| 5    | Verify in Policies tab  | 30 sec | ✅ Easy        |
+| 6    | Test in your app        | 2 min  | ✅ Should work |
 
 **Total Time:** ~5 minutes
 
@@ -239,11 +255,13 @@ After RLS is done, your app is **production ready**! 🎉
 ## 💡 Pro Tips
 
 **If you want to see RLS policies you just created:**
+
 ```sql
 SELECT * FROM pg_policies;
 ```
 
 **If you want to temporarily test without RLS:**
+
 ```sql
 -- Run these to disable RLS temporarily
 ALTER TABLE birds DISABLE ROW LEVEL SECURITY;
@@ -252,6 +270,7 @@ ALTER TABLE pairs DISABLE ROW LEVEL SECURITY;
 ```
 
 **If you need to delete a policy:**
+
 ```sql
 DROP POLICY "Users can only access their own birds" ON birds;
 ```

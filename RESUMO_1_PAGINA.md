@@ -32,15 +32,15 @@ Acessibilidade baixa  → WCAG AA ✓
 
 ## 📊 7 FASES EM 3 DIAS
 
-| DIA | FASE | TEMPO | O QUE FAZ | Arquivos |
-|-----|------|-------|----------|----------|
-| 1 | Design System | 1h | Cria tokens (cores, espaçamento, tipografia) | `lib/designSystem.ts` |
-| 1 | Componentes UI | 1.5h | Cria 5 componentes reutilizáveis | `components/ui/*.tsx` |
-| 2 | Cards | 2h | Refatora cards do BirdManager | `pages/BirdManager.tsx` |
-| 2 | Modais | 2h | Reorganiza modais em seções | `components/BirdDetailModal.tsx` |
-| 3 | Navegação | 1h | Melhora sistema de tabs | `components/BirdListTabs.tsx` |
-| 3 | Polimento | 1h | Ajusta cores, espaçamentos | `Dashboard.tsx`, `index.css` |
-| 3 | Testes | 1h | Valida e deploya | Terminal |
+| DIA | FASE           | TEMPO | O QUE FAZ                                    | Arquivos                         |
+| --- | -------------- | ----- | -------------------------------------------- | -------------------------------- |
+| 1   | Design System  | 1h    | Cria tokens (cores, espaçamento, tipografia) | `lib/designSystem.ts`            |
+| 1   | Componentes UI | 1.5h  | Cria 5 componentes reutilizáveis             | `components/ui/*.tsx`            |
+| 2   | Cards          | 2h    | Refatora cards do BirdManager                | `pages/BirdManager.tsx`          |
+| 2   | Modais         | 2h    | Reorganiza modais em seções                  | `components/BirdDetailModal.tsx` |
+| 3   | Navegação      | 1h    | Melhora sistema de tabs                      | `components/BirdListTabs.tsx`    |
+| 3   | Polimento      | 1h    | Ajusta cores, espaçamentos                   | `Dashboard.tsx`, `index.css`     |
+| 3   | Testes         | 1h    | Valida e deploya                             | Terminal                         |
 
 **Total: 13 horas** ÷ 3 dias = **~4h por dia**
 
@@ -49,16 +49,19 @@ Acessibilidade baixa  → WCAG AA ✓
 ## 🎬 COMEÇAR AGORA
 
 ### PASSO 1: Setup (5 min)
+
 ```bash
 git checkout -b feature/refactor-uxui-design-system
 ```
 
 ### PASSO 2: Fase 1 (1h)
+
 - [ ] Criar `lib/designSystem.ts` (copiar de PLANO)
 - [ ] Atualizar `index.css` (copiar novo @layer)
 - [ ] Build: `npm run build` ✓
 
 ### PASSO 3: Fase 2 (1.5h)
+
 - [ ] Criar `components/ui/Badge.tsx`
 - [ ] Criar `components/ui/Card.tsx`
 - [ ] Criar `components/ui/DropdownMenu.tsx`
@@ -67,6 +70,7 @@ git checkout -b feature/refactor-uxui-design-system
 - [ ] Build: `npm run build` ✓
 
 ### PASSO 4: Commit
+
 ```bash
 git add .
 git commit -m "feat: design system + componentes ui"
@@ -115,6 +119,7 @@ git push
 ## ✅ CHECKLIST POR FASE
 
 ### FASE 1-2 (Noite 1: 3h)
+
 ```
 [ ] lib/designSystem.ts criado
 [ ] index.css atualizado
@@ -124,6 +129,7 @@ git push
 ```
 
 ### FASE 3-4 (Noite 2: 4h)
+
 ```
 [ ] Cards refatorados
 [ ] BirdDetailModal criado
@@ -133,6 +139,7 @@ git push
 ```
 
 ### FASE 5-7 (Noite 3: 3h)
+
 ```
 [ ] BirdListTabs criado
 [ ] Polimento visual OK
@@ -194,6 +201,7 @@ firebase deploy --only hosting
 ## 🏁 RESULTADO
 
 Quando terminar 3 dias:
+
 - Interface transformada
 - Sistema de design documentado
 - Componentes reutilizáveis criados

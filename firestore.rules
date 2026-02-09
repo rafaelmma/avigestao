@@ -109,7 +109,10 @@ service cloud.firestore {
     match /tournament_inscriptions/{inscriptionId} {
       allow read: if true; // Qualquer pessoa pode ver inscrições
       allow create: if isAuthenticated(); // Usuários autenticados podem se inscrever
-      allow update, delete: if isAuthenticated() && resource.data.userId == request.auth.uid; // Apenas dono pode editar/deletar
+      allow update, delete: if isAuthenticated() && (
+        resource.data.userId == request.auth.uid ||
+        get(/databases/$(database)/documents/tournaments/$(resource.data.tournamentId)).data.createdBy == request.auth.uid
+      ); // Dono ou organizador pode editar/deletar
     }
     
     // Índice público de pássaros (mapeia birdId -> userId)

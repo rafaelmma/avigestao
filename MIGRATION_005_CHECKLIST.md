@@ -1,6 +1,7 @@
 # ✅ Checklist de Validação - Migração 005
 
 ## 🎯 Objetivo
+
 Validar que todas as alterações na Migração 005 foram aplicadas corretamente antes de executar no Supabase.
 
 ---
@@ -10,6 +11,7 @@ Validar que todas as alterações na Migração 005 foram aplicadas corretamente
 ### ✅ Banco de Dados (db/migrations/005_standardize_ids_and_constraints.sql)
 
 - [x] Criação de ENUMs para normalização de dados
+
   - [x] `bird_status_enum`
   - [x] `sex_enum`
   - [x] `bird_classification_enum`
@@ -20,6 +22,7 @@ Validar que todas as alterações na Migração 005 foram aplicadas corretamente
   - [x] `platform_enum`
 
 - [x] Conversão de tipos de ID para UUID
+
   - [x] bird_certificates.bird_id (TEXT → UUID)
   - [x] bird_certificates.event_id (TEXT → UUID)
   - [x] bird_certificates.breeder_id (TEXT → UUID)
@@ -29,6 +32,7 @@ Validar que todas as alterações na Migração 005 foram aplicadas corretamente
   - [x] birds.mother_id (TEXT → UUID)
 
 - [x] Conversão de campos de ENUM
+
   - [x] birds.status (TEXT → bird_status_enum)
   - [x] birds.sex (TEXT → sex_enum)
   - [x] birds.classification (TEXT → bird_classification_enum)
@@ -37,6 +41,7 @@ Validar que todas as alterações na Migração 005 foram aplicadas corretamente
   - [x] movements.type (TEXT → movement_type_enum)
 
 - [x] Foreign Key Constraints (15+)
+
   - [x] fk_bird_certificates_bird_id
   - [x] fk_bird_verifications_bird_id
   - [x] fk_birds_father_id
@@ -49,11 +54,13 @@ Validar que todas as alterações na Migração 005 foram aplicadas corretamente
   - [x] fk_pairs_female_id
 
 - [x] Índices de Performance (20+)
+
   - [x] Índices em Foreign Keys
   - [x] Índices em campos de busca frequente
   - [x] Índices em campos de data (DESC)
 
 - [x] Constraints NOT NULL
+
   - [x] applications: dosage, notes
   - [x] bird_certificates: bird_id, event_id
   - [x] bird_verifications: bird_id, accessed_at
@@ -70,6 +77,7 @@ Validar que todas as alterações na Migração 005 foram aplicadas corretamente
 ### ✅ Tipos TypeScript (types.ts)
 
 - [x] Tipos Enumerados
+
   - [x] BirdStatus: 'Ativo' | 'Inativo' | 'Vendido' | 'Doado' | 'Falecido' | 'Criação'
   - [x] Sex: 'Macho' | 'Fêmea' | 'Desconhecido'
   - [x] BirdClassification: 'Exemplar' | 'Reprodutor' | 'Descarte'
@@ -80,6 +88,7 @@ Validar que todas as alterações na Migração 005 foram aplicadas corretamente
   - [x] SharePlatform: 'WhatsApp' | 'Email' | 'Facebook' | 'Instagram' | 'Twitter' | 'Outro'
 
 - [x] Interface Bird Atualizada
+
   - [x] breederId: string (novo - obrigatório)
   - [x] name: string (obrigatório)
   - [x] species: string (obrigatório)
@@ -101,6 +110,7 @@ Validar que todas as alterações na Migração 005 foram aplicadas corretamente
 ### ✅ Serviços (services/dataService.ts)
 
 - [x] Mapeador mapBirdFromDb
+
   - [x] Mapear breeder_id → breederId
   - [x] Tipagem correta para status (BirdStatus)
   - [x] Tipagem correta para sex (Sex)
@@ -108,20 +118,24 @@ Validar que todas as alterações na Migração 005 foram aplicadas corretamente
   - [x] Tipagem correta para songTrainingStatus (TrainingStatus)
 
 - [x] Mapeador mapMovementFromDb
+
   - [x] Adicionar userId
   - [x] Tipagem movementType
   - [x] Tornados birdId, type opcionais
 
 - [x] Mapeador mapMedicationFromDb
+
   - [x] Adicionar userId (obrigatório)
   - [x] Tipagem MedicationType
 
 - [x] Mapeador mapPairFromDb
+
   - [x] Adicionar userId (obrigatório)
   - [x] Remover campos legados (status, name, lastHatchDate, archivedAt)
   - [x] Tornar maleId, femaleId opcionais
 
 - [x] Mapeador mapClutchFromDb
+
   - [x] Adicionar userId (obrigatório)
 
 - [x] Mapeador mapApplicationFromDb
@@ -130,13 +144,16 @@ Validar que todas as alterações na Migração 005 foram aplicadas corretamente
 ### ✅ Código Existente (Compatibilidade)
 
 - [x] lib/birdSync.ts - saveBirdToSupabase
+
   - [x] Já usa breeder_id (✓ OK)
   - [x] Sem alterações necessárias
 
 - [x] pages/BirdManager.tsx
+
   - [x] Sem alterações críticas necessárias (tipos automáticos)
 
 - [x] pages/BreedingManager.tsx
+
   - [x] Sem alterações críticas necessárias
 
 - [x] App.tsx
@@ -189,12 +206,14 @@ npm run dev
 ## 🚀 Instruções de Execução (SUPABASE)
 
 ### Pré-Requisitos
+
 - [ ] Backup criado
 - [ ] Dev team notificado
 - [ ] Nenhum usuário ativo
 - [ ] Arquivo 005_standardize_ids_and_constraints.sql validado
 
 ### Execução
+
 1. [ ] Copiar conteúdo de db/migrations/005_standardize_ids_and_constraints.sql
 2. [ ] Abrir Supabase → SQL Editor
 3. [ ] Colar SQL
@@ -202,6 +221,7 @@ npm run dev
 5. [ ] Verificar sucesso (ver checklist de validação)
 
 ### Pós-Migração
+
 - [ ] Testar login
 - [ ] Testar criar nova ave
 - [ ] Testar listar aves
@@ -231,14 +251,14 @@ Após migração e deployment, validar:
 SELECT typname FROM pg_type WHERE typname LIKE '%enum%' ORDER BY typname;
 
 -- 2. Foreign Keys
-SELECT constraint_name FROM information_schema.table_constraints 
+SELECT constraint_name FROM information_schema.table_constraints
 WHERE table_name = 'birds' AND constraint_type = 'FOREIGN KEY';
 
 -- 3. Índices
 SELECT indexname FROM pg_indexes WHERE tablename = 'birds' ORDER BY indexname;
 
 -- 4. Tipos de coluna
-SELECT column_name, data_type FROM information_schema.columns 
+SELECT column_name, data_type FROM information_schema.columns
 WHERE table_name = 'birds' ORDER BY ordinal_position;
 
 -- 5. Status de dados
@@ -250,14 +270,14 @@ SELECT COUNT(DISTINCT breeder_id) as breeders FROM birds;
 
 ## 📊 Métricas Esperadas
 
-| Métrica | Valor |
-|---------|-------|
-| **Total de ENUMs criados** | 8 |
-| **Total de Foreign Keys** | 10+ |
-| **Total de Índices adicionados** | 20+ |
-| **Campos convertidos para UUID** | 7+ |
-| **Campos convertidos para ENUM** | 6+ |
-| **Tempo esperado de execução** | 2-10 min |
+| Métrica                          | Valor    |
+| -------------------------------- | -------- |
+| **Total de ENUMs criados**       | 8        |
+| **Total de Foreign Keys**        | 10+      |
+| **Total de Índices adicionados** | 20+      |
+| **Campos convertidos para UUID** | 7+       |
+| **Campos convertidos para ENUM** | 6+       |
+| **Tempo esperado de execução**   | 2-10 min |
 
 ---
 
@@ -271,4 +291,3 @@ SELECT COUNT(DISTINCT breeder_id) as breeders FROM birds;
 ---
 
 **Dúvidas?** Consulte MIGRATION_GUIDE_005.md
-

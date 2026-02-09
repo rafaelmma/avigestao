@@ -11,12 +11,12 @@ interface BirdCertificateProps {
   sispassNumber?: string;
 }
 
-const BirdCertificate: React.FC<BirdCertificateProps> = ({ 
-  bird, 
-  event, 
-  breederName, 
+const BirdCertificate: React.FC<BirdCertificateProps> = ({
+  bird,
+  event,
+  breederName,
   breederLogo,
-  sispassNumber 
+  sispassNumber,
 }) => {
   const [isGenerating, setIsGenerating] = useState(false);
 
@@ -29,7 +29,7 @@ const BirdCertificate: React.FC<BirdCertificateProps> = ({
   const handleGenerateCertificate = () => {
     setIsGenerating(true);
     const printWindow = window.open('', '', 'width=1000,height=800');
-    
+
     if (printWindow) {
       const verificationUrl = `${window.location.origin}/bird/${bird.id}`;
       const qrUrl = generateQRCode(verificationUrl);
@@ -292,7 +292,9 @@ const BirdCertificate: React.FC<BirdCertificateProps> = ({
             <div class="content">
               <div class="header">
                 <div class="logo-box">
-                  <img src="${breederLogo || APP_LOGO_ICON}" alt="Logo" onerror="this.style.display='none'" />
+                  <img src="${
+                    breederLogo || APP_LOGO_ICON
+                  }" alt="Logo" onerror="this.style.display='none'" />
                 </div>
                 <div class="trophy-icon">🏆</div>
                 <div class="qr-box">
@@ -343,13 +345,19 @@ const BirdCertificate: React.FC<BirdCertificateProps> = ({
               <div class="footer">
                 <div class="breeder-info">
                   <div class="breeder-name">${breederName}</div>
-                  ${sispassNumber ? `<div class="breeder-sispass">SISPASS: ${sispassNumber}</div>` : ''}
+                  ${
+                    sispassNumber
+                      ? `<div class="breeder-sispass">SISPASS: ${sispassNumber}</div>`
+                      : ''
+                  }
                   <div class="signature-line">Assinatura do Criador</div>
                 </div>
 
                 <div class="date-issued">
                   <div>Emitido em ${certificateDate}</div>
-                  <div style="font-size: 10px; margin-top: 5px;">ID: ${bird.id.substring(0, 8).toUpperCase()}</div>
+                  <div style="font-size: 10px; margin-top: 5px;">ID: ${bird.id
+                    .substring(0, 8)
+                    .toUpperCase()}</div>
                 </div>
               </div>
             </div>
@@ -378,7 +386,7 @@ const BirdCertificate: React.FC<BirdCertificateProps> = ({
         <Award size={16} className="text-blue-600" />
         <span>Gerar certificado de honra para este campeão</span>
       </div>
-      
+
       <div className="flex gap-3">
         <button
           onClick={handleGenerateCertificate}

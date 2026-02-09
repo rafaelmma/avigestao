@@ -1,10 +1,10 @@
-import { 
-  collection, 
-  doc, 
-  getDocs, 
+import {
+  collection,
+  doc,
+  getDocs,
   getDoc,
-  addDoc, 
-  updateDoc, 
+  addDoc,
+  updateDoc,
   deleteDoc,
   setDoc,
   Timestamp,
@@ -13,15 +13,28 @@ import {
   query,
   where,
   orderBy,
-  limit
+  limit,
 } from 'firebase/firestore';
 import { db } from '../lib/firebase';
-import { Bird, Pair, Clutch, Medication, MedicationApplication, MovementRecord, Transaction, MaintenanceTask, TournamentEvent, ContinuousTreatment, BreederSettings, MedicationCatalogItem } from '../types';
+import {
+  Bird,
+  Pair,
+  Clutch,
+  Medication,
+  MedicationApplication,
+  MovementRecord,
+  Transaction,
+  MaintenanceTask,
+  TournamentEvent,
+  ContinuousTreatment,
+  BreederSettings,
+  MedicationCatalogItem,
+} from '../types';
 import { DEFAULT_MEDICATION_CATALOG } from '../constants/medicationCatalog';
 
 // Helper para processar campos undefined como deleteField (Firestore não aceita undefined)
-const cleanUndefined = (obj: any) => {
-  const result: any = {};
+const cleanUndefined = (obj: Record<string, unknown>) => {
+  const result: Record<string, unknown> = {};
   for (const [key, value] of Object.entries(obj)) {
     if (value === undefined) {
       result[key] = deleteField(); // Deleta o campo no Firestore
@@ -33,8 +46,8 @@ const cleanUndefined = (obj: any) => {
 };
 
 // Helper para remover campos undefined (sem usar deleteField)
-const removeUndefined = (obj: any) => {
-  const result: any = {};
+const removeUndefined = (obj: Record<string, unknown>) => {
+  const result: Record<string, unknown> = {};
   for (const [key, value] of Object.entries(obj)) {
     if (value !== undefined) {
       result[key] = value;
@@ -43,15 +56,23 @@ const removeUndefined = (obj: any) => {
   return result;
 };
 
-// Helper para converter Timestamp do Firestore para string ISO
-const timestampToISO = (timestamp: any): string => {
-  if (timestamp instanceof Timestamp) {
-    return timestamp.toDate().toISOString();
+// (timestampToISO removed — não utilizado)
+
+const getErrorMessage = (err: unknown) => (err instanceof Error ? err.message : String(err));
+const debugLog = (...args: unknown[]) => {
+  if (import.meta?.env?.DEV) {
+    console.log(...args);
   }
-  return timestamp;
 };
 
-const getBreederPublicProfile = async (userId: string): Promise<{ breederName?: string; logoUrl?: string; accentColor?: string; primaryColor?: string } | null> => {
+const getBreederPublicProfile = async (
+  userId: string,
+): Promise<{
+  breederName?: string;
+  logoUrl?: string;
+  accentColor?: string;
+  primaryColor?: string;
+} | null> => {
   try {
     const settingsRef = doc(db, 'users', userId, 'settings', 'preferences');
     const snapshot = await getDoc(settingsRef);
@@ -61,11 +82,11 @@ const getBreederPublicProfile = async (userId: string): Promise<{ breederName?: 
         breederName: data.breederName || undefined,
         logoUrl: data.logoUrl || undefined,
         accentColor: data.accentColor || undefined,
-        primaryColor: data.primaryColor || undefined
+        primaryColor: data.primaryColor || undefined,
       };
     }
   } catch (error) {
-    console.error('Erro ao buscar nome do criador:', error);
+     console.error('Erro ao buscar nome do criador:', getErrorMessage(error));
   }
   return null;
 };
@@ -74,7 +95,12 @@ const buildPublicBirdPayload = (
   birdId: string,
   bird: Bird,
   userId: string,
-  breederProfile?: { breederName?: string; logoUrl?: string; accentColor?: string; primaryColor?: string } | null
+  breederProfile?: {
+    breederName?: string;
+    logoUrl?: string;
+    accentColor?: string;
+    primaryColor?: string;
+  } | null,
 ) => {
   return cleanUndefined({
     id: birdId,
@@ -97,7 +123,7 @@ const buildPublicBirdPayload = (
     photoUrl: bird.photoUrl,
     createdAt: bird.createdAt || Timestamp.now(),
     updatedAt: Timestamp.now(),
-    isPublic: true
+    isPublic: true,
   });
 };
 
@@ -106,12 +132,14 @@ const syncPublicBird = async (userId: string, birdId: string, bird: Bird): Promi
     const publicRef = doc(db, 'public_birds', birdId);
     if (bird.isPublic) {
       const breederProfile = await getBreederPublicProfile(userId);
-      await setDoc(publicRef, buildPublicBirdPayload(birdId, bird, userId, breederProfile), { merge: true });
+      await setDoc(publicRef, buildPublicBirdPayload(birdId, bird, userId, breederProfile), {
+        merge: true,
+      });
     } else {
       await deleteDoc(publicRef);
     }
   } catch (error) {
-    console.error('Erro ao sincronizar pássaro público:', error);
+     console.error('Erro ao sincronizar pássaro público:', getErrorMessage(error));
   }
 };
 
@@ -121,11 +149,14 @@ export const getBirds = async (userId: string): Promise<Bird[]> => {
     const birdsRef = collection(db, 'users', userId, 'birds');
     // Não filtrar por deletedAt aqui, deixar para a aplicação decidir
     const snapshot = await getDocs(birdsRef);
-    const birds = snapshot.docs.map(doc => ({
-      id: doc.id,
-      ...doc.data()
-    } as Bird));
-    console.log('getBirds retornando:', birds);
+    const birds = snapshot.docs.map(
+      (doc) =>
+        ({
+          id: doc.id,
+          ...doc.data(),
+        } as Bird),
+    );
+    debugLog('getBirds retornando:', birds);
     return birds;
   } catch (error) {
     console.error('Erro ao buscar birds:', error);
@@ -139,23 +170,23 @@ export const addBird = async (userId: string, bird: Omit<Bird, 'id'>): Promise<s
     const docRef = await addDoc(birdsRef, {
       ...bird,
       createdAt: Timestamp.now(),
-      updatedAt: Timestamp.now()
+      updatedAt: Timestamp.now(),
     });
-    
+
     // Criar índice público para permitir busca via QR code
     const indexRef = doc(db, 'bird_index', docRef.id);
     await setDoc(indexRef, {
       userId,
       birdId: docRef.id,
-      createdAt: Timestamp.now()
+      createdAt: Timestamp.now(),
     });
-    
-    console.log('[addBird] Índice público criado para:', docRef.id);
+
+    debugLog('[addBird] Índice público criado para:', docRef.id);
 
     if (bird.isPublic) {
       await syncPublicBird(userId, docRef.id, { ...bird, id: docRef.id } as Bird);
     }
-    
+
     return docRef.id;
   } catch (error) {
     console.error('Erro ao adicionar bird:', error);
@@ -163,33 +194,37 @@ export const addBird = async (userId: string, bird: Omit<Bird, 'id'>): Promise<s
   }
 };
 
-export const updateBird = async (userId: string, birdId: string, updates: Partial<Bird>): Promise<boolean> => {
+export const updateBird = async (
+  userId: string,
+  birdId: string,
+  updates: Partial<Bird>,
+): Promise<boolean> => {
   try {
     const birdRef = doc(db, 'users', userId, 'birds', birdId);
     const cleanedUpdates = cleanUndefined({
       ...updates,
-      updatedAt: Timestamp.now()
+      updatedAt: Timestamp.now(),
     });
     await updateDoc(birdRef, cleanedUpdates);
-    
+
     // Garantir que o índice público existe (para pássaros antigos)
     const indexRef = doc(db, 'bird_index', birdId);
     const indexSnapshot = await getDoc(indexRef);
-    
+
     if (!indexSnapshot.exists()) {
       await setDoc(indexRef, {
         userId,
         birdId,
-        createdAt: Timestamp.now()
+        createdAt: Timestamp.now(),
       });
-      console.log('[updateBird] Índice público criado para pássaro existente:', birdId);
+      debugLog('[updateBird] Índice público criado para pássaro existente:', birdId);
     }
 
     const updatedSnapshot = await getDoc(birdRef);
     if (updatedSnapshot.exists()) {
       await syncPublicBird(userId, birdId, updatedSnapshot.data() as Bird);
     }
-    
+
     return true;
   } catch (error) {
     console.error('Erro ao atualizar bird:', error);
@@ -199,8 +234,8 @@ export const updateBird = async (userId: string, birdId: string, updates: Partia
 
 export const syncPublicBirdsForUser = async (userId: string, birds: Bird[]): Promise<void> => {
   try {
-    const publicBirds = (birds || []).filter(bird => bird?.isPublic && bird.id);
-    const birdsById = new Map(birds.filter(b => b.id).map(b => [b.id, b]));
+    const publicBirds = (birds || []).filter((bird) => bird?.isPublic && bird.id);
+    const birdsById = new Map(birds.filter((b) => b.id).map((b) => [b.id, b]));
 
     const resolveAncestor = (root: Bird, path: string): Bird | undefined => {
       let current: Bird | undefined = root;
@@ -213,11 +248,26 @@ export const syncPublicBirdsForUser = async (userId: string, birds: Bird[]): Pro
       return current;
     };
 
-    const ancestorPaths = ['f', 'm', 'ff', 'fm', 'mf', 'mm', 'fff', 'ffm', 'fmf', 'fmm', 'mff', 'mfm', 'mmf', 'mmm'];
+    const ancestorPaths = [
+      'f',
+      'm',
+      'ff',
+      'fm',
+      'mf',
+      'mm',
+      'fff',
+      'ffm',
+      'fmf',
+      'fmm',
+      'mff',
+      'mfm',
+      'mmf',
+      'mmm',
+    ];
 
-    const hydratedPublicBirds = publicBirds.map(bird => {
+    const hydratedPublicBirds = publicBirds.map((bird) => {
       const manualAncestors = { ...(bird.manualAncestors || {}) } as Record<string, string>;
-      ancestorPaths.forEach(path => {
+      ancestorPaths.forEach((path) => {
         if (!manualAncestors[path]) {
           const ancestor = resolveAncestor(bird, path);
           if (ancestor?.name) {
@@ -228,7 +278,7 @@ export const syncPublicBirdsForUser = async (userId: string, birds: Bird[]): Pro
       return { ...bird, manualAncestors } as Bird;
     });
 
-    await Promise.all(hydratedPublicBirds.map(bird => syncPublicBird(userId, bird.id, bird)));
+    await Promise.all(hydratedPublicBirds.map((bird) => syncPublicBird(userId, bird.id, bird)));
   } catch (error) {
     console.error('Erro ao sincronizar pássaros públicos do usuário:', error);
   }
@@ -239,11 +289,33 @@ export const deleteBird = async (userId: string, birdId: string): Promise<boolea
     const birdRef = doc(db, 'users', userId, 'birds', birdId);
     await updateDoc(birdRef, {
       deleted: true,
-      deletedAt: Timestamp.now()
+      deletedAt: Timestamp.now(),
     });
     return true;
   } catch (error) {
     console.error('Erro ao deletar bird:', error);
+    return false;
+  }
+};
+
+export const permanentlyDeleteBirdInFirestore = async (
+  userId: string,
+  birdId: string,
+): Promise<boolean> => {
+  try {
+    const birdRef = doc(db, 'users', userId, 'birds', birdId);
+    await deleteDoc(birdRef);
+
+    // Remover índices públicos relacionados
+    const indexRef = doc(db, 'bird_index', birdId);
+    await deleteDoc(indexRef);
+
+    const publicRef = doc(db, 'public_birds', birdId);
+    await deleteDoc(publicRef);
+
+    return true;
+  } catch (error: unknown) {
+    console.error('Erro ao deletar bird permanentemente:', getErrorMessage(error));
     return false;
   }
 };
@@ -253,10 +325,13 @@ export const getPairs = async (userId: string): Promise<Pair[]> => {
   try {
     const pairsRef = collection(db, 'users', userId, 'pairs');
     const snapshot = await getDocs(pairsRef);
-    return snapshot.docs.map(doc => ({
-      id: doc.id,
-      ...doc.data()
-    } as Pair));
+    return snapshot.docs.map(
+      (doc) =>
+        ({
+          id: doc.id,
+          ...doc.data(),
+        } as Pair),
+    );
   } catch (error) {
     console.error('Erro ao buscar pairs:', error);
     return [];
@@ -269,7 +344,7 @@ export const addPair = async (userId: string, pair: Omit<Pair, 'id'>): Promise<s
     const docRef = await addDoc(pairsRef, {
       ...pair,
       createdAt: Timestamp.now(),
-      updatedAt: Timestamp.now()
+      updatedAt: Timestamp.now(),
     });
     return docRef.id;
   } catch (error) {
@@ -278,12 +353,16 @@ export const addPair = async (userId: string, pair: Omit<Pair, 'id'>): Promise<s
   }
 };
 
-export const updatePair = async (userId: string, pairId: string, updates: Partial<Pair>): Promise<boolean> => {
+export const updatePair = async (
+  userId: string,
+  pairId: string,
+  updates: Partial<Pair>,
+): Promise<boolean> => {
   try {
     const pairRef = doc(db, 'users', userId, 'pairs', pairId);
     const cleanedUpdates = cleanUndefined({
       ...updates,
-      updatedAt: Timestamp.now()
+      updatedAt: Timestamp.now(),
     });
     await updateDoc(pairRef, cleanedUpdates);
     return true;
@@ -298,7 +377,7 @@ export const deletePair = async (userId: string, pairId: string): Promise<boolea
     const pairRef = doc(db, 'users', userId, 'pairs', pairId);
     await updateDoc(pairRef, {
       deleted: true,
-      deletedAt: Timestamp.now()
+      deletedAt: Timestamp.now(),
     });
     return true;
   } catch (error) {
@@ -327,7 +406,7 @@ export const saveSettings = async (userId: string, settings: BreederSettings): P
     const settingsRef = doc(db, 'users', userId, 'settings', 'preferences');
     const cleanedUpdates = cleanUndefined({
       ...settings,
-      updatedAt: Timestamp.now()
+      updatedAt: Timestamp.now(),
     });
     await updateDoc(settingsRef, cleanedUpdates);
     return true;
@@ -343,16 +422,19 @@ export const getMedicationCatalog = async (): Promise<MedicationCatalogItem[]> =
     // Tentar carregar do Firestore (coleção global, não por usuário)
     const catalogRef = collection(db, 'medicationCatalog');
     const snapshot = await getDocs(catalogRef);
-    
+
     if (snapshot.docs.length > 0) {
-      return snapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data()
-      } as MedicationCatalogItem));
+      return snapshot.docs.map(
+        (doc) =>
+          ({
+            id: doc.id,
+            ...doc.data(),
+          } as MedicationCatalogItem),
+      );
     }
-    
+
     // Se não existir, retornar catálogo padrão
-    console.log('[getMedicationCatalog] Usando catálogo padrão');
+    debugLog('[getMedicationCatalog] Usando catálogo padrão');
     return DEFAULT_MEDICATION_CATALOG;
   } catch (error) {
     console.error('Erro ao buscar catálogo de medicamentos:', error);
@@ -365,11 +447,11 @@ export const getMedications = async (userId: string): Promise<Medication[]> => {
   try {
     const medsRef = collection(db, 'users', userId, 'medications');
     const snapshot = await getDocs(medsRef);
-    const medications = snapshot.docs.map(doc => {
+    const medications = snapshot.docs.map((doc) => {
       const data = doc.data();
       return {
         ...data,
-        id: doc.id  // Document ID do Firestore tem prioridade
+        id: doc.id, // Document ID do Firestore tem prioridade
       } as Medication;
     });
     return medications;
@@ -379,27 +461,30 @@ export const getMedications = async (userId: string): Promise<Medication[]> => {
   }
 };
 
-export const addMedicationInFirestore = async (userId: string, medication: Medication): Promise<string | null> => {
+export const addMedicationInFirestore = async (
+  userId: string,
+  medication: Medication,
+): Promise<string | null> => {
   try {
     const medId = medication.id;
     if (!medId) {
       console.error('[addMedicationInFirestore] Medicamento sem ID!', medication);
       return null;
     }
-    
-    console.log('[addMedicationInFirestore] Salvando medicamento com ID:', medId);
-    
+
+    debugLog('[addMedicationInFirestore] Salvando medicamento com ID:', medId);
+
     const medRef = doc(db, 'users', userId, 'medications', medId);
     const medData = removeUndefined({
       ...medication,
-      id: medId,  // Garante que o ID dentro do documento bata com o doc.id
+      id: medId, // Garante que o ID dentro do documento bata com o doc.id
       createdAt: Timestamp.now(),
-      updatedAt: Timestamp.now()
+      updatedAt: Timestamp.now(),
     });
-    
+
     await setDoc(medRef, medData);
-    
-    console.log('[addMedicationInFirestore] Medicamento salvo com sucesso! ID:', medId);
+
+    debugLog('[addMedicationInFirestore] Medicamento salvo com sucesso! ID:', medId);
     return medId;
   } catch (error) {
     console.error('Erro ao adicionar medicamento:', error);
@@ -407,15 +492,19 @@ export const addMedicationInFirestore = async (userId: string, medication: Medic
   }
 };
 
-export const updateMedicationInFirestore = async (userId: string, medId: string, updates: Partial<Medication>): Promise<boolean> => {
+export const updateMedicationInFirestore = async (
+  userId: string,
+  medId: string,
+  updates: Partial<Medication>,
+): Promise<boolean> => {
   try {
     const medRef = doc(db, 'users', userId, 'medications', medId);
     const cleanedUpdates = cleanUndefined({
       ...updates,
-      id: medId,  // Garante que o ID está sempre atualizado
-      updatedAt: Timestamp.now()
+      id: medId, // Garante que o ID está sempre atualizado
+      updatedAt: Timestamp.now(),
     });
-    
+
     // Usar setDoc com merge: true para fazer upsert (create if not exists)
     await setDoc(medRef, cleanedUpdates, { merge: true });
     return true;
@@ -425,46 +514,59 @@ export const updateMedicationInFirestore = async (userId: string, medId: string,
   }
 };
 
-export const deleteMedicationInFirestore = async (userId: string, medication: Medication): Promise<boolean> => {
+export const deleteMedicationInFirestore = async (
+  userId: string,
+  medication: Medication,
+): Promise<boolean> => {
   try {
-    console.log('[deleteMedicationInFirestore] Soft delete do medicamento:', medication.id);
+    debugLog('[deleteMedicationInFirestore] Soft delete do medicamento:', medication.id);
     const medRef = doc(db, 'users', userId, 'medications', medication.id);
-    
-    const { deleted, ...medWithoutDeleted } = medication as any;
-    
+
+    const medWithoutDeleted = { ...(medication as unknown as Record<string, unknown>) };
+    if ('deleted' in medWithoutDeleted) delete medWithoutDeleted['deleted'];
+
     const updatedMed = removeUndefined({
       ...medWithoutDeleted,
       deletedAt: Timestamp.now(),
-      updatedAt: Timestamp.now()
+      updatedAt: Timestamp.now(),
     });
-    
+
     await setDoc(medRef, updatedMed, { merge: true });
-    console.log('[deleteMedicationInFirestore] Sucesso! Medicamento marcado como deletado');
+    debugLog('[deleteMedicationInFirestore] Sucesso! Medicamento marcado como deletado');
     return true;
-  } catch (error: any) {
-    console.error('Erro ao deletar medicamento:', error);
+  } catch (error: unknown) {
+    console.error('Erro ao deletar medicamento:', getErrorMessage(error));
     return false;
   }
 };
 
-export const permanentlyDeleteMedicationInFirestore = async (userId: string, medId: string): Promise<boolean> => {
+export const permanentlyDeleteMedicationInFirestore = async (
+  userId: string,
+  medId: string,
+): Promise<boolean> => {
   try {
-    console.log('[permanentlyDeleteMedicationInFirestore] Deletando permanentemente:', medId);
-    
+    debugLog('[permanentlyDeleteMedicationInFirestore] Deletando permanentemente:', medId);
+
     const medRef = doc(db, 'users', userId, 'medications', medId);
-    
+
     const beforeSnapshot = await getDoc(medRef);
-    console.log('[permanentlyDeleteMedicationInFirestore] Documento existe ANTES?', beforeSnapshot.exists());
-    
+    debugLog(
+      '[permanentlyDeleteMedicationInFirestore] Documento existe ANTES?',
+      beforeSnapshot.exists(),
+    );
+
     await deleteDoc(medRef);
-    console.log('[permanentlyDeleteMedicationInFirestore] deleteDoc executado!');
-    
+    debugLog('[permanentlyDeleteMedicationInFirestore] deleteDoc executado!');
+
     const afterSnapshot = await getDoc(medRef);
-    console.log('[permanentlyDeleteMedicationInFirestore] Documento existe DEPOIS?', afterSnapshot.exists());
-    
+    debugLog(
+      '[permanentlyDeleteMedicationInFirestore] Documento existe DEPOIS?',
+      afterSnapshot.exists(),
+    );
+
     return true;
-  } catch (error: any) {
-    console.error('[permanentlyDeleteMedicationInFirestore] ERRO:', error);
+  } catch (error: unknown) {
+    console.error('[permanentlyDeleteMedicationInFirestore] ERRO:', getErrorMessage(error));
     return false;
   }
 };
@@ -474,20 +576,23 @@ export const getMovements = async (userId: string): Promise<MovementRecord[]> =>
   try {
     const movementsRef = collection(db, 'users', userId, 'movements');
     const snapshot = await getDocs(movementsRef);
-    
-    console.log('[getMovements] Total de docs no snapshot:', snapshot.docs.length);
-    console.log('[getMovements] IDs dos movimentos:', snapshot.docs.map(d => d.id));
-    
-    const movements = snapshot.docs.map(doc => {
+
+    debugLog('[getMovements] Total de docs no snapshot:', snapshot.docs.length);
+    debugLog(
+      '[getMovements] IDs dos movimentos:',
+      snapshot.docs.map((d) => d.id),
+    );
+
+    const movements = snapshot.docs.map((doc) => {
       const data = doc.data();
       // SEMPRE usar o document ID do Firestore como ID principal
       // Ignorar o campo "id" interno do documento para evitar conflitos
       return {
         ...data,
-        id: doc.id  // Document ID do Firestore tem prioridade
+        id: doc.id, // Document ID do Firestore tem prioridade
       } as MovementRecord;
     });
-    
+
     // Sort client-side to avoid composite index
     return movements.sort((a, b) => {
       const dateA = a.date ? new Date(a.date).getTime() : 0;
@@ -500,7 +605,10 @@ export const getMovements = async (userId: string): Promise<MovementRecord[]> =>
   }
 };
 
-export const addMovementInFirestore = async (userId: string, movement: MovementRecord): Promise<string | null> => {
+export const addMovementInFirestore = async (
+  userId: string,
+  movement: MovementRecord,
+): Promise<string | null> => {
   try {
     // Usar o ID do movimento como document ID no Firestore
     // Se não tiver ID, gerar um novo UUID
@@ -509,17 +617,17 @@ export const addMovementInFirestore = async (userId: string, movement: MovementR
       console.error('[addMovementInFirestore] Movimento sem ID!', movement);
       return null;
     }
-    
-    console.log('[addMovementInFirestore] Salvando movimento com ID:', movementId);
-    
+
+    debugLog('[addMovementInFirestore] Salvando movimento com ID:', movementId);
+
     const movementRef = doc(db, 'users', userId, 'movements', movementId);
     await setDoc(movementRef, {
       ...movement,
       createdAt: Timestamp.now(),
-      updatedAt: Timestamp.now()
+      updatedAt: Timestamp.now(),
     });
-    
-    console.log('[addMovementInFirestore] Movimento salvo com sucesso! ID:', movementId);
+
+    debugLog('[addMovementInFirestore] Movimento salvo com sucesso! ID:', movementId);
     return movementId;
   } catch (error) {
     console.error('Erro ao adicionar movement:', error);
@@ -527,12 +635,16 @@ export const addMovementInFirestore = async (userId: string, movement: MovementR
   }
 };
 
-export const updateMovementInFirestore = async (userId: string, movementId: string, updates: Partial<MovementRecord>): Promise<boolean> => {
+export const updateMovementInFirestore = async (
+  userId: string,
+  movementId: string,
+  updates: Partial<MovementRecord>,
+): Promise<boolean> => {
   try {
     const movementRef = doc(db, 'users', userId, 'movements', movementId);
     const cleanedUpdates = cleanUndefined({
       ...updates,
-      updatedAt: Timestamp.now()
+      updatedAt: Timestamp.now(),
     });
     await updateDoc(movementRef, cleanedUpdates);
     return true;
@@ -542,74 +654,103 @@ export const updateMovementInFirestore = async (userId: string, movementId: stri
   }
 };
 
-export const deleteMovementInFirestore = async (userId: string, movement: MovementRecord): Promise<boolean> => {
+export const deleteMovementInFirestore = async (
+  userId: string,
+  movement: MovementRecord,
+): Promise<boolean> => {
   try {
-    console.log('[deleteMovementInFirestore] Deletando movimento:', movement.id);
+    debugLog('[deleteMovementInFirestore] Deletando movimento:', movement.id);
     const movementRef = doc(db, 'users', userId, 'movements', movement.id);
-    
+
     // Criar cópia do movimento sem o campo "deleted" antigo (se existir)
-    const { deleted, ...movementWithoutDeleted } = movement as any;
-    
+    const movementWithoutDeleted = { ...(movement as unknown as Record<string, unknown>) };
+    const deleted = movementWithoutDeleted['deleted'];
+    if ('deleted' in movementWithoutDeleted) delete movementWithoutDeleted['deleted'];
+
     // Mesclar o movimento completo com deletedAt
     const updatedMovement = {
       ...movementWithoutDeleted,
       deletedAt: Timestamp.now(),
-      updatedAt: Timestamp.now()
+      updatedAt: Timestamp.now(),
     };
-    console.log('[deleteMovementInFirestore] updatedMovement:', updatedMovement);
-    console.log('[deleteMovementInFirestore] Campo "deleted" removido?', deleted !== undefined ? 'sim' : 'não');
-    console.log('[deleteMovementInFirestore] deletedAt é Timestamp?', updatedMovement.deletedAt instanceof Timestamp);
-    
+    debugLog('[deleteMovementInFirestore] updatedMovement:', updatedMovement);
+    debugLog(
+      '[deleteMovementInFirestore] Campo "deleted" removido?',
+      deleted !== undefined ? 'sim' : 'não',
+    );
+    debugLog(
+      '[deleteMovementInFirestore] deletedAt é Timestamp?',
+      updatedMovement.deletedAt instanceof Timestamp,
+    );
+
     // Usar setDoc com merge para fazer upsert - garante que todos os campos são salvos
     await setDoc(movementRef, updatedMovement, { merge: true });
-    console.log('[deleteMovementInFirestore] Sucesso! Movimento marcado como deletado no Firestore');
+    debugLog(
+      '[deleteMovementInFirestore] Sucesso! Movimento marcado como deletado no Firestore',
+    );
     return true;
-  } catch (error: any) {
-    console.error('Erro ao deletar movement:', error);
+  } catch (error: unknown) {
+    console.error('Erro ao deletar movement:', getErrorMessage(error));
     return false;
   }
 };
 
-export const permanentlyDeleteMovementInFirestore = async (userId: string, movementId: string): Promise<boolean> => {
+export const permanentlyDeleteMovementInFirestore = async (
+  userId: string,
+  movementId: string,
+): Promise<boolean> => {
   try {
-    console.log('[permanentlyDeleteMovementInFirestore] Iniciando...');
-    console.log('[permanentlyDeleteMovementInFirestore] userId:', userId);
-    console.log('[permanentlyDeleteMovementInFirestore] movementId:', movementId);
-    
+    debugLog('[permanentlyDeleteMovementInFirestore] Iniciando...');
+    debugLog('[permanentlyDeleteMovementInFirestore] userId:', userId);
+    debugLog('[permanentlyDeleteMovementInFirestore] movementId:', movementId);
+
     const movementRef = doc(db, 'users', userId, 'movements', movementId);
-    console.log('[permanentlyDeleteMovementInFirestore] movementRef path:', movementRef.path);
-    
+    debugLog('[permanentlyDeleteMovementInFirestore] movementRef path:', movementRef.path);
+
     // Verificar se o documento existe ANTES do delete
     const beforeSnapshot = await getDoc(movementRef);
-    console.log('[permanentlyDeleteMovementInFirestore] Documento existe ANTES do delete?', beforeSnapshot.exists());
+    debugLog(
+      '[permanentlyDeleteMovementInFirestore] Documento existe ANTES do delete?',
+      beforeSnapshot.exists(),
+    );
     if (beforeSnapshot.exists()) {
-      console.log('[permanentlyDeleteMovementInFirestore] Dados do doc ANTES:', beforeSnapshot.data());
+      debugLog(
+        '[permanentlyDeleteMovementInFirestore] Dados do doc ANTES:',
+        beforeSnapshot.data(),
+      );
     }
-    
+
     await deleteDoc(movementRef);
-    console.log('[permanentlyDeleteMovementInFirestore] deleteDoc executado!');
-    
+    debugLog('[permanentlyDeleteMovementInFirestore] deleteDoc executado!');
+
     // Verificar se o documento existe DEPOIS do delete
     const afterSnapshot = await getDoc(movementRef);
-    console.log('[permanentlyDeleteMovementInFirestore] Documento existe DEPOIS do delete?', afterSnapshot.exists());
+    debugLog(
+      '[permanentlyDeleteMovementInFirestore] Documento existe DEPOIS do delete?',
+      afterSnapshot.exists(),
+    );
     if (afterSnapshot.exists()) {
-      console.error('[permanentlyDeleteMovementInFirestore] ERRO! Documento ainda existe após delete:', afterSnapshot.data());
+      console.error(
+        '[permanentlyDeleteMovementInFirestore] ERRO! Documento ainda existe após delete:',
+        afterSnapshot.data(),
+      );
     }
-    
-    console.log('[permanentlyDeleteMovementInFirestore] deleteDoc executado com sucesso!');
-    
+
+    debugLog('[permanentlyDeleteMovementInFirestore] deleteDoc executado com sucesso!');
+
     return true;
-  } catch (error: any) {
-    console.error('[permanentlyDeleteMovementInFirestore] ERRO capturado:', error);
-    console.error('[permanentlyDeleteMovementInFirestore] Error code:', error?.code);
-    console.error('[permanentlyDeleteMovementInFirestore] Error message:', error?.message);
-    
+  } catch (error: unknown) {
+    const err = error as { code?: string; message?: string };
+    console.error('[permanentlyDeleteMovementInFirestore] ERRO capturado:', getErrorMessage(error));
+    console.error('[permanentlyDeleteMovementInFirestore] Error code:', err.code);
+    console.error('[permanentlyDeleteMovementInFirestore] Error message:', err.message);
+
     // Se o doc não existe, apenas ignorar o erro
-    if (error?.code === 'not-found') {
+    if (err.code === 'not-found') {
       console.warn('[permanentlyDeleteMovementInFirestore] Movimento não encontrado (já deletado)');
       return true; // Sucesso porque já não existe
     }
-    console.error('[permanentlyDeleteMovementInFirestore] Erro real ao deletar:', error);
+    console.error('[permanentlyDeleteMovementInFirestore] Erro real ao deletar:', getErrorMessage(error));
     return false;
   }
 };
@@ -620,11 +761,14 @@ export const getTransactions = async (userId: string): Promise<Transaction[]> =>
     const transactionsRef = collection(db, 'users', userId, 'transactions');
     const snapshot = await getDocs(transactionsRef);
     const transactions = snapshot.docs
-      .map(doc => ({
-        id: doc.id,
-        ...doc.data()
-      } as Transaction))
-      .filter(tx => !tx.deletedAt); // Filtrar apenas transações ativas
+      .map(
+        (doc) =>
+          ({
+            id: doc.id,
+            ...doc.data(),
+          } as Transaction),
+      )
+      .filter((tx) => !tx.deletedAt); // Filtrar apenas transações ativas
     // Sort client-side to avoid composite index
     return transactions.sort((a, b) => {
       const dateA = a.date ? new Date(a.date).getTime() : 0;
@@ -642,11 +786,14 @@ export const getDeletedTransactions = async (userId: string): Promise<Transactio
     const transactionsRef = collection(db, 'users', userId, 'transactions');
     const snapshot = await getDocs(transactionsRef);
     const deletedTransactions = snapshot.docs
-      .map(doc => ({
-        id: doc.id,
-        ...doc.data()
-      } as Transaction))
-      .filter(tx => tx.deletedAt); // Filtrar apenas transações deletadas
+      .map(
+        (doc) =>
+          ({
+            id: doc.id,
+            ...doc.data(),
+          } as Transaction),
+      )
+      .filter((tx) => tx.deletedAt); // Filtrar apenas transações deletadas
     // Sort client-side to avoid composite index
     return deletedTransactions.sort((a, b) => {
       const dateA = a.date ? new Date(a.date).getTime() : 0;
@@ -659,42 +806,59 @@ export const getDeletedTransactions = async (userId: string): Promise<Transactio
   }
 };
 
-export const saveTransactionToFirestore = async (userId: string, transaction: Transaction): Promise<boolean> => {
+export const saveTransactionToFirestore = async (
+  userId: string,
+  transaction: Transaction,
+): Promise<boolean> => {
   try {
     const transactionRef = doc(db, 'users', userId, 'transactions', transaction.id);
-    await setDoc(transactionRef, {
-      ...transaction,
-      updatedAt: Timestamp.now()
-    }, { merge: true });
+    await setDoc(
+      transactionRef,
+      {
+        ...transaction,
+        updatedAt: Timestamp.now(),
+      },
+      { merge: true },
+    );
     return true;
-  } catch (error: any) {
-    console.error('Erro ao salvar transação:', error);
+  } catch (error: unknown) {
+    console.error('Erro ao salvar transação:', getErrorMessage(error));
     return false;
   }
 };
 
-export const deleteTransactionInFirestore = async (userId: string, transaction: Transaction): Promise<boolean> => {
+export const deleteTransactionInFirestore = async (
+  userId: string,
+  transaction: Transaction,
+): Promise<boolean> => {
   try {
     const transactionRef = doc(db, 'users', userId, 'transactions', transaction.id);
-    await setDoc(transactionRef, {
-      ...transaction,
-      deletedAt: Timestamp.now(),
-      updatedAt: Timestamp.now()
-    }, { merge: true });
+    await setDoc(
+      transactionRef,
+      {
+        ...transaction,
+        deletedAt: Timestamp.now(),
+        updatedAt: Timestamp.now(),
+      },
+      { merge: true },
+    );
     return true;
-  } catch (error: any) {
-    console.error('Erro ao deletar transação:', error);
+  } catch (error: unknown) {
+    console.error('Erro ao deletar transação:', getErrorMessage(error));
     return false;
   }
 };
 
-export const permanentlyDeleteTransactionInFirestore = async (userId: string, transactionId: string): Promise<boolean> => {
+export const permanentlyDeleteTransactionInFirestore = async (
+  userId: string,
+  transactionId: string,
+): Promise<boolean> => {
   try {
     const transactionRef = doc(db, 'users', userId, 'transactions', transactionId);
     await deleteDoc(transactionRef);
     return true;
-  } catch (error: any) {
-    console.error('Erro ao deletar permanentemente transação:', error);
+  } catch (error: unknown) {
+    console.error('Erro ao deletar permanentemente transação:', getErrorMessage(error));
     return false;
   }
 };
@@ -704,11 +868,11 @@ export const getTasks = async (userId: string): Promise<MaintenanceTask[]> => {
   try {
     const tasksRef = collection(db, 'users', userId, 'tasks');
     const snapshot = await getDocs(tasksRef);
-    const tasks = snapshot.docs.map(doc => {
+    const tasks = snapshot.docs.map((doc) => {
       const data = doc.data();
       return {
         ...data,
-        id: doc.id  // Document ID do Firestore tem prioridade
+        id: doc.id, // Document ID do Firestore tem prioridade
       } as MaintenanceTask;
     });
     return tasks;
@@ -718,7 +882,10 @@ export const getTasks = async (userId: string): Promise<MaintenanceTask[]> => {
   }
 };
 
-export const addTaskInFirestore = async (userId: string, task: MaintenanceTask): Promise<string | null> => {
+export const addTaskInFirestore = async (
+  userId: string,
+  task: MaintenanceTask,
+): Promise<string | null> => {
   try {
     // Usar o ID da tarefa como document ID no Firestore
     const taskId = task.id;
@@ -726,19 +893,19 @@ export const addTaskInFirestore = async (userId: string, task: MaintenanceTask):
       console.error('[addTaskInFirestore] Tarefa sem ID!', task);
       return null;
     }
-    
-    console.log('[addTaskInFirestore] Salvando tarefa com ID:', taskId);
-    
+
+    debugLog('[addTaskInFirestore] Salvando tarefa com ID:', taskId);
+
     const taskRef = doc(db, 'users', userId, 'tasks', taskId);
     const taskData = removeUndefined({
       ...task,
       createdAt: Timestamp.now(),
-      updatedAt: Timestamp.now()
+      updatedAt: Timestamp.now(),
     });
-    
+
     await setDoc(taskRef, taskData);
-    
-    console.log('[addTaskInFirestore] Tarefa salva com sucesso! ID:', taskId);
+
+    debugLog('[addTaskInFirestore] Tarefa salva com sucesso! ID:', taskId);
     return taskId;
   } catch (error) {
     console.error('Erro ao adicionar tarefa:', error);
@@ -746,12 +913,16 @@ export const addTaskInFirestore = async (userId: string, task: MaintenanceTask):
   }
 };
 
-export const updateTaskInFirestore = async (userId: string, taskId: string, updates: Partial<MaintenanceTask>): Promise<boolean> => {
+export const updateTaskInFirestore = async (
+  userId: string,
+  taskId: string,
+  updates: Partial<MaintenanceTask>,
+): Promise<boolean> => {
   try {
     const taskRef = doc(db, 'users', userId, 'tasks', taskId);
     const cleanedUpdates = cleanUndefined({
       ...updates,
-      updatedAt: Timestamp.now()
+      updatedAt: Timestamp.now(),
     });
     await updateDoc(taskRef, cleanedUpdates);
     return true;
@@ -761,49 +932,62 @@ export const updateTaskInFirestore = async (userId: string, taskId: string, upda
   }
 };
 
-export const deleteTaskInFirestore = async (userId: string, task: MaintenanceTask): Promise<boolean> => {
+export const deleteTaskInFirestore = async (
+  userId: string,
+  task: MaintenanceTask,
+): Promise<boolean> => {
   try {
-    console.log('[deleteTaskInFirestore] Soft delete da tarefa:', task.id);
+    debugLog('[deleteTaskInFirestore] Soft delete da tarefa:', task.id);
     const taskRef = doc(db, 'users', userId, 'tasks', task.id);
-    
+
     // Remover campo "deleted" antigo se existir e remover undefined
-    const { deleted, ...taskWithoutDeleted } = task as any;
-    
+    const taskWithoutDeleted = { ...(task as unknown as Record<string, unknown>) };
+    if ('deleted' in taskWithoutDeleted) delete taskWithoutDeleted['deleted'];
+
     const updatedTask = removeUndefined({
       ...taskWithoutDeleted,
       deletedAt: Timestamp.now(),
-      updatedAt: Timestamp.now()
+      updatedAt: Timestamp.now(),
     });
-    
+
     await setDoc(taskRef, updatedTask, { merge: true });
-    console.log('[deleteTaskInFirestore] Sucesso! Tarefa marcada como deletada');
+    debugLog('[deleteTaskInFirestore] Sucesso! Tarefa marcada como deletada');
     return true;
-  } catch (error: any) {
-    console.error('Erro ao deletar tarefa:', error);
+  } catch (error: unknown) {
+    console.error('Erro ao deletar tarefa:', getErrorMessage(error));
     return false;
   }
 };
 
-export const permanentlyDeleteTaskInFirestore = async (userId: string, taskId: string): Promise<boolean> => {
+export const permanentlyDeleteTaskInFirestore = async (
+  userId: string,
+  taskId: string,
+): Promise<boolean> => {
   try {
-    console.log('[permanentlyDeleteTaskInFirestore] Deletando permanentemente:', taskId);
-    
+    debugLog('[permanentlyDeleteTaskInFirestore] Deletando permanentemente:', taskId);
+
     const taskRef = doc(db, 'users', userId, 'tasks', taskId);
-    
+
     // Verificar se existe ANTES do delete
     const beforeSnapshot = await getDoc(taskRef);
-    console.log('[permanentlyDeleteTaskInFirestore] Documento existe ANTES?', beforeSnapshot.exists());
-    
+    debugLog(
+      '[permanentlyDeleteTaskInFirestore] Documento existe ANTES?',
+      beforeSnapshot.exists(),
+    );
+
     await deleteDoc(taskRef);
-    console.log('[permanentlyDeleteTaskInFirestore] deleteDoc executado!');
-    
+    debugLog('[permanentlyDeleteTaskInFirestore] deleteDoc executado!');
+
     // Verificar se existe DEPOIS do delete
     const afterSnapshot = await getDoc(taskRef);
-    console.log('[permanentlyDeleteTaskInFirestore] Documento existe DEPOIS?', afterSnapshot.exists());
-    
+    debugLog(
+      '[permanentlyDeleteTaskInFirestore] Documento existe DEPOIS?',
+      afterSnapshot.exists(),
+    );
+
     return true;
-  } catch (error: any) {
-    console.error('[permanentlyDeleteTaskInFirestore] ERRO:', error);
+  } catch (error: unknown) {
+    console.error('[permanentlyDeleteTaskInFirestore] ERRO:', getErrorMessage(error));
     return false;
   }
 };
@@ -814,14 +998,14 @@ export const getTournaments = async (userId: string): Promise<TournamentEvent[]>
     const tournamentsRef = collection(db, 'users', userId, 'tournaments');
     const snapshot = await getDocs(tournamentsRef);
     const tournaments = snapshot.docs
-      .map(doc => {
+      .map((doc) => {
         const data = doc.data();
         return {
           ...data,
-          id: doc.id  // Document ID do Firestore tem prioridade
+          id: doc.id, // Document ID do Firestore tem prioridade
         } as TournamentEvent;
       })
-      .filter(tournament => !tournament.deletedAt); // Filtrar apenas eventos ativos
+      .filter((tournament) => !tournament.deletedAt); // Filtrar apenas eventos ativos
     return tournaments;
   } catch (error) {
     console.error('Erro ao buscar tournaments:', error);
@@ -834,14 +1018,14 @@ export const getDeletedTournaments = async (userId: string): Promise<TournamentE
     const tournamentsRef = collection(db, 'users', userId, 'tournaments');
     const snapshot = await getDocs(tournamentsRef);
     const deletedTournaments = snapshot.docs
-      .map(doc => {
+      .map((doc) => {
         const data = doc.data();
         return {
           ...data,
-          id: doc.id
+          id: doc.id,
         } as TournamentEvent;
       })
-      .filter(tournament => tournament.deletedAt); // Filtrar apenas eventos deletados
+      .filter((tournament) => tournament.deletedAt); // Filtrar apenas eventos deletados
     return deletedTournaments;
   } catch (error) {
     console.error('Erro ao buscar tournaments deletados:', error);
@@ -849,26 +1033,29 @@ export const getDeletedTournaments = async (userId: string): Promise<TournamentE
   }
 };
 
-export const addEventInFirestore = async (userId: string, event: TournamentEvent): Promise<string | null> => {
+export const addEventInFirestore = async (
+  userId: string,
+  event: TournamentEvent,
+): Promise<string | null> => {
   try {
     const eventId = event.id;
     if (!eventId) {
       console.error('[addEventInFirestore] Evento sem ID!', event);
       return null;
     }
-    
-    console.log('[addEventInFirestore] Salvando evento com ID:', eventId);
-    
+
+    debugLog('[addEventInFirestore] Salvando evento com ID:', eventId);
+
     const eventRef = doc(db, 'users', userId, 'tournaments', eventId);
     const eventData = removeUndefined({
       ...event,
       createdAt: Timestamp.now(),
-      updatedAt: Timestamp.now()
+      updatedAt: Timestamp.now(),
     });
-    
+
     await setDoc(eventRef, eventData);
-    
-    console.log('[addEventInFirestore] Evento salvo com sucesso! ID:', eventId);
+
+    debugLog('[addEventInFirestore] Evento salvo com sucesso! ID:', eventId);
     return eventId;
   } catch (error) {
     console.error('Erro ao adicionar evento:', error);
@@ -876,12 +1063,16 @@ export const addEventInFirestore = async (userId: string, event: TournamentEvent
   }
 };
 
-export const updateEventInFirestore = async (userId: string, eventId: string, updates: Partial<TournamentEvent>): Promise<boolean> => {
+export const updateEventInFirestore = async (
+  userId: string,
+  eventId: string,
+  updates: Partial<TournamentEvent>,
+): Promise<boolean> => {
   try {
     const eventRef = doc(db, 'users', userId, 'tournaments', eventId);
     const cleanedUpdates = cleanUndefined({
       ...updates,
-      updatedAt: Timestamp.now()
+      updatedAt: Timestamp.now(),
     });
     await updateDoc(eventRef, cleanedUpdates);
     return true;
@@ -891,46 +1082,59 @@ export const updateEventInFirestore = async (userId: string, eventId: string, up
   }
 };
 
-export const deleteEventInFirestore = async (userId: string, event: TournamentEvent): Promise<boolean> => {
+export const deleteEventInFirestore = async (
+  userId: string,
+  event: TournamentEvent,
+): Promise<boolean> => {
   try {
-    console.log('[deleteEventInFirestore] Soft delete do evento:', event.id);
+    debugLog('[deleteEventInFirestore] Soft delete do evento:', event.id);
     const eventRef = doc(db, 'users', userId, 'tournaments', event.id);
-    
-    const { deleted, ...eventWithoutDeleted } = event as any;
-    
+
+    const eventWithoutDeleted = { ...(event as unknown as Record<string, unknown>) };
+    if ('deleted' in eventWithoutDeleted) delete eventWithoutDeleted['deleted'];
+
     const updatedEvent = removeUndefined({
       ...eventWithoutDeleted,
       deletedAt: Timestamp.now(),
-      updatedAt: Timestamp.now()
+      updatedAt: Timestamp.now(),
     });
-    
+
     await setDoc(eventRef, updatedEvent, { merge: true });
-    console.log('[deleteEventInFirestore] Sucesso! Evento marcado como deletado');
+    debugLog('[deleteEventInFirestore] Sucesso! Evento marcado como deletado');
     return true;
-  } catch (error: any) {
-    console.error('Erro ao deletar evento:', error);
+  } catch (error: unknown) {
+    console.error('Erro ao deletar evento:', getErrorMessage(error));
     return false;
   }
 };
 
-export const permanentlyDeleteEventInFirestore = async (userId: string, eventId: string): Promise<boolean> => {
+export const permanentlyDeleteEventInFirestore = async (
+  userId: string,
+  eventId: string,
+): Promise<boolean> => {
   try {
-    console.log('[permanentlyDeleteEventInFirestore] Deletando permanentemente:', eventId);
-    
+    debugLog('[permanentlyDeleteEventInFirestore] Deletando permanentemente:', eventId);
+
     const eventRef = doc(db, 'users', userId, 'tournaments', eventId);
-    
+
     const beforeSnapshot = await getDoc(eventRef);
-    console.log('[permanentlyDeleteEventInFirestore] Documento existe ANTES?', beforeSnapshot.exists());
-    
+    debugLog(
+      '[permanentlyDeleteEventInFirestore] Documento existe ANTES?',
+      beforeSnapshot.exists(),
+    );
+
     await deleteDoc(eventRef);
-    console.log('[permanentlyDeleteEventInFirestore] deleteDoc executado!');
-    
+    debugLog('[permanentlyDeleteEventInFirestore] deleteDoc executado!');
+
     const afterSnapshot = await getDoc(eventRef);
-    console.log('[permanentlyDeleteEventInFirestore] Documento existe DEPOIS?', afterSnapshot.exists());
-    
+    debugLog(
+      '[permanentlyDeleteEventInFirestore] Documento existe DEPOIS?',
+      afterSnapshot.exists(),
+    );
+
     return true;
-  } catch (error: any) {
-    console.error('[permanentlyDeleteEventInFirestore] ERRO:', error);
+  } catch (error: unknown) {
+    console.error('[permanentlyDeleteEventInFirestore] ERRO:', getErrorMessage(error));
     return false;
   }
 };
@@ -940,10 +1144,13 @@ export const getApplications = async (userId: string): Promise<MedicationApplica
   try {
     const appRef = collection(db, 'users', userId, 'applications');
     const snapshot = await getDocs(appRef);
-    return snapshot.docs.map(doc => ({
-      id: doc.id,
-      ...doc.data()
-    } as MedicationApplication));
+    return snapshot.docs.map(
+      (doc) =>
+        ({
+          id: doc.id,
+          ...doc.data(),
+        } as MedicationApplication),
+    );
   } catch (error) {
     console.error('Erro ao buscar applications:', error);
     return [];
@@ -955,10 +1162,13 @@ export const getClutches = async (userId: string): Promise<Clutch[]> => {
   try {
     const clutchRef = collection(db, 'users', userId, 'clutches');
     const snapshot = await getDocs(clutchRef);
-    return snapshot.docs.map(doc => ({
-      id: doc.id,
-      ...doc.data()
-    } as Clutch));
+    return snapshot.docs.map(
+      (doc) =>
+        ({
+          id: doc.id,
+          ...doc.data(),
+        } as Clutch),
+    );
   } catch (error) {
     console.error('Erro ao buscar clutches:', error);
     return [];
@@ -970,37 +1180,43 @@ export const getTreatments = async (userId: string): Promise<ContinuousTreatment
   try {
     const treatRef = collection(db, 'users', userId, 'treatments');
     const snapshot = await getDocs(treatRef);
-    return snapshot.docs.map(doc => ({
-      id: doc.id,
-      ...doc.data()
-    } as ContinuousTreatment));
+    return snapshot.docs.map(
+      (doc) =>
+        ({
+          id: doc.id,
+          ...doc.data(),
+        } as ContinuousTreatment),
+    );
   } catch (error) {
     console.error('Erro ao buscar treatments:', error);
     return [];
   }
 };
 
-export const addTreatmentInFirestore = async (userId: string, treatment: ContinuousTreatment): Promise<string | null> => {
+export const addTreatmentInFirestore = async (
+  userId: string,
+  treatment: ContinuousTreatment,
+): Promise<string | null> => {
   try {
     const treatmentId = treatment.id;
     if (!treatmentId) {
       console.error('[addTreatmentInFirestore] Tratamento sem ID!', treatment);
       return null;
     }
-    
-    console.log('[addTreatmentInFirestore] Salvando tratamento com ID:', treatmentId);
-    
+
+    debugLog('[addTreatmentInFirestore] Salvando tratamento com ID:', treatmentId);
+
     const treatRef = doc(db, 'users', userId, 'treatments', treatmentId);
     const treatData = removeUndefined({
       ...treatment,
       id: treatmentId,
       createdAt: Timestamp.now(),
-      updatedAt: Timestamp.now()
+      updatedAt: Timestamp.now(),
     });
-    
+
     await setDoc(treatRef, treatData);
-    
-    console.log('[addTreatmentInFirestore] Tratamento salvo com sucesso! ID:', treatmentId);
+
+    debugLog('[addTreatmentInFirestore] Tratamento salvo com sucesso! ID:', treatmentId);
     return treatmentId;
   } catch (error) {
     console.error('Erro ao adicionar tratamento:', error);
@@ -1008,15 +1224,19 @@ export const addTreatmentInFirestore = async (userId: string, treatment: Continu
   }
 };
 
-export const updateTreatmentInFirestore = async (userId: string, treatmentId: string, updates: Partial<ContinuousTreatment>): Promise<boolean> => {
+export const updateTreatmentInFirestore = async (
+  userId: string,
+  treatmentId: string,
+  updates: Partial<ContinuousTreatment>,
+): Promise<boolean> => {
   try {
     const treatRef = doc(db, 'users', userId, 'treatments', treatmentId);
     const cleanedUpdates = cleanUndefined({
       ...updates,
       id: treatmentId,
-      updatedAt: Timestamp.now()
+      updatedAt: Timestamp.now(),
     });
-    
+
     // Usar setDoc com merge: true para fazer upsert
     await setDoc(treatRef, cleanedUpdates, { merge: true });
     return true;
@@ -1026,61 +1246,78 @@ export const updateTreatmentInFirestore = async (userId: string, treatmentId: st
   }
 };
 
-export const deleteTreatmentInFirestore = async (userId: string, treatment: ContinuousTreatment): Promise<boolean> => {
+export const deleteTreatmentInFirestore = async (
+  userId: string,
+  treatment: ContinuousTreatment,
+): Promise<boolean> => {
   try {
-    console.log('[deleteTreatmentInFirestore] Soft delete do tratamento:', treatment.id);
+    debugLog('[deleteTreatmentInFirestore] Soft delete do tratamento:', treatment.id);
     const treatRef = doc(db, 'users', userId, 'treatments', treatment.id);
-    
+
     const updatedTreat = removeUndefined({
       ...treatment,
       deletedAt: Timestamp.now(),
-      updatedAt: Timestamp.now()
+      updatedAt: Timestamp.now(),
     });
-    
+
     await setDoc(treatRef, updatedTreat, { merge: true });
-    console.log('[deleteTreatmentInFirestore] Sucesso! Tratamento marcado como deletado');
+    debugLog('[deleteTreatmentInFirestore] Sucesso! Tratamento marcado como deletado');
     return true;
-  } catch (error) {
-    console.error('Erro ao deletar tratamento:', error);
+  } catch (error: unknown) {
+    console.error('Erro ao deletar tratamento:', getErrorMessage(error));
     return false;
   }
 };
 
-export const restoreTreatmentInFirestore = async (userId: string, treatment: ContinuousTreatment): Promise<boolean> => {
+export const restoreTreatmentInFirestore = async (
+  userId: string,
+  treatment: ContinuousTreatment,
+): Promise<boolean> => {
   try {
-    console.log('[restoreTreatmentInFirestore] Restaurando tratamento:', treatment.id);
+    debugLog('[restoreTreatmentInFirestore] Restaurando tratamento:', treatment.id);
     const treatRef = doc(db, 'users', userId, 'treatments', treatment.id);
-    
-    const { deletedAt, ...treatmentWithoutDeletedAt } = treatment as any;
-    
+
+    const treatmentWithoutDeletedAt = { ...(treatment as unknown as Record<string, unknown>) };
+    if ('deletedAt' in treatmentWithoutDeletedAt) {
+      delete treatmentWithoutDeletedAt['deletedAt'];
+    }
+
     const updatedTreat = removeUndefined({
       ...treatmentWithoutDeletedAt,
-      updatedAt: Timestamp.now()
+      updatedAt: Timestamp.now(),
     });
-    
+
     await setDoc(treatRef, updatedTreat, { merge: true });
-    console.log('[restoreTreatmentInFirestore] Sucesso! Tratamento restaurado');
+    debugLog('[restoreTreatmentInFirestore] Sucesso! Tratamento restaurado');
     return true;
-  } catch (error) {
-    console.error('Erro ao restaurar tratamento:', error);
+  } catch (error: unknown) {
+    console.error('Erro ao restaurar tratamento:', getErrorMessage(error));
     return false;
   }
 };
 
-export const permanentlyDeleteTreatmentInFirestore = async (userId: string, treatment: ContinuousTreatment): Promise<boolean> => {
+export const permanentlyDeleteTreatmentInFirestore = async (
+  userId: string,
+  treatment: ContinuousTreatment,
+): Promise<boolean> => {
   try {
-    console.log('[permanentlyDeleteTreatmentInFirestore] Hard delete do tratamento:', treatment.id);
+    debugLog('[permanentlyDeleteTreatmentInFirestore] Hard delete do tratamento:', treatment.id);
     const treatRef = doc(db, 'users', userId, 'treatments', treatment.id);
-    
+
     // Verificar se existe
     const docSnap = await getDoc(treatRef);
     if (!docSnap.exists()) {
-      console.warn('[permanentlyDeleteTreatmentInFirestore] Tratamento não encontrado:', treatment.id);
+      console.warn(
+        '[permanentlyDeleteTreatmentInFirestore] Tratamento não encontrado:',
+        treatment.id,
+      );
       return true;
     }
-    
+
     await deleteDoc(treatRef);
-    console.log('[permanentlyDeleteTreatmentInFirestore] Sucesso! Tratamento deletado permanentemente');
+    debugLog(
+      '[permanentlyDeleteTreatmentInFirestore] Sucesso! Tratamento deletado permanentemente',
+    );
     return true;
   } catch (error) {
     console.error('Erro ao deletar permanentemente tratamento:', error);
@@ -1089,27 +1326,30 @@ export const permanentlyDeleteTreatmentInFirestore = async (userId: string, trea
 };
 
 // ============= APPLICATIONS =============
-export const addApplicationInFirestore = async (userId: string, app: MedicationApplication): Promise<string | null> => {
+export const addApplicationInFirestore = async (
+  userId: string,
+  app: MedicationApplication,
+): Promise<string | null> => {
   try {
     const appId = app.id;
     if (!appId) {
       console.error('[addApplicationInFirestore] Aplicação sem ID!', app);
       return null;
     }
-    
-    console.log('[addApplicationInFirestore] Salvando aplicação com ID:', appId);
-    
+
+    debugLog('[addApplicationInFirestore] Salvando aplicação com ID:', appId);
+
     const appRef = doc(db, 'users', userId, 'applications', appId);
     const appData = removeUndefined({
       ...app,
       id: appId,
       createdAt: Timestamp.now(),
-      updatedAt: Timestamp.now()
+      updatedAt: Timestamp.now(),
     });
-    
+
     await setDoc(appRef, appData);
-    
-    console.log('[addApplicationInFirestore] Aplicação salva com sucesso! ID:', appId);
+
+    debugLog('[addApplicationInFirestore] Aplicação salva com sucesso! ID:', appId);
     return appId;
   } catch (error) {
     console.error('Erro ao adicionar aplicação:', error);
@@ -1117,15 +1357,19 @@ export const addApplicationInFirestore = async (userId: string, app: MedicationA
   }
 };
 
-export const updateApplicationInFirestore = async (userId: string, appId: string, updates: Partial<MedicationApplication>): Promise<boolean> => {
+export const updateApplicationInFirestore = async (
+  userId: string,
+  appId: string,
+  updates: Partial<MedicationApplication>,
+): Promise<boolean> => {
   try {
     const appRef = doc(db, 'users', userId, 'applications', appId);
     const cleanedUpdates = cleanUndefined({
       ...updates,
       id: appId,
-      updatedAt: Timestamp.now()
+      updatedAt: Timestamp.now(),
     });
-    
+
     // Usar setDoc com merge: true para fazer upsert
     await setDoc(appRef, cleanedUpdates, { merge: true });
     return true;
@@ -1135,61 +1379,73 @@ export const updateApplicationInFirestore = async (userId: string, appId: string
   }
 };
 
-export const deleteApplicationInFirestore = async (userId: string, app: MedicationApplication): Promise<boolean> => {
+export const deleteApplicationInFirestore = async (
+  userId: string,
+  app: MedicationApplication,
+): Promise<boolean> => {
   try {
-    console.log('[deleteApplicationInFirestore] Soft delete da aplicação:', app.id);
+    debugLog('[deleteApplicationInFirestore] Soft delete da aplicação:', app.id);
     const appRef = doc(db, 'users', userId, 'applications', app.id);
-    
+
     const updatedApp = removeUndefined({
       ...app,
       deletedAt: Timestamp.now(),
-      updatedAt: Timestamp.now()
+      updatedAt: Timestamp.now(),
     });
-    
+
     await setDoc(appRef, updatedApp, { merge: true });
-    console.log('[deleteApplicationInFirestore] Sucesso! Aplicação marcada como deletada');
+    debugLog('[deleteApplicationInFirestore] Sucesso! Aplicação marcada como deletada');
     return true;
-  } catch (error) {
-    console.error('Erro ao deletar aplicação:', error);
+  } catch (error: unknown) {
+    console.error('Erro ao deletar aplicação:', getErrorMessage(error));
     return false;
   }
 };
 
-export const restoreApplicationInFirestore = async (userId: string, app: MedicationApplication): Promise<boolean> => {
+export const restoreApplicationInFirestore = async (
+  userId: string,
+  app: MedicationApplication,
+): Promise<boolean> => {
   try {
-    console.log('[restoreApplicationInFirestore] Restaurando aplicação:', app.id);
+    debugLog('[restoreApplicationInFirestore] Restaurando aplicação:', app.id);
     const appRef = doc(db, 'users', userId, 'applications', app.id);
-    
-    const { deletedAt, ...appWithoutDeletedAt } = app as any;
-    
+
+    const appWithoutDeletedAt = { ...(app as unknown as Record<string, unknown>) };
+    if ('deletedAt' in appWithoutDeletedAt) delete appWithoutDeletedAt['deletedAt'];
+
     const updatedApp = removeUndefined({
       ...appWithoutDeletedAt,
-      updatedAt: Timestamp.now()
+      updatedAt: Timestamp.now(),
     });
-    
+
     await setDoc(appRef, updatedApp, { merge: true });
-    console.log('[restoreApplicationInFirestore] Sucesso! Aplicação restaurada');
+    debugLog('[restoreApplicationInFirestore] Sucesso! Aplicação restaurada');
     return true;
-  } catch (error) {
-    console.error('Erro ao restaurar aplicação:', error);
+  } catch (error: unknown) {
+    console.error('Erro ao restaurar aplicação:', getErrorMessage(error));
     return false;
   }
 };
 
-export const permanentlyDeleteApplicationInFirestore = async (userId: string, app: MedicationApplication): Promise<boolean> => {
+export const permanentlyDeleteApplicationInFirestore = async (
+  userId: string,
+  app: MedicationApplication,
+): Promise<boolean> => {
   try {
-    console.log('[permanentlyDeleteApplicationInFirestore] Hard delete da aplicação:', app.id);
+    debugLog('[permanentlyDeleteApplicationInFirestore] Hard delete da aplicação:', app.id);
     const appRef = doc(db, 'users', userId, 'applications', app.id);
-    
+
     // Verificar se existe
     const docSnap = await getDoc(appRef);
     if (!docSnap.exists()) {
       console.warn('[permanentlyDeleteApplicationInFirestore] Aplicação não encontrada:', app.id);
       return true; // Já foi deletada ou nunca existiu
     }
-    
+
     await deleteDoc(appRef);
-    console.log('[permanentlyDeleteApplicationInFirestore] Sucesso! Aplicação deletada permanentemente');
+    debugLog(
+      '[permanentlyDeleteApplicationInFirestore] Sucesso! Aplicação deletada permanentemente',
+    );
     return true;
   } catch (error) {
     console.error('Erro ao deletar permanentemente aplicação:', error);
@@ -1198,14 +1454,18 @@ export const permanentlyDeleteApplicationInFirestore = async (userId: string, ap
 };
 
 // ============= BATCH OPERATIONS =============
-export const batchDelete = async (userId: string, collection: string, ids: string[]): Promise<boolean> => {
+export const batchDelete = async (
+  userId: string,
+  collection: string,
+  ids: string[],
+): Promise<boolean> => {
   try {
     const batch = writeBatch(db);
-    ids.forEach(id => {
+    ids.forEach((id) => {
       const docRef = doc(db, 'users', userId, collection, id);
       batch.update(docRef, {
         deleted: true,
-        deletedAt: Timestamp.now()
+        deletedAt: Timestamp.now(),
       });
     });
     await batch.commit();
@@ -1237,17 +1497,17 @@ export const recordBirdVerification = async (birdId: string): Promise<boolean> =
   try {
     const verificationRef = collection(db, 'bird_verifications');
     const docRef = doc(verificationRef);
-    
+
     // Capturar localização via IP
-    let locationData: any = {
+    let locationData: BirdVerificationRecord['location'] = {
       city: 'Desconhecida',
       region: 'Desconhecida',
       country: 'Desconhecida',
-      latitude: null,
-      longitude: null,
-      isp: 'Desconhecido'
+      latitude: undefined,
+      longitude: undefined,
+      isp: 'Desconhecido',
     };
-    
+
     try {
       // Usar API de geolocalização gratuita
       const geoResponse = await fetch('https://ipapi.co/json/');
@@ -1259,15 +1519,15 @@ export const recordBirdVerification = async (birdId: string): Promise<boolean> =
           country: geoData.country_name || 'Desconhecida',
           latitude: geoData.latitude,
           longitude: geoData.longitude,
-          isp: geoData.org || 'Desconhecido'
+          isp: geoData.org || 'Desconhecido',
         };
-        console.log('[recordBirdVerification] Localização capturada:', locationData);
+        debugLog('[recordBirdVerification] Localização capturada:', locationData);
       }
     } catch (geoErr) {
       console.warn('[recordBirdVerification] Erro ao capturar geolocalização:', geoErr);
       // Continua sem localização
     }
-    
+
     await setDoc(docRef, {
       birdId: birdId,
       timestamp: Timestamp.now(),
@@ -1275,13 +1535,13 @@ export const recordBirdVerification = async (birdId: string): Promise<boolean> =
       referrer: document.referrer || 'direct',
       location: locationData,
       // Não armazenar IP real por privacidade, apenas um hash simples
-      ipHash: btoa(new Date().getTime().toString()).substring(0, 16)
+      ipHash: btoa(new Date().getTime().toString()).substring(0, 16),
     });
-    
-    console.log('[recordBirdVerification] Verificação registrada para pássaro:', birdId);
+
+    debugLog('[recordBirdVerification] Verificação registrada para pássaro:', birdId);
     return true;
-  } catch (error: any) {
-    console.error('[recordBirdVerification] Erro ao registrar verificação:', error);
+  } catch (error: unknown) {
+    console.error('[recordBirdVerification] Erro ao registrar verificação:', getErrorMessage(error));
     return false;
   }
 };
@@ -1291,13 +1551,16 @@ export const getBirdVerifications = async (birdId: string): Promise<BirdVerifica
     const verificationsRef = collection(db, 'bird_verifications');
     const q = query(verificationsRef, where('birdId', '==', birdId), orderBy('timestamp', 'desc'));
     const snapshot = await getDocs(q);
-    
-    return snapshot.docs.map(doc => ({
-      id: doc.id,
-      ...doc.data()
-    } as BirdVerificationRecord));
-  } catch (error: any) {
-    console.error('[getBirdVerifications] Erro ao buscar verificações:', error);
+
+    return snapshot.docs.map(
+      (doc) =>
+        ({
+          id: doc.id,
+          ...doc.data(),
+        } as BirdVerificationRecord),
+    );
+  } catch (error: unknown) {
+    console.error('[getBirdVerifications] Erro ao buscar verificações:', getErrorMessage(error));
     return [];
   }
 };
@@ -1307,13 +1570,16 @@ export const getAllBirdVerifications = async (): Promise<BirdVerificationRecord[
     const verificationsRef = collection(db, 'bird_verifications');
     const q = query(verificationsRef, orderBy('timestamp', 'desc'), limit(1000));
     const snapshot = await getDocs(q);
-    
-    return snapshot.docs.map(doc => ({
-      id: doc.id,
-      ...doc.data()
-    } as BirdVerificationRecord));
-  } catch (error: any) {
-    console.error('[getAllBirdVerifications] Erro ao buscar todas as verificações:', error);
+
+    return snapshot.docs.map(
+      (doc) =>
+        ({
+          id: doc.id,
+          ...doc.data(),
+        } as BirdVerificationRecord),
+    );
+  } catch (error: unknown) {
+    console.error('[getAllBirdVerifications] Erro ao buscar todas as verificações:', getErrorMessage(error));
     return [];
   }
 };
@@ -1324,8 +1590,8 @@ export const getAllBirdVerifications = async (): Promise<BirdVerificationRecord[
  */
 export const getPublicBirdById = async (birdId: string): Promise<Bird | null> => {
   try {
-    console.log('[getPublicBirdById] Buscando pássaro:', birdId);
-    
+    debugLog('[getPublicBirdById] Buscando pássaro:', birdId);
+
     if (!birdId) {
       console.warn('[getPublicBirdById] BirdId vazio');
       return null;
@@ -1334,34 +1600,34 @@ export const getPublicBirdById = async (birdId: string): Promise<Bird | null> =>
     // 1. Buscar no índice público para descobrir o userId
     const indexRef = doc(db, 'bird_index', birdId);
     const indexSnapshot = await getDoc(indexRef);
-    
+
     if (!indexSnapshot.exists()) {
       console.warn('[getPublicBirdById] Pássaro não encontrado no índice:', birdId);
       return null;
     }
-    
+
     const indexData = indexSnapshot.data();
     const userId = indexData.userId;
-    
+
     if (!userId) {
       console.warn('[getPublicBirdById] userId não encontrado no índice');
       return null;
     }
-    
-    console.log('[getPublicBirdById] Encontrado userId no índice:', userId);
-    
+
+    debugLog('[getPublicBirdById] Encontrado userId no índice:', userId);
+
     // 2. Buscar o pássaro na coleção do usuário
     const birdRef = doc(db, 'users', userId, 'birds', birdId);
     const birdSnapshot = await getDoc(birdRef);
-    
+
     if (!birdSnapshot.exists()) {
       console.warn('[getPublicBirdById] Pássaro não encontrado na coleção do usuário');
       return null;
     }
-    
+
     const data = birdSnapshot.data();
-    console.log('[getPublicBirdById] Pássaro encontrado:', { userId, birdId });
-    
+    debugLog('[getPublicBirdById] Pássaro encontrado:', { userId, birdId });
+
     return {
       id: birdSnapshot.id,
       name: data.name || '',
@@ -1379,10 +1645,10 @@ export const getPublicBirdById = async (birdId: string): Promise<Bird | null> =>
       songType: data.songType || '',
       trainingNotes: data.trainingNotes || '',
       photoUrl: data.photoUrl || '',
-      manualAncestors: data.manualAncestors || {}
+      manualAncestors: data.manualAncestors || {},
     } as Bird;
-  } catch (error: any) {
-    console.error('[getPublicBirdById] Erro ao buscar pássaro público:', error);
+  } catch (error: unknown) {
+    console.error('[getPublicBirdById] Erro ao buscar pássaro público:', getErrorMessage(error));
     return null;
   }
 };
@@ -1395,29 +1661,29 @@ export const getPublicBreederByBirdId = async (birdId: string): Promise<BreederS
     // 1. Buscar no índice público para descobrir o userId
     const indexRef = doc(db, 'bird_index', birdId);
     const indexSnapshot = await getDoc(indexRef);
-    
+
     if (!indexSnapshot.exists()) {
       console.warn('[getPublicBreederByBirdId] Pássaro não encontrado no índice:', birdId);
       return null;
     }
-    
+
     const indexData = indexSnapshot.data();
     const userId = indexData.userId;
-    
+
     if (!userId) {
       console.warn('[getPublicBreederByBirdId] userId não encontrado no índice');
       return null;
     }
-    
+
     // 2. Buscar as settings do criador
     const settingsRef = doc(db, 'users', userId, 'settings', 'general');
     const settingsSnapshot = await getDoc(settingsRef);
-    
+
     if (!settingsSnapshot.exists()) {
       console.warn('[getPublicBreederByBirdId] Settings do criador não encontradas');
       return null;
     }
-    
+
     const data = settingsSnapshot.data();
     return {
       breederName: data.breederName || '',
@@ -1435,10 +1701,67 @@ export const getPublicBreederByBirdId = async (birdId: string): Promise<BreederS
       dashboardLayout: data.dashboardLayout || [],
       certificate: data.certificate || undefined,
       subscriptionEndDate: data.subscriptionEndDate || '',
-      subscriptionCancelAtPeriodEnd: data.subscriptionCancelAtPeriodEnd || false
+      subscriptionCancelAtPeriodEnd: data.subscriptionCancelAtPeriodEnd || false,
     } as BreederSettings;
-  } catch (error: any) {
-    console.error('[getPublicBreederByBirdId] Erro ao buscar dados do criador:', error);
+  } catch (error: unknown) {
+    console.error('[getPublicBreederByBirdId] Erro ao buscar dados do criador:', getErrorMessage(error));
     return null;
+  }
+};
+// ============= ADMIN FUNCTIONS =============
+
+export const checkIfUserIsAdmin = async (userId: string): Promise<boolean> => {
+  try {
+    const userRef = doc(db, 'users', userId);
+    const userSnapshot = await getDoc(userRef);
+    if (userSnapshot.exists()) {
+      return userSnapshot.data().isAdmin || false;
+    }
+    return false;
+  } catch (error: unknown) {
+    console.error('[checkIfUserIsAdmin] Erro ao verificar status de admin:', getErrorMessage(error));
+    return false;
+  }
+};
+
+export const updateUserAdminStatus = async (userId: string, isAdmin: boolean): Promise<boolean> => {
+  try {
+    const userRef = doc(db, 'users', userId);
+    await updateDoc(userRef, {
+      isAdmin,
+      updatedAt: Timestamp.now(),
+    });
+    return true;
+  } catch (error: unknown) {
+    console.error('[updateUserAdminStatus] Erro ao atualizar status:', getErrorMessage(error));
+    return false;
+  }
+};
+
+export const disableUser = async (userId: string): Promise<boolean> => {
+  try {
+    const userRef = doc(db, 'users', userId);
+    await updateDoc(userRef, {
+      disabled: true,
+      updatedAt: Timestamp.now(),
+    });
+    return true;
+  } catch (error: unknown) {
+    console.error('[disableUser] Erro ao desabilitar usuário:', getErrorMessage(error));
+    return false;
+  }
+};
+
+export const enableUser = async (userId: string): Promise<boolean> => {
+  try {
+    const userRef = doc(db, 'users', userId);
+    await updateDoc(userRef, {
+      disabled: false,
+      updatedAt: Timestamp.now(),
+    });
+    return true;
+  } catch (error: unknown) {
+    console.error('[enableUser] Erro ao habilitar usuário:', getErrorMessage(error));
+    return false;
   }
 };

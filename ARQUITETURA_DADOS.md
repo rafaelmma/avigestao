@@ -1,6 +1,7 @@
 # 🏗️ Arquitetura de Dados - localStorage vs Supabase
 
 ## ❓ Pergunta do Usuário
+
 "Depois que salva no Supabase, ele que fica como principal ou não?"
 
 **Resposta: NÃO! localStorage é SEMPRE principal.**
@@ -10,6 +11,7 @@
 ## 📊 Arquitetura Corrigida
 
 ### **ANTES (Problema):**
+
 ```
 Supabase Falha
     ↓
@@ -21,6 +23,7 @@ Sobrescreve localStorage
 ```
 
 ### **DEPOIS (Correto):**
+
 ```
 localStorage
     ↓
@@ -38,6 +41,7 @@ Se Supabase falha → Ignora ✅
 ## 🔄 Fluxo de Dados Detalhado
 
 ### **1. Primeira Vez (Sem dados em localStorage)**
+
 ```
 App abre
     ↓
@@ -53,6 +57,7 @@ Falha? → Começa com array vazio
 ```
 
 ### **2. Próximas Vezes (Com dados em localStorage)**
+
 ```
 App abre
     ↓
@@ -70,12 +75,13 @@ Supabase falha? → Ignora (localStorage continua OK)
 ```
 
 ### **3. Ao Mudar de Aba (ex: Plantel → Sexagem)**
+
 ```
 Clica em "Sexagem"
     ↓
 Carrega dados da aba do Supabase
     ↓
-Supabase sucesso? 
+Supabase sucesso?
     ├─ SIM → Atualiza com novos dados
     └─ NÃO → Ignora, mantém dados atuais
 ```
@@ -85,12 +91,14 @@ Supabase sucesso?
 ## 📝 Regras de Ouro
 
 ### ✅ O que PODE fazer:
+
 - ✅ Salvar dados primeiro em localStorage
 - ✅ Sincronizar com Supabase depois
 - ✅ Se Supabase falha → Ignorar, continuar com localStorage
 - ✅ Recarregar app → Usar localStorage como base
 
 ### ❌ O que NÃO PODE fazer:
+
 - ❌ Sobrescrever localStorage com array vazio
 - ❌ Deixar Supabase ter prioridade
 - ❌ Apagar dados se Supabase falhar
@@ -101,6 +109,7 @@ Supabase sucesso?
 ## 🛡️ Proteções Implementadas
 
 ### 1. **loadInitialData()** - Primeira carga
+
 ```typescript
 // localStorage PRIMEIRO
 const cachedState = loadCachedState(userId);
@@ -113,16 +122,17 @@ if (cachedState.hasCache) {
 ```
 
 ### 2. **loadTabData()** - Abas específicas
+
 ```typescript
 case "birds":
   // Tenta Supabase
   const birdsFromSupabase = await safeSelect(...);
-  
+
   // Se conseguiu, ótimo
   if (birdsFromSupabase.length > 0) {
     return { birds: birdsFromSupabase };
   }
-  
+
   // Se não conseguiu, usa localStorage
   const cachedState = loadCachedState(userId);
   if (cachedState.hasCache && cachedState.state?.birds) {
@@ -131,10 +141,10 @@ case "birds":
 ```
 
 ### 3. **App.tsx useEffect** - Proteção extra
+
 ```typescript
 // Nunca sobrescrever com arrays vazios quando já tem dados
-const hasEmptyArrayWhenShouldntBe = 
-  (data.birds?.length === 0 && state.birds?.length > 0);
+const hasEmptyArrayWhenShouldntBe = data.birds?.length === 0 && state.birds?.length > 0;
 
 if (hasEmptyArrayWhenShouldntBe) {
   console.warn('Ignorando dados vazios para preservar localStorage');
@@ -147,6 +157,7 @@ if (hasEmptyArrayWhenShouldntBe) {
 ## 🧪 Teste: Simular Supabase Falha
 
 ### Cenário 1: Offline
+
 ```
 1. Adicionar "Ave Nova"
 2. Abrir DevTools > Network > Offline
@@ -157,6 +168,7 @@ if (hasEmptyArrayWhenShouldntBe) {
 ```
 
 ### Cenário 2: Supabase Timeout
+
 ```
 1. Adicionar "Ave Nova"
 2. Aguardar sincronização
@@ -169,13 +181,13 @@ if (hasEmptyArrayWhenShouldntBe) {
 
 ## 📌 Resumo
 
-| Situação | localStorage | Supabase | Resultado |
-|----------|---|---|---|
-| App abre (1ª vez) | Vazio | Carrega | ✅ Usa Supabase |
-| App abre (próximas) | Tem dados | Sincroniza | ✅ Usa localStorage |
-| Supabase timeout | Tem dados | Falha | ✅ Ignora, mantém dados |
-| Muda de aba | Tem dados | Carrega nova | ✅ Atualiza se sucesso, ignora se falha |
-| Supabase vazio | Tem dados | Retorna [] | ✅ Ignora o vazio |
+| Situação            | localStorage | Supabase     | Resultado                               |
+| ------------------- | ------------ | ------------ | --------------------------------------- |
+| App abre (1ª vez)   | Vazio        | Carrega      | ✅ Usa Supabase                         |
+| App abre (próximas) | Tem dados    | Sincroniza   | ✅ Usa localStorage                     |
+| Supabase timeout    | Tem dados    | Falha        | ✅ Ignora, mantém dados                 |
+| Muda de aba         | Tem dados    | Carrega nova | ✅ Atualiza se sucesso, ignora se falha |
+| Supabase vazio      | Tem dados    | Retorna []   | ✅ Ignora o vazio                       |
 
 ---
 
@@ -184,9 +196,9 @@ if (hasEmptyArrayWhenShouldntBe) {
 **localStorage é a FONTE DE VERDADE**
 
 Supabase é apenas:
+
 - ✅ Sincronização em background
 - ✅ Backup online
 - ✅ Para múltiplos dispositivos
 
 Se Supabase falhar → **Dados continuam 100% seguros no localStorage**
-

@@ -16,20 +16,21 @@ export const calculateAge = (birthDate: string | Date): string => {
   const today = new Date();
   let age = today.getFullYear() - birth.getFullYear();
   const monthDiff = today.getMonth() - birth.getMonth();
-  
+
   if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birth.getDate())) {
     age--;
   }
-  
+
   return `${age} ano${age !== 1 ? 's' : ''}`;
 };
 
-const BirdInfoSection: React.FC<BirdInfoSectionProps> = ({ 
-  bird, 
+const BirdInfoSection: React.FC<BirdInfoSectionProps> = ({
+  bird,
   isEditing = false,
-  onPhotoClick 
+  onPhotoClick,
 }) => {
-  const photoUrl = bird.photoUrl || `https://via.placeholder.com/200?text=${encodeURIComponent(bird.name)}`;
+  const photoUrl =
+    bird.photoUrl || `https://via.placeholder.com/200?text=${encodeURIComponent(bird.name)}`;
 
   return (
     <div className="space-y-6">
@@ -37,19 +38,17 @@ const BirdInfoSection: React.FC<BirdInfoSectionProps> = ({
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         {/* Foto */}
         <div className="flex justify-center">
-          <button
-            onClick={onPhotoClick}
-            className="group relative"
-            type="button"
-          >
-            <img 
+          <button onClick={onPhotoClick} className="group relative" type="button">
+            <img
               src={photoUrl}
               alt={bird.name}
               className="w-48 h-48 rounded-2xl object-cover shadow-md group-hover:shadow-lg transition-shadow"
             />
             {isEditing && (
               <div className="absolute inset-0 flex items-center justify-center bg-slate-900/0 group-hover:bg-slate-900/40 rounded-2xl transition-all">
-                <span className="text-white opacity-0 group-hover:opacity-100 font-semibold">Alterar</span>
+                <span className="text-white opacity-0 group-hover:opacity-100 font-semibold">
+                  Alterar
+                </span>
               </div>
             )}
           </button>
@@ -85,7 +84,9 @@ const BirdInfoSection: React.FC<BirdInfoSectionProps> = ({
             <div>
               <label className="text-caption text-slate-500">Nascimento</label>
               <p className="text-body font-medium mt-1">
-                {bird.birthDate ? new Date(bird.birthDate as string | Date).toLocaleDateString('pt-BR') : 'N/A'}
+                {bird.birthDate
+                  ? new Date(bird.birthDate as string | Date).toLocaleDateString('pt-BR')
+                  : 'N/A'}
               </p>
             </div>
             <div>
@@ -102,19 +103,16 @@ const BirdInfoSection: React.FC<BirdInfoSectionProps> = ({
       <Card>
         <h4 className="text-h4 mb-4 font-bold">Status</h4>
         <div className="flex flex-wrap gap-3">
-          <Badge 
-            variant={getStatusBadgeVariant(bird.status)} 
-            size="lg"
-          >
+          <Badge variant={getStatusBadgeVariant(bird.status)} size="lg">
             {bird.status}
           </Badge>
-          
+
           {bird.classification && (
             <Badge variant="info" size="lg">
               {bird.classification}
             </Badge>
           )}
-          
+
           {bird.songTrainingStatus && bird.songTrainingStatus !== 'Não Iniciado' && (
             <Badge variant="info" size="lg">
               {bird.songTrainingStatus}
@@ -133,11 +131,13 @@ const BirdInfoSection: React.FC<BirdInfoSectionProps> = ({
       {bird.ibamaBaixaData && (
         <AlertBanner variant="success" title="✓ Registrado IBAMA">
           <div className="space-y-1 text-sm">
-            <p><strong>Data:</strong> {new Date(bird.ibamaBaixaData).toLocaleDateString('pt-BR')}</p>
+            <p>
+              <strong>Data:</strong> {new Date(bird.ibamaBaixaData).toLocaleDateString('pt-BR')}
+            </p>
           </div>
         </AlertBanner>
       )}
-      
+
       {bird.ibamaBaixaPendente && (
         <AlertBanner variant="warning" title="⚠️ Registro Pendente">
           <p className="text-sm">Esta ave ainda não foi registrada no sistema IBAMA.</p>

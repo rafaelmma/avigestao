@@ -26,9 +26,11 @@ const WizardLayout: React.FC<WizardLayoutProps> = ({
   activeStep,
   onStepChange,
   showSteps = true,
-  showNavigation = true
+  showNavigation = true,
 }) => {
-  const [internalStep, setInternalStep] = useState(() => Math.min(Math.max(initialStep, 0), Math.max(steps.length - 1, 0)));
+  const [internalStep, setInternalStep] = useState(() =>
+    Math.min(Math.max(initialStep, 0), Math.max(steps.length - 1, 0)),
+  );
   const currentStep = typeof activeStep === 'number' ? activeStep : internalStep;
   const setStep = (next: number) => {
     if (onStepChange) onStepChange(next);
@@ -97,9 +99,7 @@ const WizardLayout: React.FC<WizardLayoutProps> = ({
         )}
       </div>
 
-      <div>
-        {current?.content}
-      </div>
+      <div>{current?.content}</div>
     </div>
   );
 };

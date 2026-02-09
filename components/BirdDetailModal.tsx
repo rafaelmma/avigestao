@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { X, Edit2, Save, ChevronRight } from 'lucide-react';
+import { X, Edit2, Save } from 'lucide-react';
 import { Bird } from '../types';
 import Tabs, { TabItem } from './ui/Tabs';
 import BirdInfoSection from './BirdInfoSection';
@@ -23,8 +23,7 @@ const BirdDetailModal: React.FC<BirdDetailModalProps> = ({
   onClose,
   onEdit,
   onSave,
-  onDelete,
-  children
+  children,
 }) => {
   const [activeTab, setActiveTab] = useState('info');
   const [isSaving, setIsSaving] = useState(false);
@@ -32,26 +31,26 @@ const BirdDetailModal: React.FC<BirdDetailModalProps> = ({
   if (!isOpen || !bird) return null;
 
   const tabs: TabItem[] = [
-    { 
-      id: 'info', 
+    {
+      id: 'info',
       label: 'Informações',
-      badge: undefined
+      badge: undefined,
     },
-    { 
-      id: 'genealogy', 
+    {
+      id: 'genealogy',
       label: 'Genealogia',
-      badge: undefined
+      badge: undefined,
     },
-    { 
-      id: 'documents', 
+    {
+      id: 'documents',
       label: 'Documentos',
-      badge: undefined
+      badge: undefined,
     },
-    { 
-      id: 'history', 
+    {
+      id: 'history',
       label: 'Histórico',
-      badge: undefined
-    }
+      badge: undefined,
+    },
   ];
 
   const handleSave = async () => {
@@ -70,7 +69,6 @@ const BirdDetailModal: React.FC<BirdDetailModalProps> = ({
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-md p-4 animate-in fade-in duration-300">
       <div className="bg-white rounded-3xl w-full max-w-5xl max-h-[90vh] flex flex-col shadow-2xl overflow-hidden border border-white/20">
-        
         {/* Header */}
         <div className="p-6 border-b border-slate-200 flex items-center justify-between bg-slate-50">
           <div className="flex-1">
@@ -79,7 +77,7 @@ const BirdDetailModal: React.FC<BirdDetailModalProps> = ({
               {bird.ringNumber} • {bird.species}
             </p>
           </div>
-          
+
           <div className="flex items-center gap-2">
             {!isEditing && onEdit && (
               <button
@@ -90,7 +88,7 @@ const BirdDetailModal: React.FC<BirdDetailModalProps> = ({
                 <Edit2 size={20} className="text-slate-600" />
               </button>
             )}
-            
+
             <button
               onClick={onClose}
               className="p-2 hover:bg-slate-200 rounded-lg transition-colors"
@@ -102,21 +100,12 @@ const BirdDetailModal: React.FC<BirdDetailModalProps> = ({
         </div>
 
         {/* Tabs */}
-        <Tabs 
-          tabs={tabs}
-          activeTab={activeTab}
-          onChange={setActiveTab}
-        />
+        <Tabs tabs={tabs} activeTab={activeTab} onChange={setActiveTab} />
 
         {/* Content */}
         <div className="flex-1 overflow-y-auto p-6 bg-white">
-          {activeTab === 'info' && (
-            <BirdInfoSection 
-              bird={bird} 
-              isEditing={isEditing}
-            />
-          )}
-          
+          {activeTab === 'info' && <BirdInfoSection bird={bird} isEditing={isEditing} />}
+
           {activeTab === 'genealogy' && (
             <div className="space-y-4">
               <AlertBanner variant="info">
@@ -124,37 +113,25 @@ const BirdDetailModal: React.FC<BirdDetailModalProps> = ({
               </AlertBanner>
             </div>
           )}
-          
+
           {activeTab === 'documents' && (
             <div className="space-y-4">
-              <AlertBanner variant="info">
-                Documentos e mídias serão exibidos aqui
-              </AlertBanner>
-            </div>
-          )}
-          
-          {activeTab === 'history' && (
-            <div className="space-y-4">
-              <AlertBanner variant="info">
-                Histórico de movimentos será exibido aqui
-              </AlertBanner>
+              <AlertBanner variant="info">Documentos e mídias serão exibidos aqui</AlertBanner>
             </div>
           )}
 
-          {children && (
-            <div>
-              {children}
+          {activeTab === 'history' && (
+            <div className="space-y-4">
+              <AlertBanner variant="info">Histórico de movimentos será exibido aqui</AlertBanner>
             </div>
           )}
+
+          {children && <div>{children}</div>}
         </div>
 
         {/* Footer */}
         <div className="p-6 border-t border-slate-200 flex gap-3 bg-slate-50 justify-end">
-          <button
-            onClick={onClose}
-            className="btn-secondary px-6"
-            disabled={isSaving}
-          >
+          <button onClick={onClose} className="btn-secondary px-6" disabled={isSaving}>
             Cancelar
           </button>
 

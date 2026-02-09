@@ -17,6 +17,7 @@ Parabéns! Seu sistema profissional está quase pronto!
 ## 🔒 PRÓXIMO PASSO: Segurança (RLS)
 
 ### **Por que?**
+
 - Proteger sua base de dados
 - Garantir que dados públicos (verificações) sejam acessíveis
 - Impedir acesso não autorizado
@@ -35,6 +36,7 @@ Parabéns! Seu sistema profissional está quase pronto!
 ## 🧪 TESTAR O SISTEMA
 
 ### **1. Teste da Verificação:**
+
 ```
 1. Vá para BirdManager
 2. Clique "Imprimir Cartão"
@@ -44,6 +46,7 @@ Parabéns! Seu sistema profissional está quase pronto!
 ```
 
 ### **2. Teste do Analytics:**
+
 ```
 1. Vá para Dashboard → Analytics (menu PRO)
 2. Veja se mostra "0 verificações" ou os dados do teste
@@ -52,6 +55,7 @@ Parabéns! Seu sistema profissional está quase pronto!
 ```
 
 ### **3. Teste do Certificado:**
+
 ```
 1. Vá para Torneios/Eventos
 2. Crie um evento de teste
@@ -68,6 +72,7 @@ No Supabase Dashboard:
 
 1. Vá em **SQL Editor**
 2. Execute:
+
 ```sql
 SELECT COUNT(*) as total_verificacoes,
        COUNT(DISTINCT bird_id) as total_passaros,
@@ -82,14 +87,17 @@ Se retornar números > 0, está funcionando! 🎉
 ## 🎯 Funcionalidades Extras (Opcional)
 
 ### A. Webhook para Notificações
+
 - Receber email quando pássaro for verificado 100x
 - Implementável após validar que tudo funciona
 
 ### B. Relatório CSV/Excel
+
 - Exportar dados de verificações para análise
 - Útil para relatórios ao IBAMA
 
 ### C. API Pública
+
 - Criadores integrar verificações em seus próprios sites
 - Advanced feature
 
@@ -113,6 +121,7 @@ Se retornar números > 0, está funcionando! 🎉
 ---
 
 ### 📞 Se precisar de suporte:
+
 - Verificações não registrando? Checar se RLS está correto
 - Analytics vazio? Validar se tabela tem dados
 - Certificado não abre? Verificar erro no console (F12)

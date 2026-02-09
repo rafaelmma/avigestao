@@ -1,5 +1,4 @@
-import { supabase } from "../lib/supabase";
-import { INITIAL_SETTINGS, getDefaultBirdImage, isDefaultBirdImage } from "../constants";
+import { INITIAL_SETTINGS, getDefaultBirdImage, isDefaultBirdImage } from '../constants';
 import {
   Bird,
   BreederSettings,
@@ -13,70 +12,23 @@ import {
   Pair,
   TournamentEvent,
   Transaction,
-} from "../types";
+  Sex,
+  BirdStatus,
+  BirdClassification,
+  TrainingStatus,
+  MovementType,
+  SexingData,
+  BirdDocument,
+  DigitalCertificateData,
+} from '../types';
 
-const MED_CAT_CACHE_KEY = "avigestao_med_catalog_v1";
+const MED_CAT_CACHE_KEY = 'avigestao_med_catalog_v1';
 const MED_CAT_CACHE_TTL = 1000 * 60 * 60 * 24; // 24h
-const MED_CAT_PREFETCH_DELAY = 5000; // 5s depois do load inicial
-const isAbortError = (err: any) => {
-  const msg = (err?.message || err?.details || '').toString();
-  return err?.name === 'AbortError' || msg.includes('AbortError') || msg.includes('aborted');
-};
-
-const isTransientError = (err: any) => {
-  const code = (err?.code || err?.status || '').toString();
-  const msg = (err?.message || err?.details || '').toString().toLowerCase();
-  if (['408','429','500','502','503','504'].includes(code)) return true;
-  if (msg.includes('timeout') || msg.includes('temporarily') || msg.includes('network') || msg.includes('fetch')) return true;
-  return false;
-};
-
-const sleep = (ms: number) => new Promise(res => setTimeout(res, ms));
-
-const safeSelect = async <T>(queryFactory: () => any, mapFn: (row: any) => T, retries = 2): Promise<T[]> => {
-  let attempt = 0;
-  while (true) {
-    try {
-      const { data, error } = await queryFactory();
-      if (error) throw error;
-      return (data ?? []).map(mapFn);
-    } catch (err) {
-      if (isAbortError(err)) return [];
-      if (attempt < retries && isTransientError(err)) {
-        await sleep(300 * Math.pow(2, attempt));
-        attempt++;
-        continue;
-      }
-      if (import.meta?.env?.DEV) console.warn("Falha ao carregar dados:", err);
-      return [];
-    }
-  }
-};
-
-type SettingsFetchResult = { settings: BreederSettings | null; failed: boolean };
-
-const safeSingleSettings = async (queryFactory: () => any, retries = 2): Promise<SettingsFetchResult> => {
-  let attempt = 0;
-  while (true) {
-    try {
-      const { data, error } = await queryFactory();
-      if (error) throw error;
-      return { settings: data ? mapSettingsFromDb(data) : null, failed: false };
-    } catch (err) {
-      if (isAbortError(err)) return { settings: null, failed: true };
-      if (attempt < retries && isTransientError(err)) {
-        await sleep(300 * Math.pow(2, attempt));
-        attempt++;
-        continue;
-      }
-      if (import.meta?.env?.DEV) console.warn("Falha ao carregar settings:", err);
-      return { settings: null, failed: true };
-    }
-  }
-};
+// const MED_CAT_PREFETCH_DELAY = 5000; // 5s depois do load inicial (removido)
+// safeSingleSettings removed — settings are loaded from Firestore in the migration flow.
 
 export const getCachedMedicationCatalog = (): MedicationCatalogItem[] | null => {
-  if (typeof localStorage === "undefined") return null;
+  if (typeof localStorage === 'undefined') return null;
   try {
     const raw = localStorage.getItem(MED_CAT_CACHE_KEY);
     if (!raw) return null;
@@ -90,7 +42,7 @@ export const getCachedMedicationCatalog = (): MedicationCatalogItem[] | null => 
 };
 
 export const cacheMedicationCatalog = (items: MedicationCatalogItem[]) => {
-  if (typeof localStorage === "undefined") return;
+  if (typeof localStorage === 'undefined') return;
   try {
     localStorage.setItem(MED_CAT_CACHE_KEY, JSON.stringify({ data: items, cachedAt: Date.now() }));
   } catch {
@@ -100,61 +52,44 @@ export const cacheMedicationCatalog = (items: MedicationCatalogItem[]) => {
 
 export async function loadInitialData(userId: string) {
   // ESTRATÉGIA: localStorage é SEMPRE principal
-  // Supabase é apenas sincronização em background (nunca sobrescreve localStorage)
-  
+
   // 1. SEMPRE tentar localStorage PRIMEIRO (instantâneo + confiável)
   const cachedState = loadCachedState(userId);
   if (cachedState.hasCache) {
     console.log('✓ Usando dados do localStorage (PRINCIPAL)');
-    // Sincronizar com Supabase em background (não bloqueia UI)
-    syncWithSupabaseInBackground(userId).catch(err => 
-      console.warn('⚠ Erro ao sincronizar com Supabase em background:', err)
-    );
     return cachedState.state!;
   }
 
-  // 2. Se NÃO há cache em localStorage, tentar Supabase (para primeira vez)
-  console.log('⚠ Nenhum cache em localStorage, carregando do Supabase...');
-  
-  let birdsFromSupabase: Bird[] = [];
-  try {
-    const { data: supabaseBirds, error } = await supabase
-      .from('birds')
-      .select('*')
-      .eq('breeder_id', userId);
-    
-    if (!error && supabaseBirds && supabaseBirds.length > 0) {
-      console.log(`✓ Carregados ${supabaseBirds.length} pássaros do Supabase (primeira vez)`);
-      birdsFromSupabase = supabaseBirds.map(mapBirdFromDb);
-    }
-  } catch (err) {
-    console.warn('⚠ Erro ao carregar birds do Supabase na primeira vez:', err);
-  }
-
-  const settingsPromise = safeSingleSettings(
-    () => supabase.from("settings").select("*").eq("user_id", userId).maybeSingle()
-  );
-
   // Initial data for dashboard and core UI only.
   try {
-    const [birds, transactions, tasks, tournaments, clutches, pairs, archivedPairs, movements, medications, applications, settingsResult] = await Promise.all([
-        // Se temos birds do Supabase, usar; senão carregar
-        birdsFromSupabase.length > 0 
-          ? Promise.resolve(birdsFromSupabase)
-          : safeSelect(() => supabase.from("birds").select("*").eq("breeder_id", userId), mapBirdFromDb),
-        safeSelect(() => supabase.from("transactions").select("*").eq("user_id", userId), mapTransactionFromDb),
-        safeSelect(() => supabase.from("tasks").select("*").eq("user_id", userId), mapTaskFromDb),
-        safeSelect(() => supabase.from("tournaments").select("*").eq("user_id", userId), mapTournamentFromDb),
-        safeSelect(() => supabase.from("clutches").select("*").eq("user_id", userId), mapClutchFromDb),
-        safeSelect(() => supabase.from("pairs").select("*").eq("user_id", userId).is("deleted_at", null).is("archived_at", null), mapPairFromDb),
-        safeSelect(() => supabase.from("pairs").select("*").eq("user_id", userId).not("archived_at", "is", null).is("deleted_at", null), mapPairFromDb),
-        safeSelect(() => supabase.from("movements").select("*").eq("user_id", userId).is("deleted_at", null), mapMovementFromDb),
-        safeSelect(() => supabase.from("medications").select("*").eq("user_id", userId), mapMedicationFromDb),
-        safeSelect(() => supabase.from("applications").select("*").eq("user_id", userId), mapApplicationFromDb),
-        settingsPromise,
-      ]) as any;
+    // Carregar apenas via Firestore
+    const [
+      birds,
+      transactions,
+      tasks,
+      tournaments,
+      clutches,
+      pairs,
+      archivedPairs,
+      movements,
+      medications,
+      applications,
+    ] = await Promise.all([
+      // Firestore service functions
+      (await import('./firestoreService')).getBirds(userId),
+      (await import('./firestoreService')).getTransactions(userId),
+      (await import('./firestoreService')).getTasks(userId),
+      (await import('./firestoreService')).getTournaments(userId),
+      (await import('./firestoreService')).getClutches(userId),
+      (await import('./firestoreService')).getPairs(userId),
+      Promise.resolve([]), // archivedPairs: not available, placeholder
+      (await import('./firestoreService')).getMovements(userId),
+      (await import('./firestoreService')).getMedications(userId),
+      (await import('./firestoreService')).getApplications(userId),
+    ]);
 
-    const settings = settingsResult.settings;
+    const settings = ((await import('./firestoreService')).getSettings(userId)) as Promise<BreederSettings | null>;
+    const resolvedSettings = await settings;
 
     return {
       birds,
@@ -169,11 +104,11 @@ export async function loadInitialData(userId: string) {
       applications,
       treatments: [],
       medicationCatalog: [],
-      settings: settings ?? INITIAL_SETTINGS,
-      settingsFailed: settingsResult.failed,
+      settings: resolvedSettings ?? INITIAL_SETTINGS,
+      settingsFailed: false,
     };
   } catch (err) {
-    console.error('❌ Falha ao carregar inicial do Supabase:', err);
+    console.error('❌ Falha ao carregar dados iniciais do Firestore:', err);
     // NÃO retornar vazio! Retornar o que temos do localStorage como fallback
     // Se não tem nada, retornar estado padrão vazio
     console.log('⚠ Retornando estado padrão vazio (primeira vez, sem dados)');
@@ -198,303 +133,308 @@ export async function loadInitialData(userId: string) {
 
 export async function loadTabData(userId: string, tab: string) {
   switch (tab) {
-    case "movements":
+    case 'movements':
       return {
-        movements: await safeSelect(() => supabase.from("movements").select("*").eq("user_id", userId).is("deleted_at", null), mapMovementFromDb),
+        movements: await (await import('./firestoreService')).getMovements(userId),
       };
-    case "breeding":
+    case 'breeding':
       return {
-        pairs: await safeSelect(() => supabase.from("pairs").select("*").eq("user_id", userId).is("deleted_at", null), mapPairFromDb),
-        clutches: await safeSelect(() => supabase.from("clutches").select("*").eq("user_id", userId), mapClutchFromDb),
+        pairs: await (await import('./firestoreService')).getPairs(userId),
+        clutches: await (await import('./firestoreService')).getClutches(userId),
       };
-    case "meds": {
-      const medications = await safeSelect(() => supabase.from("medications").select("*").eq("user_id", userId), mapMedicationFromDb);
-      const applications = await safeSelect(() => supabase.from("applications").select("*").eq("user_id", userId), mapApplicationFromDb);
-      const treatments = await safeSelect(() => supabase.from("treatments").select("*").eq("user_id", userId), mapTreatmentFromDb);
+    case 'meds': {
+      const medications = await (await import('./firestoreService')).getMedications(userId);
+      const applications = await (await import('./firestoreService')).getApplications(userId);
+      const treatments = await (await import('./firestoreService')).getTreatments(userId);
       let medicationCatalog = getCachedMedicationCatalog() || [];
       if (medicationCatalog.length === 0) {
-        const items = await safeSelect(
-          () => supabase.from("medication_catalog").select("*"),
-          mapMedicationCatalogFromDb
-        );
+        const items = await (await import('./firestoreService')).getMedicationCatalog();
         medicationCatalog = items;
         cacheMedicationCatalog(items);
       }
       return { medications, applications, treatments, medicationCatalog };
     }
-    case "birds":
-    case "sexing": {
-      // IMPORTANTE: Carregar birds com fallback para localStorage se Supabase falhar
-      const birdsFromSupabase = await safeSelect(
-        () => supabase.from("birds").select("*").eq("breeder_id", userId),
-        mapBirdFromDb
-      );
-      
-      // Se conseguiu carregar do Supabase, retorna
-      if (birdsFromSupabase && birdsFromSupabase.length > 0) {
-        console.log(`✓ Carregados ${birdsFromSupabase.length} pássaros do Supabase na aba '${tab}'`);
-        return { birds: birdsFromSupabase };
+    case 'birds':
+    case 'sexing': {
+      // IMPORTANTE: Carregar birds com fallback para localStorage se Firestore falhar
+      const birdsFromFirestore = await (await import('./firestoreService')).getBirds(userId);
+      if (birdsFromFirestore && birdsFromFirestore.length > 0) {
+        return { birds: birdsFromFirestore };
       }
-      
-      // Se falhou, tenta localStorage como fallback
+
       const cachedState = loadCachedState(userId);
       if (cachedState.hasCache && cachedState.state?.birds) {
-        console.log(`⚠ Supabase falhou, usando localStorage como fallback (${cachedState.state.birds.length} aves)`);
         return { birds: cachedState.state.birds };
       }
-      
-      // Se não tem nada, retorna array vazio
-      console.warn(`❌ Nenhuma ave encontrada em Supabase ou localStorage para aba '${tab}'`);
+
       return { birds: [] };
     }
-    case "tasks":
+    case 'tasks':
       return {
-        tasks: await safeSelect(() => supabase.from("tasks").select("*").eq("user_id", userId), mapTaskFromDb),
+        tasks: await (await import('./firestoreService')).getTasks(userId),
       };
-    case "tournaments":
+    case 'tournaments':
       return {
-        tournaments: await safeSelect(() => supabase.from("tournaments").select("*").eq("user_id", userId), mapTournamentFromDb),
+        tournaments: await (await import('./firestoreService')).getTournaments(userId),
       };
-    case "finance":
+    case 'finance':
       return {
-        transactions: await safeSelect(() => supabase.from("transactions").select("*").eq("user_id", userId), mapTransactionFromDb),
+        transactions: await (await import('./firestoreService')).getTransactions(userId),
       };
     default:
       return {};
   }
 }
 
-export async function loadDeletedPairs(userId: string) {
+export async function loadDeletedPairs() {
   return {
-    deletedPairs: await safeSelect(
-      () => supabase.from("pairs").select("*").eq("user_id", userId).not("deleted_at", "is", null),
-      mapPairFromDb
-    ),
+    deletedPairs: [],
   };
 }
 
-export const mapBirdFromDb = (row: any): Bird => {
-  const species = row.species ?? "";
-  const sex = row.sex ?? "Desconhecido";
-  const rawPhotoUrl = row.photo_url ?? row.photoUrl ?? undefined;
-  const birthDate = row.birth_date ?? row.birthDate ?? undefined;
-  const photoUrl = isDefaultBirdImage(rawPhotoUrl) ? getDefaultBirdImage(species, sex, birthDate) : rawPhotoUrl;
+export const mapBirdFromDb = (row: Record<string, unknown>): Bird => {
+  const species = (row['species'] ?? '') as string;
+  const sex = (typeof row['sex'] === 'string' ? (row['sex'] as Sex) : ('Desconhecido' as Sex)) as Sex;
+  const rawPhotoUrl = (row['photo_url'] ?? row['photoUrl'] ?? undefined) as string | undefined;
+  const birthDate = (row['birth_date'] ?? row['birthDate'] ?? undefined) as string | undefined;
+  const photoUrl = isDefaultBirdImage(rawPhotoUrl)
+    ? getDefaultBirdImage(species, String(sex), birthDate)
+    : rawPhotoUrl;
 
   return {
-    id: row.id,
-    breederId: row.breeder_id ?? row.breederId ?? "",
-    ringNumber: row.ring_number ?? row.ring ?? row.ringNumber ?? "",
+    id: String(row['id'] ?? ''),
+    breederId: String(row['breeder_id'] ?? row['breederId'] ?? ''),
+    ringNumber: String(row['ring_number'] ?? row['ring'] ?? row['ringNumber'] ?? ''),
     species,
-    name: row.name ?? "",
-    sex: (row.sex ?? "Desconhecido") as any,
-    colorMutation: row.color_mutation ?? row.colorMutation ?? "",
-    birthDate: row.birth_date ?? row.birthDate ?? undefined,
-    status: (row.status ?? "Ativo") as any,
-    location: row.location ?? "",
+    name: String(row['name'] ?? ''),
+    sex: sex as Sex,
+    colorMutation: String(row['color_mutation'] ?? row['colorMutation'] ?? ''),
+    birthDate: birthDate,
+    status: (typeof row['status'] === 'string' ? (row['status'] as BirdStatus) : ('Ativo' as BirdStatus)) as BirdStatus,
+    location: String(row['location'] ?? ''),
     photoUrl,
-    fatherId: row.father_id ?? row.fatherId ?? undefined,
-    motherId: row.mother_id ?? row.motherId ?? undefined,
-    classification: (row.classification ?? "Exemplar") as any,
-    songTrainingStatus: (row.song_training_status ?? "Não Iniciado") as any,
-    songType: row.song_type ?? row.songType ?? undefined,
-    trainingNotes: row.training_notes ?? row.trainingNotes ?? undefined,
-    createdAt: row.created_at ?? row.createdAt ?? new Date().toISOString(),
-    updatedAt: row.updated_at ?? row.updatedAt ?? undefined,
+    fatherId: (row['father_id'] ?? row['fatherId'] ?? undefined) as string | undefined,
+    motherId: (row['mother_id'] ?? row['motherId'] ?? undefined) as string | undefined,
+    classification: (typeof row['classification'] === 'string' ? (row['classification'] as BirdClassification) : ('Exemplar' as BirdClassification)) as BirdClassification,
+    songTrainingStatus: (typeof row['song_training_status'] === 'string' ? (row['song_training_status'] as TrainingStatus) : ('Não Iniciado' as TrainingStatus)) as TrainingStatus,
+    songType: (row['song_type'] ?? row['songType'] ?? undefined) as string | undefined,
+    trainingNotes: (row['training_notes'] ?? row['trainingNotes'] ?? undefined) as string | undefined,
+    createdAt: (row['created_at'] ?? row['createdAt'] ?? new Date().toISOString()) as string,
+    updatedAt: (row['updated_at'] ?? row['updatedAt'] ?? undefined) as string | undefined,
     // Campos legados (compatibilidade)
-    manualAncestors: row.manual_ancestors ?? row.manualAncestors ?? undefined,
-    isRepeater: row.is_repeater ?? row.isRepeater ?? false,
-    sexing: row.sexing ?? undefined,
-    documents: row.documents ?? undefined,
-    ibamaBaixaPendente: row.ibama_baixa_pendente ?? row.ibamaBaixaPendente ?? false,
-    ibamaBaixaData: row.ibama_baixa_data ?? row.ibamaBaixaData ?? undefined,
-    deletedAt: row.deleted_at ?? row.deletedAt ?? undefined,
+    manualAncestors: (row['manual_ancestors'] ?? row['manualAncestors'] ?? undefined) as Record<string, string> | undefined,
+    isRepeater: (row['is_repeater'] ?? row['isRepeater'] ?? false) as boolean,
+    sexing: (row['sexing'] ?? undefined) as SexingData | undefined,
+    documents: (row['documents'] ?? undefined) as BirdDocument[] | undefined,
+    ibamaBaixaPendente: (row['ibama_baixa_pendente'] ?? row['ibamaBaixaPendente'] ?? false) as boolean,
+    ibamaBaixaData: (row['ibama_baixa_data'] ?? row['ibamaBaixaData'] ?? undefined) as string | undefined,
+    deletedAt: (row['deleted_at'] ?? row['deletedAt'] ?? undefined) as string | undefined,
   };
 };
 
-export const mapMovementFromDb = (row: any): MovementRecord => ({
-  id: row.id,
-  userId: row.user_id ?? row.userId ?? undefined,
-  birdId: row.bird_id ?? row.birdId ?? undefined,
-  type: (row.type ?? "Transferência") as any,
-  date: row.date ?? undefined,
-  notes: row.notes ?? undefined,
-  destination: row.destination ?? undefined,
-  buyerSispass: row.buyer_sispass ?? row.buyerSispass ?? undefined,
-  gtrUrl: row.gtr_url ?? row.gtrUrl ?? undefined,
-  deletedAt: row.deleted_at ?? row.deletedAt ?? undefined,
+export const mapMovementFromDb = (row: Record<string, unknown>): MovementRecord => ({
+  id: String(row['id'] ?? ''),
+  userId: (row['user_id'] ?? row['userId'] ?? undefined) as string | undefined,
+  birdId: (row['bird_id'] ?? row['birdId'] ?? undefined) as string | undefined,
+  type: (typeof row['type'] === 'string' ? (row['type'] as MovementType) : ('Transferência' as MovementType)) as MovementType,
+  date: (row['date'] ?? undefined) as string | undefined,
+  notes: (row['notes'] ?? undefined) as string | undefined,
+  destination: (row['destination'] ?? undefined) as string | undefined,
+  buyerSispass: (row['buyer_sispass'] ?? row['buyerSispass'] ?? undefined) as string | undefined,
+  gtrUrl: (row['gtr_url'] ?? row['gtrUrl'] ?? undefined) as string | undefined,
+  deletedAt: (row['deleted_at'] ?? row['deletedAt'] ?? undefined) as string | undefined,
 });
 
-export const mapTransactionFromDb = (row: any): Transaction => ({
-  id: row.id,
-  description: row.description ?? "",
-  amount: Number(row.amount ?? 0),
-  date: row.date ?? "",
-  type: row.type ?? "Despesa",
-  category: row.category ?? "Outros",
-  subcategory: row.subcategory ?? undefined,
-  deletedAt: row.deleted_at ?? row.deletedAt ?? undefined,
+export const mapTransactionFromDb = (row: Record<string, unknown>): Transaction => ({
+  id: String(row['id'] ?? ''),
+  description: String(row['description'] ?? ''),
+  amount: Number(row['amount'] ?? 0),
+  date: String(row['date'] ?? ''),
+  type: (typeof row['type'] === 'string' ? (row['type'] as Transaction['type']) : ('Despesa' as Transaction['type'])) as Transaction['type'],
+  category: (typeof row['category'] === 'string' ? (row['category'] as Transaction['category']) : ('Outros' as Transaction['category'])) as Transaction['category'],
+  subcategory: (row['subcategory'] ?? undefined) as string | undefined,
+  deletedAt: (row['deleted_at'] ?? row['deletedAt'] ?? undefined) as string | undefined,
 });
 
-export const mapTaskFromDb = (row: any): MaintenanceTask => ({
-  id: row.id,
-  title: row.title ?? "",
-  dueDate: row.due_date ?? row.dueDate ?? "",
-  isCompleted: row.is_completed ?? row.isCompleted ?? false,
-  priority: (row.priority ?? "Média") as any,
-  birdId: row.bird_id ?? row.birdId ?? undefined,
-  frequency: row.frequency ?? undefined,
-  remindMe: row.remind_me ?? row.remindMe ?? undefined,
-  deletedAt: row.deleted_at ?? row.deletedAt ?? undefined,
+export const mapTaskFromDb = (row: Record<string, unknown>): MaintenanceTask => ({
+  id: String(row['id'] ?? ''),
+  title: String(row['title'] ?? ''),
+  dueDate: String(row['due_date'] ?? row['dueDate'] ?? ''),
+  isCompleted: (row['is_completed'] ?? row['isCompleted'] ?? false) as boolean,
+  priority: (typeof row['priority'] === 'string' ? (row['priority'] as MaintenanceTask['priority']) : ('Média' as MaintenanceTask['priority'])) as MaintenanceTask['priority'],
+  birdId: (row['bird_id'] ?? row['birdId'] ?? undefined) as string | undefined,
+  frequency:
+    typeof row['frequency'] === 'string' &&
+    ['Única', 'Diária', 'Semanal', 'Mensal'].includes(row['frequency'])
+      ? (row['frequency'] as MaintenanceTask['frequency'])
+      : undefined,
+  remindMe: (row['remind_me'] ?? row['remindMe'] ?? undefined) as boolean | undefined,
+  deletedAt: (row['deleted_at'] ?? row['deletedAt'] ?? undefined) as string | undefined,
 });
 
-export const mapTournamentFromDb = (row: any): TournamentEvent => ({
-  id: row.id,
-  title: row.title ?? "",
-  date: row.date ?? "",
-  location: row.location ?? "",
-  type: row.type ?? "Torneio",
-  category: row.category ?? "Canto",
-  notes: row.notes ?? undefined,
-  organizer: row.organizer ?? undefined,
-  result: row.result ?? undefined,
-  trophy: row.trophy ?? undefined,
-  score: row.score ?? undefined,
-  participatingBirds: row.participating_birds ?? row.participatingBirds ?? undefined,
-  preparationChecklist: row.preparation_checklist ?? row.preparationChecklist ?? undefined,
-  deletedAt: row.deleted_at ?? row.deletedAt ?? undefined,
+export const mapTournamentFromDb = (row: Record<string, unknown>): TournamentEvent => ({
+  id: String(row['id'] ?? ''),
+  title: String(row['title'] ?? ''),
+  date: String(row['date'] ?? ''),
+  location: String(row['location'] ?? ''),
+  type: (typeof row['type'] === 'string' ? (row['type'] as TournamentEvent['type']) : ('Torneio' as TournamentEvent['type'])) as TournamentEvent['type'],
+  category: (typeof row['category'] === 'string' ? (row['category'] as TournamentEvent['category']) : ('Canto' as TournamentEvent['category'])) as TournamentEvent['category'],
+  notes: (row['notes'] ?? undefined) as string | undefined,
+  organizer: (row['organizer'] ?? undefined) as string | undefined,
+  result: (row['result'] ?? undefined) as string | undefined,
+  trophy: (row['trophy'] ?? undefined) as boolean | undefined,
+  score: (row['score'] ?? undefined) as number | undefined,
+  participatingBirds: (row['participating_birds'] ?? row['participatingBirds'] ?? undefined) as string[] | undefined,
+  preparationChecklist: (row['preparation_checklist'] ?? row['preparationChecklist'] ?? undefined) as { item: string; checked: boolean }[] | undefined,
+  deletedAt: (row['deleted_at'] ?? row['deletedAt'] ?? undefined) as string | undefined,
 });
 
-export const mapMedicationFromDb = (row: any): Medication => ({
-  id: row.id,
-  userId: row.user_id ?? row.userId ?? "",
-  name: row.name ?? "",
-  type: (row.type ?? "Outro") as any,
-  batch: row.batch ?? undefined,
-  expiryDate: row.expiry_date ?? row.expiryDate ?? undefined,
-  stock: row.stock ?? 0,
-  deletedAt: row.deleted_at ?? row.deletedAt ?? undefined,
+export const mapMedicationFromDb = (row: Record<string, unknown>): Medication => ({
+  id: String(row['id'] ?? ''),
+  userId: String(row['user_id'] ?? row['userId'] ?? ''),
+  name: String(row['name'] ?? ''),
+  type: (typeof row['type'] === 'string' ? (row['type'] as Medication['type']) : ('Outro' as Medication['type'])) as Medication['type'],
+  batch: (row['batch'] ?? undefined) as string | undefined,
+  expiryDate: (row['expiry_date'] ?? row['expiryDate'] ?? undefined) as string | undefined,
+  stock: Number(row['stock'] ?? 0),
+  deletedAt: (row['deleted_at'] ?? row['deletedAt'] ?? undefined) as string | undefined,
 });
 
-export const mapMedicationCatalogFromDb = (row: any): MedicationCatalogItem => ({
-  id: row.id,
-  name: row.name ?? "",
-  category: row.category ?? undefined,
-  indication: row.indication ?? undefined,
-  prescription: row.prescription ?? undefined,
-  application: row.application ?? undefined,
-  manufacturer: row.manufacturer ?? undefined,
-  source: row.source ?? undefined,
+export const mapMedicationCatalogFromDb = (row: Record<string, unknown>): MedicationCatalogItem => ({
+  id: String(row['id'] ?? ''),
+  name: String(row['name'] ?? ''),
+  category: (row['category'] ?? undefined) as string | undefined,
+  indication: (row['indication'] ?? undefined) as string | undefined,
+  prescription: (row['prescription'] ?? undefined) as string | undefined,
+  application: (row['application'] ?? undefined) as string | undefined,
+  manufacturer: (row['manufacturer'] ?? undefined) as string | undefined,
+  source: (row['source'] ?? undefined) as string | undefined,
 });
 
-export const mapPairFromDb = (row: any): Pair => ({
-  id: row.id,
-  userId: row.user_id ?? row.userId ?? "",
-  maleId: row.male_id ?? row.maleId ?? undefined,
-  femaleId: row.female_id ?? row.femaleId ?? undefined,
-  startDate: row.start_date ?? row.startDate ?? "",
-  endDate: row.end_date ?? row.endDate ?? undefined,
-  deletedAt: row.deleted_at ?? row.deletedAt ?? undefined,
+export const mapPairFromDb = (row: Record<string, unknown>): Pair => ({
+  id: String(row['id'] ?? ''),
+  userId: String(row['user_id'] ?? row['userId'] ?? ''),
+  maleId: (row['male_id'] ?? row['maleId'] ?? undefined) as string | undefined,
+  femaleId: (row['female_id'] ?? row['femaleId'] ?? undefined) as string | undefined,
+  startDate: String(row['start_date'] ?? row['startDate'] ?? ''),
+  endDate: (row['end_date'] ?? row['endDate'] ?? undefined) as string | undefined,
+  deletedAt: (row['deleted_at'] ?? row['deletedAt'] ?? undefined) as string | undefined,
 });
 
-export const mapClutchFromDb = (row: any): Clutch => ({
-  id: row.id,
-  userId: row.user_id ?? row.userId ?? "",
-  pairId: row.pair_id ?? row.pairId ?? "",
-  layDate: row.lay_date ?? row.layDate ?? "",
-  eggCount: row.egg_count ?? row.eggCount ?? 0,
-  fertileCount: row.fertile_count ?? row.fertileCount ?? 0,
-  hatchedCount: row.hatched_count ?? row.hatchedCount ?? 0,
-  notes: row.notes ?? "",
+export const mapClutchFromDb = (row: Record<string, unknown>): Clutch => ({
+  id: String(row['id'] ?? ''),
+  userId: String(row['user_id'] ?? row['userId'] ?? ''),
+  pairId: String(row['pair_id'] ?? row['pairId'] ?? ''),
+  layDate: String(row['lay_date'] ?? row['layDate'] ?? ''),
+  eggCount: Number(row['egg_count'] ?? row['eggCount'] ?? 0),
+  fertileCount: Number(row['fertile_count'] ?? row['fertileCount'] ?? 0),
+  hatchedCount: Number(row['hatched_count'] ?? row['hatchedCount'] ?? 0),
+  notes: String(row['notes'] ?? ''),
 });
 
-export const mapApplicationFromDb = (row: any): MedicationApplication => ({
-  id: row.id,
-  birdId: row.bird_id ?? row.birdId ?? undefined,
-  medicationId: row.medication_id ?? row.medicationId ?? undefined,
-  date: row.date ?? "",
-  dosage: row.dosage ?? "",
-  notes: row.notes ?? "",
-  treatmentId: row.treatment_id ?? row.treatmentId ?? undefined,
-  deletedAt: row.deleted_at ?? row.deletedAt ?? undefined,
+export const mapApplicationFromDb = (row: Record<string, unknown>): MedicationApplication => ({
+  id: String(row['id'] ?? ''),
+  birdId: (row['bird_id'] ?? row['birdId'] ?? undefined) as string | undefined,
+  medicationId: (row['medication_id'] ?? row['medicationId'] ?? undefined) as string | undefined,
+  date: String(row['date'] ?? ''),
+  dosage: String(row['dosage'] ?? ''),
+  notes: (row['notes'] ?? '' ) as string,
+  treatmentId: (row['treatment_id'] ?? row['treatmentId'] ?? undefined) as string | undefined,
+  deletedAt: (row['deleted_at'] ?? row['deletedAt'] ?? undefined) as string | undefined,
 });
 
-export const mapTreatmentFromDb = (row: any): ContinuousTreatment => {
-  const rawBirdId = row.bird_id ?? row.birdId ?? null;
+export const mapTreatmentFromDb = (row: Record<string, unknown>): ContinuousTreatment => {
+  const rawBirdId = (row['bird_id'] ?? row['birdId'] ?? null) as string | null;
   return {
-    id: row.id,
-    birdId: rawBirdId ? rawBirdId : "ALL",
-    medicationId: row.medication_id ?? row.medicationId ?? "",
-    startDate: row.start_date ?? row.startDate ?? "",
-    endDate: row.end_date ?? row.endDate ?? undefined,
-    frequency: (row.frequency ?? "Diário") as any,
-    dosage: row.dosage ?? "",
-    status: (row.status ?? "Ativo") as any,
-    lastApplicationDate: row.last_application_date ?? row.lastApplicationDate ?? undefined,
-    notes: row.notes ?? undefined,
-    deletedAt: row.deleted_at ?? row.deletedAt ?? undefined,
+    id: String(row['id'] ?? ''),
+    birdId: rawBirdId ? rawBirdId : 'ALL',
+    medicationId: String(row['medication_id'] ?? row['medicationId'] ?? ''),
+    startDate: String(row['start_date'] ?? row['startDate'] ?? ''),
+    endDate: (row['end_date'] ?? row['endDate'] ?? undefined) as string | undefined,
+    frequency: (row['frequency'] ?? 'Diário') as ContinuousTreatment['frequency'],
+    dosage: String(row['dosage'] ?? ''),
+    status: (row['status'] ?? 'Ativo') as ContinuousTreatment['status'],
+    lastApplicationDate: (row['last_application_date'] ?? row['lastApplicationDate'] ?? undefined) as string | undefined,
+    notes: (row['notes'] ?? undefined) as string | undefined,
+    deletedAt: (row['deleted_at'] ?? row['deletedAt'] ?? undefined) as string | undefined,
   };
 };
 
-export const mapSettingsFromDb = (row: any): BreederSettings => ({
-  breederName: row.breeder_name ?? row.breederName ?? INITIAL_SETTINGS.breederName,
-  userId: row.user_id ?? row.userId ?? undefined,
-  cpfCnpj: row.cpf_cnpj ?? row.cpfCnpj ?? "",
-  breederCategory: row.breeder_category ?? row.breederCategory ?? "",
-  responsibleName: row.responsible_name ?? row.responsibleName ?? "",
-  speciesRaised: row.species_raised ?? row.speciesRaised ?? "",
-  breederEmail: row.breeder_email ?? row.breederEmail ?? "",
-  breederPhone: row.breeder_phone ?? row.breederPhone ?? "",
-  breederMobile: row.breeder_mobile ?? row.breederMobile ?? "",
-  breederWebsite: row.breeder_website ?? row.breederWebsite ?? "",
-  addressCep: row.address_cep ?? row.addressCep ?? "",
-  addressStreet: row.address_street ?? row.addressStreet ?? "",
-  addressNumber: row.address_number ?? row.addressNumber ?? "",
-  addressNeighborhood: row.address_neighborhood ?? row.addressNeighborhood ?? "",
-  addressCity: row.address_city ?? row.addressCity ?? "",
-  addressState: row.address_state ?? row.addressState ?? "",
-  addressComplement: row.address_complement ?? row.addressComplement ?? "",
-  sispassNumber: row.sispass_number ?? row.sispassNumber ?? "",
-  sispassDocumentUrl: row.sispass_document_url ?? row.sispassDocumentUrl ?? undefined,
-  registrationDate: row.registration_date ?? row.registrationDate ?? "",
-  renewalDate: row.renewal_date ?? row.renewalDate ?? "",
-  lastRenewalDate: row.last_renewal_date ?? row.lastRenewalDate ?? undefined,
-  logoUrl: row.logo_url ?? row.logoUrl ?? undefined,
-  primaryColor: row.primary_color ?? row.primaryColor ?? INITIAL_SETTINGS.primaryColor,
-  accentColor: row.accent_color ?? row.accentColor ?? INITIAL_SETTINGS.accentColor,
-  plan: row.plan ?? INITIAL_SETTINGS.plan,
-  trialEndDate: normalizeTrialEndDate(row.trial_end_date ?? row.trialEndDate),
-  dashboardLayout: row.dashboard_layout ?? row.dashboardLayout ?? undefined,
-  certificate: row.certificate ?? undefined,
-  subscriptionEndDate: row.subscription_end_date ?? row.subscriptionEndDate ?? undefined,
-  subscriptionCancelAtPeriodEnd: row.subscription_cancel_at_period_end ?? row.subscriptionCancelAtPeriodEnd ?? undefined,
-  subscriptionStatus: row.subscription_status ?? row.subscriptionStatus ?? undefined,
+export const mapSettingsFromDb = (row: Record<string, unknown>): BreederSettings => ({
+  breederName: String(row['breeder_name'] ?? row['breederName'] ?? INITIAL_SETTINGS.breederName),
+  userId: (row['user_id'] ?? row['userId'] ?? undefined) as string | undefined,
+  cpfCnpj: String(row['cpf_cnpj'] ?? row['cpfCnpj'] ?? ''),
+  breederCategory: String(row['breeder_category'] ?? row['breederCategory'] ?? ''),
+  responsibleName: String(row['responsible_name'] ?? row['responsibleName'] ?? ''),
+  speciesRaised: String(row['species_raised'] ?? row['speciesRaised'] ?? ''),
+  breederEmail: String(row['breeder_email'] ?? row['breederEmail'] ?? ''),
+  breederPhone: String(row['breeder_phone'] ?? row['breederPhone'] ?? ''),
+  breederMobile: String(row['breeder_mobile'] ?? row['breederMobile'] ?? ''),
+  breederWebsite: String(row['breeder_website'] ?? row['breederWebsite'] ?? ''),
+  addressCep: String(row['address_cep'] ?? row['addressCep'] ?? ''),
+  addressStreet: String(row['address_street'] ?? row['addressStreet'] ?? ''),
+  addressNumber: String(row['address_number'] ?? row['addressNumber'] ?? ''),
+  addressNeighborhood: String(row['address_neighborhood'] ?? row['addressNeighborhood'] ?? ''),
+  addressCity: String(row['address_city'] ?? row['addressCity'] ?? ''),
+  addressState: String(row['address_state'] ?? row['addressState'] ?? ''),
+  addressComplement: String(row['address_complement'] ?? row['addressComplement'] ?? ''),
+  sispassNumber: String(row['sispass_number'] ?? row['sispassNumber'] ?? ''),
+  sispassDocumentUrl: (row['sispass_document_url'] ?? row['sispassDocumentUrl'] ?? undefined) as string | undefined,
+  registrationDate: String(row['registration_date'] ?? row['registrationDate'] ?? ''),
+  renewalDate: String(row['renewal_date'] ?? row['renewalDate'] ?? ''),
+  lastRenewalDate: (row['last_renewal_date'] ?? row['lastRenewalDate'] ?? undefined) as string | undefined,
+  logoUrl: (row['logo_url'] ?? row['logoUrl'] ?? undefined) as string | undefined,
+  primaryColor: String(row['primary_color'] ?? row['primaryColor'] ?? INITIAL_SETTINGS.primaryColor),
+  accentColor: String(row['accent_color'] ?? row['accentColor'] ?? INITIAL_SETTINGS.accentColor),
+  plan: (row['plan'] ?? INITIAL_SETTINGS.plan) as BreederSettings['plan'],
+  trialEndDate: normalizeTrialEndDate((row['trial_end_date'] ?? row['trialEndDate']) as string | undefined),
+  dashboardLayout: parseStringArray(row['dashboard_layout'] ?? row['dashboardLayout']),
+  certificate: parseCertificate(row['certificate']),
+  subscriptionEndDate: (row['subscription_end_date'] ?? row['subscriptionEndDate'] ?? undefined) as string | undefined,
+  subscriptionCancelAtPeriodEnd: (row['subscription_cancel_at_period_end'] ?? row['subscriptionCancelAtPeriodEnd'] ?? undefined) as boolean | undefined,
+  subscriptionStatus: (row['subscription_status'] ?? row['subscriptionStatus'] ?? undefined) as string | undefined,
 });
+
+function parseStringArray(value: unknown): string[] | undefined {
+  if (Array.isArray(value)) {
+    return value.filter((item) => typeof item === 'string') as string[];
+  }
+  if (typeof value === 'string') {
+    try {
+      const parsed = JSON.parse(value);
+      if (Array.isArray(parsed)) {
+        return parsed.filter((item) => typeof item === 'string') as string[];
+      }
+    } catch {
+      return undefined;
+    }
+  }
+  return undefined;
+}
+
+function parseCertificate(value: unknown): DigitalCertificateData | undefined {
+  if (value && typeof value === 'object') {
+    return value as DigitalCertificateData;
+  }
+  if (typeof value === 'string') {
+    try {
+      const parsed = JSON.parse(value);
+      if (parsed && typeof parsed === 'object') {
+        return parsed as DigitalCertificateData;
+      }
+    } catch {
+      return undefined;
+    }
+  }
+  return undefined;
+}
 
 function normalizeTrialEndDate(value?: string) {
   if (!value) return undefined;
   const parsed = new Date(value);
   if (isNaN(parsed.getTime())) return undefined;
   // Expirou? Trate como trial inexistente para evitar reativar permissões PRO.
-  return parsed.getTime() >= Date.now() ? parsed.toISOString().split("T")[0] : undefined;
-}
-
-/**
- * Sincroniza dados com Supabase em background (não bloqueia UI)
- * Usado quando localStorage é carregado primeiro
- */
-async function syncWithSupabaseInBackground(userId: string) {
-  try {
-    // Sincroniza birds silenciosamente
-    await safeSelect(
-      () => supabase.from("birds").select("*").eq("breeder_id", userId),
-      mapBirdFromDb
-    );
-    // Se chegou aqui, Supabase está respondendo
-    console.log('✓ Sincronizado com Supabase com sucesso');
-  } catch (err) {
-    console.warn('Background sync com Supabase falhou (será tentado novamente):', err);
-    // Continua mesmo assim - localStorage já tem os dados
-  }
+  return parsed.getTime() >= Date.now() ? parsed.toISOString().split('T')[0] : undefined;
 }
 
 // Função para carregar do cache (já deve existir em App.tsx)
@@ -503,7 +443,7 @@ function loadCachedState(userId: string) {
     const storageKey = `avigestao_state_v2:${userId}`;
     const stored = localStorage.getItem(storageKey);
     if (!stored) return { hasCache: false, state: null };
-    
+
     const { data } = JSON.parse(stored);
     return {
       hasCache: true,
@@ -522,7 +462,7 @@ function loadCachedState(userId: string) {
         medicationCatalog: data.medicationCatalog || [],
         settings: data.settings || INITIAL_SETTINGS,
         settingsFailed: false,
-      }
+      },
     };
   } catch (err) {
     console.warn('Erro ao carregar cache:', err);

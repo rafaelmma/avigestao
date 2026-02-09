@@ -23,7 +23,7 @@ const BirdListTabs: React.FC<BirdListTabsProps> = ({
   sexingWaitingCount,
   trashCount,
   ibamaPendingCount,
-  includeSexingTab = true
+  includeSexingTab = true,
 }) => {
   const tabs: TabItem[] = [
     {
@@ -31,41 +31,45 @@ const BirdListTabs: React.FC<BirdListTabsProps> = ({
       label: 'Plantel',
       icon: <BirdIcon size={16} />,
       badge: activeBirdsCount > 0 ? activeBirdsCount : undefined,
-      badgeVariant: 'info'
+      badgeVariant: 'info',
     },
     {
       id: 'histórico',
       label: 'Histórico',
       icon: <Archive size={16} />,
       badge: historicCount > 0 ? historicCount : undefined,
-      badgeVariant: 'info'
+      badgeVariant: 'info',
     },
-    ...(includeSexingTab ? [{
-      id: 'sexagem' as const,
-      label: 'Sexagem',
-      icon: <Dna size={16} />,
-      badge: sexingWaitingCount > 0 ? sexingWaitingCount : undefined,
-      badgeVariant: sexingWaitingCount > 0 ? 'warning' as const : 'info' as const
-    }] : []),
+    ...(includeSexingTab
+      ? [
+          {
+            id: 'sexagem' as const,
+            label: 'Sexagem',
+            icon: <Dna size={16} />,
+            badge: sexingWaitingCount > 0 ? sexingWaitingCount : undefined,
+            badgeVariant: sexingWaitingCount > 0 ? ('warning' as const) : ('info' as const),
+          },
+        ]
+      : []),
     {
       id: 'ibama-pendentes',
       label: 'IBAMA',
       icon: <Zap size={16} />,
       badge: ibamaPendingCount > 0 ? ibamaPendingCount : undefined,
-      badgeVariant: ibamaPendingCount > 0 ? 'danger' : 'info'
+      badgeVariant: ibamaPendingCount > 0 ? 'danger' : 'info',
     },
     {
       id: 'lixeira',
       label: 'Lixeira',
       icon: <Trash2 size={16} />,
       badge: trashCount > 0 ? trashCount : undefined,
-      badgeVariant: 'info'
-    }
+      badgeVariant: 'info',
+    },
   ];
 
   return (
     <div className="bg-white rounded-xl shadow-sm border border-slate-100 overflow-hidden">
-      <Tabs 
+      <Tabs
         tabs={tabs}
         activeTab={currentList}
         onChange={(tabId) => onChange(tabId as BirdListType)}

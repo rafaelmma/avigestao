@@ -1,10 +1,10 @@
-import { 
-  ref, 
-  uploadBytes, 
-  getDownloadURL, 
+import {
+  ref,
+  uploadBytes,
+  getDownloadURL,
   deleteObject,
   listAll,
-  uploadString
+  uploadString,
 } from 'firebase/storage';
 import { storage } from '../lib/firebase';
 
@@ -15,7 +15,11 @@ import { storage } from '../lib/firebase';
  * @param file - Arquivo a ser enviado
  * @returns URL pública do arquivo ou null em caso de erro
  */
-export const uploadFile = async (userId: string, path: string, file: File): Promise<string | null> => {
+export const uploadFile = async (
+  userId: string,
+  path: string,
+  file: File,
+): Promise<string | null> => {
   try {
     const storageRef = ref(storage, `users/${userId}/${path}`);
     const snapshot = await uploadBytes(storageRef, file);
@@ -34,7 +38,11 @@ export const uploadFile = async (userId: string, path: string, file: File): Prom
  * @param base64String - String base64 da imagem
  * @returns URL pública do arquivo ou null em caso de erro
  */
-export const uploadBase64 = async (userId: string, path: string, base64String: string): Promise<string | null> => {
+export const uploadBase64 = async (
+  userId: string,
+  path: string,
+  base64String: string,
+): Promise<string | null> => {
   try {
     const storageRef = ref(storage, `users/${userId}/${path}`);
     const snapshot = await uploadString(storageRef, base64String, 'data_url');
@@ -90,9 +98,7 @@ export const listFiles = async (userId: string, folderPath: string): Promise<str
   try {
     const folderRef = ref(storage, `users/${userId}/${folderPath}`);
     const result = await listAll(folderRef);
-    const urls = await Promise.all(
-      result.items.map(itemRef => getDownloadURL(itemRef))
-    );
+    const urls = await Promise.all(result.items.map((itemRef) => getDownloadURL(itemRef)));
     return urls;
   } catch (error) {
     console.error('Erro ao listar arquivos:', error);
@@ -107,7 +113,11 @@ export const listFiles = async (userId: string, folderPath: string): Promise<str
  * @param file - Arquivo de imagem
  * @returns URL da imagem ou null
  */
-export const uploadBirdImage = async (userId: string, birdId: string, file: File): Promise<string | null> => {
+export const uploadBirdImage = async (
+  userId: string,
+  birdId: string,
+  file: File,
+): Promise<string | null> => {
   const fileName = `${birdId}_${Date.now()}.${file.name.split('.').pop()}`;
   return uploadFile(userId, `birds/${fileName}`, file);
 };
@@ -119,7 +129,11 @@ export const uploadBirdImage = async (userId: string, birdId: string, file: File
  * @param file - Arquivo
  * @returns URL do documento ou null
  */
-export const uploadDocument = async (userId: string, documentType: string, file: File): Promise<string | null> => {
+export const uploadDocument = async (
+  userId: string,
+  documentType: string,
+  file: File,
+): Promise<string | null> => {
   const fileName = `${Date.now()}_${file.name}`;
   return uploadFile(userId, `documents/${documentType}/${fileName}`, file);
 };

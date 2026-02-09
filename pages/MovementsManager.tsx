@@ -1,25 +1,20 @@
-
 import React, { useState, useRef, Suspense } from 'react';
-import { AppState, MovementRecord, Bird } from '../types';
-import { 
-  Skull, 
-  Wind, 
-  Truck, 
-  Plus, 
-  Calendar, 
-  FileText, 
-  Search, 
+import { AppState, MovementRecord } from '../types';
+import {
+  Skull,
+  Plus,
+  Calendar,
+  FileText,
+  Search,
   Upload,
   Download,
   ArrowRightLeft,
   Info,
-  ExternalLink,
-  ChevronDown,
   UserCheck,
   Trash2,
   RefreshCcw,
   X,
-  Edit
+  Edit,
 } from 'lucide-react';
 const TipCarousel = React.lazy(() => import('../components/TipCarousel'));
 import WizardLayout, { WizardStep } from '../components/WizardLayout';
@@ -33,14 +28,21 @@ interface MovementsManagerProps {
   permanentlyDeleteMovement?: (id: string) => void;
 }
 
-const MovementsManager: React.FC<MovementsManagerProps> = ({ state, addMovement, updateMovement, deleteMovement, restoreMovement, permanentlyDeleteMovement }) => {
+const MovementsManager: React.FC<MovementsManagerProps> = ({
+  state,
+  addMovement,
+  updateMovement,
+  deleteMovement,
+  restoreMovement,
+  permanentlyDeleteMovement,
+}) => {
   const [showModal, setShowModal] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [currentList, setCurrentList] = useState<'active' | 'trash'>('active');
   const [newMov, setNewMov] = useState<Partial<MovementRecord>>({
     type: 'Entrada',
-    date: new Date().toISOString().split('T')[0]
+    date: new Date().toISOString().split('T')[0],
   });
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -78,14 +80,18 @@ const MovementsManager: React.FC<MovementsManagerProps> = ({ state, addMovement,
     });
   };
 
-  const listToUse = currentList === 'active' ? state.movements : (state.deletedMovements || []);
+  const listToUse = currentList === 'active' ? state.movements : state.deletedMovements || [];
 
-  const filteredMovements = listToUse.filter(m => {
-    const bird = state.birds.find(b => b.id === m.birdId) || state.deletedBirds?.find(b => b.id === m.birdId);
-    return bird?.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
-           bird?.ringNumber?.toLowerCase().includes(searchTerm.toLowerCase());
+  const filteredMovements = listToUse.filter((m) => {
+    const bird =
+      state.birds.find((b) => b.id === m.birdId) ||
+      state.deletedBirds?.find((b) => b.id === m.birdId);
+    return (
+      bird?.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      bird?.ringNumber?.toLowerCase().includes(searchTerm.toLowerCase())
+    );
   });
-  
+
   console.log('[MovementsManager] currentList:', currentList);
   console.log('[MovementsManager] Movimentos ativos:', state.movements.length);
   console.log('[MovementsManager] Movimentos deletados:', (state.deletedMovements || []).length);
@@ -104,9 +110,9 @@ const MovementsManager: React.FC<MovementsManagerProps> = ({ state, addMovement,
 
   const handleOpenAdd = () => {
     setIsEditing(false);
-    setNewMov({ 
-      type: 'Entrada', 
-      date: new Date().toISOString().split('T')[0] 
+    setNewMov({
+      type: 'Entrada',
+      date: new Date().toISOString().split('T')[0],
     });
     setShowModal(true);
   };
@@ -125,8 +131,8 @@ const MovementsManager: React.FC<MovementsManagerProps> = ({ state, addMovement,
         await updateMovement(newMov as MovementRecord);
       } else {
         await addMovement({
-          ...newMov as MovementRecord,
-          id: makeId()
+          ...(newMov as MovementRecord),
+          id: makeId(),
         });
       }
       setShowModal(false);
@@ -149,29 +155,35 @@ const MovementsManager: React.FC<MovementsManagerProps> = ({ state, addMovement,
     if (permanentlyDeleteMovement) permanentlyDeleteMovement(id);
   };
 
-  const getBirdById = (id: string) => state.birds.find(b => b.id === id) || state.deletedBirds?.find(b => b.id === id);
+  const getBirdById = (id: string) =>
+    state.birds.find((b) => b.id === id) || state.deletedBirds?.find((b) => b.id === id);
 
   const wizardSteps: WizardStep[] = [
     {
       id: 'active',
       label: 'Ativos',
       description: 'Histórico de entradas, saídas, vendas e transferências.',
-      content: null
+      content: null,
     },
     {
       id: 'trash',
       label: 'Lixeira',
       description: 'Registros removidos aguardando exclusão permanente.',
-      content: null
-    }
+      content: null,
+    },
   ];
 
-  const activeStepIndex = Math.max(0, wizardSteps.findIndex(step => step.id === currentList));
+  const activeStepIndex = Math.max(
+    0,
+    wizardSteps.findIndex((step) => step.id === currentList),
+  );
 
   const pageContent = (
     <div className="space-y-6 animate-in fade-in duration-500">
       <div>
-        <p className="text-slate-400 font-medium text-sm">Entrada, saída, transferência, venda, doação e óbito</p>
+        <p className="text-slate-400 font-medium text-sm">
+          Entrada, saída, transferência, venda, doação e óbito
+        </p>
       </div>
 
       {/* Carrossel de Dicas de Movimentação */}
@@ -180,19 +192,24 @@ const MovementsManager: React.FC<MovementsManagerProps> = ({ state, addMovement,
       </Suspense>
 
       {currentList === 'trash' && (
-         <div className="bg-rose-50 border-l-4 border-rose-500 p-4 rounded-r-xl">
-            <p className="text-rose-700 font-bold text-sm">Lixeira de Movimentações</p>
-            <p className="text-rose-600 text-xs">Exclusão permanente de registros de transporte ou óbito.</p>
-            <p className="text-rose-600 text-xs mt-1">Itens ficam disponiveis por ate 30 dias na lixeira antes de serem removidos automaticamente.</p>
-         </div>
+        <div className="bg-rose-50 border-l-4 border-rose-500 p-4 rounded-r-xl">
+          <p className="text-rose-700 font-bold text-sm">Lixeira de Movimentações</p>
+          <p className="text-rose-600 text-xs">
+            Exclusão permanente de registros de transporte ou óbito.
+          </p>
+          <p className="text-rose-600 text-xs mt-1">
+            Itens ficam disponiveis por ate 30 dias na lixeira antes de serem removidos
+            automaticamente.
+          </p>
+        </div>
       )}
 
       <div className="flex gap-4">
         <div className="flex-1 relative">
           <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={20} />
-          <input 
-            type="text" 
-            placeholder="Buscar por anilha ou nome do pássaro..." 
+          <input
+            type="text"
+            placeholder="Buscar por anilha ou nome do pássaro..."
             className="w-full pl-12 pr-4 py-3 bg-white border border-slate-200 rounded-xl focus:ring-4 focus:ring-brand/5 focus:border-brand outline-none transition-all text-sm font-medium"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
@@ -214,127 +231,153 @@ const MovementsManager: React.FC<MovementsManagerProps> = ({ state, addMovement,
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
-              {filteredMovements.length > 0 ? filteredMovements.map(m => {
-                const bird = getBirdById(m.birdId ?? '');
-                return (
-                  <tr key={m.id} className={`transition-colors ${currentList === 'trash' ? 'bg-rose-50/30' : 'hover:bg-slate-50/50'}`}>
-                    <td className="px-6 py-4">
-                      <div className="flex items-center gap-2">
-                        <Calendar size={14} className="text-slate-400" />
-                        <span className="text-xs font-bold text-slate-600">
-                          {new Date(m.date ?? new Date().toISOString()).toLocaleDateString('pt-BR')}
-                        </span>
-                      </div>
-                    </td>
-                    <td className="px-6 py-4">
-                      <div>
-                        <p className="text-sm font-bold text-slate-800">{bird?.name || 'Desconhecido'}</p>
-                        <p className="text-[10px] font-mono text-slate-400">{bird?.ringNumber ?? 'S/A'}</p>
-                      </div>
-                    </td>
-                    <td className="px-6 py-4">
-                      <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-lg text-[10px] font-black uppercase ${
-                        m.type === 'Óbito' ? 'bg-slate-100 text-slate-600' :
-                        m.type === 'Venda' ? 'bg-emerald-50 text-emerald-600' : 'bg-blue-50 text-blue-600'
-                      }`}>
-                        {m.type === '\u00d3bito' && <Skull size={12} />}
-                        {m.type === 'Venda' && <ArrowRightLeft size={12} />}
-                        {m.type}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4">
-                      <div className="space-y-1">
-                        {/* Para Transferência e Doação, mostra dados do receptor */}
-                        {(m.type === 'Transferência' || m.type === 'Doação') && m.receptorName ? (
-                          <>
-                            <p className="text-xs text-slate-700 font-semibold truncate max-w-xs">{m.receptorName}</p>
-                            {m.receptorDocument && (
-                              <p className="text-[10px] text-brand font-bold flex items-center gap-1">
-                                <UserCheck size={10} /> 
-                                {m.receptorDocumentType === 'cpf' ? 'CPF' : 'IBAMA'}: {m.receptorDocument}
-                              </p>
+              {filteredMovements.length > 0 ? (
+                filteredMovements.map((m) => {
+                  const bird = getBirdById(m.birdId ?? '');
+                  return (
+                    <tr
+                      key={m.id}
+                      className={`transition-colors ${
+                        currentList === 'trash' ? 'bg-rose-50/30' : 'hover:bg-slate-50/50'
+                      }`}
+                    >
+                      <td className="px-6 py-4">
+                        <div className="flex items-center gap-2">
+                          <Calendar size={14} className="text-slate-400" />
+                          <span className="text-xs font-bold text-slate-600">
+                            {new Date(m.date ?? new Date().toISOString()).toLocaleDateString(
+                              'pt-BR',
                             )}
-                          </>
-                        ) : (
-                          /* Para outros tipos, mostra destino/notas */
-                          <>
-                            <p className="text-xs text-slate-700 font-semibold truncate max-w-xs">{m.destination || m.notes || '-'}</p>
-                            {m.buyerSispass && (
-                              <p className="text-[10px] text-brand font-bold flex items-center gap-1">
-                                <UserCheck size={10} /> SISPASS: {m.buyerSispass}
-                              </p>
-                            )}
-                          </>
-                        )}
-                      </div>
-                    </td>
-                    <td className="px-6 py-4">
-                      {m.gtrUrl ? (
-                        <div className="flex flex-col gap-2">
-                          <button 
-                            type="button"
-                            onClick={() => m.gtrUrl && openAttachment(m.gtrUrl)}
-                            className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-100 text-slate-600 rounded-lg text-[10px] font-bold hover:bg-slate-200 transition-colors"
-                          >
-                            <FileText size={14} /> Abrir GTR
-                          </button>
-                          <a
-                            href={m.gtrUrl}
-                            download={`gtr-${m.id}.pdf`}
-                            className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-50 text-emerald-700 rounded-lg text-[10px] font-bold hover:bg-emerald-100 transition-colors"
-                          >
-                            <Download size={14} /> Baixar
-                          </a>
+                          </span>
                         </div>
-                      ) : (
-                        <span className="text-[10px] text-slate-300 font-medium">Sem anexo</span>
-                      )}
-                    </td>
-                    <td className="px-6 py-4 text-right">
-                       {currentList === 'active' ? (
-                         <div className="flex justify-end gap-2">
-                           <button 
-                             onClick={() => handleOpenEdit(m)}
-                             className="text-slate-300 hover:text-brand transition-colors"
-                             title="Editar"
-                           >
-                             <Edit size={16} />
-                           </button>
-                           <button 
-                             onClick={() => handleDeleteClick(m.id)}
-                             className="text-slate-300 hover:text-rose-500 transition-colors"
-                             title="Excluir"
-                           >
-                             <Trash2 size={16} />
-                           </button>
-                         </div>
-                       ) : (
-                         <div className="flex items-center justify-end gap-2">
-                            <button 
+                      </td>
+                      <td className="px-6 py-4">
+                        <div>
+                          <p className="text-sm font-bold text-slate-800">
+                            {bird?.name || 'Desconhecido'}
+                          </p>
+                          <p className="text-[10px] font-mono text-slate-400">
+                            {bird?.ringNumber ?? 'S/A'}
+                          </p>
+                        </div>
+                      </td>
+                      <td className="px-6 py-4">
+                        <span
+                          className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-lg text-[10px] font-black uppercase ${
+                            m.type === 'Óbito'
+                              ? 'bg-slate-100 text-slate-600'
+                              : m.type === 'Venda'
+                              ? 'bg-emerald-50 text-emerald-600'
+                              : 'bg-blue-50 text-blue-600'
+                          }`}
+                        >
+                          {m.type === '\u00d3bito' && <Skull size={12} />}
+                          {m.type === 'Venda' && <ArrowRightLeft size={12} />}
+                          {m.type}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4">
+                        <div className="space-y-1">
+                          {/* Para Transferência e Doação, mostra dados do receptor */}
+                          {(m.type === 'Transferência' || m.type === 'Doação') && m.receptorName ? (
+                            <>
+                              <p className="text-xs text-slate-700 font-semibold truncate max-w-xs">
+                                {m.receptorName}
+                              </p>
+                              {m.receptorDocument && (
+                                <p className="text-[10px] text-brand font-bold flex items-center gap-1">
+                                  <UserCheck size={10} />
+                                  {m.receptorDocumentType === 'cpf' ? 'CPF' : 'IBAMA'}:{' '}
+                                  {m.receptorDocument}
+                                </p>
+                              )}
+                            </>
+                          ) : (
+                            /* Para outros tipos, mostra destino/notas */
+                            <>
+                              <p className="text-xs text-slate-700 font-semibold truncate max-w-xs">
+                                {m.destination || m.notes || '-'}
+                              </p>
+                              {m.buyerSispass && (
+                                <p className="text-[10px] text-brand font-bold flex items-center gap-1">
+                                  <UserCheck size={10} /> SISPASS: {m.buyerSispass}
+                                </p>
+                              )}
+                            </>
+                          )}
+                        </div>
+                      </td>
+                      <td className="px-6 py-4">
+                        {m.gtrUrl ? (
+                          <div className="flex flex-col gap-2">
+                            <button
+                              type="button"
+                              onClick={() => m.gtrUrl && openAttachment(m.gtrUrl)}
+                              className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-100 text-slate-600 rounded-lg text-[10px] font-bold hover:bg-slate-200 transition-colors"
+                            >
+                              <FileText size={14} /> Abrir GTR
+                            </button>
+                            <a
+                              href={m.gtrUrl}
+                              download={`gtr-${m.id}.pdf`}
+                              className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-50 text-emerald-700 rounded-lg text-[10px] font-bold hover:bg-emerald-100 transition-colors"
+                            >
+                              <Download size={14} /> Baixar
+                            </a>
+                          </div>
+                        ) : (
+                          <span className="text-[10px] text-slate-300 font-medium">Sem anexo</span>
+                        )}
+                      </td>
+                      <td className="px-6 py-4 text-right">
+                        {currentList === 'active' ? (
+                          <div className="flex justify-end gap-2">
+                            <button
+                              onClick={() => handleOpenEdit(m)}
+                              className="text-slate-300 hover:text-brand transition-colors"
+                              title="Editar"
+                            >
+                              <Edit size={16} />
+                            </button>
+                            <button
+                              onClick={() => handleDeleteClick(m.id)}
+                              className="text-slate-300 hover:text-rose-500 transition-colors"
+                              title="Excluir"
+                            >
+                              <Trash2 size={16} />
+                            </button>
+                          </div>
+                        ) : (
+                          <div className="flex items-center justify-end gap-2">
+                            <button
                               onClick={(e) => handleRestoreClick(e, m.id)}
                               className="p-2 bg-emerald-100 text-emerald-600 rounded-lg hover:bg-emerald-200"
                               title="Restaurar"
                             >
                               <RefreshCcw size={14} />
                             </button>
-                            <button 
+                            <button
                               onClick={(e) => handlePermanentDelete(e, m.id)}
                               className="p-2 bg-rose-100 text-rose-600 rounded-lg hover:bg-rose-200"
                               title="Apagar Permanentemente"
                             >
                               <X size={14} />
                             </button>
-                         </div>
-                       )}
-                    </td>
-                  </tr>
-                );
-              }) : (
+                          </div>
+                        )}
+                      </td>
+                    </tr>
+                  );
+                })
+              ) : (
                 <tr>
                   <td colSpan={6} className="px-6 py-20 text-center">
                     <div className="flex flex-col items-center opacity-30">
                       <ArrowRightLeft size={48} strokeWidth={1} />
-                      <p className="text-sm font-bold mt-4">Nenhuma movimentação {currentList === 'active' ? 'registrada' : 'na lixeira'}</p>
+                      <p className="text-sm font-bold mt-4">
+                        Nenhuma movimentação{' '}
+                        {currentList === 'active' ? 'registrada' : 'na lixeira'}
+                      </p>
                     </div>
                   </td>
                 </tr>
@@ -352,126 +395,171 @@ const MovementsManager: React.FC<MovementsManagerProps> = ({ state, addMovement,
               <h3 className="text-xl font-bold text-slate-800">
                 {isEditing ? 'Editar Ocorrência' : 'Registrar Ocorrência'}
               </h3>
-              <button onClick={() => setShowModal(false)} className="text-slate-400 text-2xl">&times;</button>
+              <button onClick={() => setShowModal(false)} className="text-slate-400 text-2xl">
+                &times;
+              </button>
             </div>
-            
+
             <form onSubmit={handleSave} className="p-8 space-y-6">
               <div className="p-4 bg-amber-50 rounded-2xl border border-amber-100 flex gap-3">
                 <Info size={16} className="text-amber-600 flex-shrink-0 mt-0.5" />
                 <p className="text-[11px] text-amber-900 leading-relaxed font-medium">
-                  Atenção: Ao registrar um **Óbito**, **Saída** ou **Venda**, o status do pássaro no plantel será alterado automaticamente.
+                  Atenção: Ao registrar um **Óbito**, **Saída** ou **Venda**, o status do pássaro no
+                  plantel será alterado automaticamente.
                 </p>
               </div>
 
               <div>
-                <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Pássaro</label>
-                <select 
+                <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">
+                  Pássaro
+                </label>
+                <select
                   required
                   className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:ring-4 focus:ring-brand/5 focus:border-brand"
                   value={newMov.birdId || ''}
-                  onChange={e => setNewMov({...newMov, birdId: e.target.value})}
+                  onChange={(e) => setNewMov({ ...newMov, birdId: e.target.value })}
                   disabled={isEditing} // Impedir mudança de pássaro na edição para não quebrar histórico facilmente
                 >
                   <option value="">Selecione o pássaro...</option>
                   {/* Inclui pássaros da lixeira ou já movidos caso esteja editando um registro antigo */}
-                  {state.birds.concat(state.deletedBirds || []).map(b => (
-                    <option key={b.id} value={b.id}>{b.name} ({b.ringNumber}) - {b.status}</option>
+                  {state.birds.concat(state.deletedBirds || []).map((b) => (
+                    <option key={b.id} value={b.id}>
+                      {b.name} ({b.ringNumber}) - {b.status}
+                    </option>
                   ))}
                 </select>
               </div>
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Tipo de Ocorrência</label>
-                  <select 
+                  <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">
+                    Tipo de Ocorrência
+                  </label>
+                  <select
                     required
                     className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none"
                     value={newMov.type}
-                    onChange={e => setNewMov({...newMov, type: e.target.value as any})}
+                    onChange={(e: React.ChangeEvent<HTMLSelectElement>) =>
+                      setNewMov({ ...newMov, type: e.target.value as MovementRecord['type'] })
+                    }
                   >
                     <option value="Entrada">Entrada</option>
                     <option value="Saída">Saída</option>
                     <option value="Transferência">Transferência</option>
-                    <option value="Venda">Venda</option>                    
+                    <option value="Venda">Venda</option>
                     <option value="Doação">Doação</option>
                     <option value="Óbito">Óbito</option>
                   </select>
                 </div>
                 <div>
-                  <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Data</label>
-                  <input 
+                  <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">
+                    Data
+                  </label>
+                  <input
                     required
                     type="date"
                     className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none"
                     value={newMov.date}
-                    onChange={e => setNewMov({...newMov, date: e.target.value})}
+                    onChange={(e) => setNewMov({ ...newMov, date: e.target.value })}
                   />
                 </div>
               </div>
 
-              {(newMov.type === 'Entrada' || newMov.type === 'Venda' || newMov.type === 'Transferência' || newMov.type === 'Doação') && (
+              {(newMov.type === 'Entrada' ||
+                newMov.type === 'Venda' ||
+                newMov.type === 'Transferência' ||
+                newMov.type === 'Doação') && (
                 <div className="space-y-4">
                   <div>
                     <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">
-                      {newMov.type === 'Venda' ? 'Novo Proprietário' : 
-                       newMov.type === 'Transferência' ? 'Nome do Receptor' :
-                       newMov.type === 'Doação' ? 'Nome do Receptor' : 'Destino'}
+                      {newMov.type === 'Venda'
+                        ? 'Novo Proprietário'
+                        : newMov.type === 'Transferência'
+                        ? 'Nome do Receptor'
+                        : newMov.type === 'Doação'
+                        ? 'Nome do Receptor'
+                        : 'Destino'}
                     </label>
-                    <input 
+                    <input
                       type="text"
-                      placeholder={newMov.type === 'Venda' ? "Ex: João Silva" : 
-                                   newMov.type === 'Transferência' || newMov.type === 'Doação' ? "Nome completo de quem recebe" : 
-                                   "Ex: Criatório BH"}
+                      placeholder={
+                        newMov.type === 'Venda'
+                          ? 'Ex: João Silva'
+                          : newMov.type === 'Transferência' || newMov.type === 'Doação'
+                          ? 'Nome completo de quem recebe'
+                          : 'Ex: Criatório BH'
+                      }
                       className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-brand"
-                      value={newMov.type === 'Transferência' || newMov.type === 'Doação' ? (newMov.receptorName || '') : (newMov.destination || '')}
-                      onChange={e => {
+                      value={
+                        newMov.type === 'Transferência' || newMov.type === 'Doação'
+                          ? newMov.receptorName || ''
+                          : newMov.destination || ''
+                      }
+                      onChange={(e) => {
                         if (newMov.type === 'Transferência' || newMov.type === 'Doação') {
-                          setNewMov({...newMov, receptorName: e.target.value});
+                          setNewMov({ ...newMov, receptorName: e.target.value });
                         } else {
-                          setNewMov({...newMov, destination: e.target.value});
+                          setNewMov({ ...newMov, destination: e.target.value });
                         }
                       }}
                     />
                   </div>
-                  
-                  {(newMov.type === 'Venda' || newMov.type === 'Transferência' || newMov.type === 'Doação') && (
+
+                  {(newMov.type === 'Venda' ||
+                    newMov.type === 'Transferência' ||
+                    newMov.type === 'Doação') && (
                     <>
                       <div>
                         <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 flex items-center gap-2">
-                          <UserCheck size={14} className="text-brand" /> 
-                          {newMov.type === 'Venda' ? 'Cadastro SISPASS do Comprador' : 'Tipo de Documento'}
+                          <UserCheck size={14} className="text-brand" />
+                          {newMov.type === 'Venda'
+                            ? 'Cadastro SISPASS do Comprador'
+                            : 'Tipo de Documento'}
                         </label>
                         {newMov.type === 'Venda' ? (
-                          <input 
+                          <input
                             type="text"
                             placeholder="Ex: 1234567-8"
                             className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-brand"
                             value={newMov.buyerSispass || ''}
-                            onChange={e => setNewMov({...newMov, buyerSispass: e.target.value})}
+                            onChange={(e) => setNewMov({ ...newMov, buyerSispass: e.target.value })}
                           />
                         ) : (
                           <select
                             className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-brand"
                             value={newMov.receptorDocumentType || 'ibama'}
-                            onChange={e => setNewMov({...newMov, receptorDocumentType: e.target.value as 'ibama' | 'cpf'})}
+                            onChange={(e) =>
+                              setNewMov({
+                                ...newMov,
+                                receptorDocumentType: e.target.value as 'ibama' | 'cpf',
+                              })
+                            }
                           >
                             <option value="ibama">Cadastro IBAMA</option>
                             <option value="cpf">CPF</option>
                           </select>
                         )}
                       </div>
-                      
+
                       {(newMov.type === 'Transferência' || newMov.type === 'Doação') && (
                         <div>
                           <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">
-                            {newMov.receptorDocumentType === 'cpf' ? 'CPF do Receptor' : 'Cadastro IBAMA do Receptor'}
+                            {newMov.receptorDocumentType === 'cpf'
+                              ? 'CPF do Receptor'
+                              : 'Cadastro IBAMA do Receptor'}
                           </label>
-                          <input 
+                          <input
                             type="text"
-                            placeholder={newMov.receptorDocumentType === 'cpf' ? "000.000.000-00" : "Ex: 1234567-8"}
+                            placeholder={
+                              newMov.receptorDocumentType === 'cpf'
+                                ? '000.000.000-00'
+                                : 'Ex: 1234567-8'
+                            }
                             className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-brand"
                             value={newMov.receptorDocument || ''}
-                            onChange={e => setNewMov({...newMov, receptorDocument: e.target.value})}
+                            onChange={(e) =>
+                              setNewMov({ ...newMov, receptorDocument: e.target.value })
+                            }
                           />
                         </div>
                       )}
@@ -480,49 +568,74 @@ const MovementsManager: React.FC<MovementsManagerProps> = ({ state, addMovement,
                 </div>
               )}
 
-              {(newMov.type === 'Óbito' || newMov.type === 'Saída' || newMov.type === 'Transferência' || newMov.type === 'Doação') && (
+              {(newMov.type === 'Óbito' ||
+                newMov.type === 'Saída' ||
+                newMov.type === 'Transferência' ||
+                newMov.type === 'Doação') && (
                 <div>
                   <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">
-                    {newMov.type === 'Óbito' ? 'Observações / Causa' : 
-                     newMov.type === 'Saída' ? 'Observações / Causa' : 
-                     'Observações (Opcional)'}
+                    {newMov.type === 'Óbito'
+                      ? 'Observações / Causa'
+                      : newMov.type === 'Saída'
+                      ? 'Observações / Causa'
+                      : 'Observações (Opcional)'}
                   </label>
-                  <textarea 
+                  <textarea
                     className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none h-20 resize-none focus:border-brand"
-                    placeholder={newMov.type === 'Óbito' || newMov.type === 'Saída' ? 
-                                 "Descreva detalhes da ocorrência..." : 
-                                 "Informações adicionais sobre a movimentação..."}
+                    placeholder={
+                      newMov.type === 'Óbito' || newMov.type === 'Saída'
+                        ? 'Descreva detalhes da ocorrência...'
+                        : 'Informações adicionais sobre a movimentação...'
+                    }
                     value={newMov.notes || ''}
-                    onChange={e => setNewMov({...newMov, notes: e.target.value})}
+                    onChange={(e) => setNewMov({ ...newMov, notes: e.target.value })}
                   />
                 </div>
               )}
 
               {newMov.type === 'Entrada' || newMov.type === 'Saída' ? (
                 <div className="space-y-2">
-                  <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Anexar GTR (PDF/Imagem)</label>
-                  <div 
+                  <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">
+                    Anexar GTR (PDF/Imagem)
+                  </label>
+                  <div
                     onClick={() => fileInputRef.current?.click()}
                     className="w-full py-4 border-2 border-dashed border-slate-200 rounded-2xl flex flex-col items-center justify-center gap-2 cursor-pointer hover:bg-slate-50 transition-all"
                   >
                     {newMov.gtrUrl ? (
-                       <span className="text-xs font-bold text-emerald-600 flex items-center gap-2">
-                         <FileText size={16} /> Arquivo Anexado
-                       </span>
+                      <span className="text-xs font-bold text-emerald-600 flex items-center gap-2">
+                        <FileText size={16} /> Arquivo Anexado
+                      </span>
                     ) : (
                       <>
                         <Upload size={24} className="text-slate-300" />
-                        <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Selecionar GTR</span>
+                        <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
+                          Selecionar GTR
+                        </span>
                       </>
                     )}
                   </div>
-                  <input type="file" ref={fileInputRef} className="hidden" onChange={handleFileUpload} />
+                  <input
+                    type="file"
+                    ref={fileInputRef}
+                    className="hidden"
+                    onChange={handleFileUpload}
+                  />
                 </div>
               ) : null}
 
               <div className="flex gap-4 pt-4">
-                <button type="button" onClick={() => setShowModal(false)} className="flex-1 py-4 bg-slate-100 text-slate-600 font-bold rounded-2xl hover:bg-slate-200 transition-colors">Cancelar</button>
-                <button type="submit" className="flex-1 py-4 bg-[#0F172A] text-white font-bold rounded-2xl shadow-xl hover:opacity-90 transition-all">
+                <button
+                  type="button"
+                  onClick={() => setShowModal(false)}
+                  className="flex-1 py-4 bg-slate-100 text-slate-600 font-bold rounded-2xl hover:bg-slate-200 transition-colors"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  className="flex-1 py-4 bg-[#0F172A] text-white font-bold rounded-2xl shadow-xl hover:opacity-90 transition-all"
+                >
                   {isEditing ? 'Salvar Alterações' : 'Salvar Registro'}
                 </button>
               </div>
@@ -533,7 +646,7 @@ const MovementsManager: React.FC<MovementsManagerProps> = ({ state, addMovement,
     </div>
   );
 
-  const stepsWithContent = wizardSteps.map(step => ({ ...step, content: pageContent }));
+  const stepsWithContent = wizardSteps.map((step) => ({ ...step, content: pageContent }));
 
   return (
     <WizardLayout
@@ -557,7 +670,7 @@ const MovementsManager: React.FC<MovementsManagerProps> = ({ state, addMovement,
             {currentList === 'active' ? 'Ver Lixeira' : 'Voltar às movimentações'}
           </button>
           {currentList === 'active' ? (
-            <button 
+            <button
               onClick={handleOpenAdd}
               className="flex items-center gap-2 px-6 py-2.5 bg-[#0F172A] hover:opacity-90 text-white rounded-xl shadow-lg transition-all font-bold text-sm"
             >

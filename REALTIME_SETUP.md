@@ -11,6 +11,7 @@
 Você precisa habilitar replicação para as tabelas que quer sincronizar em tempo real:
 
 ### Tabelas para habilitar:
+
 - `birds` ✅
 - `movements` ✅
 

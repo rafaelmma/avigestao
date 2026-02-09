@@ -39,12 +39,14 @@ Abra seu repositório GitHub (https://github.com/rafaelmma/avigestao) e verá **
 ## 🚀 COMO COMEÇAR (Assim que chegar em casa)
 
 ### 1. Abra o VS Code
+
 ```bash
 cd c:\avigestao
 code .
 ```
 
 ### 2. Abra estes arquivos como abas:
+
 ```
 RESUMO_1_PAGINA.md          ← Leia primeiro (2 min)
 CHECKLIST_VISUAL.md         ← Use durante execução
@@ -53,11 +55,13 @@ GUIA_RAPIDO_EXECUCAO_CASA.md  ← Detalhes de cada passo
 ```
 
 ### 3. Crie branch de feature:
+
 ```bash
 git checkout -b feature/refactor-uxui-design-system
 ```
 
 ### 4. Comece a FASE 1:
+
 Seguir o CHECKLIST_VISUAL.md
 
 ---
@@ -65,6 +69,7 @@ Seguir o CHECKLIST_VISUAL.md
 ## ⏱️ TEMPO ESPERADO
 
 ### Fast Track (2-3 dias):
+
 - **Noite 1:** 3h (Design System + Componentes)
 - **Noite 2:** 4h (Cards + Modais)
 - **Noite 3:** 2h (Navegação + Testes + Deploy)

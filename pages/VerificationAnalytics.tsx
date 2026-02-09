@@ -27,14 +27,14 @@ interface DateRange {
 
 // Converter UTC para horário local (Brasil BRT)
 const formatBrazilTime = (date: Date) => {
-  return date.toLocaleString('pt-BR', { 
+  return date.toLocaleString('pt-BR', {
     timeZone: 'America/Sao_Paulo',
     day: '2-digit',
     month: '2-digit',
     year: 'numeric',
     hour: '2-digit',
     minute: '2-digit',
-    second: '2-digit'
+    second: '2-digit',
   });
 };
 
@@ -45,96 +45,126 @@ const VerificationAnalytics: React.FC = () => {
   const [expandedBirdId, setExpandedBirdId] = useState<string | null>(null);
   const [dateRange, setDateRange] = useState<DateRange>({
     from: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000),
-    to: new Date()
+    to: new Date(),
   });
 
   useEffect(() => {
     const loadVerifications = async () => {
       try {
         setLoading(true);
-        
+
         // Carrega pássaros do localStorage
         const stored = localStorage.getItem('avigestao_state_v2');
-        let birdsMap: Record<string, string> = {};
-        
+        const birdsMap: Record<string, string> = {};
+
         if (stored) {
           const data = JSON.parse(stored);
           const birds = data?.birds || [];
-          birds.forEach((bird: any) => {
-            birdsMap[bird.id] = bird.name;
+          birds.forEach((bird: Record<string, unknown>) => {
+            const id = typeof bird.id === 'string' ? bird.id : '';
+            const name = typeof bird.name === 'string' ? bird.name : '';
+            if (id) birdsMap[id] = name;
           });
         }
 
         // Busca verificações do Firebase
         const allVerifications = await getAllBirdVerifications();
-        
+
         // Filtrar por data
-        const filtered = allVerifications.filter(v => {
-          const timestamp = v.timestamp.toDate ? v.timestamp.toDate() : new Date(v.timestamp as any);
+        const toDateFrom = (t: unknown): Date => {
+          if (
+            t &&
+            typeof t === 'object' &&
+            'toDate' in t &&
+            typeof (t as { toDate?: unknown }).toDate === 'function'
+          ) {
+            return (t as { toDate: () => Date }).toDate();
+          }
+          return new Date(String(t));
+        };
+
+        const filtered = allVerifications.filter((v) => {
+          const timestamp = toDateFrom((v as unknown as Record<string, unknown>).timestamp);
           return timestamp >= dateRange.from && timestamp <= dateRange.to;
         });
 
         // Agrupar por bird_id e localização
-        const grouped: Record<string, { count: number; last_accessed: Date; locationMap: Record<string, any> }> = {};
-        
+        const grouped: Record<
+          string,
+          {
+            count: number;
+            last_accessed: Date;
+            locationMap: Record<string, Record<string, unknown>>;
+          }
+        > = {};
+
         for (const record of filtered) {
-          const timestamp = record.timestamp.toDate ? record.timestamp.toDate() : new Date(record.timestamp as any);
-          const location = (record as any).location || { city: 'Desconhecida', region: 'Desconhecida', country: 'Desconhecida' };
-          const locationKey = `${location.city}|${location.region}|${location.country}`;
-          
-          if (!grouped[record.birdId]) {
-            grouped[record.birdId] = { count: 0, last_accessed: timestamp, locationMap: {} };
+          const timestamp = toDateFrom((record as unknown as Record<string, unknown>).timestamp);
+          const location = (record as unknown as Record<string, unknown>).location as
+            | Record<string, unknown>
+            | undefined;
+          const loc =
+            location ||
+            ({ city: 'Desconhecida', region: 'Desconhecida', country: 'Desconhecida' } as Record<
+              string,
+              unknown
+            >);
+          const locationKey = `${loc.city}|${loc.region}|${loc.country}`;
+
+          const bid = (record as unknown as Record<string, unknown>).birdId as string;
+          if (!grouped[bid]) {
+            grouped[bid] = { count: 0, last_accessed: timestamp, locationMap: {} };
           }
-          grouped[record.birdId].count++;
-          
-          // Atualiza last_accessed se for mais recente
-          if (timestamp > grouped[record.birdId].last_accessed) {
-            grouped[record.birdId].last_accessed = timestamp;
+          grouped[bid].count++;
+
+          if (timestamp > grouped[bid].last_accessed) {
+            grouped[bid].last_accessed = timestamp;
           }
-          
-          // Agrupa localizações
-          if (!grouped[record.birdId].locationMap[locationKey]) {
-            grouped[record.birdId].locationMap[locationKey] = {
-              city: location.city,
-              region: location.region,
-              country: location.country,
-              latitude: location.latitude,
-              longitude: location.longitude,
-              isp: location.isp,
-              count: 0
-            };
+
+          if (!grouped[bid].locationMap[locationKey]) {
+            grouped[bid].locationMap[locationKey] = {
+              city: loc.city,
+              region: loc.region,
+              country: loc.country,
+              latitude: loc.latitude,
+              longitude: loc.longitude,
+              isp: loc.isp,
+              count: 0,
+            } as Record<string, unknown>;
           }
-          grouped[record.birdId].locationMap[locationKey].count++;
+          grouped[bid].locationMap[locationKey].count =
+            ((grouped[bid].locationMap[locationKey].count as number) || 0) + 1;
         }
 
         // Converte para array e busca nomes do Firestore
         const verificationRecords: VerificationRecord[] = [];
-        
+
         for (const [bird_id, data] of Object.entries(grouped)) {
           let bird_name = birdsMap[bird_id];
-          
+
           // Se não encontrar no localStorage, buscar do Firestore publicamente
           if (!bird_name) {
             try {
               const publicBird = await getPublicBirdById(bird_id);
               bird_name = publicBird?.name || `Pássaro ${bird_id.substring(0, 8)}`;
             } catch (err) {
-              console.warn('Erro ao buscar nome do pássaro:', bird_id);
+              console.warn('Erro ao buscar nome do pássaro:', bird_id, err);
               bird_name = `Pássaro ${bird_id.substring(0, 8)}`;
             }
           }
-          
+
           // Converter locationMap em array ordenado
-          const locations = Object.values(data.locationMap as any).sort((a: any, b: any) => b.count - a.count) as LocationData[];
-          
+          const locations = Object.values(data.locationMap).sort(
+            (a, b) => (b.count as number) - (a.count as number),
+          ) as unknown as LocationData[];
+
           verificationRecords.push({
             bird_id,
             bird_name,
             count: data.count,
             last_accessed: data.last_accessed,
-            locations
+            locations,
           });
-
         }
 
         // Ordena por contagem
@@ -169,7 +199,9 @@ const VerificationAnalytics: React.FC = () => {
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
         <div>
           <h2 className="text-3xl font-bold text-slate-900">Analytics de Verificações</h2>
-          <p className="text-slate-600 font-medium mt-1">Monitore acessos ao seu catálogo de pássaros</p>
+          <p className="text-slate-600 font-medium mt-1">
+            Monitore acessos ao seu catálogo de pássaros
+          </p>
         </div>
         <div className="flex gap-3">
           <input
@@ -191,7 +223,9 @@ const VerificationAnalytics: React.FC = () => {
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-6">
           <div className="flex items-center justify-between mb-3">
-            <h3 className="text-sm font-semibold text-slate-600 uppercase tracking-wide">Total de Verificações</h3>
+            <h3 className="text-sm font-semibold text-slate-600 uppercase tracking-wide">
+              Total de Verificações
+            </h3>
             <Eye className="text-blue-500" size={20} />
           </div>
           <p className="text-3xl font-bold text-slate-900">{totalVerifications}</p>
@@ -200,7 +234,9 @@ const VerificationAnalytics: React.FC = () => {
 
         <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-6">
           <div className="flex items-center justify-between mb-3">
-            <h3 className="text-sm font-semibold text-slate-600 uppercase tracking-wide">Pássaros Verificados</h3>
+            <h3 className="text-sm font-semibold text-slate-600 uppercase tracking-wide">
+              Pássaros Verificados
+            </h3>
             <BarChart3 className="text-emerald-500" size={20} />
           </div>
           <p className="text-3xl font-bold text-slate-900">{verifications.length}</p>
@@ -209,7 +245,9 @@ const VerificationAnalytics: React.FC = () => {
 
         <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-6">
           <div className="flex items-center justify-between mb-3">
-            <h3 className="text-sm font-semibold text-slate-600 uppercase tracking-wide">Média por Pássaro</h3>
+            <h3 className="text-sm font-semibold text-slate-600 uppercase tracking-wide">
+              Média por Pássaro
+            </h3>
             <TrendingUp className="text-amber-500" size={20} />
           </div>
           <p className="text-3xl font-bold text-slate-900">
@@ -233,13 +271,13 @@ const VerificationAnalytics: React.FC = () => {
         ) : (
           <div className="space-y-4">
             {verifications.map((bird, idx) => {
-              const maxCount = Math.max(...verifications.map(v => v.count));
+              const maxCount = Math.max(...verifications.map((v) => v.count));
               const percentage = (bird.count / maxCount) * 100;
               const isExpanded = expandedBirdId === bird.bird_id;
 
               return (
                 <div key={bird.bird_id} className="group">
-                  <div 
+                  <div
                     className="flex items-center justify-between mb-2 cursor-pointer hover:bg-slate-50 p-2 rounded transition-colors"
                     onClick={() => setExpandedBirdId(isExpanded ? null : bird.bird_id)}
                   >
@@ -260,11 +298,13 @@ const VerificationAnalytics: React.FC = () => {
                   <p className="text-xs text-slate-500 mt-1">
                     Último acesso: {formatBrazilTime(bird.last_accessed)}
                   </p>
-                  
+
                   {/* Expansão com dados de localização */}
                   {isExpanded && bird.locations.length > 0 && (
                     <div className="mt-4 pt-4 border-t border-slate-200">
-                      <p className="text-sm font-semibold text-slate-700 mb-3">📍 Regiões de Acesso:</p>
+                      <p className="text-sm font-semibold text-slate-700 mb-3">
+                        📍 Regiões de Acesso:
+                      </p>
                       <div className="space-y-2">
                         {bird.locations.map((loc, locIdx) => (
                           <div key={locIdx} className="bg-slate-50 rounded-lg p-3">
@@ -303,15 +343,16 @@ const VerificationAnalytics: React.FC = () => {
 
         <div className="space-y-4">
           {verifications.slice(0, 5).map((bird) => (
-            <div key={bird.bird_id} className="flex items-center gap-4 pb-4 border-b border-slate-100 last:border-0">
+            <div
+              key={bird.bird_id}
+              className="flex items-center gap-4 pb-4 border-b border-slate-100 last:border-0"
+            >
               <div className="w-10 h-10 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center">
                 <Eye size={16} />
               </div>
               <div className="flex-1">
                 <p className="font-semibold text-slate-900">{bird.bird_name} foi verificado</p>
-                <p className="text-sm text-slate-600">
-                  {formatBrazilTime(bird.last_accessed)}
-                </p>
+                <p className="text-sm text-slate-600">{formatBrazilTime(bird.last_accessed)}</p>
               </div>
               <span className="text-2xl font-bold text-blue-500">{bird.count}</span>
             </div>
@@ -324,14 +365,16 @@ const VerificationAnalytics: React.FC = () => {
         <div className="bg-gradient-to-br from-blue-50 to-blue-100 rounded-2xl p-6 border border-blue-200">
           <h4 className="font-bold text-blue-900 mb-3">💡 Dica PRO</h4>
           <p className="text-sm text-blue-800">
-            Pássaros com mais verificações indicam maior interesse do mercado. Considere produzir mais filhotes desses indivíduos!
+            Pássaros com mais verificações indicam maior interesse do mercado. Considere produzir
+            mais filhotes desses indivíduos!
           </p>
         </div>
 
         <div className="bg-gradient-to-br from-emerald-50 to-emerald-100 rounded-2xl p-6 border border-emerald-200">
           <h4 className="font-bold text-emerald-900 mb-3">🎯 Oportunidade</h4>
           <p className="text-sm text-emerald-800">
-            Compartilhe o link de verificação nas redes sociais para aumentar a confiabilidade e atrair mais clientes!
+            Compartilhe o link de verificação nas redes sociais para aumentar a confiabilidade e
+            atrair mais clientes!
           </p>
         </div>
       </div>

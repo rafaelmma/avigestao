@@ -29,23 +29,24 @@ TOTAL: 28 horas
 ### Arquivos a Criar:
 
 #### 1️⃣ `lib/designSystem.ts` - Tokens de Design
+
 ```typescript
 // Define cores, espaçamento, tipografia - fonte única de verdade
 export const designTokens = {
   colors: {
-    primary: '#0f172a',      // Slate 900
-    success: '#059669',      // Emerald 600
-    warning: '#d97706',      // Amber 600
-    danger: '#dc2626',       // Red 600
-    info: '#2563eb',         // Blue 600
+    primary: '#0f172a', // Slate 900
+    success: '#059669', // Emerald 600
+    warning: '#d97706', // Amber 600
+    danger: '#dc2626', // Red 600
+    info: '#2563eb', // Blue 600
   },
   spacing: {
-    xs: '4px',   // 0.25rem
-    sm: '8px',   // 0.5rem
-    md: '12px',  // 0.75rem
-    lg: '16px',  // 1rem
-    xl: '24px',  // 1.5rem
-    '2xl': '32px' // 2rem
+    xs: '4px', // 0.25rem
+    sm: '8px', // 0.5rem
+    md: '12px', // 0.75rem
+    lg: '16px', // 1rem
+    xl: '24px', // 1.5rem
+    '2xl': '32px', // 2rem
   },
   typography: {
     display: { size: '36px', weight: 700 },
@@ -57,44 +58,85 @@ export const designTokens = {
     body: { size: '14px', weight: 400 },
     bodySm: { size: '12px', weight: 400 },
     label: { size: '14px', weight: 500 },
-    caption: { size: '12px', weight: 500 }
-  }
+    caption: { size: '12px', weight: 500 },
+  },
 };
 ```
 
 #### 2️⃣ `index.css` - Atualizar Classes Globais
+
 ```css
 /* Reescrever completamente a seção @layer components */
 @layer components {
   /* Tipografia */
-  .text-display { @apply text-3xl font-bold text-slate-900 tracking-tight; }
-  .text-h1 { @apply text-2xl font-bold text-slate-900 tracking-tight; }
-  .text-h2 { @apply text-xl font-bold text-slate-900; }
-  .text-h3 { @apply text-lg font-semibold text-slate-900; }
-  .text-h4 { @apply text-base font-semibold text-slate-800; }
-  .text-body { @apply text-sm font-normal text-slate-700; }
-  .text-body-sm { @apply text-xs font-normal text-slate-600; }
-  .text-label { @apply text-sm font-medium text-slate-600; }
-  .text-caption { @apply text-xs font-medium text-slate-500 uppercase tracking-wide; }
-  
+  .text-display {
+    @apply text-3xl font-bold text-slate-900 tracking-tight;
+  }
+  .text-h1 {
+    @apply text-2xl font-bold text-slate-900 tracking-tight;
+  }
+  .text-h2 {
+    @apply text-xl font-bold text-slate-900;
+  }
+  .text-h3 {
+    @apply text-lg font-semibold text-slate-900;
+  }
+  .text-h4 {
+    @apply text-base font-semibold text-slate-800;
+  }
+  .text-body {
+    @apply text-sm font-normal text-slate-700;
+  }
+  .text-body-sm {
+    @apply text-xs font-normal text-slate-600;
+  }
+  .text-label {
+    @apply text-sm font-medium text-slate-600;
+  }
+  .text-caption {
+    @apply text-xs font-medium text-slate-500 uppercase tracking-wide;
+  }
+
   /* Buttons Padronizados */
-  .btn { @apply inline-flex items-center justify-center rounded-lg font-semibold transition-all disabled:opacity-50; }
-  .btn-primary { @apply btn px-4 py-2.5 text-sm bg-slate-900 text-white hover:bg-black shadow-sm; }
-  .btn-secondary { @apply btn px-4 py-2.5 text-sm bg-slate-100 text-slate-900 border border-slate-200 hover:bg-slate-50; }
-  .btn-danger { @apply btn px-4 py-2.5 text-sm bg-red-600 text-white hover:bg-red-700 shadow-sm; }
-  .btn-sm { @apply px-3 py-1.5 text-xs; }
-  .btn-lg { @apply px-6 py-3 text-base; }
-  
+  .btn {
+    @apply inline-flex items-center justify-center rounded-lg font-semibold transition-all disabled:opacity-50;
+  }
+  .btn-primary {
+    @apply btn px-4 py-2.5 text-sm bg-slate-900 text-white hover:bg-black shadow-sm;
+  }
+  .btn-secondary {
+    @apply btn px-4 py-2.5 text-sm bg-slate-100 text-slate-900 border border-slate-200 hover:bg-slate-50;
+  }
+  .btn-danger {
+    @apply btn px-4 py-2.5 text-sm bg-red-600 text-white hover:bg-red-700 shadow-sm;
+  }
+  .btn-sm {
+    @apply px-3 py-1.5 text-xs;
+  }
+  .btn-lg {
+    @apply px-6 py-3 text-base;
+  }
+
   /* Cards */
-  .card { @apply bg-white border border-slate-200 rounded-xl shadow-sm; }
-  .card-hover { @apply card hover:shadow-md hover:border-slate-300 transition-all; }
-  
+  .card {
+    @apply bg-white border border-slate-200 rounded-xl shadow-sm;
+  }
+  .card-hover {
+    @apply card hover:shadow-md hover:border-slate-300 transition-all;
+  }
+
   /* Inputs */
-  input, textarea, select {
+  input,
+  textarea,
+  select {
     @apply bg-white border border-slate-300 rounded-lg text-sm font-normal text-slate-900;
   }
-  input::placeholder { @apply text-slate-400; }
-  input:focus, textarea:focus, select:focus {
+  input::placeholder {
+    @apply text-slate-400;
+  }
+  input:focus,
+  textarea:focus,
+  select:focus {
     @apply outline-none ring-2 ring-blue-500 ring-offset-2 border-blue-500;
   }
 }
@@ -109,6 +151,7 @@ export const designTokens = {
 ### Arquivos a Criar:
 
 #### 1️⃣ `components/ui/Badge.tsx`
+
 ```typescript
 import React from 'react';
 import { AlertTriangle, CheckCircle, Info, AlertCircle, X } from 'lucide-react';
@@ -123,39 +166,45 @@ interface BadgeProps {
   className?: string;
 }
 
-const Badge: React.FC<BadgeProps> = ({ 
-  variant, 
-  size = 'sm', 
-  icon, 
-  children, 
+const Badge: React.FC<BadgeProps> = ({
+  variant,
+  size = 'sm',
+  icon,
+  children,
   pulse = false,
   onClose,
-  className = ''
+  className = '',
 }) => {
   const baseClasses = 'inline-flex items-center gap-1.5 font-semibold uppercase tracking-wide';
-  
+
   const variantClasses = {
     status: 'bg-emerald-100 text-emerald-700',
     warning: 'bg-amber-100 text-amber-700',
     success: 'bg-blue-100 text-blue-700',
     danger: 'bg-red-100 text-red-700',
     info: 'bg-slate-100 text-slate-600',
-    neutral: 'bg-slate-50 text-slate-500'
+    neutral: 'bg-slate-50 text-slate-500',
   };
-  
+
   const sizeClasses = {
     sm: 'px-2 py-0.5 text-[10px]',
     md: 'px-3 py-1 text-xs',
-    lg: 'px-4 py-1.5 text-sm'
+    lg: 'px-4 py-1.5 text-sm',
   };
-  
+
   const animationClasses = pulse ? 'animate-pulse' : '';
-  
+
   return (
-    <span className={`${baseClasses} ${variantClasses[variant]} ${sizeClasses[size]} ${animationClasses} rounded-full flex-shrink-0 ${className}`}>
+    <span
+      className={`${baseClasses} ${variantClasses[variant]} ${sizeClasses[size]} ${animationClasses} rounded-full flex-shrink-0 ${className}`}
+    >
       {icon && <span className="flex-shrink-0">{icon}</span>}
       <span className="flex-shrink-0">{children}</span>
-      {onClose && <button onClick={onClose} className="ml-1 hover:opacity-70"><X size={12} /></button>}
+      {onClose && (
+        <button onClick={onClose} className="ml-1 hover:opacity-70">
+          <X size={12} />
+        </button>
+      )}
     </span>
   );
 };
@@ -164,6 +213,7 @@ export default Badge;
 ```
 
 #### 2️⃣ `components/ui/DropdownMenu.tsx`
+
 ```typescript
 import React, { useState, useRef, useEffect } from 'react';
 import { ChevronDown } from 'lucide-react';
@@ -205,7 +255,11 @@ const DropdownMenu: React.FC<DropdownMenuProps> = ({ trigger, items, align = 'ri
       </button>
 
       {isOpen && (
-        <div className={`absolute top-full mt-2 w-48 bg-white border border-slate-200 rounded-lg shadow-lg z-50 animate-in fade-in slide-in-from-top-2 ${align === 'right' ? 'right-0' : 'left-0'}`}>
+        <div
+          className={`absolute top-full mt-2 w-48 bg-white border border-slate-200 rounded-lg shadow-lg z-50 animate-in fade-in slide-in-from-top-2 ${
+            align === 'right' ? 'right-0' : 'left-0'
+          }`}
+        >
           {items.map((item, idx) => (
             <React.Fragment key={item.id}>
               {item.divider && <div className="border-t border-slate-100" />}
@@ -233,6 +287,7 @@ export default DropdownMenu;
 ```
 
 #### 3️⃣ `components/ui/Card.tsx`
+
 ```typescript
 import React from 'react';
 
@@ -244,15 +299,15 @@ interface CardProps {
   onClick?: () => void;
 }
 
-const Card: React.FC<CardProps> = ({ 
-  children, 
-  className = '', 
+const Card: React.FC<CardProps> = ({
+  children,
+  className = '',
   hover = false,
   interactive = false,
-  onClick 
+  onClick,
 }) => {
   return (
-    <div 
+    <div
       onClick={onClick}
       className={`
         bg-white border border-slate-200 rounded-xl p-6 shadow-sm
@@ -270,6 +325,7 @@ export default Card;
 ```
 
 #### 4️⃣ `components/ui/AlertBanner.tsx`
+
 ```typescript
 import React from 'react';
 import { AlertTriangle, CheckCircle, AlertCircle, X } from 'lucide-react';
@@ -282,25 +338,19 @@ interface AlertBannerProps {
   icon?: React.ReactNode;
 }
 
-const AlertBanner: React.FC<AlertBannerProps> = ({ 
-  variant, 
-  title, 
-  children, 
-  onClose,
-  icon
-}) => {
+const AlertBanner: React.FC<AlertBannerProps> = ({ variant, title, children, onClose, icon }) => {
   const variantClasses = {
     success: 'bg-emerald-50 border-emerald-200 text-emerald-800',
     warning: 'bg-amber-50 border-amber-200 text-amber-800',
     danger: 'bg-red-50 border-red-200 text-red-800',
-    info: 'bg-blue-50 border-blue-200 text-blue-800'
+    info: 'bg-blue-50 border-blue-200 text-blue-800',
   };
 
   const iconClasses = {
     success: CheckCircle,
     warning: AlertTriangle,
     danger: AlertCircle,
-    info: AlertCircle
+    info: AlertCircle,
   };
 
   const IconComponent = iconClasses[variant];
@@ -325,6 +375,7 @@ export default AlertBanner;
 ```
 
 #### 5️⃣ `components/ui/Tabs.tsx`
+
 ```typescript
 import React from 'react';
 
@@ -351,7 +402,7 @@ const Tabs: React.FC<TabsProps> = ({ tabs, activeTab, onChange }) => {
           const badgeColorClasses = {
             danger: 'bg-red-500 text-white',
             warning: 'bg-amber-500 text-white',
-            info: 'bg-blue-500 text-white'
+            info: 'bg-blue-500 text-white',
           };
 
           return (
@@ -361,16 +412,21 @@ const Tabs: React.FC<TabsProps> = ({ tabs, activeTab, onChange }) => {
               className={`
                 px-4 py-3 text-sm font-semibold whitespace-nowrap flex items-center gap-2
                 border-b-2 transition-all
-                ${isActive 
-                  ? 'border-blue-600 text-blue-600' 
-                  : 'border-transparent text-slate-600 hover:text-slate-900'
+                ${
+                  isActive
+                    ? 'border-blue-600 text-blue-600'
+                    : 'border-transparent text-slate-600 hover:text-slate-900'
                 }
               `}
             >
               {tab.icon && <span className="flex-shrink-0">{tab.icon}</span>}
               <span>{tab.label}</span>
               {tab.badge !== undefined && (
-                <span className={`ml-1 px-2 py-0.5 rounded-full text-xs font-bold ${badgeColorClasses[tab.badgeVariant || 'info']}`}>
+                <span
+                  className={`ml-1 px-2 py-0.5 rounded-full text-xs font-bold ${
+                    badgeColorClasses[tab.badgeVariant || 'info']
+                  }`}
+                >
                   {tab.badge}
                 </span>
               )}
@@ -386,6 +442,7 @@ export default Tabs;
 ```
 
 #### 6️⃣ `components/ui/LoadingSpinner.tsx`
+
 ```typescript
 import React from 'react';
 
@@ -395,25 +452,23 @@ interface LoadingSpinnerProps {
   text?: string;
 }
 
-const LoadingSpinner: React.FC<LoadingSpinnerProps> = ({ 
-  size = 'md', 
-  variant = 'dark',
-  text 
-}) => {
+const LoadingSpinner: React.FC<LoadingSpinnerProps> = ({ size = 'md', variant = 'dark', text }) => {
   const sizeClasses = {
     sm: 'w-4 h-4',
     md: 'w-8 h-8',
-    lg: 'w-12 h-12'
+    lg: 'w-12 h-12',
   };
 
   const colorClasses = {
     dark: 'border-slate-900',
-    light: 'border-white'
+    light: 'border-white',
   };
 
   return (
     <div className="flex flex-col items-center justify-center gap-2">
-      <div className={`${sizeClasses[size]} border-2 ${colorClasses[variant]} border-t-blue-500 rounded-full animate-spin`} />
+      <div
+        className={`${sizeClasses[size]} border-2 ${colorClasses[variant]} border-t-blue-500 rounded-full animate-spin`}
+      />
       {text && <p className="text-sm text-slate-600">{text}</p>}
     </div>
   );
@@ -433,6 +488,7 @@ export default LoadingSpinner;
 ### Mudanças no `BirdManager.tsx`:
 
 #### 1️⃣ Imports
+
 ```typescript
 // Adicionar imports dos novos componentes
 import Badge from '../components/ui/Badge';
@@ -446,6 +502,7 @@ import AlertBanner from '../components/ui/AlertBanner';
 #### 2️⃣ Simplificar Renderização de Cards
 
 **ANTES (250+ linhas de JSX complexo):**
+
 ```tsx
 <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6">
   {filteredBirds.map((bird) => (
@@ -468,6 +525,7 @@ import AlertBanner from '../components/ui/AlertBanner';
 ```
 
 **DEPOIS (80 linhas, limpo e legível):**
+
 ```tsx
 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
   {filteredBirds.map((bird) => (
@@ -486,9 +544,7 @@ import AlertBanner from '../components/ui/AlertBanner';
       {/* Info essencial */}
       <div className="space-y-1 mb-3">
         <p className="text-sm text-slate-600">{bird.species}</p>
-        <p className="text-xs text-slate-500">
-          {calculateAge(bird.birthDate)}
-        </p>
+        <p className="text-xs text-slate-500">{calculateAge(bird.birthDate)}</p>
       </div>
 
       {/* Alerta importante (se houver) */}
@@ -506,34 +562,36 @@ import AlertBanner from '../components/ui/AlertBanner';
             <ChevronDown size={14} />
           </button>
         }
-        items={[
-          {
-            id: 'edit',
-            label: 'Editar',
-            icon: <Edit size={14} />,
-            onClick: () => handleEditBird(bird)
-          },
-          {
-            id: 'status',
-            label: 'Mudar Status',
-            icon: <CheckCircle size={14} />,
-            onClick: () => handleChangeStatus(bird)
-          },
-          bird.ibamaBaixaPendente && {
-            id: 'ibama',
-            label: 'Registrar IBAMA',
-            icon: <Zap size={14} />,
-            onClick: () => handleQuickIbamaRegister(bird)
-          },
-          { divider: true },
-          {
-            id: 'delete',
-            label: 'Mover para Lixeira',
-            icon: <Trash2 size={14} />,
-            onClick: () => handleDeleteClick(bird.id),
-            variant: 'danger'
-          }
-        ].filter(Boolean) as MenuItem[]}
+        items={
+          [
+            {
+              id: 'edit',
+              label: 'Editar',
+              icon: <Edit size={14} />,
+              onClick: () => handleEditBird(bird),
+            },
+            {
+              id: 'status',
+              label: 'Mudar Status',
+              icon: <CheckCircle size={14} />,
+              onClick: () => handleChangeStatus(bird),
+            },
+            bird.ibamaBaixaPendente && {
+              id: 'ibama',
+              label: 'Registrar IBAMA',
+              icon: <Zap size={14} />,
+              onClick: () => handleQuickIbamaRegister(bird),
+            },
+            { divider: true },
+            {
+              id: 'delete',
+              label: 'Mover para Lixeira',
+              icon: <Trash2 size={14} />,
+              onClick: () => handleDeleteClick(bird.id),
+              variant: 'danger',
+            },
+          ].filter(Boolean) as MenuItem[]
+        }
       />
     </Card>
   ))}
@@ -541,15 +599,16 @@ import AlertBanner from '../components/ui/AlertBanner';
 ```
 
 #### 3️⃣ Funções Auxiliares Novas
+
 ```typescript
 // Mapear status para variant de badge
 const getStatusVariant = (status: string): BadgeVariant => {
   const variantMap = {
-    'Ativo': 'success',
-    'Óbito': 'danger',
-    'Vendido': 'info',
-    'Doado': 'info',
-    'Fuga': 'warning'
+    Ativo: 'success',
+    Óbito: 'danger',
+    Vendido: 'info',
+    Doado: 'info',
+    Fuga: 'warning',
   };
   return variantMap[status] || 'neutral';
 };
@@ -590,7 +649,7 @@ const BirdDetailModal: React.FC<BirdDetailModalProps> = ({
   isOpen,
   isEditing = false,
   onClose,
-  onSave
+  onSave,
 }) => {
   const [activeTab, setActiveTab] = useState('info');
 
@@ -600,18 +659,19 @@ const BirdDetailModal: React.FC<BirdDetailModalProps> = ({
     { id: 'info', label: 'Informações Básicas', icon: <BirdIcon size={16} /> },
     { id: 'genealogy', label: 'Genealogia', icon: <Dna size={16} /> },
     { id: 'documents', label: 'Documentos', icon: <FileBadge size={16} /> },
-    { id: 'history', label: 'Histórico', icon: <Clock size={16} /> }
+    { id: 'history', label: 'Histórico', icon: <Clock size={16} /> },
   ];
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-md p-4">
       <div className="bg-white rounded-3xl w-full max-w-4xl max-h-[90vh] flex flex-col shadow-2xl border border-white/20 overflow-hidden">
-        
         {/* Header */}
         <div className="p-6 border-b border-slate-200 flex items-center justify-between bg-slate-50">
           <div>
             <h2 className="text-h2">{bird.name}</h2>
-            <p className="text-body-sm text-slate-600 mt-1">{bird.ringNumber} • {bird.species}</p>
+            <p className="text-body-sm text-slate-600 mt-1">
+              {bird.ringNumber} • {bird.species}
+            </p>
           </div>
           <button onClick={onClose} className="p-2 hover:bg-slate-200 rounded-lg">
             <X size={24} />
@@ -619,11 +679,7 @@ const BirdDetailModal: React.FC<BirdDetailModalProps> = ({
         </div>
 
         {/* Tabs */}
-        <Tabs 
-          tabs={tabs}
-          activeTab={activeTab}
-          onChange={setActiveTab}
-        />
+        <Tabs tabs={tabs} activeTab={activeTab} onChange={setActiveTab} />
 
         {/* Content */}
         <div className="flex-1 overflow-y-auto p-6 bg-white">
@@ -660,8 +716,8 @@ const BirdInfoSection: React.FC<{ bird: Bird; isEditing: boolean }> = ({ bird, i
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {/* Foto */}
         <div className="flex justify-center">
-          <img 
-            src={bird.photoUrl} 
+          <img
+            src={bird.photoUrl}
             alt={bird.name}
             className="w-48 h-48 rounded-2xl object-cover shadow-md"
           />
@@ -726,12 +782,13 @@ const BirdInfoSection: React.FC<{ bird: Bird; isEditing: boolean }> = ({ bird, i
       {bird.ibamaBaixaData && (
         <AlertBanner variant="success" title="Registrado IBAMA">
           <p className="text-sm">
-            <strong>Data:</strong> {new Date(bird.ibamaBaixaData).toLocaleDateString('pt-BR')}<br/>
+            <strong>Data:</strong> {new Date(bird.ibamaBaixaData).toLocaleDateString('pt-BR')}
+            <br />
             <strong>Protocolo:</strong> {bird.ibamaProtocol || 'N/A'}
           </p>
         </AlertBanner>
       )}
-      
+
       {bird.ibamaBaixaPendente && (
         <AlertBanner variant="warning" title="Registro Pendente">
           <p className="text-sm">Esta ave ainda não foi registrada no sistema IBAMA.</p>
@@ -772,7 +829,7 @@ const BirdListTabs: React.FC<BirdListTabsProps> = ({
   historicCount,
   sexingWaitingCount,
   trashCount,
-  ibamaPendingCount
+  ibamaPendingCount,
 }) => {
   const tabs = [
     {
@@ -780,36 +837,36 @@ const BirdListTabs: React.FC<BirdListTabsProps> = ({
       label: 'Plantel',
       icon: <BirdIcon size={16} />,
       badge: activeBirdsCount,
-      badgeVariant: 'info' as const
+      badgeVariant: 'info' as const,
     },
     {
       id: 'histórico',
       label: 'Histórico',
       icon: <Archive size={16} />,
       badge: historicCount,
-      badgeVariant: 'info' as const
+      badgeVariant: 'info' as const,
     },
     {
       id: 'sexagem',
       label: 'Sexagem',
       icon: <Dna size={16} />,
       badge: sexingWaitingCount,
-      badgeVariant: sexingWaitingCount > 0 ? 'warning' : 'info'
+      badgeVariant: sexingWaitingCount > 0 ? 'warning' : 'info',
     },
     {
       id: 'ibama-pendentes',
       label: 'IBAMA',
       icon: <Zap size={16} />,
       badge: ibamaPendingCount,
-      badgeVariant: ibamaPendingCount > 0 ? 'danger' : 'info'
+      badgeVariant: ibamaPendingCount > 0 ? 'danger' : 'info',
     },
     {
       id: 'lixeira',
       label: 'Lixeira',
       icon: <Trash2 size={16} />,
       badge: trashCount,
-      badgeVariant: 'info' as const
-    }
+      badgeVariant: 'info' as const,
+    },
   ];
 
   return <Tabs tabs={tabs} activeTab={currentList} onChange={onChange} />;
@@ -819,6 +876,7 @@ export default BirdListTabs;
 ```
 
 **Vantagens:**
+
 - ✅ Componente reutilizável
 - ✅ Badges dinâmicas
 - ✅ Sem scroll horizontal
@@ -833,21 +891,25 @@ export default BirdListTabs;
 ### Revisões Finais:
 
 #### 1️⃣ Dashboard Widget Styling
+
 - Remover gradientes excessivos
 - Usar cores primárias padronizadas
 - Melhorar espaçamento
 
 #### 2️⃣ Sidebar
+
 - Ajustar cores de hover
 - Badges com novo estilo
 - Menu mais limpo
 
 #### 3️⃣ Forms e Inputs
+
 - Aplicar novo estilo de classe `.btn-*`
 - Melhorar focus states
 - Aumentar padding em inputs
 
 #### 4️⃣ Animações
+
 - Remover animações excessivas (pulse)
 - Manter apenas transições smooth
 - Adicionar loading states
@@ -887,6 +949,7 @@ export default BirdListTabs;
 ```
 
 ### Build e Deploy:
+
 ```bash
 npm run build   # ~13s
 firebase deploy # ~30s
@@ -937,18 +1000,19 @@ index.css                         # Classes globais atualizadas
 
 ## ⏱️ CRONOGRAMA RESUMIDO
 
-| Fase | Duração | Commits | Status |
-|------|---------|---------|--------|
-| 1. Design System | 1h | 1 commit | ✅ |
-| 2. Componentes UI | 2h | 6 commits | ✅ |
-| 3. Cards | 3h | 3 commits | ✅ |
-| 4. Modais | 3h | 4 commits | ✅ |
-| 5. Navegação | 1h | 1 commit | ✅ |
-| 6. Polimento | 2h | 2 commits | ✅ |
-| 7. Testes | 1h | 1 commit | ✅ |
-| **TOTAL** | **13h** | **18 commits** | |
+| Fase              | Duração | Commits        | Status |
+| ----------------- | ------- | -------------- | ------ |
+| 1. Design System  | 1h      | 1 commit       | ✅     |
+| 2. Componentes UI | 2h      | 6 commits      | ✅     |
+| 3. Cards          | 3h      | 3 commits      | ✅     |
+| 4. Modais         | 3h      | 4 commits      | ✅     |
+| 5. Navegação      | 1h      | 1 commit       | ✅     |
+| 6. Polimento      | 2h      | 2 commits      | ✅     |
+| 7. Testes         | 1h      | 1 commit       | ✅     |
+| **TOTAL**         | **13h** | **18 commits** |        |
 
 **Distribuição Possível:**
+
 - **Dia 1 (6h):** Fases 1 + 2 → Deploy beta
 - **Dia 2 (5h):** Fase 3 + 4 → Testes
 - **Dia 3 (2h):** Fases 6 + 7 → Deploy production
@@ -958,6 +1022,7 @@ index.css                         # Classes globais atualizadas
 ## 🎯 RESULTADOS ESPERADOS
 
 ### Antes
+
 - 45+ nós DOM por card
 - Muitos badges por ave
 - Tipografia inconsistente
@@ -965,6 +1030,7 @@ index.css                         # Classes globais atualizadas
 - Modais confusos
 
 ### Depois
+
 - ✅ 25-30 nós DOM por card (-40%)
 - ✅ 1-2 badges máximo
 - ✅ Tipografia padronizada
@@ -978,18 +1044,19 @@ index.css                         # Classes globais atualizadas
 
 ## 🚨 RISCOS E MITIGATION
 
-| Risco | Probabilidade | Impacto | Mitigação |
-|-------|----------------|---------|-----------|
-| Quebrar funcionalidade | Baixa | Alto | Testes unitários + branch de staging |
-| Performance piorar | Muito baixa | Médio | Lighthouse checks |
-| Usuários não gostarem | Média | Médio | Preview antes / Survey feedback |
-| Tempo estourar | Média | Médio | Timeboxes por fase |
+| Risco                  | Probabilidade | Impacto | Mitigação                            |
+| ---------------------- | ------------- | ------- | ------------------------------------ |
+| Quebrar funcionalidade | Baixa         | Alto    | Testes unitários + branch de staging |
+| Performance piorar     | Muito baixa   | Médio   | Lighthouse checks                    |
+| Usuários não gostarem  | Média         | Médio   | Preview antes / Survey feedback      |
+| Tempo estourar         | Média         | Médio   | Timeboxes por fase                   |
 
 ---
 
 ## ✅ CONCLUSÃO
 
 ### O que você recebe:
+
 1. ✨ Design system profissional e documentado
 2. 🧩 Componentes reutilizáveis (6 novos)
 3. 🎨 Interface 60% mais limpa
@@ -998,11 +1065,13 @@ index.css                         # Classes globais atualizadas
 6. 📱 Responsividade preservada
 
 ### Tempo de implementação:
+
 - **Fast Track (2 dias intenso):** 12-16 horas
 - **Normal (1 semana):** 6 horas/dia
 - **Relaxado (2 semanas):** 3 horas/dia
 
 ### Próximos passos:
+
 1. Você aprova o plano? ✔️
 2. Escolhe ritmo de implementação
 3. Eu começo AMANHÃ

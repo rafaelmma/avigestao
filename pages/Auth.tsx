@@ -1,6 +1,16 @@
-
 import React, { useState } from 'react';
-import { Mail, Lock, User, ArrowRight, CheckCircle2, Zap, ShieldCheck, Star, Trophy, Bird as BirdIcon } from 'lucide-react';
+import {
+  Mail,
+  Lock,
+  User,
+  ArrowRight,
+  CheckCircle2,
+  Zap,
+  ShieldCheck,
+  Star,
+  Trophy,
+  Bird as BirdIcon,
+} from 'lucide-react';
 import { BreederSettings } from '../types';
 import { APP_LOGO } from '../constants';
 import { signIn, signUp, resetPassword } from '../services/authService';
@@ -12,7 +22,12 @@ interface AuthProps {
   onNavigateToPublicBirds?: () => void;
 }
 
-const Auth: React.FC<AuthProps> = ({ onLogin, onNavigateToPublicTournaments, onNavigateToResults, onNavigateToPublicBirds }) => {
+const Auth: React.FC<AuthProps> = ({
+  onLogin,
+  onNavigateToPublicTournaments,
+  onNavigateToResults,
+  onNavigateToPublicBirds,
+}) => {
   const [isLogin, setIsLogin] = useState(true);
   const [isForgotPassword, setIsForgotPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -55,9 +70,14 @@ const Auth: React.FC<AuthProps> = ({ onLogin, onNavigateToPublicTournaments, onN
         setPassword('');
         setName('');
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
       setIsLoading(false);
-      alert(err?.message || 'Erro no login');
+      const messageProp =
+        err && typeof err === 'object' && 'message' in err
+          ? (err as { message?: unknown }).message
+          : undefined;
+      const msg = typeof messageProp === 'string' ? messageProp : String(err);
+      alert(msg || 'Erro no login');
     }
   };
 
@@ -67,18 +87,21 @@ const Auth: React.FC<AuthProps> = ({ onLogin, onNavigateToPublicTournaments, onN
       <div className="hidden lg:flex lg:w-1/2 bg-[#0F172A] relative overflow-hidden flex-col justify-between p-16 text-white">
         <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-brand/20 rounded-full blur-[100px] translate-x-1/2 -translate-y-1/2"></div>
         <div className="absolute bottom-0 left-0 w-[500px] h-[500px] bg-amber-500/10 rounded-full blur-[100px] -translate-x-1/2 translate-y-1/2"></div>
-        
+
         <div className="relative z-10">
           {/* Logo Grande e Destacada */}
           <div className="w-48 h-48 bg-white rounded-3xl flex items-center justify-center mb-8 p-4 shadow-2xl shadow-black/40 border-4 border-white/20">
             <img src={APP_LOGO} className="w-full h-full object-contain" alt="AviGestão Logo" />
           </div>
           <h1 className="text-5xl font-black tracking-tight leading-tight mb-6">
-            Gestão profissional <br/>
-            <span className="text-transparent bg-clip-text bg-gradient-to-r from-brand to-emerald-300">para seu criatório.</span>
+            Gestão profissional <br />
+            <span className="text-transparent bg-clip-text bg-gradient-to-r from-brand to-emerald-300">
+              para seu criatório.
+            </span>
           </h1>
           <p className="text-slate-400 text-lg max-w-md leading-relaxed">
-            Controle genealogia, financeiro, manejo sanitário e reprodutivo em um só lugar. Feito para criadores exigentes.
+            Controle genealogia, financeiro, manejo sanitário e reprodutivo em um só lugar. Feito
+            para criadores exigentes.
           </p>
         </div>
 
@@ -105,16 +128,20 @@ const Auth: React.FC<AuthProps> = ({ onLogin, onNavigateToPublicTournaments, onN
               <img src={APP_LOGO} className="w-full h-full object-contain" alt="AviGestão Logo" />
             </div>
           </div>
-          
+
           <div className="text-center lg:text-left">
             <h2 className="text-3xl font-black text-slate-900 tracking-tight">
-              {isForgotPassword ? 'Recuperar senha' : isLogin ? 'Bem-vindo de volta!' : 'Teste grátis por 7 dias'}
+              {isForgotPassword
+                ? 'Recuperar senha'
+                : isLogin
+                ? 'Bem-vindo de volta!'
+                : 'Teste grátis por 7 dias'}
             </h2>
             <p className="text-slate-500 mt-2">
-              {isForgotPassword 
-                ? 'Digite seu email para receber o link de recuperação.' 
-                : isLogin 
-                ? 'Acesse o painel para gerenciar suas aves.' 
+              {isForgotPassword
+                ? 'Digite seu email para receber o link de recuperação.'
+                : isLogin
+                ? 'Acesse o painel para gerenciar suas aves.'
                 : 'Comece com todos os recursos do Plano Profissional liberados.'}
             </p>
           </div>
@@ -122,13 +149,21 @@ const Auth: React.FC<AuthProps> = ({ onLogin, onNavigateToPublicTournaments, onN
           <form onSubmit={handleSubmit} className="space-y-6">
             {!isLogin && !isForgotPassword && (
               <div className="space-y-2">
-                <label htmlFor="breederName" className="text-xs font-black uppercase text-slate-400 tracking-widest">Nome do Criatório</label>
+                <label
+                  htmlFor="breederName"
+                  className="text-xs font-black uppercase text-slate-400 tracking-widest"
+                >
+                  Nome do Criatório
+                </label>
                 <div className="relative">
-                  <User className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={20} />
-                  <input 
-                    required 
-                    type="text" 
-                    placeholder="Ex: Criatório Canto Mestre" 
+                  <User
+                    className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400"
+                    size={20}
+                  />
+                  <input
+                    required
+                    type="text"
+                    placeholder="Ex: Criatório Canto Mestre"
                     id="breederName"
                     name="breederName"
                     autoComplete="organization"
@@ -141,13 +176,21 @@ const Auth: React.FC<AuthProps> = ({ onLogin, onNavigateToPublicTournaments, onN
             )}
 
             <div className="space-y-2">
-              <label htmlFor="email" className="text-xs font-black uppercase text-slate-400 tracking-widest">Email</label>
+              <label
+                htmlFor="email"
+                className="text-xs font-black uppercase text-slate-400 tracking-widest"
+              >
+                Email
+              </label>
               <div className="relative">
-                <Mail className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={20} />
-                <input 
-                  required 
-                  type="email" 
-                  placeholder="seu@email.com" 
+                <Mail
+                  className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400"
+                  size={20}
+                />
+                <input
+                  required
+                  type="email"
+                  placeholder="seu@email.com"
                   id="email"
                   name="email"
                   autoComplete="email"
@@ -161,24 +204,36 @@ const Auth: React.FC<AuthProps> = ({ onLogin, onNavigateToPublicTournaments, onN
             {!isForgotPassword && (
               <div className="space-y-2">
                 <div className="flex justify-between items-center">
-                  <label htmlFor="password" className="text-xs font-black uppercase text-slate-400 tracking-widest">Senha</label>
+                  <label
+                    htmlFor="password"
+                    className="text-xs font-black uppercase text-slate-400 tracking-widest"
+                  >
+                    Senha
+                  </label>
                   {isLogin && (
-                    <button 
-                      type="button" 
+                    <button
+                      type="button"
                       onClick={() => setIsForgotPassword(true)}
                       className="text-[10px] text-brand font-bold hover:underline"
                     >
                       Esqueci minha senha
                     </button>
                   )}
-                  {!isLogin && <span className="text-[10px] text-slate-400 font-bold flex items-center gap-1"><Star size={10}/> Mínimo 8 caracteres</span>}
+                  {!isLogin && (
+                    <span className="text-[10px] text-slate-400 font-bold flex items-center gap-1">
+                      <Star size={10} /> Mínimo 8 caracteres
+                    </span>
+                  )}
                 </div>
                 <div className="relative">
-                  <Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={20} />
-                  <input 
-                    required 
-                    type="password" 
-                    placeholder="Digite sua senha" 
+                  <Lock
+                    className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400"
+                    size={20}
+                  />
+                  <input
+                    required
+                    type="password"
+                    placeholder="Digite sua senha"
                     id="password"
                     name="password"
                     autoComplete={isLogin ? 'current-password' : 'new-password'}
@@ -190,8 +245,8 @@ const Auth: React.FC<AuthProps> = ({ onLogin, onNavigateToPublicTournaments, onN
               </div>
             )}
 
-            <button 
-              type="submit" 
+            <button
+              type="submit"
               disabled={isLoading}
               className="w-full py-4 bg-[#0F172A] text-white font-black uppercase tracking-widest rounded-2xl shadow-xl hover:bg-slate-900 transition-all flex items-center justify-center gap-2"
             >
@@ -201,7 +256,8 @@ const Auth: React.FC<AuthProps> = ({ onLogin, onNavigateToPublicTournaments, onN
                 </>
               ) : (
                 <>
-                  {isForgotPassword ? 'Enviar email' : isLogin ? 'Entrar' : 'Criar conta'} <ArrowRight size={18} />
+                  {isForgotPassword ? 'Enviar email' : isLogin ? 'Entrar' : 'Criar conta'}{' '}
+                  <ArrowRight size={18} />
                 </>
               )}
             </button>
@@ -210,14 +266,22 @@ const Auth: React.FC<AuthProps> = ({ onLogin, onNavigateToPublicTournaments, onN
               {isForgotPassword ? (
                 <>
                   <span>Lembrou a senha?</span>
-                  <button type="button" onClick={() => setIsForgotPassword(false)} className="font-black text-brand uppercase tracking-widest">
+                  <button
+                    type="button"
+                    onClick={() => setIsForgotPassword(false)}
+                    className="font-black text-brand uppercase tracking-widest"
+                  >
                     Fazer login
                   </button>
                 </>
               ) : (
                 <>
                   <span>{isLogin ? 'Ainda não tem conta?' : 'Já tem conta?'}</span>
-                  <button type="button" onClick={() => setIsLogin(!isLogin)} className="font-black text-brand uppercase tracking-widest">
+                  <button
+                    type="button"
+                    onClick={() => setIsLogin(!isLogin)}
+                    className="font-black text-brand uppercase tracking-widest"
+                  >
                     {isLogin ? 'Criar grátis' : 'Fazer login'}
                   </button>
                 </>

@@ -1,11 +1,11 @@
-
 # Roteiro de Implementação de Pagamentos (Stripe + Supabase)
 
 Este guia explica como substituir o modal de pagamento "simulado" do frontend por um processamento real usando **Stripe** para assinaturas e **PIX**.
 
 ## Visão Geral da Arquitetura
+
 1. **Frontend:** O usuário clica em "Assinar PRO".
-2. **Supabase Edge Function:** O app chama uma função segura que cria uma *Sessão de Checkout* no Stripe.
+2. **Supabase Edge Function:** O app chama uma função segura que cria uma _Sessão de Checkout_ no Stripe.
 3. **Stripe:** O usuário é redirecionado para a página segura do Stripe para pagar (Cartão ou PIX).
 4. **Webhook:** Quando o pagamento é aprovado, o Stripe avisa o Supabase.
 5. **Banco de Dados:** O Supabase atualiza a tabela `profiles` mudando o plano para `'Profissional'`.
@@ -13,22 +13,24 @@ Este guia explica como substituir o modal de pagamento "simulado" do frontend po
 ---
 
 ## Passo 1: Configuração do Stripe
+
 1. Crie uma conta em [dashboard.stripe.com](https://dashboard.stripe.com).
 2. Ative o modo de teste ("Test Mode").
 3. Vá em **Catálogo de Produtos** e crie um produto chamado "AviGestão PRO".
 4. Adicione preços a este produto (ex: R$ 19,90/mês, R$ 167,10/ano).
 5. Anote os **Price IDs** (ex: `price_1Pxyz...`) de cada plano.
 6. Vá em **Desenvolvedores > Chaves de API** e anote:
-   - `STRIPE_PUBLISHABLE_KEY` (pk_test_...)
-   - `STRIPE_SECRET_KEY` (sk_test_...)
+   - `STRIPE_PUBLISHABLE_KEY` (pk*test*...)
+   - `STRIPE_SECRET_KEY` (sk*test*...)
 
 ---
 
 ## Passo 2: Atualizar Banco de Dados (Supabase)
+
 Adicione colunas para controlar a assinatura na tabela de perfis. Execute isso no SQL Editor do Supabase:
 
 ```sql
-alter table public.profiles 
+alter table public.profiles
 add column stripe_customer_id text,
 add column subscription_status text default 'active', -- 'active', 'past_due', 'canceled'
 add column subscription_end_date timestamp with time zone;
@@ -37,6 +39,7 @@ add column subscription_end_date timestamp with time zone;
 ---
 
 ## Passo 3: Criar Supabase Edge Function (Checkout)
+
 Você precisará do CLI do Supabase instalado na sua máquina (`npm i -g supabase`).
 
 1. Inicialize a função: `supabase functions new create-checkout`
@@ -78,6 +81,7 @@ serve(async (req) => {
 ---
 
 ## Passo 4: Criar Webhook (Onde a mágica acontece)
+
 Crie outra função: `supabase functions new stripe-webhook`
 
 ```typescript
@@ -86,7 +90,7 @@ Crie outra função: `supabase functions new stripe-webhook`
 serve(async (req) => {
   const signature = req.headers.get('Stripe-Signature')!
   const body = await req.text()
-  
+
   // 1. Verificar se o evento veio mesmo do Stripe
   const event = stripe.webhooks.constructEvent(body, signature, Deno.env.get('STRIPE_WEBHOOK_SECRET')!)
 
@@ -97,11 +101,11 @@ serve(async (req) => {
     const customerId = session.customer
 
     // 3. Atualizar o banco de dados do Supabase
-    const supabase = createClient(...) 
+    const supabase = createClient(...)
     await supabase
       .from('profiles')
-      .update({ 
-        plan: 'Profissional', 
+      .update({
+        plan: 'Profissional',
         stripe_customer_id: customerId,
         subscription_status: 'active'
       })
@@ -119,23 +123,24 @@ serve(async (req) => {
 No arquivo `SettingsManager.tsx`, substitua a função `processPayment` simulada por uma chamada real à sua API:
 
 ```typescript
-import { supabase } from '../lib/supabase' // Seu cliente configurado
+import { supabase } from '../lib/supabase'; // Seu cliente configurado
 
 const handleCheckout = async (priceId: string) => {
   setLoading(true);
-  
+
   const { data, error } = await supabase.functions.invoke('create-checkout', {
-    body: { price_id: priceId }
+    body: { price_id: priceId },
   });
 
   if (data?.url) {
     // Redireciona o usuário para o site do Stripe
     window.location.href = data.url;
   }
-}
+};
 ```
 
 ## Resumo
+
 1. O Frontend chama a função `create-checkout`.
 2. O usuário paga no site do Stripe.
 3. O Stripe chama seu `stripe-webhook` em background.

@@ -25,14 +25,14 @@ const TagGenerator: React.FC<TagGeneratorProps> = ({ birds, settings }) => {
   const sizes = {
     small: { width: 60, height: 40, font: '8px' },
     medium: { width: 90, height: 60, font: '10px' },
-    large: { width: 120, height: 80, font: '12px' }
+    large: { width: 120, height: 80, font: '12px' },
   };
 
   const size = sizes[tagSize];
 
   const toggleBirdSelection = (birdId: string) => {
-    setSelectedBirds(prev =>
-      prev.includes(birdId) ? prev.filter(id => id !== birdId) : [...prev, birdId]
+    setSelectedBirds((prev) =>
+      prev.includes(birdId) ? prev.filter((id) => id !== birdId) : [...prev, birdId],
     );
   };
 
@@ -42,9 +42,8 @@ const TagGenerator: React.FC<TagGeneratorProps> = ({ birds, settings }) => {
   };
 
   const handlePrintTags = () => {
-    const birdsToTag = selectedBirds.length > 0
-      ? birds.filter(b => selectedBirds.includes(b.id))
-      : birds;
+    const birdsToTag =
+      selectedBirds.length > 0 ? birds.filter((b) => selectedBirds.includes(b.id)) : birds;
 
     if (birdsToTag.length === 0) {
       alert('Selecione pelo menos uma ave para gerar as etiquetas');
@@ -53,10 +52,13 @@ const TagGenerator: React.FC<TagGeneratorProps> = ({ birds, settings }) => {
 
     const printWindow = window.open('', '', 'width=800,height=600');
     if (printWindow) {
-      const tagsHTML = birdsToTag.map((bird, idx) => {
-        const qrUrl = includeQR ? generateQRCode(`${window.location.origin}/bird/${bird.id}`) : '';
+      const tagsHTML = birdsToTag
+        .map((bird) => {
+          const qrUrl = includeQR
+            ? generateQRCode(`${window.location.origin}/bird/${bird.id}`)
+            : '';
 
-        return `
+          return `
           <div class="tag-item" style="
             width: ${size.width}mm;
             height: ${size.height}mm;
@@ -73,7 +75,9 @@ const TagGenerator: React.FC<TagGeneratorProps> = ({ birds, settings }) => {
             position: relative;
             overflow: hidden;
           ">
-            ${showWatermark ? `
+            ${
+              showWatermark
+                ? `
               <div style="
                 position: absolute;
                 top: 50%;
@@ -89,42 +93,67 @@ const TagGenerator: React.FC<TagGeneratorProps> = ({ birds, settings }) => {
                   object-fit: contain;
                 " />
               </div>
-            ` : ''}
+            `
+                : ''
+            }
             <div style="position: relative; z-index: 1;">
-            ${tagStyle === 'detailed' ? `
-              <div style="font-weight: bold; font-size: ${parseInt(size.font) + 2}px; margin-bottom: 2px;">
+            ${
+              tagStyle === 'detailed'
+                ? `
+              <div style="font-weight: bold; font-size: ${
+                parseInt(size.font) + 2
+              }px; margin-bottom: 2px;">
                 ${bird.name?.substring(0, 20) || 'AVE'}
               </div>
-              <div style="font-size: ${parseInt(size.font) - 1}px; color: #666; margin-bottom: 2px;">
+              <div style="font-size: ${
+                parseInt(size.font) - 1
+              }px; color: #666; margin-bottom: 2px;">
                 <strong>Anilha:</strong> ${bird.ringNumber || '—'}
               </div>
-              <div style="font-size: ${parseInt(size.font) - 1}px; color: #666; margin-bottom: 2px;">
+              <div style="font-size: ${
+                parseInt(size.font) - 1
+              }px; color: #666; margin-bottom: 2px;">
                 <strong>Sexo:</strong> ${bird.sex || '—'}
               </div>
-              ${includeQR ? `
+              ${
+                includeQR
+                  ? `
                 <div style="text-align: center; margin-top: 2px;">
                   <img src="${qrUrl}" width="30" height="30" style="border: 1px solid #999;" />
                 </div>
-              ` : ''}
-            ` : tagStyle === 'compact' ? `
-              <div style="font-weight: bold; font-size: ${parseInt(size.font) + 1}px; margin-bottom: 3px;">
+              `
+                  : ''
+              }
+            `
+                : tagStyle === 'compact'
+                ? `
+              <div style="font-weight: bold; font-size: ${
+                parseInt(size.font) + 1
+              }px; margin-bottom: 3px;">
                 ${bird.name?.substring(0, 15) || 'AVE'}
               </div>
               <div style="font-size: ${parseInt(size.font) - 1}px;">
                 Anilha: ${bird.ringNumber || '—'}
               </div>
-              ${includeQR ? `
+              ${
+                includeQR
+                  ? `
                 <img src="${qrUrl}" width="24" height="24" style="margin-top: 2px; border: 1px solid #999;" />
-              ` : ''}
-            ` : `
+              `
+                  : ''
+              }
+            `
+                : `
               <div style="font-weight: bold; font-size: ${parseInt(size.font) + 1}px;">
                 ${bird.name?.substring(0, 12) || 'AVE'}
               </div>
-            `}
+            `
+            }
             </div>
           </div>
         `;
-      }).join('');
+        })
+        .join('');
 
       printWindow.document.write(`
         <!DOCTYPE html>
@@ -161,21 +190,22 @@ const TagGenerator: React.FC<TagGeneratorProps> = ({ birds, settings }) => {
   };
 
   const handleDownloadCSV = () => {
-    const birdsToExport = selectedBirds.length > 0
-      ? birds.filter(b => selectedBirds.includes(b.id))
-      : birds;
+    const birdsToExport =
+      selectedBirds.length > 0 ? birds.filter((b) => selectedBirds.includes(b.id)) : birds;
 
     const csv = [
       ['Nome', 'Anilha', 'Espécie', 'Sexo', 'Data de Nascimento', 'Status'],
-      ...birdsToExport.map(b => [
+      ...birdsToExport.map((b) => [
         b.name || '',
         b.ringNumber || '',
         b.species || '',
         b.sex || '',
         b.birthDate || '',
-        b.status || ''
-      ])
-    ].map(row => row.map(cell => `"${cell}"`).join(',')).join('\n');
+        b.status || '',
+      ]),
+    ]
+      .map((row) => row.map((cell) => `"${cell}"`).join(','))
+      .join('\n');
 
     const blob = new Blob([csv], { type: 'text/csv' });
     const url = window.URL.createObjectURL(blob);
@@ -192,13 +222,16 @@ const TagGenerator: React.FC<TagGeneratorProps> = ({ birds, settings }) => {
           🏷️ Gerador de Etiquetas de Gaiola
         </h2>
         <p className="text-sm text-slate-600 mb-6">
-          Crie etiquetas personalizadas para suas gaiolas. Selecione as aves, customize o estilo e imprima em folhas de etiqueta A4.
+          Crie etiquetas personalizadas para suas gaiolas. Selecione as aves, customize o estilo e
+          imprima em folhas de etiqueta A4.
         </p>
 
         {/* Configurações */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6 pb-6 border-b border-slate-200">
           <div>
-            <label className="block text-sm font-semibold text-slate-700 mb-2">Estilo da Etiqueta</label>
+            <label className="block text-sm font-semibold text-slate-700 mb-2">
+              Estilo da Etiqueta
+            </label>
             <select
               value={tagStyle}
               onChange={(e) => setTagStyle(e.target.value as TagStyle)}
@@ -238,7 +271,7 @@ const TagGenerator: React.FC<TagGeneratorProps> = ({ birds, settings }) => {
                 onChange={(e) => setShowWatermark(e.target.checked)}
                 className="w-4 h-4"
               />
-              <span>Marca d'água com logo</span>
+              <span>Marca d&apos;água com logo</span>
             </label>
           </div>
         </div>
@@ -250,7 +283,11 @@ const TagGenerator: React.FC<TagGeneratorProps> = ({ birds, settings }) => {
               Aves Selecionadas: {selectedBirds.length} de {birds.length}
             </label>
             <button
-              onClick={() => setSelectedBirds(selectedBirds.length === birds.length ? [] : birds.map(b => b.id))}
+              onClick={() =>
+                setSelectedBirds(
+                  selectedBirds.length === birds.length ? [] : birds.map((b) => b.id),
+                )
+              }
               className="text-xs px-3 py-1 text-blue-600 hover:bg-blue-50 rounded-lg border border-blue-200"
             >
               {selectedBirds.length === birds.length ? 'Desselecionar Todas' : 'Selecionar Todas'}
@@ -258,7 +295,7 @@ const TagGenerator: React.FC<TagGeneratorProps> = ({ birds, settings }) => {
           </div>
 
           <div className="grid grid-cols-2 md:grid-cols-4 gap-2 max-h-64 overflow-y-auto p-3 bg-slate-50 rounded-lg border border-slate-200">
-            {birds.map(bird => (
+            {birds.map((bird) => (
               <label
                 key={bird.id}
                 className="flex items-center gap-2 p-2 hover:bg-white rounded-lg cursor-pointer text-sm"

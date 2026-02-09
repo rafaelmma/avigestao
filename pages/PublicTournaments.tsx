@@ -1,16 +1,32 @@
 import React, { useState, useEffect } from 'react';
-import { Trophy, MapPin, Calendar, Users, ArrowRight, CheckCircle, AlertCircle, User, Clock, ChevronRight, Eye } from 'lucide-react';
+import {
+  Trophy,
+  MapPin,
+  Calendar,
+  Users,
+  ArrowRight,
+  CheckCircle,
+  AlertCircle,
+  User,
+  Clock,
+  Eye,
+} from 'lucide-react';
 import { db, auth } from '../lib/firebase';
 import { collection, getDocs, query, where, orderBy, addDoc } from 'firebase/firestore';
-import { APP_LOGO } from '../constants';
+import /* APP_LOGO */ '../constants';
+import PrimaryButton from '../components/ui/PrimaryButton';
+import SecondaryButton from '../components/ui/SecondaryButton';
+import PageHeader from '../components/ui/PageHeader';
 import type { Bird } from '../types';
+
+type FireDate = Date | { toDate?: () => Date } | number | string;
 
 interface PublicTournament {
   id: string;
   name: string;
   description: string;
-  startDate: any;
-  endDate: any;
+  startDate: FireDate;
+  endDate: FireDate;
   species: string[];
   status: 'upcoming' | 'ongoing' | 'completed';
   maxParticipants: number;
@@ -30,8 +46,8 @@ interface Inscription {
   birdName: string;
   birdId: string;
   birdSpecies: string;
-  registeredAt: any;
-  status: 'registered' | 'disqualified' | 'completed';
+  registeredAt: FireDate;
+  status: 'pending' | 'registered' | 'disqualified' | 'completed';
   placement?: number;
   score?: number;
 }
@@ -42,16 +58,23 @@ interface PublicTournamentsProps {
   birds?: Bird[];
 }
 
-const PublicTournaments: React.FC<PublicTournamentsProps> = ({ onNavigateToLogin, onNavigateToHome, birds = [] }) => {
+const PublicTournaments: React.FC<PublicTournamentsProps> = ({
+  onNavigateToLogin,
+  onNavigateToHome,
+  birds = [],
+}) => {
   const [tournaments, setTournaments] = useState<PublicTournament[]>([]);
   const [inscriptions, setInscriptions] = useState<Record<string, Inscription[]>>({});
   const [loading, setLoading] = useState(true);
   const [selectedTournament, setSelectedTournament] = useState<PublicTournament | null>(null);
   const [showEnrollModal, setShowEnrollModal] = useState(false);
   const [selectedBird, setSelectedBird] = useState<string>('');
-  const [enrollStatus, setEnrollStatus] = useState<'idle' | 'enrolling' | 'success' | 'error'>('idle');
+  const [enrollStatus, setEnrollStatus] = useState<'idle' | 'enrolling' | 'success' | 'error'>(
+    'idle',
+  );
   const [enrollMessage, setEnrollMessage] = useState('');
   const [filter, setFilter] = useState<'all' | 'upcoming' | 'ongoing' | 'completed'>('all');
+  const [publicSearch, setPublicSearch] = useState('');
 
   useEffect(() => {
     loadTournaments();
@@ -59,14 +82,11 @@ const PublicTournaments: React.FC<PublicTournamentsProps> = ({ onNavigateToLogin
 
   const loadTournaments = async () => {
     try {
-      const q = query(
-        collection(db, 'tournaments'),
-        orderBy('startDate', 'desc')
-      );
+      const q = query(collection(db, 'tournaments'), orderBy('startDate', 'desc'));
       const snapshot = await getDocs(q);
-      const data = snapshot.docs.map(doc => ({
+      const data = snapshot.docs.map((doc) => ({
         id: doc.id,
-        ...doc.data()
+        ...doc.data(),
       })) as PublicTournament[];
       setTournaments(data);
 
@@ -75,23 +95,36 @@ const PublicTournaments: React.FC<PublicTournamentsProps> = ({ onNavigateToLogin
       for (const tournament of data) {
         const inscQuery = query(
           collection(db, 'tournament_inscriptions'),
-          where('tournamentId', '==', tournament.id)
+          where('tournamentId', '==', tournament.id),
         );
         const inscSnapshot = await getDocs(inscQuery);
-        inscriptionsMap[tournament.id] = inscSnapshot.docs.map(doc => ({
+        inscriptionsMap[tournament.id] = inscSnapshot.docs.map((doc) => ({
           id: doc.id,
-          ...doc.data()
+          ...doc.data(),
         })) as Inscription[];
       }
       setInscriptions(inscriptionsMap);
     } catch (error) {
-      console.error('Erro ao carregar torneios:', error);
+      const messageProp =
+        error && typeof error === 'object' && 'message' in error
+          ? (error as { message?: unknown }).message
+          : undefined;
+      console.error(
+        'Erro ao carregar torneios:',
+        typeof messageProp === 'string' ? messageProp : error,
+      );
     } finally {
       setLoading(false);
     }
   };
 
   const handleEnroll = (tournament: PublicTournament) => {
+    if (tournament.status === 'completed') {
+      setEnrollMessage('Este torneio já foi concluído.');
+      setEnrollStatus('error');
+      setTimeout(() => setEnrollStatus('idle'), 3000);
+      return;
+    }
     const user = auth.currentUser;
     if (!user) {
       alert('Você precisa fazer login para se inscrever!');
@@ -100,9 +133,7 @@ const PublicTournaments: React.FC<PublicTournamentsProps> = ({ onNavigateToLogin
     }
 
     // Filtrar pássaros compatíveis
-    const compatibleBirds = birds.filter(bird => 
-      tournament.species.includes(bird.species)
-    );
+    const compatibleBirds = birds.filter((bird) => tournament.species.includes(bird.species));
 
     if (compatibleBirds.length === 0) {
       setEnrollMessage(`Você não tem pássaros das espécies: ${tournament.species.join(', ')}`);
@@ -122,12 +153,28 @@ const PublicTournaments: React.FC<PublicTournamentsProps> = ({ onNavigateToLogin
     const user = auth.currentUser;
     if (!user) return;
 
-    const bird = birds.find(b => b.id === selectedBird);
+    const bird = birds.find((b) => b.id === selectedBird);
     if (!bird) return;
 
     setEnrollStatus('enrolling');
 
     try {
+      const countQuery = query(
+        collection(db, 'tournament_inscriptions'),
+        where('tournamentId', '==', selectedTournament.id),
+      );
+      const countSnapshot = await getDocs(countQuery);
+      const registeredCount = countSnapshot.docs.filter((doc) => {
+        const d = doc.data() as Record<string, unknown>;
+        return d.status === 'registered';
+      }).length;
+      if (registeredCount >= selectedTournament.maxParticipants) {
+        setEnrollMessage('Limite de participantes atingido.');
+        setEnrollStatus('error');
+        setTimeout(() => setEnrollStatus('idle'), 3000);
+        return;
+      }
+
       await addDoc(collection(db, 'tournament_inscriptions'), {
         tournamentId: selectedTournament.id,
         userId: user.uid,
@@ -136,7 +183,7 @@ const PublicTournaments: React.FC<PublicTournamentsProps> = ({ onNavigateToLogin
         birdId: bird.id,
         birdSpecies: bird.species,
         registeredAt: new Date(),
-        status: 'registered'
+        status: 'pending',
       });
 
       setEnrollStatus('success');
@@ -148,41 +195,98 @@ const PublicTournaments: React.FC<PublicTournamentsProps> = ({ onNavigateToLogin
         setSelectedBird('');
         loadTournaments(); // Recarregar para atualizar contadores
       }, 2000);
-    } catch (error: any) {
-      console.error('Erro ao inscrever:', error);
-      setEnrollMessage(error.message || 'Erro ao realizar inscrição');
+    } catch (error: unknown) {
+      const messageProp =
+        error && typeof error === 'object' && 'message' in error
+          ? (error as { message?: unknown }).message
+          : undefined;
+      const msg = typeof messageProp === 'string' ? messageProp : String(error);
+      console.error('Erro ao inscrever:', msg);
+      setEnrollMessage(msg || 'Erro ao realizar inscrição');
       setEnrollStatus('error');
       setTimeout(() => setEnrollStatus('idle'), 3000);
     }
   };
 
-  const formatDate = (date: any): string => {
+  const formatDate = (date: FireDate): string => {
     if (!date) return 'Data não definida';
-    const d = date.toDate ? date.toDate() : new Date(date);
-    return d.toLocaleDateString('pt-BR', { day: '2-digit', month: 'long', year: 'numeric' });
+    const toDate = (val: FireDate): Date => {
+      if (!val) return new Date(NaN);
+      if (
+        typeof val === 'object' &&
+        val !== null &&
+        'toDate' in val &&
+        typeof (val as { toDate?: unknown }).toDate === 'function'
+      ) {
+        return (val as { toDate: () => Date }).toDate();
+      }
+      return new Date(String(val));
+    };
+    const d = toDate(date);
+    return d.toLocaleString('pt-BR', {
+      day: '2-digit',
+      month: 'long',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+      timeZone: 'America/Sao_Paulo',
+    });
   };
 
-  const formatShortDate = (date: any): string => {
+  const formatShortDate = (date: FireDate): string => {
     if (!date) return '--';
-    const d = date.toDate ? date.toDate() : new Date(date);
-    return d.toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' });
+    const toDate = (val: FireDate): Date => {
+      if (!val) return new Date(NaN);
+      if (
+        typeof val === 'object' &&
+        val !== null &&
+        'toDate' in val &&
+        typeof (val as { toDate?: unknown }).toDate === 'function'
+      ) {
+        return (val as { toDate: () => Date }).toDate();
+      }
+      return new Date(String(val));
+    };
+    const d = toDate(date);
+    return d.toLocaleDateString('pt-BR', {
+      day: '2-digit',
+      month: 'short',
+      timeZone: 'America/Sao_Paulo',
+    });
   };
 
   const getStatusBadge = (status: string) => {
     switch (status) {
       case 'upcoming':
-        return <span className="px-3 py-1 bg-blue-100 text-blue-700 text-xs rounded-full font-semibold">Próximo</span>;
+        return (
+          <span className="px-3 py-1 bg-blue-100 text-blue-700 text-xs rounded-full font-semibold">
+            Próximo
+          </span>
+        );
       case 'ongoing':
-        return <span className="px-3 py-1 bg-green-100 text-green-700 text-xs rounded-full font-semibold">Em Andamento</span>;
+        return (
+          <span className="px-3 py-1 bg-green-100 text-green-700 text-xs rounded-full font-semibold">
+            Em Andamento
+          </span>
+        );
       case 'completed':
-        return <span className="px-3 py-1 bg-slate-100 text-slate-700 text-xs rounded-full font-semibold">Finalizado</span>;
+        return (
+          <span className="px-3 py-1 bg-slate-100 text-slate-700 text-xs rounded-full font-semibold">
+            Finalizado
+          </span>
+        );
       default:
         return null;
     }
   };
 
-  const filteredTournaments = tournaments.filter(t => 
-    filter === 'all' || t.status === filter
+  const filteredTournaments = tournaments.filter(
+    (t) =>
+      (filter === 'all' || t.status === filter) &&
+      (publicSearch === '' ||
+        (t.name || '').toLowerCase().includes(publicSearch.toLowerCase()) ||
+        (t.city || '').toLowerCase().includes(publicSearch.toLowerCase()) ||
+        (t.organizer || '').toLowerCase().includes(publicSearch.toLowerCase())),
   );
 
   if (loading) {
@@ -207,77 +311,73 @@ const PublicTournaments: React.FC<PublicTournamentsProps> = ({ onNavigateToLogin
         <div className="max-w-6xl mx-auto">
           {/* Header */}
           <div className="mb-8">
-            <div className="flex items-center justify-between mb-4">
-              <div className="flex items-center gap-3">
-                <img src={APP_LOGO} alt="AviGestão" className="w-12 h-12 rounded-xl" />
-                <div>
-                  <h1 className="text-3xl font-bold text-slate-900 flex items-center gap-2">
-                    <Trophy size={32} className="text-amber-500" />
-                    Torneios Públicos
-                  </h1>
-                  <p className="text-slate-600 text-sm">Veja todos os torneios e competições abertas</p>
+            <PageHeader
+              title={
+                <>
+                  <Trophy size={32} className="text-amber-500" /> Torneios Públicos
+                </>
+              }
+              subtitle="Veja todos os torneios e competições abertas"
+              actions={
+                <div className="flex items-center gap-2">
+                  <input
+                    placeholder="Buscar torneio, cidade ou organizador..."
+                    value={publicSearch}
+                    onChange={(e) => setPublicSearch(e.target.value)}
+                    className="px-3 py-2 border border-slate-300 rounded-lg"
+                    style={{ width: 320 }}
+                  />
+                  {onNavigateToHome && (
+                    <SecondaryButton onClick={onNavigateToHome}>Voltar</SecondaryButton>
+                  )}
+                  <PrimaryButton onClick={onNavigateToLogin}>
+                    Login <ArrowRight size={16} />
+                  </PrimaryButton>
                 </div>
-              </div>
-              <div className="flex items-center gap-2">
-                {onNavigateToHome && (
-                  <button
-                    onClick={onNavigateToHome}
-                    className="px-4 py-2 bg-slate-200 text-slate-700 rounded-lg font-semibold hover:bg-slate-300 transition-all"
-                  >
-                    Voltar
-                  </button>
-                )}
-                <button
-                  onClick={onNavigateToLogin}
-                  className="px-4 py-2 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700 transition-all flex items-center gap-2"
-                >
-                  Login <ArrowRight size={16} />
-                </button>
-              </div>
-            </div>
+              }
+            />
 
             {/* Filtros */}
             <div className="flex gap-2">
-              <button
-                onClick={() => setFilter('all')}
-                className={`px-4 py-2 rounded-lg font-semibold text-sm transition-all ${
-                  filter === 'all' 
-                    ? 'bg-blue-600 text-white' 
-                    : 'bg-white text-slate-700 hover:bg-slate-100'
-                }`}
-              >
-                Todos ({tournaments.length})
-              </button>
-              <button
-                onClick={() => setFilter('upcoming')}
-                className={`px-4 py-2 rounded-lg font-semibold text-sm transition-all ${
-                  filter === 'upcoming' 
-                    ? 'bg-blue-600 text-white' 
-                    : 'bg-white text-slate-700 hover:bg-slate-100'
-                }`}
-              >
-                Próximos ({tournaments.filter(t => t.status === 'upcoming').length})
-              </button>
-              <button
-                onClick={() => setFilter('ongoing')}
-                className={`px-4 py-2 rounded-lg font-semibold text-sm transition-all ${
-                  filter === 'ongoing' 
-                    ? 'bg-green-600 text-white' 
-                    : 'bg-white text-slate-700 hover:bg-slate-100'
-                }`}
-              >
-                Em Andamento ({tournaments.filter(t => t.status === 'ongoing').length})
-              </button>
-              <button
-                onClick={() => setFilter('completed')}
-                className={`px-4 py-2 rounded-lg font-semibold text-sm transition-all ${
-                  filter === 'completed' 
-                    ? 'bg-slate-600 text-white' 
-                    : 'bg-white text-slate-700 hover:bg-slate-100'
-                }`}
-              >
-                Finalizados ({tournaments.filter(t => t.status === 'completed').length})
-              </button>
+              {filter === 'all' ? (
+                <PrimaryButton onClick={() => setFilter('all')}>
+                  Todos ({tournaments.length})
+                </PrimaryButton>
+              ) : (
+                <SecondaryButton onClick={() => setFilter('all')}>
+                  Todos ({tournaments.length})
+                </SecondaryButton>
+              )}
+
+              {filter === 'upcoming' ? (
+                <PrimaryButton onClick={() => setFilter('upcoming')}>
+                  Próximos ({tournaments.filter((t) => t.status === 'upcoming').length})
+                </PrimaryButton>
+              ) : (
+                <SecondaryButton onClick={() => setFilter('upcoming')}>
+                  Próximos ({tournaments.filter((t) => t.status === 'upcoming').length})
+                </SecondaryButton>
+              )}
+
+              {filter === 'ongoing' ? (
+                <PrimaryButton onClick={() => setFilter('ongoing')}>
+                  Em Andamento ({tournaments.filter((t) => t.status === 'ongoing').length})
+                </PrimaryButton>
+              ) : (
+                <SecondaryButton onClick={() => setFilter('ongoing')}>
+                  Em Andamento ({tournaments.filter((t) => t.status === 'ongoing').length})
+                </SecondaryButton>
+              )}
+
+              {filter === 'completed' ? (
+                <PrimaryButton onClick={() => setFilter('completed')}>
+                  Finalizados ({tournaments.filter((t) => t.status === 'completed').length})
+                </PrimaryButton>
+              ) : (
+                <SecondaryButton onClick={() => setFilter('completed')}>
+                  Finalizados ({tournaments.filter((t) => t.status === 'completed').length})
+                </SecondaryButton>
+              )}
             </div>
           </div>
 
@@ -289,9 +389,11 @@ const PublicTournaments: React.FC<PublicTournamentsProps> = ({ onNavigateToLogin
             </div>
           ) : (
             <div className="grid md:grid-cols-2 gap-6">
-              {filteredTournaments.map(tournament => {
+              {filteredTournaments.map((tournament) => {
                 const tournamentInscriptions = inscriptions[tournament.id] || [];
-                const participantCount = tournamentInscriptions.length;
+                const participantCount = tournamentInscriptions.filter(
+                  (i) => i.status === 'registered',
+                ).length;
 
                 return (
                   <div
@@ -301,8 +403,12 @@ const PublicTournaments: React.FC<PublicTournamentsProps> = ({ onNavigateToLogin
                     <div className="p-6">
                       <div className="flex items-start justify-between mb-3">
                         <div className="flex-1">
-                          <h3 className="text-xl font-bold text-slate-900 mb-1">{tournament.name}</h3>
-                          <p className="text-sm text-slate-600 line-clamp-2">{tournament.description}</p>
+                          <h3 className="text-xl font-bold text-slate-900 mb-1">
+                            {tournament.name}
+                          </h3>
+                          <p className="text-sm text-slate-600 line-clamp-2">
+                            {tournament.description}
+                          </p>
                         </div>
                         {getStatusBadge(tournament.status)}
                       </div>
@@ -315,7 +421,9 @@ const PublicTournaments: React.FC<PublicTournamentsProps> = ({ onNavigateToLogin
                         {tournament.city && tournament.state && (
                           <div className="flex items-center gap-2 text-sm text-slate-600">
                             <MapPin size={16} className="text-red-500" />
-                            <span>{tournament.city}/{tournament.state}</span>
+                            <span>
+                              {tournament.city}/{tournament.state}
+                            </span>
                           </div>
                         )}
                         {tournament.organizer && (
@@ -324,9 +432,39 @@ const PublicTournaments: React.FC<PublicTournamentsProps> = ({ onNavigateToLogin
                             <span className="truncate">{tournament.organizer}</span>
                           </div>
                         )}
-                        <div className="flex items-center gap-2 text-sm text-slate-600">
-                          <Users size={16} className="text-green-500" />
-                          <span>{participantCount}/{tournament.maxParticipants}</span>
+                        <div className="flex flex-col gap-2 text-sm text-slate-600">
+                          <div className="flex items-center gap-2">
+                            <Users size={16} className="text-green-500" />
+                            <span>
+                              {participantCount}/{tournament.maxParticipants}
+                            </span>
+                            {/** show pending count if any */}
+                            {tournamentInscriptions.filter((i) => i.status === 'pending').length >
+                              0 && (
+                              <span className="ml-2 text-xs bg-amber-100 text-amber-800 px-2 py-0.5 rounded-full">
+                                Aguardando:{' '}
+                                {
+                                  tournamentInscriptions.filter((i) => i.status === 'pending')
+                                    .length
+                                }
+                              </span>
+                            )}
+                          </div>
+                          {/* Progress bar */}
+                          <div className="w-full bg-slate-100 rounded-full h-2 overflow-hidden mt-1">
+                            <div
+                              className="h-2 bg-green-500"
+                              style={{
+                                width: `${Math.min(
+                                  100,
+                                  Math.round(
+                                    (participantCount / Math.max(1, tournament.maxParticipants)) *
+                                      100,
+                                  ),
+                                )}%`,
+                              }}
+                            />
+                          </div>
                         </div>
                       </div>
 
@@ -338,7 +476,7 @@ const PublicTournaments: React.FC<PublicTournamentsProps> = ({ onNavigateToLogin
                       )}
 
                       <div className="flex flex-wrap gap-2 mb-4">
-                        {tournament.species.map(species => (
+                        {tournament.species.map((species) => (
                           <span
                             key={species}
                             className="px-2 py-1 bg-slate-100 text-slate-700 text-xs rounded-full font-medium"
@@ -349,36 +487,45 @@ const PublicTournaments: React.FC<PublicTournamentsProps> = ({ onNavigateToLogin
                       </div>
 
                       <div className="flex gap-2">
-                        <button
-                          onClick={() => {
-                            setSelectedTournament(tournament);
-                          }}
-                          className="flex-1 px-4 py-2 bg-slate-100 text-slate-700 rounded-lg hover:bg-slate-200 font-semibold text-sm flex items-center justify-center gap-2"
+                        <SecondaryButton
+                          onClick={() => setSelectedTournament(tournament)}
+                          className="flex-1 flex items-center justify-center gap-2 text-sm"
                         >
                           <Eye size={16} />
                           Ver Detalhes
-                        </button>
-                        <button
+                        </SecondaryButton>
+                        <PrimaryButton
                           onClick={() => handleEnroll(tournament)}
-                          disabled={tournament.status === 'completed' || participantCount >= tournament.maxParticipants}
-                          className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-semibold text-sm disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                          disabled={
+                            tournament.status === 'completed' ||
+                            participantCount >= tournament.maxParticipants
+                          }
+                          className="flex-1 flex items-center justify-center gap-2 text-sm"
                         >
                           <Trophy size={16} />
                           Inscrever-se
-                        </button>
+                        </PrimaryButton>
                       </div>
                     </div>
 
                     {/* Inscritos */}
                     {participantCount > 0 && (
                       <div className="bg-slate-50 px-6 py-3 border-t border-slate-200">
-                        <p className="text-xs text-slate-600 font-semibold mb-2">Inscritos ({participantCount}):</p>
+                        <p className="text-xs text-slate-600 font-semibold mb-2">
+                          Inscritos ({participantCount}):
+                        </p>
                         <div className="flex flex-wrap gap-2">
-                          {tournamentInscriptions.slice(0, 5).map(insc => (
-                            <div key={insc.id} className="text-xs bg-white px-2 py-1 rounded border border-slate-200">
-                              {insc.userName} - {insc.birdName}
-                            </div>
-                          ))}
+                          {tournamentInscriptions
+                            .filter((i) => i.status === 'registered')
+                            .slice(0, 5)
+                            .map((insc) => (
+                              <div
+                                key={insc.id}
+                                className="text-xs bg-white px-2 py-1 rounded border border-slate-200"
+                              >
+                                {insc.userName} - {insc.birdName}
+                              </div>
+                            ))}
                           {participantCount > 5 && (
                             <div className="text-xs text-slate-500 px-2 py-1">
                               +{participantCount - 5} mais
@@ -402,7 +549,13 @@ const PublicTournaments: React.FC<PublicTournamentsProps> = ({ onNavigateToLogin
             <div className="flex items-start justify-between mb-4">
               <div>
                 <h2 className="text-2xl font-bold text-slate-900">{selectedTournament.name}</h2>
-                <p className="text-sm text-slate-500">{selectedTournament.status === 'completed' ? 'Finalizado' : selectedTournament.status === 'ongoing' ? 'Em andamento' : 'Próximo'}</p>
+                <p className="text-sm text-slate-500">
+                  {selectedTournament.status === 'completed'
+                    ? 'Finalizado'
+                    : selectedTournament.status === 'ongoing'
+                    ? 'Em andamento'
+                    : 'Próximo'}
+                </p>
               </div>
               <button
                 onClick={() => setSelectedTournament(null)}
@@ -417,11 +570,15 @@ const PublicTournaments: React.FC<PublicTournamentsProps> = ({ onNavigateToLogin
             <div className="grid md:grid-cols-2 gap-4 mb-6">
               <div className="bg-blue-50 p-4 rounded-lg">
                 <p className="text-sm text-slate-600 font-semibold mb-1">Data Início</p>
-                <p className="text-lg font-bold text-blue-600">{formatDate(selectedTournament.startDate)}</p>
+                <p className="text-lg font-bold text-blue-600">
+                  {formatDate(selectedTournament.startDate)}
+                </p>
               </div>
               <div className="bg-amber-50 p-4 rounded-lg">
                 <p className="text-sm text-slate-600 font-semibold mb-1">Data Fim</p>
-                <p className="text-lg font-bold text-amber-600">{formatDate(selectedTournament.endDate)}</p>
+                <p className="text-lg font-bold text-amber-600">
+                  {formatDate(selectedTournament.endDate)}
+                </p>
               </div>
             </div>
 
@@ -433,18 +590,34 @@ const PublicTournaments: React.FC<PublicTournamentsProps> = ({ onNavigateToLogin
                 </h3>
                 <div className="space-y-2 text-sm">
                   {selectedTournament.organizer && (
-                    <p><strong>Organizador:</strong> {selectedTournament.organizer}</p>
+                    <p>
+                      <strong>Organizador:</strong> {selectedTournament.organizer}
+                    </p>
                   )}
                   {selectedTournament.numberOfStages && (
-                    <p><strong>Número de Etapas:</strong> {selectedTournament.numberOfStages}</p>
+                    <p>
+                      <strong>Número de Etapas:</strong> {selectedTournament.numberOfStages}
+                    </p>
                   )}
                   {selectedTournament.address && (
-                    <p><strong>Endereço:</strong> {selectedTournament.address}</p>
+                    <p>
+                      <strong>Endereço:</strong> {selectedTournament.address}
+                    </p>
                   )}
                   {selectedTournament.city && selectedTournament.state && (
-                    <p><strong>Local:</strong> {selectedTournament.city}/{selectedTournament.state}</p>
+                    <p>
+                      <strong>Local:</strong> {selectedTournament.city}/{selectedTournament.state}
+                    </p>
                   )}
-                  <p><strong>Vagas:</strong> {inscriptions[selectedTournament.id]?.length || 0}/{selectedTournament.maxParticipants}</p>
+                  <p>
+                    <strong>Vagas:</strong>{' '}
+                    {
+                      (inscriptions[selectedTournament.id] || []).filter(
+                        (i) => i.status === 'registered',
+                      ).length
+                    }
+                    /{selectedTournament.maxParticipants}
+                  </p>
                 </div>
               </div>
             )}
@@ -461,22 +634,29 @@ const PublicTournaments: React.FC<PublicTournamentsProps> = ({ onNavigateToLogin
             <div className="mb-6">
               <h3 className="font-bold text-slate-900 mb-2">Espécies Permitidas</h3>
               <div className="flex flex-wrap gap-2">
-                {selectedTournament.species.map(species => (
-                  <span key={species} className="px-3 py-1 bg-slate-200 text-slate-800 rounded-full text-sm font-semibold">
+                {selectedTournament.species.map((species) => (
+                  <span
+                    key={species}
+                    className="px-3 py-1 bg-slate-200 text-slate-800 rounded-full text-sm font-semibold"
+                  >
                     {species}
                   </span>
                 ))}
               </div>
             </div>
 
-            <button
+            <PrimaryButton
               onClick={() => handleEnroll(selectedTournament)}
-              disabled={selectedTournament.status === 'completed' || (inscriptions[selectedTournament.id]?.length || 0) >= selectedTournament.maxParticipants}
-              className="w-full px-4 py-3 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+              disabled={
+                selectedTournament.status === 'completed' ||
+                (inscriptions[selectedTournament.id] || []).filter((i) => i.status === 'registered')
+                  .length >= selectedTournament.maxParticipants
+              }
+              className="w-full flex items-center justify-center gap-2"
             >
               <Trophy size={20} />
               Inscrever-se Agora
-            </button>
+            </PrimaryButton>
           </div>
         </div>
       )}
@@ -518,8 +698,8 @@ const PublicTournaments: React.FC<PublicTournamentsProps> = ({ onNavigateToLogin
               >
                 <option value="">Escolha um pássaro...</option>
                 {birds
-                  .filter(bird => selectedTournament.species.includes(bird.species))
-                  .map(bird => (
+                  .filter((bird) => selectedTournament.species.includes(bird.species))
+                  .map((bird) => (
                     <option key={bird.id} value={bird.id}>
                       {bird.name} - {bird.species}
                     </option>
@@ -542,22 +722,22 @@ const PublicTournaments: React.FC<PublicTournamentsProps> = ({ onNavigateToLogin
             )}
 
             <div className="flex gap-3">
-              <button
+              <SecondaryButton
                 onClick={() => {
                   setShowEnrollModal(false);
                   setSelectedTournament(null);
                 }}
-                className="flex-1 px-4 py-2 bg-slate-200 text-slate-700 rounded-lg font-semibold hover:bg-slate-300"
+                className="flex-1"
               >
                 Cancelar
-              </button>
-              <button
+              </SecondaryButton>
+              <PrimaryButton
                 onClick={confirmEnrollment}
                 disabled={!selectedBird || enrollStatus === 'enrolling'}
-                className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="flex-1"
               >
                 {enrollStatus === 'enrolling' ? 'Inscrevendo...' : 'Confirmar Inscrição'}
-              </button>
+              </PrimaryButton>
             </div>
           </div>
         </div>

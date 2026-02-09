@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { createRoot } from 'react-dom/client';
 import App from './App';
@@ -11,10 +10,10 @@ if (container) {
     root.render(
       <React.StrictMode>
         <App />
-      </React.StrictMode>
+      </React.StrictMode>,
     );
   } catch (err) {
-    console.error("Erro crítico ao iniciar aplicação:", err);
+    console.error('Erro crítico ao iniciar aplicação:', err);
     container.innerHTML = `
       <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:100vh;font-family:sans-serif;color:#64748b;">
         <h2 style="color:#ef4444;margin-bottom:10px;">Erro ao carregar</h2>

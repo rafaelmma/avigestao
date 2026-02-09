@@ -28,6 +28,7 @@ gcloud run services add-iam-policy-binding uploadLogo \
 ## Após adicionar permissão:
 
 1. Teste o preflight novamente:
+
 ```bash
 curl.exe -i -X OPTIONS `
   -H "Origin: https://avigestao.com.br" `

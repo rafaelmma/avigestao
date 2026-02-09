@@ -11,7 +11,10 @@ const hexToRgba = (hex: string, alpha: number) => {
   if (!hex) return `rgba(148, 163, 184, ${alpha})`;
   let normalized = hex.replace('#', '').trim();
   if (normalized.length === 3) {
-    normalized = normalized.split('').map(ch => `${ch}${ch}`).join('');
+    normalized = normalized
+      .split('')
+      .map((ch) => `${ch}${ch}`)
+      .join('');
   }
   if (normalized.length !== 6) return `rgba(148, 163, 184, ${alpha})`;
   const value = parseInt(normalized, 16);
@@ -25,7 +28,10 @@ const darkenColor = (hex: string, percent: number) => {
   if (!hex) return '#475569';
   let normalized = hex.replace('#', '').trim();
   if (normalized.length === 3) {
-    normalized = normalized.split('').map(ch => `${ch}${ch}`).join('');
+    normalized = normalized
+      .split('')
+      .map((ch) => `${ch}${ch}`)
+      .join('');
   }
   if (normalized.length !== 6) return '#475569';
   const value = parseInt(normalized, 16);
@@ -40,8 +46,8 @@ const darkenColor = (hex: string, percent: number) => {
 
 const PedigreeTree: React.FC<PedigreeTreeProps> = ({ bird, allBirds, settings }) => {
   const accent = settings.accentColor || '#d91e63';
-  
-  const getBirdById = (id?: string) => allBirds.find(b => b.id === id);
+
+  const getBirdById = (id?: string) => allBirds.find((b) => b.id === id);
 
   const getAncestorId = (path: string): string | undefined => {
     if (!path) return undefined;
@@ -85,17 +91,15 @@ const PedigreeTree: React.FC<PedigreeTreeProps> = ({ bird, allBirds, settings })
     return null;
   };
 
-  const BirdPill = ({ 
-    data, 
-    showRing = true, 
-    generation = 0,
-    sex 
-  }: { 
-    data: any; 
-    showRing?: boolean; 
+  type PillData = { name?: string; ring?: string; isSystem?: boolean };
+
+  const BirdPill = (props: {
+    data: PillData | null;
+    showRing?: boolean;
     generation?: number;
     sex?: 'Macho' | 'Fêmea' | 'Desconhecido';
   }) => {
+    const { data, showRing = true, sex } = props;
     if (!data) {
       return (
         <div className="relative group">
@@ -115,47 +119,43 @@ const PedigreeTree: React.FC<PedigreeTreeProps> = ({ bird, allBirds, settings })
 
     return (
       <div className="relative group">
-        <div 
+        <div
           className="px-3 py-2 rounded-md border-2 text-center min-w-[130px] transition-all hover:scale-105 hover:shadow-lg font-bold text-[10px]"
-          style={{ 
+          style={{
             backgroundColor: bgColor,
             borderColor: borderColor,
-            color: textColor
+            color: textColor,
           }}
         >
-          <div className="uppercase tracking-wide truncate">
-            {data.name}
-          </div>
+          <div className="uppercase tracking-wide truncate">{data.name}</div>
           {showRing && data.ring && (
-            <div className="text-[8px] opacity-70 mt-0.5 font-semibold">
-              {data.ring}
-            </div>
+            <div className="text-[8px] opacity-70 mt-0.5 font-semibold">{data.ring}</div>
           )}
         </div>
       </div>
     );
   };
 
-  const TreeNode = ({ 
-    data, 
-    label, 
-    generation = 0, 
+  const TreeNode = ({
+    data,
+    label,
+    generation,
     showRing = true,
-    isParent = false 
-  }: { 
-    data: any; 
-    label: string; 
-    generation?: number; 
+    isParent = false,
+  }: {
+    data: PillData | null;
+    label: string;
+    generation?: number;
     showRing?: boolean;
     isParent?: boolean;
   }) => (
     <div className="flex flex-col items-start gap-2">
       {!isParent && (
-        <div 
+        <div
           className="text-[10px] font-black uppercase tracking-widest mb-1 px-2 py-1 rounded-md"
-          style={{ 
+          style={{
             color: darkenColor(accent, 30),
-            backgroundColor: hexToRgba(accent, 0.1)
+            backgroundColor: hexToRgba(accent, 0.1),
           }}
         >
           {label}
@@ -166,29 +166,47 @@ const PedigreeTree: React.FC<PedigreeTreeProps> = ({ bird, allBirds, settings })
   );
 
   return (
-    <div 
-      className="w-full bg-gradient-to-br from-white to-gray-50 rounded-2xl border-4 p-6 shadow-2xl print:p-4 print:rounded-lg print:shadow-lg relative overflow-hidden" 
+    <div
+      className="w-full bg-gradient-to-br from-white to-gray-50 rounded-2xl border-4 p-6 shadow-2xl print:p-4 print:rounded-lg print:shadow-lg relative overflow-hidden"
       style={{ borderColor: accent, minHeight: '600px', maxWidth: '1400px', margin: '0 auto' }}
     >
       {/* Decorative background pattern */}
-      <div className="absolute inset-0 opacity-[0.02] pointer-events-none" style={{ 
-        backgroundImage: `radial-gradient(circle at 2px 2px, ${accent} 1px, transparent 0)`,
-        backgroundSize: '40px 40px'
-      }}></div>
+      <div
+        className="absolute inset-0 opacity-[0.02] pointer-events-none"
+        style={{
+          backgroundImage: `radial-gradient(circle at 2px 2px, ${accent} 1px, transparent 0)`,
+          backgroundSize: '40px 40px',
+        }}
+      ></div>
 
       {/* Header Compacto para Paisagem */}
-      <div className="relative z-10 flex items-center justify-between mb-6 pb-4 border-b-2" style={{ borderColor: hexToRgba(accent, 0.3) }}>
+      <div
+        className="relative z-10 flex items-center justify-between mb-6 pb-4 border-b-2"
+        style={{ borderColor: hexToRgba(accent, 0.3) }}
+      >
         <div className="flex items-center gap-4">
-          <div 
+          <div
             className="h-16 w-16 rounded-xl border-4 flex items-center justify-center overflow-hidden flex-shrink-0 shadow-lg bg-white relative"
             style={{ borderColor: accent }}
           >
             {/* Decorative corner accents */}
-            <div className="absolute top-0 left-0 w-2 h-2 border-t-2 border-l-2" style={{ borderColor: accent }}></div>
-            <div className="absolute top-0 right-0 w-2 h-2 border-t-2 border-r-2" style={{ borderColor: accent }}></div>
-            <div className="absolute bottom-0 left-0 w-2 h-2 border-b-2 border-l-2" style={{ borderColor: accent }}></div>
-            <div className="absolute bottom-0 right-0 w-2 h-2 border-b-2 border-r-2" style={{ borderColor: accent }}></div>
-            
+            <div
+              className="absolute top-0 left-0 w-2 h-2 border-t-2 border-l-2"
+              style={{ borderColor: accent }}
+            ></div>
+            <div
+              className="absolute top-0 right-0 w-2 h-2 border-t-2 border-r-2"
+              style={{ borderColor: accent }}
+            ></div>
+            <div
+              className="absolute bottom-0 left-0 w-2 h-2 border-b-2 border-l-2"
+              style={{ borderColor: accent }}
+            ></div>
+            <div
+              className="absolute bottom-0 right-0 w-2 h-2 border-b-2 border-r-2"
+              style={{ borderColor: accent }}
+            ></div>
+
             {settings.logoUrl ? (
               <img src={settings.logoUrl} alt="Logo" className="h-full w-full object-contain p-2" />
             ) : (
@@ -197,7 +215,10 @@ const PedigreeTree: React.FC<PedigreeTreeProps> = ({ bird, allBirds, settings })
           </div>
 
           <div>
-            <p className="text-[10px] font-black uppercase tracking-[0.2em]" style={{ color: accent }}>
+            <p
+              className="text-[10px] font-black uppercase tracking-[0.2em]"
+              style={{ color: accent }}
+            >
               Certificado
             </p>
             <h1 className="text-2xl font-black text-gray-900 leading-none mt-0.5">
@@ -211,10 +232,7 @@ const PedigreeTree: React.FC<PedigreeTreeProps> = ({ bird, allBirds, settings })
         </div>
 
         <div className="text-right">
-          <div 
-            className="text-5xl font-black opacity-20 leading-none"
-            style={{ color: accent }}
-          >
+          <div className="text-5xl font-black opacity-20 leading-none" style={{ color: accent }}>
             {bird.sex === 'Fêmea' ? '♀' : '♂'}
           </div>
           <p className="text-[9px] text-gray-500 mt-1">4 Gerações</p>
@@ -225,11 +243,11 @@ const PedigreeTree: React.FC<PedigreeTreeProps> = ({ bird, allBirds, settings })
       <div className="relative z-10 flex gap-8 items-start">
         {/* Coluna ESQUERDA - Lado Paterno */}
         <div className="flex-1">
-          <div 
+          <div
             className="text-[10px] font-black uppercase tracking-widest mb-4 px-3 py-1.5 rounded-lg inline-block"
-            style={{ 
+            style={{
               color: 'white',
-              backgroundColor: accent
+              backgroundColor: accent,
             }}
           >
             Lado Paterno
@@ -243,45 +261,75 @@ const PedigreeTree: React.FC<PedigreeTreeProps> = ({ bird, allBirds, settings })
           {/* Avós Paternos */}
           <div className="grid grid-cols-2 gap-4 mb-4">
             <div className="flex flex-col gap-2">
-              <TreeNode data={resolveBirdData('ff')} label="Avô Paterno" generation={2} showRing={false} />
+              <TreeNode
+                data={resolveBirdData('ff')}
+                label="Avô Paterno"
+                generation={2}
+                showRing={false}
+              />
               {/* Bisavós */}
               <div className="ml-2 flex flex-col gap-2 mt-2">
-                <div className="scale-90 origin-left"><BirdPill data={resolveBirdData('fff')} showRing={false} generation={3} /></div>
-                <div className="scale-90 origin-left"><BirdPill data={resolveBirdData('ffm')} showRing={false} generation={3} /></div>
+                <div className="scale-90 origin-left">
+                  <BirdPill data={resolveBirdData('fff')} showRing={false} generation={3} />
+                </div>
+                <div className="scale-90 origin-left">
+                  <BirdPill data={resolveBirdData('ffm')} showRing={false} generation={3} />
+                </div>
               </div>
             </div>
-            
+
             <div className="flex flex-col gap-2">
-              <TreeNode data={resolveBirdData('fm')} label="Avó Paterna" generation={2} showRing={false} />
+              <TreeNode
+                data={resolveBirdData('fm')}
+                label="Avó Paterna"
+                generation={2}
+                showRing={false}
+              />
               {/* Bisavós */}
               <div className="ml-2 flex flex-col gap-2 mt-2">
-                <div className="scale-90 origin-left"><BirdPill data={resolveBirdData('fmf')} showRing={false} generation={3} /></div>
-                <div className="scale-90 origin-left"><BirdPill data={resolveBirdData('fmm')} showRing={false} generation={3} /></div>
+                <div className="scale-90 origin-left">
+                  <BirdPill data={resolveBirdData('fmf')} showRing={false} generation={3} />
+                </div>
+                <div className="scale-90 origin-left">
+                  <BirdPill data={resolveBirdData('fmm')} showRing={false} generation={3} />
+                </div>
               </div>
             </div>
           </div>
         </div>
 
         {/* Coluna CENTRO - Pássaro Principal */}
-        <div className="flex flex-col items-center justify-center px-6" style={{ minWidth: '200px' }}>
+        <div
+          className="flex flex-col items-center justify-center px-6"
+          style={{ minWidth: '200px' }}
+        >
           <div className="relative">
-            <div 
+            <div
               className="absolute -inset-4 rounded-2xl opacity-20 blur-xl"
               style={{ backgroundColor: accent }}
             ></div>
             <div className="relative transform scale-110">
-              <TreeNode data={{ name: bird.name, ring: bird.ringNumber }} label={bird.name} generation={0} isParent={true} />
+              <TreeNode
+                data={{ name: bird.name, ring: bird.ringNumber }}
+                label={bird.name}
+                generation={0}
+                isParent={true}
+              />
             </div>
           </div>
-          
+
           {/* Setas indicando linhagem */}
           <div className="flex gap-8 mt-6">
             <div className="flex flex-col items-center">
-              <div className="text-xl opacity-30" style={{ color: accent }}>←</div>
+              <div className="text-xl opacity-30" style={{ color: accent }}>
+                ←
+              </div>
               <p className="text-[8px] text-gray-500 font-bold mt-1">PATERNO</p>
             </div>
             <div className="flex flex-col items-center">
-              <div className="text-xl opacity-30" style={{ color: accent }}>→</div>
+              <div className="text-xl opacity-30" style={{ color: accent }}>
+                →
+              </div>
               <p className="text-[8px] text-gray-500 font-bold mt-1">MATERNO</p>
             </div>
           </div>
@@ -289,11 +337,11 @@ const PedigreeTree: React.FC<PedigreeTreeProps> = ({ bird, allBirds, settings })
 
         {/* Coluna DIREITA - Lado Materno */}
         <div className="flex-1">
-          <div 
+          <div
             className="text-[10px] font-black uppercase tracking-widest mb-4 px-3 py-1.5 rounded-lg inline-block"
-            style={{ 
+            style={{
               color: 'white',
-              backgroundColor: accent
+              backgroundColor: accent,
             }}
           >
             Lado Materno
@@ -307,20 +355,38 @@ const PedigreeTree: React.FC<PedigreeTreeProps> = ({ bird, allBirds, settings })
           {/* Avós Maternos */}
           <div className="grid grid-cols-2 gap-4 mb-4">
             <div className="flex flex-col gap-2">
-              <TreeNode data={resolveBirdData('mf')} label="Avô Materno" generation={2} showRing={false} />
+              <TreeNode
+                data={resolveBirdData('mf')}
+                label="Avô Materno"
+                generation={2}
+                showRing={false}
+              />
               {/* Bisavós */}
               <div className="ml-2 flex flex-col gap-2 mt-2">
-                <div className="scale-90 origin-left"><BirdPill data={resolveBirdData('mff')} showRing={false} generation={3} /></div>
-                <div className="scale-90 origin-left"><BirdPill data={resolveBirdData('mfm')} showRing={false} generation={3} /></div>
+                <div className="scale-90 origin-left">
+                  <BirdPill data={resolveBirdData('mff')} showRing={false} generation={3} />
+                </div>
+                <div className="scale-90 origin-left">
+                  <BirdPill data={resolveBirdData('mfm')} showRing={false} generation={3} />
+                </div>
               </div>
             </div>
-            
+
             <div className="flex flex-col gap-2">
-              <TreeNode data={resolveBirdData('mm')} label="Avó Materna" generation={2} showRing={false} />
+              <TreeNode
+                data={resolveBirdData('mm')}
+                label="Avó Materna"
+                generation={2}
+                showRing={false}
+              />
               {/* Bisavós */}
               <div className="ml-2 flex flex-col gap-2 mt-2">
-                <div className="scale-90 origin-left"><BirdPill data={resolveBirdData('mmf')} showRing={false} generation={3} /></div>
-                <div className="scale-90 origin-left"><BirdPill data={resolveBirdData('mmm')} showRing={false} generation={3} /></div>
+                <div className="scale-90 origin-left">
+                  <BirdPill data={resolveBirdData('mmf')} showRing={false} generation={3} />
+                </div>
+                <div className="scale-90 origin-left">
+                  <BirdPill data={resolveBirdData('mmm')} showRing={false} generation={3} />
+                </div>
               </div>
             </div>
           </div>
@@ -335,7 +401,10 @@ const PedigreeTree: React.FC<PedigreeTreeProps> = ({ bird, allBirds, settings })
             <span className="font-semibold">Principal</span>
           </div>
           <div className="flex items-center gap-1.5">
-            <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: hexToRgba(accent, 0.4) }}></div>
+            <div
+              className="w-2.5 h-2.5 rounded-full"
+              style={{ backgroundColor: hexToRgba(accent, 0.4) }}
+            ></div>
             <span>Ascendentes</span>
           </div>
         </div>

@@ -1,5 +1,4 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { ChevronDown } from 'lucide-react';
 
 export interface MenuItem {
   id: string;
@@ -35,18 +34,22 @@ const DropdownMenu: React.FC<DropdownMenuProps> = ({ trigger, items, align = 'ri
 
   return (
     <div className="relative" ref={menuRef} onClick={(e) => e.stopPropagation()}>
-      <button 
+      <button
         onClick={(e) => {
           e.stopPropagation();
           setIsOpen(!isOpen);
-        }} 
+        }}
+        aria-haspopup="menu"
+        aria-expanded={isOpen}
         className="inline-flex items-center"
       >
         {trigger}
       </button>
 
       {isOpen && (
-        <div 
+        <div
+          role="menu"
+          aria-label="Menu de ações"
           className={`
             absolute top-full mt-2 w-48 bg-white border border-slate-200 rounded-lg 
             shadow-lg z-50 animate-in fade-in slide-in-from-top-2 
@@ -57,6 +60,7 @@ const DropdownMenu: React.FC<DropdownMenuProps> = ({ trigger, items, align = 'ri
             <React.Fragment key={item.id}>
               {item.divider && idx > 0 && <div className="border-t border-slate-100" />}
               <button
+                role="menuitem"
                 onClick={(e) => {
                   e.stopPropagation();
                   item.onClick();

@@ -1,0 +1,12 @@
+node_modules/
+dist/
+build/
+.vscode/
+.idea/
+public/
+.env
+.env.*
+*.sql
+*.log
+.DS_Store
+warnings supabase.js

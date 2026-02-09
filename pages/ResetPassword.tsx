@@ -19,7 +19,7 @@ const ResetPassword: React.FC = () => {
       // Firebase usa o parâmetro 'oobCode' na URL
       const searchParams = new URLSearchParams(window.location.search);
       const code = searchParams.get('oobCode');
-      
+
       if (!code) {
         setError('Link inválido ou expirado. Solicite um novo link de recuperação.');
         setTokenError(true);
@@ -32,8 +32,13 @@ const ResetPassword: React.FC = () => {
         await verifyPasswordResetCode(auth, code);
         setOobCode(code);
         setIsVerifying(false);
-      } catch (err: any) {
-        setError(err?.message || 'Link inválido ou expirado. Solicite um novo link.');
+      } catch (err: unknown) {
+        const messageProp =
+          err && typeof err === 'object' && 'message' in err
+            ? (err as { message?: unknown }).message
+            : undefined;
+        const msg = typeof messageProp === 'string' ? messageProp : String(err);
+        setError(msg || 'Link inválido ou expirado. Solicite um novo link.');
         setTokenError(true);
         setIsVerifying(false);
       }
@@ -69,8 +74,13 @@ const ResetPassword: React.FC = () => {
       setTimeout(() => {
         window.location.href = '/';
       }, 2000);
-    } catch (err: any) {
-      setError(err?.message || 'Erro ao redefinir senha');
+    } catch (err: unknown) {
+      const messageProp =
+        err && typeof err === 'object' && 'message' in err
+          ? (err as { message?: unknown }).message
+          : undefined;
+      const msg = typeof messageProp === 'string' ? messageProp : String(err);
+      setError(msg || 'Erro ao redefinir senha');
       setIsLoading(false);
     }
   };
@@ -106,7 +116,7 @@ const ResetPassword: React.FC = () => {
       <div className="hidden lg:flex lg:w-1/2 bg-[#0F172A] relative overflow-hidden flex-col justify-center items-center p-16 text-white">
         <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-brand/20 rounded-full blur-[100px] translate-x-1/2 -translate-y-1/2"></div>
         <div className="absolute bottom-0 left-0 w-[500px] h-[500px] bg-amber-500/10 rounded-full blur-[100px] -translate-x-1/2 translate-y-1/2"></div>
-        
+
         <div className="relative z-10 text-center">
           <div className="w-48 h-48 bg-white rounded-3xl flex items-center justify-center mb-8 p-4 shadow-2xl mx-auto">
             <img src={APP_LOGO} className="w-full h-full object-contain" alt="AviGestão Logo" />
@@ -128,7 +138,7 @@ const ResetPassword: React.FC = () => {
               <img src={APP_LOGO} className="w-full h-full object-contain" alt="AviGestão Logo" />
             </div>
           </div>
-          
+
           <div className="text-center lg:text-left">
             <h2 className="text-3xl font-black text-slate-900 tracking-tight">
               Redefinir sua senha
@@ -142,9 +152,9 @@ const ResetPassword: React.FC = () => {
             <div className="bg-red-50 border-2 border-red-200 text-red-700 px-4 py-3 rounded-2xl text-sm font-bold">
               {error}
               {tokenError && (
-                <button 
+                <button
                   type="button"
-                  onClick={() => window.location.href = '/'}
+                  onClick={() => (window.location.href = '/')}
                   className="mt-2 text-xs underline hover:no-underline"
                 >
                   Voltar para o login e solicitar novo link
@@ -155,13 +165,21 @@ const ResetPassword: React.FC = () => {
 
           <form onSubmit={handleSubmit} className="space-y-6">
             <div className="space-y-2">
-              <label htmlFor="newPassword" className="text-xs font-black uppercase text-slate-400 tracking-widest">Nova Senha</label>
+              <label
+                htmlFor="newPassword"
+                className="text-xs font-black uppercase text-slate-400 tracking-widest"
+              >
+                Nova Senha
+              </label>
               <div className="relative">
-                <Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={20} />
-                <input 
-                  required 
-                  type="password" 
-                  placeholder="Mínimo 8 caracteres" 
+                <Lock
+                  className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400"
+                  size={20}
+                />
+                <input
+                  required
+                  type="password"
+                  placeholder="Mínimo 8 caracteres"
                   id="newPassword"
                   name="newPassword"
                   autoComplete="new-password"
@@ -174,13 +192,21 @@ const ResetPassword: React.FC = () => {
             </div>
 
             <div className="space-y-2">
-              <label htmlFor="confirmNewPassword" className="text-xs font-black uppercase text-slate-400 tracking-widest">Confirmar Nova Senha</label>
+              <label
+                htmlFor="confirmNewPassword"
+                className="text-xs font-black uppercase text-slate-400 tracking-widest"
+              >
+                Confirmar Nova Senha
+              </label>
               <div className="relative">
-                <Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={20} />
-                <input 
-                  required 
-                  type="password" 
-                  placeholder="Digite a senha novamente" 
+                <Lock
+                  className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400"
+                  size={20}
+                />
+                <input
+                  required
+                  type="password"
+                  placeholder="Digite a senha novamente"
                   id="confirmNewPassword"
                   name="confirmNewPassword"
                   autoComplete="new-password"
@@ -192,8 +218,8 @@ const ResetPassword: React.FC = () => {
               </div>
             </div>
 
-            <button 
-              type="submit" 
+            <button
+              type="submit"
               disabled={isLoading || tokenError}
               className="w-full py-4 bg-[#0F172A] text-white font-black uppercase tracking-widest rounded-2xl shadow-xl hover:bg-slate-900 transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
             >
@@ -210,9 +236,9 @@ const ResetPassword: React.FC = () => {
 
             <div className="flex items-center justify-center gap-2 text-xs text-slate-500">
               <span>Lembrou a senha?</span>
-              <button 
-                type="button" 
-                onClick={() => window.location.href = '/'}
+              <button
+                type="button"
+                onClick={() => (window.location.href = '/')}
                 className="font-black text-brand uppercase tracking-widest"
               >
                 Fazer login

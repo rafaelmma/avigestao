@@ -59,7 +59,7 @@ const PRICE_ID_MAP: Record<string, string> = {
   annual: 'price_1SwT0N0YB6ELT5UOjrjILdg5',
 };
 
-const LOGO_BUCKET = (import.meta as any)?.env?.VITE_SUPABASE_LOGO_BUCKET || 'assets';
+// const LOGO_BUCKET = (import.meta as { env?: { VITE_SUPABASE_LOGO_BUCKET?: string } }).env?.VITE_SUPABASE_LOGO_BUCKET || 'assets';
 
 const maskCpfCnpj = (value: string) => {
   const digits = value.replace(/\D/g, '');
@@ -90,7 +90,12 @@ const daysTo = (date?: string) => {
   return isNaN(diff) ? null : diff;
 };
 
-const SettingsManager: React.FC<SettingsManagerProps> = ({ settings, updateSettings, onSave, isAdmin }) => {
+const SettingsManager: React.FC<SettingsManagerProps> = ({
+  settings,
+  updateSettings,
+  onSave,
+  isAdmin,
+}) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const primaryColorRef = useRef<HTMLInputElement>(null);
   const accentColorRef = useRef<HTMLInputElement>(null);
@@ -100,16 +105,29 @@ const SettingsManager: React.FC<SettingsManagerProps> = ({ settings, updateSetti
   const [selectedPlanId, setSelectedPlanId] = useState('monthly');
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [paymentStep, setPaymentStep] = useState<'method' | 'processing'>('method');
+  const [paymentContext, setPaymentContext] = useState<'new' | 'renew'>('new');
   const [hasStripeCustomer, setHasStripeCustomer] = useState(false);
-  const [bannerMessage, setBannerMessage] = useState<Array<{message: string; action?: () => void; actionLabel?: string}> | null>(null);
+  const [bannerMessage, setBannerMessage] = useState<Array<{
+    message: string;
+    action?: () => void;
+    actionLabel?: string;
+  }> | null>(null);
   const [savedAt, setSavedAt] = useState<string | null>(null);
+  const [savedSnapshot, setSavedSnapshot] = useState<string | null>(null);
+  const [isSaving, setIsSaving] = useState(false);
+  const autoSaveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [isUploadingLogo, setIsUploadingLogo] = useState(false);
   const [logoUploadError, setLogoUploadError] = useState<string | null>(null);
   const [passwordForm, setPasswordForm] = useState({ current: '', new: '', confirm: '' });
-  const [showPasswords, setShowPasswords] = useState({ current: false, new: false, confirm: false });
+  const [showPasswords, setShowPasswords] = useState({
+    current: false,
+    new: false,
+    confirm: false,
+  });
   const [passwordError, setPasswordError] = useState<string | null>(null);
   const [passwordSuccess, setPasswordSuccess] = useState<string | null>(null);
-  const [isChangingPassword, setIsChangingPassword] = useState(false);
+  const isChangingPasswordState = useState(false);
+  const isChangingPassword = isChangingPasswordState[0];
   const [showPasswordModal, setShowPasswordModal] = useState(false);
   const [isFetchingCep, setIsFetchingCep] = useState(false);
   const [cepError, setCepError] = useState<string | null>(null);
@@ -123,9 +141,12 @@ const SettingsManager: React.FC<SettingsManagerProps> = ({ settings, updateSetti
 
   const daysSispass = daysTo(settings.renewalDate);
   const daysCert = daysTo(settings.certificate?.expiryDate);
-  const daysSubscription = settings.subscriptionEndDate ? daysTo(settings.subscriptionEndDate) : null;
+  const daysSubscription = settings.subscriptionEndDate
+    ? daysTo(settings.subscriptionEndDate)
+    : null;
 
-  const buttonBase = 'inline-flex items-center justify-center gap-2 rounded-xl text-sm font-semibold transition-all disabled:opacity-60';
+  const buttonBase =
+    'inline-flex items-center justify-center gap-2 rounded-xl text-sm font-semibold transition-all disabled:opacity-60';
   const buttonPrimary = `${buttonBase} bg-slate-900 text-white hover:bg-slate-800`;
   const buttonSecondary = `${buttonBase} bg-slate-100 text-slate-700 hover:bg-slate-200`;
   const buttonAccent = `${buttonBase} bg-blue-600 text-white hover:bg-blue-700`;
@@ -189,6 +210,12 @@ const SettingsManager: React.FC<SettingsManagerProps> = ({ settings, updateSetti
   }, [canUseLogo, settings, updateSettings]);
 
   useEffect(() => {
+    if (savedSnapshot === null) {
+      setSavedSnapshot(JSON.stringify(settings));
+    }
+  }, [savedSnapshot, settings]);
+
+  useEffect(() => {
     try {
       setHasStripeCustomer(!!localStorage.getItem('avigestao_stripe_customer'));
     } catch {
@@ -206,50 +233,54 @@ const SettingsManager: React.FC<SettingsManagerProps> = ({ settings, updateSetti
     }
   }, []);
 
+  const openRenewModal = () => {
+    setPaymentContext('renew');
+    setShowPaymentModal(true);
+  };
+
   useEffect(() => {
-    const critical: Array<{message: string; action?: () => void; actionLabel?: string}> = [];
-    
+    const critical: Array<{ message: string; action?: () => void; actionLabel?: string }> = [];
+
     if (daysSispass !== null && daysSispass <= 30) {
       critical.push({
         message: `SISPASS vence em ${daysSispass} dias`,
         action: () => setActiveTab('perfil'),
-        actionLabel: 'Renovar'
+        actionLabel: 'Renovar',
       });
     }
-    
+
     if (daysCert !== null && daysCert <= 30) {
       critical.push({
         message: `Certificado vence em ${daysCert} dias`,
         action: () => setActiveTab('perfil'),
-        actionLabel: 'Atualizar'
+        actionLabel: 'Atualizar',
       });
     }
-    
+
     if (settings.plan === 'Profissional' && settings.subscriptionCancelAtPeriodEnd) {
       if (daysSubscription !== null) {
         critical.push({
           message: `Assinatura PRO termina em ${daysSubscription} dias (renovação cancelada)`,
-          action: () => {
-            setActiveTab('plano');
-            // Auto-scroll to subscription section after tab change
-            setTimeout(() => {
-              const element = document.querySelector('[data-subscription-section]');
-              element?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-            }, 100);
-          },
-          actionLabel: 'Reativar'
+          action: openRenewModal,
+          actionLabel: 'Renovar',
         });
       } else {
         critical.push({
           message: 'Assinatura PRO com renovação cancelada. Reative para manter o plano.',
-          action: () => setActiveTab('plano'),
-          actionLabel: 'Ver Plano'
+          action: openRenewModal,
+          actionLabel: 'Renovar',
         });
       }
     }
-    
+
     setBannerMessage(critical.length > 0 ? critical : null);
-  }, [daysSispass, daysCert, daysSubscription, settings.plan, settings.subscriptionCancelAtPeriodEnd]);
+  }, [
+    daysSispass,
+    daysCert,
+    daysSubscription,
+    settings.plan,
+    settings.subscriptionCancelAtPeriodEnd,
+  ]);
 
   const openBillingPortal = async () => {
     try {
@@ -259,6 +290,16 @@ const SettingsManager: React.FC<SettingsManagerProps> = ({ settings, updateSetti
       console.error(err);
       alert('Erro ao abrir o portal de assinatura');
     }
+  };
+
+  const handleStripePayment = async () => {
+    if (paymentContext === 'renew' && hasStripeCustomer) {
+      setShowPaymentModal(false);
+      setPaymentStep('method');
+      await openBillingPortal();
+      return;
+    }
+    await startCheckout();
   };
 
   const startCheckout = async () => {
@@ -281,7 +322,7 @@ const SettingsManager: React.FC<SettingsManagerProps> = ({ settings, updateSetti
         planId: selectedPlan.id,
         planLabel: selectedPlan.label,
         price: Number(selectedPlan.price),
-        months: Number(selectedPlan.months || 1)
+        months: Number(selectedPlan.months || 1),
       });
     } catch (err) {
       console.error(err);
@@ -304,7 +345,7 @@ const SettingsManager: React.FC<SettingsManagerProps> = ({ settings, updateSetti
     try {
       const auth = getAuth();
       const user = auth.currentUser;
-      
+
       if (!user) {
         throw new Error('Usuário não autenticado');
       }
@@ -329,17 +370,20 @@ const SettingsManager: React.FC<SettingsManagerProps> = ({ settings, updateSetti
           const base64String = (reader.result as string).split(',')[1];
 
           // Call Cloud Function to upload
-          const response = await fetch('https://southamerica-east1-avigestao-cf5fe.cloudfunctions.net/uploadLogo', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'Authorization': `Bearer ${token}`
+          const response = await fetch(
+            'https://southamerica-east1-avigestao-cf5fe.cloudfunctions.net/uploadLogo',
+            {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                Authorization: `Bearer ${token}`,
+              },
+              body: JSON.stringify({
+                fileData: base64String,
+                fileName: file.name,
+              }),
             },
-            body: JSON.stringify({
-              fileData: base64String,
-              fileName: file.name
-            })
-          });
+          );
 
           if (!response.ok) {
             const error = await response.json();
@@ -347,18 +391,23 @@ const SettingsManager: React.FC<SettingsManagerProps> = ({ settings, updateSetti
           }
 
           const result = await response.json();
-          
+
           // Update local state
           const updatedSettings = { ...settings, logoUrl: result.downloadUrl };
           updateSettings(updatedSettings);
           await onSave(updatedSettings);
 
           alert('Logo enviada com sucesso!');
-        } catch (err: any) {
-          console.error('Erro ao enviar logo', err);
-          const message = err?.message || 'Falha ao enviar a logo. Tente novamente.';
-          setLogoUploadError(message);
-          alert(message);
+        } catch (err: unknown) {
+          const messageProp =
+            err && typeof err === 'object' && 'message' in err
+              ? (err as { message?: unknown }).message
+              : undefined;
+          const message = typeof messageProp === 'string' ? messageProp : String(err);
+          console.error('Erro ao enviar logo', message);
+          const alertMsg = message || 'Falha ao enviar a logo. Tente novamente.';
+          setLogoUploadError(alertMsg);
+          alert(alertMsg);
         } finally {
           setIsUploadingLogo(false);
           if (fileInputRef.current) fileInputRef.current.value = '';
@@ -371,31 +420,38 @@ const SettingsManager: React.FC<SettingsManagerProps> = ({ settings, updateSetti
       };
 
       reader.readAsDataURL(file);
-
-    } catch (err: any) {
-      console.error('Erro ao preparar upload', err);
-      const message = err?.message || 'Falha ao enviar a logo. Tente novamente.';
-      setLogoUploadError(message);
-      alert(message);
+    } catch (err: unknown) {
+      const messageProp =
+        err && typeof err === 'object' && 'message' in err
+          ? (err as { message?: unknown }).message
+          : undefined;
+      const message = typeof messageProp === 'string' ? messageProp : String(err);
+      console.error('Erro ao preparar upload', message);
+      const alertMsg = message || 'Falha ao enviar a logo. Tente novamente.';
+      setLogoUploadError(alertMsg);
+      alert(alertMsg);
       setIsUploadingLogo(false);
       if (fileInputRef.current) fileInputRef.current.value = '';
     }
   };
   // Função acima desabilitada por problemas de CORS
 
-
   const statusItems = useMemo(() => {
     const items: { label: string; ok: boolean; value?: string }[] = [];
     const cpfOk = !!settings.cpfCnpj && settings.cpfCnpj.replace(/\D/g, '').length >= 11;
     items.push({ label: 'CPF/CNPJ', ok: cpfOk, value: settings.cpfCnpj || 'Pendente' });
-    if (settings.sispassNumber) items.push({ label: 'SISPASS', ok: true, value: settings.sispassNumber });
-    if (daysSispass !== null) items.push({ label: 'Licença', ok: daysSispass > 0, value: `${daysSispass} dias` });
-    if (daysCert !== null) items.push({ label: 'Certificado', ok: daysCert > 0, value: `${daysCert} dias` });
+    if (settings.sispassNumber)
+      items.push({ label: 'SISPASS', ok: true, value: settings.sispassNumber });
+    if (daysSispass !== null)
+      items.push({ label: 'Licença', ok: daysSispass > 0, value: `${daysSispass} dias` });
+    if (daysCert !== null)
+      items.push({ label: 'Certificado', ok: daysCert > 0, value: `${daysCert} dias` });
     if (settings.plan === 'Profissional' && settings.subscriptionEndDate) {
       const ok = settings.subscriptionCancelAtPeriodEnd ? (daysSubscription ?? 0) > 0 : true;
-      const value = settings.subscriptionCancelAtPeriodEnd && daysSubscription !== null
-        ? `Termina em ${daysSubscription} dias`
-        : 'Renovação automática ativa';
+      const value =
+        settings.subscriptionCancelAtPeriodEnd && daysSubscription !== null
+          ? `Termina em ${daysSubscription} dias`
+          : 'Renovação automática ativa';
       items.push({ label: 'Assinatura', ok, value });
     }
     return items;
@@ -408,16 +464,44 @@ const SettingsManager: React.FC<SettingsManagerProps> = ({ settings, updateSetti
     setPasswordSuccess(null);
   };
 
-  const handleSaveClick = async () => {
+  const saveSettings = async () => {
     updateSettings({ ...settings });
     try {
+      setIsSaving(true);
       await onSave(settings);
+      setSavedSnapshot(JSON.stringify(settings));
       setSavedAt(new Date().toLocaleTimeString());
     } catch (err) {
       console.warn('Falha ao salvar as configurações', err);
       setSavedAt(null);
+    } finally {
+      setIsSaving(false);
     }
   };
+
+  const handleSaveClick = async () => {
+    await saveSettings();
+  };
+
+  const isDirty =
+    savedSnapshot !== null && savedSnapshot !== JSON.stringify(settings);
+
+
+  useEffect(() => {
+    if (!isDirty || isSaving) return;
+    if (autoSaveTimerRef.current) {
+      clearTimeout(autoSaveTimerRef.current);
+    }
+    autoSaveTimerRef.current = setTimeout(() => {
+      void saveSettings();
+    }, 900);
+
+    return () => {
+      if (autoSaveTimerRef.current) {
+        clearTimeout(autoSaveTimerRef.current);
+      }
+    };
+  }, [isDirty, isSaving, settings]);
 
   const handleChangePassword = async () => {
     setPasswordError(null);
@@ -444,11 +528,13 @@ const SettingsManager: React.FC<SettingsManagerProps> = ({ settings, updateSetti
   };
 
   return (
-    <div className="w-full max-w-none px-6 xl:px-10 2xl:px-16 animate-in fade-in h-[calc(100vh-140px)] flex flex-col gap-6">
+    <div className="w-full max-w-none px-6 xl:px-10 2xl:px-16 animate-in fade-in h-[calc(100vh-140px)] flex flex-col gap-6 pb-28">
       <header className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
         <div>
           <h2 className="text-3xl font-bold text-slate-900">Configurações</h2>
-          <p className="text-slate-500">Ajuste dados do criatório, licenças, Certificado e aparência.</p>
+          <p className="text-slate-500">
+            Ajuste dados do criatório, licenças, Certificado e aparência.
+          </p>
         </div>
         <div className="flex flex-wrap gap-3 items-center">
           {isAdmin && (
@@ -481,7 +567,10 @@ const SettingsManager: React.FC<SettingsManagerProps> = ({ settings, updateSetti
         {bannerMessage && bannerMessage.length > 0 && (
           <div className="space-y-3">
             {bannerMessage.map((banner, idx) => (
-              <div key={idx} className="flex items-center justify-between p-4 rounded-2xl border border-amber-200 bg-amber-50 text-amber-800 text-sm font-bold shadow-sm">
+              <div
+                key={idx}
+                className="flex items-center justify-between p-4 rounded-2xl border border-amber-200 bg-amber-50 text-amber-800 text-sm font-bold shadow-sm"
+              >
                 <div className="flex items-center gap-2">
                   <AlertTriangle size={18} className="text-amber-500" />
                   <span>{banner.message}</span>
@@ -499,749 +588,900 @@ const SettingsManager: React.FC<SettingsManagerProps> = ({ settings, updateSetti
           </div>
         )}
 
-      <Suspense fallback={<div />}>
-        <TipCarousel category="settings" />
-      </Suspense>
+        <Suspense fallback={<div />}>
+          <TipCarousel category="settings" />
+        </Suspense>
 
-      {activeTab === 'perfil' && (
-        <div className="space-y-6">
-          <div className="bg-white border border-slate-100 rounded-2xl p-4 shadow-sm">
-            <div className="flex flex-wrap items-center gap-2">
-              {wizardSteps.map((step, idx) => (
-                <button
-                  key={step.id}
-                  type="button"
-                  onClick={() => setWizardStep(idx)}
-                  className={`px-4 py-2 rounded-xl text-xs font-black uppercase tracking-widest transition-all ${
-                    wizardStep === idx ? 'bg-slate-900 text-white' : 'bg-slate-100 text-slate-500'
-                  }`}
-                >
-                  {step.label}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {wizardStep === 0 && (
-            <section className="space-y-4">
-              <h3 className="text-sm font-black uppercase tracking-widest text-slate-400">Resumo rápido</h3>
-              <div className="grid grid-cols-1 xl:grid-cols-3 gap-4">
-                <div className="bg-white p-6 rounded-3xl border border-slate-100 shadow-sm space-y-4">
-                  <h4 className="font-black text-slate-800 flex items-center gap-2">
-                    <ShieldCheck size={16} className="text-emerald-600" /> Status rápido
-                  </h4>
-                  <div className="space-y-2">
-                    {statusItems.map((item, idx) => (
-                      <div key={idx} className="flex items-center justify-between p-3 rounded-2xl border border-slate-100">
-                        <div>
-                          <p className="text-sm font-bold text-slate-800">{item.label}</p>
-                          <p className="text-[11px] text-slate-500">{item.value}</p>
-                        </div>
-                        {item.ok ? (
-                          <CheckCircle2 size={18} className="text-emerald-500" />
-                        ) : (
-                          <AlertTriangle size={18} className="text-amber-500" />
-                        )}
-                      </div>
-                    ))}
-                  </div>
-                </div>
-
-                <div className="bg-white p-6 rounded-3xl border border-slate-100 shadow-sm space-y-3">
-                  <h4 className="font-black text-slate-800 flex items-center gap-2">
-                    <Calendar size={16} className="text-slate-500" /> Datas importantes
-                  </h4>
-                  <div className="text-sm text-slate-600 space-y-2">
-                    <p>Renovação SISPASS: {settings.renewalDate ? new Date(settings.renewalDate).toLocaleDateString() : 'Pendente'}</p>
-                    <p>Última Renovação: {settings.lastRenewalDate ? new Date(settings.lastRenewalDate).toLocaleDateString() : 'Pendente'}</p>
-                    <p>Certificado: {settings.certificate?.expiryDate ? new Date(settings.certificate.expiryDate).toLocaleDateString() : 'Pendente'}</p>
-                  </div>
-                  <p className="text-[11px] text-slate-500">Mantenha as datas atualizadas para ver alertas no dashboard.</p>
-                </div>
-
-                <div className="bg-white p-6 rounded-3xl border border-slate-100 shadow-sm space-y-4">
-                  <h4 className="font-black text-slate-800 flex items-center gap-2">
-                    <ShieldCheck size={16} className="text-slate-600" /> Certificado digital
-                  </h4>
-                  <div className="text-sm text-slate-700 space-y-1">
-                    <p><span className="font-bold">Emissor:</span> {settings.certificate?.issuer || 'Pendente'}</p>
-                    <p><span className="font-bold">Validade:</span> {settings.certificate?.expiryDate ? new Date(settings.certificate.expiryDate).toLocaleDateString() : 'Pendente'}</p>
-                  </div>
-                  <a
-                    href="https://ccd.serpro.gov.br/testeaqui/"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="inline-flex items-center gap-2 text-xs font-black uppercase tracking-widest text-slate-500 hover:text-slate-700"
+        {activeTab === 'perfil' && (
+          <div className="space-y-6">
+            <div className="bg-white border border-slate-100 rounded-2xl p-4 shadow-sm">
+              <div className="flex flex-wrap items-center gap-2">
+                {wizardSteps.map((step, idx) => (
+                  <button
+                    key={step.id}
+                    type="button"
+                    onClick={() => setWizardStep(idx)}
+                    className={`px-4 py-2 rounded-xl text-xs font-black uppercase tracking-widest transition-all ${
+                      wizardStep === idx ? 'bg-slate-900 text-white' : 'bg-slate-100 text-slate-500'
+                    }`}
                   >
-                    <ExternalLink size={12} /> Testar Certificado (Serpro)
-                  </a>
-                </div>
-              </div>
-            </section>
-          )}
-
-          {wizardStep === 1 && (
-            <section className="bg-white p-8 rounded-xl border border-slate-100 shadow-sm space-y-6">
-              <h3 className="font-bold flex items-center gap-2 text-slate-900">
-                <User size={18} /> Identidade do criatório
-              </h3>
-
-              <div className="bg-gradient-to-br from-blue-50 to-slate-50 border-2 border-slate-200 rounded-xl p-8 flex flex-col items-center justify-center gap-6 text-center">
-                <div className="w-48 h-48 bg-white border-2 border-slate-300 rounded-xl flex items-center justify-center overflow-hidden shadow-lg hover:shadow-xl transition-shadow">
-                  {settings.logoUrl ? (
-                    <img src={settings.logoUrl} className="w-full h-full object-contain p-3" />
-                  ) : (
-                    <div className="flex flex-col items-center gap-2 text-slate-400">
-                      <ImageIcon size={48} />
-                      <p className="text-xs font-medium">Logo do criatório</p>
-                    </div>
-                  )}
-                </div>
-                <div className="flex-1 w-full">
-                  <p className="font-bold text-slate-900 text-lg mb-1">Logomarca do criatório</p>
-                  <p className="text-sm text-slate-600 mb-4">Exibida no menu lateral e em documentos.</p>
-                  {canUseLogo ? (
-                    <>
-                      <div className="flex flex-col gap-2">
-                        <button
-                          onClick={() => !isUploadingLogo && fileInputRef.current?.click()}
-                          className={`${buttonAccent} px-6 py-3`}
-                          disabled={isUploadingLogo}
-                        >
-                          {isUploadingLogo ? <Loader2 size={16} className="animate-spin" /> : <Upload size={16} />}
-                          {isUploadingLogo ? 'Enviando logo...' : 'Carregar nova logo'}
-                        </button>
-                        {settings.logoUrl && settings.logoUrl !== APP_LOGO && (
-                          <button
-                            onClick={async () => {
-                              try {
-                                await updateSettings({ ...settings, logoUrl: APP_LOGO });
-                              } catch (err) {
-                                console.error('Erro ao restaurar logo padrão:', err);
-                              }
-                            }}
-                            className={`${buttonSecondary} px-6 py-3`}
-                          >
-                            Usar logo padrão
-                          </button>
-                        )}
-                      </div>
-                      <input
-                        type="file"
-                        ref={fileInputRef}
-                        hidden
-                        accept="image/*"
-                        onChange={handleLogoUpload}
-                      />
-                      {logoUploadError && (
-                        <p className="mt-3 text-sm text-red-600 font-medium">{logoUploadError}</p>
-                      )}
-                    </>
-                  ) : (
-                    <div className="inline-flex items-center gap-2 text-amber-700 bg-amber-50 px-4 py-2 rounded-lg text-sm font-semibold">
-                      <Lock size={16} /> Recurso PRO
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <label className="space-y-2">
-                  <span className="text-label">Nome do criatório</span>
-                  <input
-                    className="w-full p-3.5 rounded-lg bg-white border border-slate-300 text-sm font-medium outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500"
-                    value={settings.breederName}
-                    onChange={(e) => updateSettings({ ...settings, breederName: e.target.value })}
-                    placeholder="Ex: Aviario Azul"
-                  />
-                </label>
-
-                <label className="space-y-2">
-                  <span className="text-label">CPF / CNPJ</span>
-                  <input
-                    className="w-full p-3.5 rounded-lg bg-white border border-slate-300 text-sm font-medium outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500"
-                    value={settings.cpfCnpj}
-                    onChange={(e) => updateSettings({ ...settings, cpfCnpj: maskCpfCnpj(e.target.value) })}
-                    placeholder="Digite com numeros"
-                  />
-                </label>
-              </div>
-
-              <div className="grid grid-cols-1 gap-4">
-                <label className="space-y-2">
-                  <div className="flex items-center gap-2">
-                    <span className="text-label">Número SISPASS</span>
-                    <div className="group relative cursor-help">
-                      <HelpCircle size={14} className="text-slate-400 hover:text-slate-600" />
-                      <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 hidden group-hover:block bg-slate-800 text-white text-xs px-3 py-2 rounded-lg whitespace-nowrap z-50">
-                        Número de registro do SISPASS/CTF junto ao IBAMA
-                      </div>
-                    </div>
-                  </div>
-                  <input
-                    className="w-full p-3.5 rounded-lg bg-white border border-slate-300 text-sm font-medium outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500"
-                    value={settings.sispassNumber}
-                    onChange={(e) => updateSettings({ ...settings, sispassNumber: e.target.value })}
-                    placeholder="Ex: 1234567-8"
-                  />
-                  <p className="text-xs text-slate-500">Encontre em sua licença SISPASS/CTF</p>
-                </label>
-                <label className="space-y-2">
-                  <div className="flex items-center gap-2">
-                    <span className="text-label">Data de Renovação SISPASS</span>
-                    <div className="group relative cursor-help">
-                      <HelpCircle size={14} className="text-slate-400 hover:text-slate-600" />
-                      <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 hidden group-hover:block bg-slate-800 text-white text-xs px-3 py-2 rounded-lg whitespace-nowrap z-50">
-                        Data de vencimento da sua licença SISPASS/CTF
-                      </div>
-                    </div>
-                  </div>
-                  <input
-                    ref={renewalDateRef}
-                    type="date"
-                    className="w-full p-3.5 rounded-lg bg-white border border-slate-300 text-sm font-medium outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500"
-                    value={settings.renewalDate}
-                    onChange={(e) => updateSettings({ ...settings, renewalDate: e.target.value })}
-                  />
-                  <p className="text-[10px] text-slate-400">Sistema avisa com 30 dias de antecedência</p>
-                </label>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <label className="space-y-2">
-                  <div className="flex items-center gap-2">
-                    <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Data de registro</span>
-                    <div className="group relative cursor-help">
-                      <HelpCircle size={14} className="text-slate-300 hover:text-slate-400" />
-                      <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 hidden group-hover:block bg-slate-800 text-white text-[10px] px-3 py-2 rounded-lg whitespace-nowrap z-50">
-                        Data de primeiro registro do seu criatório
-                      </div>
-                    </div>
-                  </div>
-                  <input
-                    type="date"
-                    className="w-full p-3 rounded-2xl bg-slate-50 border border-slate-100 text-sm font-bold"
-                    value={settings.registrationDate}
-                    onChange={(e) => updateSettings({ ...settings, registrationDate: e.target.value })}
-                  />
-                  <p className="text-[10px] text-slate-400">Data do registro original</p>
-                </label>
-                <label className="space-y-2">
-                  <div className="flex items-center gap-2">
-                    <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Última Renovação</span>
-                    <div className="group relative cursor-help">
-                      <HelpCircle size={14} className="text-slate-300 hover:text-slate-400" />
-                      <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 hidden group-hover:block bg-slate-800 text-white text-[10px] px-3 py-2 rounded-lg whitespace-nowrap z-50">
-                        Última vez que o SISPASS foi renovado
-                      </div>
-                    </div>
-                  </div>
-                  <input
-                    type="date"
-                    className="w-full p-3 rounded-2xl bg-slate-50 border border-slate-100 text-sm font-bold"
-                    value={settings.lastRenewalDate || ''}
-                    onChange={(e) => updateSettings({ ...settings, lastRenewalDate: e.target.value })}
-                  />
-                  <p className="text-[10px] text-slate-400">Data da última renovação</p>
-                </label>
-              </div>
-
-              <div className="grid grid-cols-1 gap-4">
-                <div className="p-4 rounded-2xl bg-slate-50 border border-slate-100 space-y-1">
-                  <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">SISPASS</p>
-                  <p className="text-sm font-bold text-slate-800">{settings.sispassNumber || 'Não informado'}</p>
-                  <p className="text-[11px] text-slate-500">Número do registro</p>
-                </div>
-                <div className="p-4 rounded-2xl bg-slate-50 border border-slate-100 space-y-1">
-                  <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Renovação SISPASS</p>
-                  <p className="text-sm font-bold text-slate-800">{settings.renewalDate ? new Date(settings.renewalDate).toLocaleDateString() : 'Não informado'}</p>
-                  <p className="text-[11px] text-slate-500">{daysSispass !== null ? `${daysSispass} dias` : ''}</p>
-                </div>
-              </div>
-            </section>
-          )}
-
-          {wizardStep === 2 && (
-            <section className="bg-white p-8 rounded-3xl border border-slate-100 shadow-sm space-y-6">
-              <h3 className="font-black flex items-center gap-2 text-slate-800">
-                <User size={18} /> Perfil do criador
-              </h3>
-
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <label className="space-y-2">
-                  <span className="text-label">Categoria do criador</span>
-                  <input
-                    className="w-full p-3.5 rounded-lg bg-white border border-slate-300 text-sm font-medium outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500"
-                    value={settings.breederCategory || ''}
-                    onChange={(e) => updateSettings({ ...settings, breederCategory: e.target.value })}
-                    placeholder="Ex: Amador"
-                  />
-                </label>
-
-                <label className="space-y-2">
-                  <span className="text-label">Nome do responsável</span>
-                  <input
-                    className="w-full p-3.5 rounded-lg bg-white border border-slate-300 text-sm font-medium outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500"
-                    value={settings.responsibleName || ''}
-                    onChange={(e) => updateSettings({ ...settings, responsibleName: e.target.value })}
-                    placeholder="Ex: João Silva"
-                  />
-                </label>
-
-                <label className="space-y-2">
-                  <span className="text-label">Espécie criada</span>
-                  <input
-                    className="w-full p-3.5 rounded-lg bg-white border border-slate-300 text-sm font-medium outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500"
-                    value={settings.speciesRaised || ''}
-                    onChange={(e) => updateSettings({ ...settings, speciesRaised: e.target.value })}
-                    placeholder="Ex: Curió"
-                  />
-                </label>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <label className="space-y-2">
-                  <span className="text-label">CEP</span>
-                  <input
-                    className="w-full p-3.5 rounded-lg bg-white border border-slate-300 text-sm font-medium outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500"
-                    value={settings.addressCep || ''}
-                    onChange={(e) => handleCepChange(e.target.value)}
-                    onBlur={(e) => {
-                      const digits = e.target.value.replace(/\D/g, '');
-                      if (digits.length === 8) lookupCep(digits);
-                    }}
-                    placeholder="00000-000"
-                  />
-                  {isFetchingCep && (
-                    <p className="text-[10px] text-slate-400">Buscando endereço pelo CEP...</p>
-                  )}
-                  {cepError && !isFetchingCep && (
-                    <p className="text-[10px] text-rose-600 font-semibold">{cepError}</p>
-                  )}
-                </label>
-
-                <label className="space-y-2">
-                  <span className="text-label">Cidade</span>
-                  <input
-                    className="w-full p-3.5 rounded-lg bg-white border border-slate-300 text-sm font-medium outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500"
-                    value={settings.addressCity || ''}
-                    onChange={(e) => updateSettings({ ...settings, addressCity: e.target.value })}
-                    placeholder="Ex: Salvador"
-                  />
-                </label>
-
-                <label className="space-y-2">
-                  <span className="text-label">UF</span>
-                  <input
-                    className="w-full p-3.5 rounded-lg bg-white border border-slate-300 text-sm font-medium outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500"
-                    value={settings.addressState || ''}
-                    onChange={(e) => updateSettings({ ...settings, addressState: e.target.value })}
-                    placeholder="Ex: BA"
-                  />
-                </label>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <label className="space-y-2">
-                  <span className="text-label">Rua</span>
-                  <input
-                    className="w-full p-3.5 rounded-lg bg-white border border-slate-300 text-sm font-medium outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500"
-                    value={settings.addressStreet || ''}
-                    onChange={(e) => updateSettings({ ...settings, addressStreet: e.target.value })}
-                    placeholder="Ex: Rua das Flores"
-                  />
-                </label>
-
-                <label className="space-y-2">
-                  <span className="text-label">Número</span>
-                  <input
-                    className="w-full p-3.5 rounded-lg bg-white border border-slate-300 text-sm font-medium outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500"
-                    value={settings.addressNumber || ''}
-                    onChange={(e) => updateSettings({ ...settings, addressNumber: e.target.value })}
-                    placeholder="Ex: 123"
-                  />
-                </label>
-
-                <label className="space-y-2">
-                  <span className="text-label">Bairro</span>
-                  <input
-                    className="w-full p-3.5 rounded-lg bg-white border border-slate-300 text-sm font-medium outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500"
-                    value={settings.addressNeighborhood || ''}
-                    onChange={(e) => updateSettings({ ...settings, addressNeighborhood: e.target.value })}
-                    placeholder="Ex: Centro"
-                  />
-                </label>
-              </div>
-
-              <label className="space-y-2">
-                <span className="text-label">Complemento</span>
-                <input
-                  className="w-full p-3.5 rounded-lg bg-white border border-slate-300 text-sm font-medium outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500"
-                  value={settings.addressComplement || ''}
-                  onChange={(e) => updateSettings({ ...settings, addressComplement: e.target.value })}
-                  placeholder="Ex: Sala 2"
-                />
-              </label>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <label className="space-y-2">
-                  <span className="text-label">E-mail</span>
-                  <input
-                    type="email"
-                    className="w-full p-3.5 rounded-lg bg-white border border-slate-300 text-sm font-medium outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500"
-                    value={settings.breederEmail || ''}
-                    onChange={(e) => updateSettings({ ...settings, breederEmail: e.target.value })}
-                    placeholder="contato@exemplo.com"
-                  />
-                </label>
-
-                <label className="space-y-2">
-                  <span className="text-label">Site</span>
-                  <input
-                    className="w-full p-3.5 rounded-lg bg-white border border-slate-300 text-sm font-medium outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500"
-                    value={settings.breederWebsite || ''}
-                    onChange={(e) => updateSettings({ ...settings, breederWebsite: e.target.value })}
-                    placeholder="www.seucriatorio.com.br"
-                  />
-                </label>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <label className="space-y-2">
-                  <span className="text-label">Telefone</span>
-                  <input
-                    className="w-full p-3.5 rounded-lg bg-white border border-slate-300 text-sm font-medium outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500"
-                    value={settings.breederPhone || ''}
-                    onChange={(e) => updateSettings({ ...settings, breederPhone: e.target.value })}
-                    placeholder="(00) 0000-0000"
-                  />
-                </label>
-
-                <label className="space-y-2">
-                  <span className="text-label">Celular</span>
-                  <input
-                    className="w-full p-3.5 rounded-lg bg-white border border-slate-300 text-sm font-medium outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500"
-                    value={settings.breederMobile || ''}
-                    onChange={(e) => updateSettings({ ...settings, breederMobile: e.target.value })}
-                    placeholder="(00) 00000-0000"
-                  />
-                </label>
-              </div>
-            </section>
-          )}
-
-          {wizardStep === 3 && (
-            <section className="bg-white p-8 rounded-3xl border border-slate-100 shadow-sm space-y-6">
-              <div className="flex items-center gap-2 text-emerald-600 font-black text-sm">
-                <Palette size={18} /> Aparência e tema
-              </div>
-
-              <div className="flex flex-wrap items-center gap-6">
-                <div className="text-center">
-                  <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Primária</p>
-                  <button
-                    className="mt-2 w-12 h-12 rounded-2xl border border-slate-200 shadow-sm"
-                    style={{ backgroundColor: settings.primaryColor }}
-                    onClick={() => primaryColorRef.current?.click()}
-                  />
-                  <input
-                    ref={primaryColorRef}
-                    type="color"
-                    value={settings.primaryColor}
-                    onChange={(e) => updateSettings({ ...settings, primaryColor: e.target.value })}
-                    className="sr-only"
-                  />
-                </div>
-                <div className="text-center">
-                  <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Destaque</p>
-                  <button
-                    className="mt-2 w-12 h-12 rounded-2xl border border-slate-200 shadow-sm"
-                    style={{ backgroundColor: settings.accentColor }}
-                    onClick={() => accentColorRef.current?.click()}
-                  />
-                  <input
-                    ref={accentColorRef}
-                    type="color"
-                    value={settings.accentColor}
-                    onChange={(e) => updateSettings({ ...settings, accentColor: e.target.value })}
-                    className="sr-only"
-                  />
-                </div>
-
-                <div className="flex-1 min-w-[240px]">
-                  <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3">Preview rápido</p>
-                  <div className="rounded-2xl border border-slate-100 p-4 flex items-center gap-3 shadow-sm">
-                    <div
-                      className="w-12 h-12 rounded-full flex items-center justify-center text-white font-black"
-                      style={{ backgroundColor: settings.primaryColor }}
-                    >
-                      AV
-                    </div>
-                    <div className="flex-1">
-                      <p className="text-sm font-black text-slate-800">Card de exemplo</p>
-                      <p className="text-[11px] font-bold" style={{ color: settings.accentColor }}>Cor de destaque aplicada</p>
-                    </div>
-                    <div
-                      className="px-3 py-1 rounded-full text-[11px] font-black"
-                      style={{ backgroundColor: settings.accentColor, color: '#fff' }}
-                    >
-                      Badge
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </section>
-          )}
-
-          {wizardStep === 4 && (
-            <section className="bg-white p-8 rounded-3xl border border-slate-100 shadow-sm space-y-6">
-              <h3 className="font-black flex items-center gap-2 text-slate-800">
-                <Lock size={18} /> Segurança
-              </h3>
-              <p className="text-sm text-slate-600">Proteja sua conta com uma senha segura.</p>
-              <button
-                onClick={() => setShowPasswordModal(true)}
-                className={`${buttonPrimary} w-full py-3`}
-              >
-                <Lock size={16} /> Trocar Senha
-              </button>
-            </section>
-          )}
-
-          <div className="flex items-center justify-between pt-2">
-            <button
-              type="button"
-              onClick={() => setWizardStep((prev) => Math.max(0, prev - 1))}
-              className={`${buttonSecondary} px-5 py-2`}
-              disabled={wizardStep === 0}
-            >
-              Voltar
-            </button>
-            <div className="text-xs font-bold text-slate-400 uppercase tracking-widest">
-              Passo {wizardStep + 1} de {wizardSteps.length}
-            </div>
-            <button
-              type="button"
-              onClick={() => setWizardStep((prev) => Math.min(wizardSteps.length - 1, prev + 1))}
-              className={`${buttonPrimary} px-5 py-2`}
-              disabled={wizardStep === wizardSteps.length - 1}
-            >
-              Próximo
-            </button>
-          </div>
-        </div>
-      )}
-
-      {activeTab === 'plano' && (
-        <div className="bg-slate-900 text-white p-10 rounded-3xl space-y-8">
-          <h3 className="text-2xl font-black">Plano Profissional</h3>
-
-          <div className="bg-white text-slate-900 p-6 rounded-2xl">
-            <p className="text-xs uppercase font-black text-slate-500">Plano atual</p>
-            <h3 className="text-2xl font-black">{planLabel}</h3>
-
-            {settings.plan === 'Básico' && !isAdmin && (
-              <p className="text-xs text-amber-600 font-black">Você esta usando o plano gratuito</p>
-            )}
-
-            {settings.trialEndDate && !isAdmin && (
-              <p className="text-xs text-emerald-600 font-black">Trial ativo até {new Date(settings.trialEndDate).toLocaleDateString()}</p>
-            )}
-
-            {settings.plan === 'Profissional' && !isTrial && !isAdmin && (
-              <div data-subscription-section className="mt-4 bg-slate-50 border border-slate-200 rounded-xl p-4 space-y-3">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-xs font-black uppercase text-slate-500">Assinatura ativa</p>
-                    <p className="text-sm font-bold text-slate-800">
-                      Gerencie cobranças, upgrade/downgrade ou cancele a renovação automática.
-                    </p>
-                  </div>
-                  <button
-                    onClick={openBillingPortal}
-                    className={`${buttonPrimary} px-4 py-2 text-xs uppercase tracking-widest`}
-                  >
-                    Abrir portal
+                    {step.label}
                   </button>
-                </div>
-                <p className="text-[11px] text-slate-500">
-                  No portal você pode trocar período (mensal/anual), atualizar cartão e cancelar a recorrência.
-                </p>
-                
-                {/* Mostra info de período atual */}
-                {daysSubscription !== null && (
-                  <div className="flex items-center gap-2 rounded-xl bg-slate-100 border border-slate-200 px-3 py-2">
-                    <Calendar size={14} className="text-slate-600" />
-                    <p className="text-[11px] text-slate-700">
-                      Período atual expira em <span className="font-black">{daysSubscription} dias</span> ({settings.subscriptionEndDate ? new Date(settings.subscriptionEndDate).toLocaleDateString() : ''})
-                    </p>
+                ))}
+              </div>
+            </div>
+
+            {wizardStep === 0 && (
+              <section className="space-y-4">
+                <h3 className="text-sm font-black uppercase tracking-widest text-slate-400">
+                  Resumo rápido
+                </h3>
+                <div className="grid grid-cols-1 xl:grid-cols-3 gap-4">
+                  <div className="bg-white p-6 rounded-3xl border border-slate-100 shadow-sm space-y-4">
+                    <h4 className="font-black text-slate-800 flex items-center gap-2">
+                      <ShieldCheck size={16} className="text-emerald-600" /> Status rápido
+                    </h4>
+                    <div className="space-y-2">
+                      {statusItems.map((item, idx) => (
+                        <div
+                          key={idx}
+                          className="flex items-center justify-between p-3 rounded-2xl border border-slate-100"
+                        >
+                          <div>
+                            <p className="text-sm font-bold text-slate-800">{item.label}</p>
+                            <p className="text-[11px] text-slate-500">{item.value}</p>
+                          </div>
+                          {item.ok ? (
+                            <CheckCircle2 size={18} className="text-emerald-500" />
+                          ) : (
+                            <AlertTriangle size={18} className="text-amber-500" />
+                          )}
+                        </div>
+                      ))}
+                    </div>
                   </div>
-                )}
-                
-                {/* Mostra aviso de cancelamento */}
-                {settings.subscriptionCancelAtPeriodEnd && (
-                  <div className="flex items-start gap-2 rounded-xl bg-amber-50 border border-amber-200 px-3 py-2">
-                    <AlertTriangle size={14} className="text-amber-600 mt-0.5" />
-                    <div>
-                      <p className="text-xs font-black text-amber-700">⚠️ Renovação automática cancelada</p>
-                      <p className="text-[11px] text-amber-700">
-                        Seu plano PRO não renovará automaticamente. Reative no portal para manter o acesso após o vencimento.
+
+                  <div className="bg-white p-6 rounded-3xl border border-slate-100 shadow-sm space-y-3">
+                    <h4 className="font-black text-slate-800 flex items-center gap-2">
+                      <Calendar size={16} className="text-slate-500" /> Datas importantes
+                    </h4>
+                    <div className="text-sm text-slate-600 space-y-2">
+                      <p>
+                        Renovação SISPASS:{' '}
+                        {settings.renewalDate
+                          ? new Date(settings.renewalDate).toLocaleDateString()
+                          : 'Pendente'}
+                      </p>
+                      <p>
+                        Última Renovação:{' '}
+                        {settings.lastRenewalDate
+                          ? new Date(settings.lastRenewalDate).toLocaleDateString()
+                          : 'Pendente'}
+                      </p>
+                      <p>
+                        Certificado:{' '}
+                        {settings.certificate?.expiryDate
+                          ? new Date(settings.certificate.expiryDate).toLocaleDateString()
+                          : 'Pendente'}
                       </p>
                     </div>
+                    <p className="text-[11px] text-slate-500">
+                      Mantenha as datas atualizadas para ver alertas no dashboard.
+                    </p>
                   </div>
-                )}
-              </div>
-            )}
-          </div>
 
-          {!isAdmin && (settings.plan !== 'Profissional' || isTrial) && (
-            <>
-              <div className="bg-white/10 border border-white/10 rounded-2xl p-4 grid md:grid-cols-3 gap-3 text-xs">
-                <div className="flex items-center gap-2 text-white/80">
-                  <ShieldCheck size={14} className="text-emerald-300" />
-                  7 dias de garantia sem risco
-                </div>
-                <div className="flex items-center gap-2 text-white/80">
-                  <Calendar size={14} className="text-emerald-300" />
-                  Troque o período quando quiser
-                </div>
-                <div className="flex items-center gap-2 text-white/80">
-                  <ExternalLink size={14} className="text-emerald-300" />
-                  Pagamento seguro via Stripe
-                </div>
-              </div>
-
-              <div className="grid lg:grid-cols-4 md:grid-cols-2 gap-4">
-                {PLANS.map((plan) => {
-                  const savings =
-                    plan.id !== 'monthly' && monthlyPrice
-                      ? Math.round((1 - plan.price / (monthlyPrice * plan.months)) * 100)
-                      : null;
-                  const badge = PLAN_BADGES[plan.id];
-                  const isSelected = selectedPlanId === plan.id;
-
-                  return (
-                    <button
-                      key={plan.id}
-                      onClick={() => setSelectedPlanId(plan.id)}
-                      className={`flex flex-col text-left p-5 rounded-2xl border transition-all ${
-                        isSelected
-                          ? 'bg-amber-400/20 border-amber-400 ring-2 ring-amber-400'
-                          : 'bg-white/5 border-white/10 hover:border-white/30'
-                      }`}
+                  <div className="bg-white p-6 rounded-3xl border border-slate-100 shadow-sm space-y-4">
+                    <h4 className="font-black text-slate-800 flex items-center gap-2">
+                      <ShieldCheck size={16} className="text-slate-600" /> Certificado digital
+                    </h4>
+                    <div className="text-sm text-slate-700 space-y-1">
+                      <p>
+                        <span className="font-bold">Emissor:</span>{' '}
+                        {settings.certificate?.issuer || 'Pendente'}
+                      </p>
+                      <p>
+                        <span className="font-bold">Validade:</span>{' '}
+                        {settings.certificate?.expiryDate
+                          ? new Date(settings.certificate.expiryDate).toLocaleDateString()
+                          : 'Pendente'}
+                      </p>
+                    </div>
+                    <a
+                      href="https://ccd.serpro.gov.br/testeaqui/"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-2 text-xs font-black uppercase tracking-widest text-slate-500 hover:text-slate-700"
                     >
-                      <div className="flex items-start justify-between gap-3">
-                        <div>
-                          <p className="text-[11px] uppercase font-black text-slate-300">{plan.label}</p>
-                          <div className="flex items-end gap-1">
-                            <span className="text-2xl font-black text-white">R$ {plan.price}</span>
-                            <span className="text-xs text-slate-300">{plan.period}</span>
-                          </div>
-                        </div>
-                        {badge && (
-                          <span
-                            className={`text-[10px] font-black uppercase px-2 py-1 rounded-full ${
-                              badge.tone === 'amber'
-                                ? 'bg-amber-400 text-slate-900'
-                                : 'bg-emerald-400 text-emerald-950'
-                            }`}
-                          >
-                            {badge.label}
-                          </span>
-                        )}
+                      <ExternalLink size={12} /> Testar Certificado (Serpro)
+                    </a>
+                  </div>
+                </div>
+              </section>
+            )}
+
+            {wizardStep === 1 && (
+              <section className="bg-white p-8 rounded-xl border border-slate-100 shadow-sm space-y-6">
+                <h3 className="font-bold flex items-center gap-2 text-slate-900">
+                  <User size={18} /> Identidade do criatório
+                </h3>
+
+                <div className="bg-gradient-to-br from-blue-50 to-slate-50 border-2 border-slate-200 rounded-xl p-8 flex flex-col items-center justify-center gap-6 text-center">
+                  <div className="w-48 h-48 bg-white border-2 border-slate-300 rounded-xl flex items-center justify-center overflow-hidden shadow-lg hover:shadow-xl transition-shadow">
+                    {settings.logoUrl ? (
+                      <img src={settings.logoUrl} className="w-full h-full object-contain p-3" />
+                    ) : (
+                      <div className="flex flex-col items-center gap-2 text-slate-400">
+                        <ImageIcon size={48} />
+                        <p className="text-xs font-medium">Logo do criatório</p>
                       </div>
-
-                      {savings !== null && (
-                        <div className="mt-2 text-[11px] font-bold text-emerald-300">
-                          Economize {savings}% no período
+                    )}
+                  </div>
+                  <div className="flex-1 w-full">
+                    <p className="font-bold text-slate-900 text-lg mb-1">Logomarca do criatório</p>
+                    <p className="text-sm text-slate-600 mb-4">
+                      Exibida no menu lateral e em documentos.
+                    </p>
+                    {canUseLogo ? (
+                      <>
+                        <div className="flex flex-col gap-2">
+                          <button
+                            onClick={() => !isUploadingLogo && fileInputRef.current?.click()}
+                            className={`${buttonAccent} px-6 py-3`}
+                            disabled={isUploadingLogo}
+                          >
+                            {isUploadingLogo ? (
+                              <Loader2 size={16} className="animate-spin" />
+                            ) : (
+                              <Upload size={16} />
+                            )}
+                            {isUploadingLogo ? 'Enviando logo...' : 'Carregar nova logo'}
+                          </button>
+                          {settings.logoUrl && settings.logoUrl !== APP_LOGO && (
+                            <button
+                              onClick={async () => {
+                                try {
+                                  await updateSettings({ ...settings, logoUrl: APP_LOGO });
+                                } catch (err) {
+                                  console.error('Erro ao restaurar logo padrão:', err);
+                                }
+                              }}
+                              className={`${buttonSecondary} px-6 py-3`}
+                            >
+                              Usar logo padrão
+                            </button>
+                          )}
                         </div>
-                      )}
+                        <input
+                          type="file"
+                          ref={fileInputRef}
+                          hidden
+                          accept="image/*"
+                          onChange={handleLogoUpload}
+                        />
+                        {logoUploadError && (
+                          <p className="mt-3 text-sm text-red-600 font-medium">{logoUploadError}</p>
+                        )}
+                      </>
+                    ) : (
+                      <div className="inline-flex items-center gap-2 text-amber-700 bg-amber-50 px-4 py-2 rounded-lg text-sm font-semibold">
+                        <Lock size={16} /> Recurso PRO
+                      </div>
+                    )}
+                  </div>
+                </div>
 
-                      <ul className="mt-4 space-y-2 text-[11px] text-slate-200">
-                        {PLAN_FEATURES.map((feature) => (
-                          <li key={feature} className="flex items-start gap-2">
-                            <CheckCircle2 size={12} className="text-emerald-300 mt-0.5" />
-                            <span>{feature}</span>
-                          </li>
-                        ))}
-                      </ul>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <label className="space-y-2">
+                    <span className="text-label">Nome do criatório</span>
+                    <input
+                      className="w-full p-3.5 rounded-lg bg-white border border-slate-300 text-sm font-medium outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500"
+                      value={settings.breederName}
+                      onChange={(e) => updateSettings({ ...settings, breederName: e.target.value })}
+                      placeholder="Ex: Aviario Azul"
+                    />
+                  </label>
 
+                  <label className="space-y-2">
+                    <span className="text-label">CPF / CNPJ</span>
+                    <input
+                      className="w-full p-3.5 rounded-lg bg-white border border-slate-300 text-sm font-medium outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500"
+                      value={settings.cpfCnpj}
+                      onChange={(e) =>
+                        updateSettings({ ...settings, cpfCnpj: maskCpfCnpj(e.target.value) })
+                      }
+                      placeholder="Digite com numeros"
+                    />
+                  </label>
+                </div>
+
+                <div className="grid grid-cols-1 gap-4">
+                  <label className="space-y-2">
+                    <div className="flex items-center gap-2">
+                      <span className="text-label">Número SISPASS</span>
+                      <div className="group relative cursor-help">
+                        <HelpCircle size={14} className="text-slate-400 hover:text-slate-600" />
+                        <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 hidden group-hover:block bg-slate-800 text-white text-xs px-3 py-2 rounded-lg whitespace-nowrap z-50">
+                          Número de registro do SISPASS/CTF junto ao IBAMA
+                        </div>
+                      </div>
+                    </div>
+                    <input
+                      className="w-full p-3.5 rounded-lg bg-white border border-slate-300 text-sm font-medium outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500"
+                      value={settings.sispassNumber}
+                      onChange={(e) =>
+                        updateSettings({ ...settings, sispassNumber: e.target.value })
+                      }
+                      placeholder="Ex: 1234567-8"
+                    />
+                    <p className="text-xs text-slate-500">Encontre em sua licença SISPASS/CTF</p>
+                  </label>
+                  <label className="space-y-2">
+                    <div className="flex items-center gap-2">
+                      <span className="text-label">Data de Renovação SISPASS</span>
+                      <div className="group relative cursor-help">
+                        <HelpCircle size={14} className="text-slate-400 hover:text-slate-600" />
+                        <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 hidden group-hover:block bg-slate-800 text-white text-xs px-3 py-2 rounded-lg whitespace-nowrap z-50">
+                          Data de vencimento da sua licença SISPASS/CTF
+                        </div>
+                      </div>
+                    </div>
+                    <input
+                      ref={renewalDateRef}
+                      type="date"
+                      className="w-full p-3.5 rounded-lg bg-white border border-slate-300 text-sm font-medium outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500"
+                      value={settings.renewalDate}
+                      onChange={(e) => updateSettings({ ...settings, renewalDate: e.target.value })}
+                    />
+                    <p className="text-[10px] text-slate-400">
+                      Sistema avisa com 30 dias de antecedência
+                    </p>
+                  </label>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <label className="space-y-2">
+                    <div className="flex items-center gap-2">
+                      <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
+                        Data de registro
+                      </span>
+                      <div className="group relative cursor-help">
+                        <HelpCircle size={14} className="text-slate-300 hover:text-slate-400" />
+                        <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 hidden group-hover:block bg-slate-800 text-white text-[10px] px-3 py-2 rounded-lg whitespace-nowrap z-50">
+                          Data de primeiro registro do seu criatório
+                        </div>
+                      </div>
+                    </div>
+                    <input
+                      type="date"
+                      className="w-full p-3 rounded-2xl bg-slate-50 border border-slate-100 text-sm font-bold"
+                      value={settings.registrationDate}
+                      onChange={(e) =>
+                        updateSettings({ ...settings, registrationDate: e.target.value })
+                      }
+                    />
+                    <p className="text-[10px] text-slate-400">Data do registro original</p>
+                  </label>
+                  <label className="space-y-2">
+                    <div className="flex items-center gap-2">
+                      <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
+                        Última Renovação
+                      </span>
+                      <div className="group relative cursor-help">
+                        <HelpCircle size={14} className="text-slate-300 hover:text-slate-400" />
+                        <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 hidden group-hover:block bg-slate-800 text-white text-[10px] px-3 py-2 rounded-lg whitespace-nowrap z-50">
+                          Última vez que o SISPASS foi renovado
+                        </div>
+                      </div>
+                    </div>
+                    <input
+                      type="date"
+                      className="w-full p-3 rounded-2xl bg-slate-50 border border-slate-100 text-sm font-bold"
+                      value={settings.lastRenewalDate || ''}
+                      onChange={(e) =>
+                        updateSettings({ ...settings, lastRenewalDate: e.target.value })
+                      }
+                    />
+                    <p className="text-[10px] text-slate-400">Data da última renovação</p>
+                  </label>
+                </div>
+
+                <div className="grid grid-cols-1 gap-4">
+                  <div className="p-4 rounded-2xl bg-slate-50 border border-slate-100 space-y-1">
+                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
+                      SISPASS
+                    </p>
+                    <p className="text-sm font-bold text-slate-800">
+                      {settings.sispassNumber || 'Não informado'}
+                    </p>
+                    <p className="text-[11px] text-slate-500">Número do registro</p>
+                  </div>
+                  <div className="p-4 rounded-2xl bg-slate-50 border border-slate-100 space-y-1">
+                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
+                      Renovação SISPASS
+                    </p>
+                    <p className="text-sm font-bold text-slate-800">
+                      {settings.renewalDate
+                        ? new Date(settings.renewalDate).toLocaleDateString()
+                        : 'Não informado'}
+                    </p>
+                    <p className="text-[11px] text-slate-500">
+                      {daysSispass !== null ? `${daysSispass} dias` : ''}
+                    </p>
+                  </div>
+                </div>
+              </section>
+            )}
+
+            {wizardStep === 2 && (
+              <section className="bg-white p-8 rounded-3xl border border-slate-100 shadow-sm space-y-6">
+                <h3 className="font-black flex items-center gap-2 text-slate-800">
+                  <User size={18} /> Perfil do criador
+                </h3>
+
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <label className="space-y-2">
+                    <span className="text-label">Categoria do criador</span>
+                    <input
+                      className="w-full p-3.5 rounded-lg bg-white border border-slate-300 text-sm font-medium outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500"
+                      value={settings.breederCategory || ''}
+                      onChange={(e) =>
+                        updateSettings({ ...settings, breederCategory: e.target.value })
+                      }
+                      placeholder="Ex: Amador"
+                    />
+                  </label>
+
+                  <label className="space-y-2">
+                    <span className="text-label">Nome do responsável</span>
+                    <input
+                      className="w-full p-3.5 rounded-lg bg-white border border-slate-300 text-sm font-medium outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500"
+                      value={settings.responsibleName || ''}
+                      onChange={(e) =>
+                        updateSettings({ ...settings, responsibleName: e.target.value })
+                      }
+                      placeholder="Ex: João Silva"
+                    />
+                  </label>
+
+                  <label className="space-y-2">
+                    <span className="text-label">Espécie criada</span>
+                    <input
+                      className="w-full p-3.5 rounded-lg bg-white border border-slate-300 text-sm font-medium outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500"
+                      value={settings.speciesRaised || ''}
+                      onChange={(e) =>
+                        updateSettings({ ...settings, speciesRaised: e.target.value })
+                      }
+                      placeholder="Ex: Curió"
+                    />
+                  </label>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <label className="space-y-2">
+                    <span className="text-label">CEP</span>
+                    <input
+                      className="w-full p-3.5 rounded-lg bg-white border border-slate-300 text-sm font-medium outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500"
+                      value={settings.addressCep || ''}
+                      onChange={(e) => handleCepChange(e.target.value)}
+                      onBlur={(e) => {
+                        const digits = e.target.value.replace(/\D/g, '');
+                        if (digits.length === 8) lookupCep(digits);
+                      }}
+                      placeholder="00000-000"
+                    />
+                    {isFetchingCep && (
+                      <p className="text-[10px] text-slate-400">Buscando endereço pelo CEP...</p>
+                    )}
+                    {cepError && !isFetchingCep && (
+                      <p className="text-[10px] text-rose-600 font-semibold">{cepError}</p>
+                    )}
+                  </label>
+
+                  <label className="space-y-2">
+                    <span className="text-label">Cidade</span>
+                    <input
+                      className="w-full p-3.5 rounded-lg bg-white border border-slate-300 text-sm font-medium outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500"
+                      value={settings.addressCity || ''}
+                      onChange={(e) => updateSettings({ ...settings, addressCity: e.target.value })}
+                      placeholder="Ex: Salvador"
+                    />
+                  </label>
+
+                  <label className="space-y-2">
+                    <span className="text-label">UF</span>
+                    <input
+                      className="w-full p-3.5 rounded-lg bg-white border border-slate-300 text-sm font-medium outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500"
+                      value={settings.addressState || ''}
+                      onChange={(e) =>
+                        updateSettings({ ...settings, addressState: e.target.value })
+                      }
+                      placeholder="Ex: BA"
+                    />
+                  </label>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <label className="space-y-2">
+                    <span className="text-label">Rua</span>
+                    <input
+                      className="w-full p-3.5 rounded-lg bg-white border border-slate-300 text-sm font-medium outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500"
+                      value={settings.addressStreet || ''}
+                      onChange={(e) =>
+                        updateSettings({ ...settings, addressStreet: e.target.value })
+                      }
+                      placeholder="Ex: Rua das Flores"
+                    />
+                  </label>
+
+                  <label className="space-y-2">
+                    <span className="text-label">Número</span>
+                    <input
+                      className="w-full p-3.5 rounded-lg bg-white border border-slate-300 text-sm font-medium outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500"
+                      value={settings.addressNumber || ''}
+                      onChange={(e) =>
+                        updateSettings({ ...settings, addressNumber: e.target.value })
+                      }
+                      placeholder="Ex: 123"
+                    />
+                  </label>
+
+                  <label className="space-y-2">
+                    <span className="text-label">Bairro</span>
+                    <input
+                      className="w-full p-3.5 rounded-lg bg-white border border-slate-300 text-sm font-medium outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500"
+                      value={settings.addressNeighborhood || ''}
+                      onChange={(e) =>
+                        updateSettings({ ...settings, addressNeighborhood: e.target.value })
+                      }
+                      placeholder="Ex: Centro"
+                    />
+                  </label>
+                </div>
+
+                <label className="space-y-2">
+                  <span className="text-label">Complemento</span>
+                  <input
+                    className="w-full p-3.5 rounded-lg bg-white border border-slate-300 text-sm font-medium outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500"
+                    value={settings.addressComplement || ''}
+                    onChange={(e) =>
+                      updateSettings({ ...settings, addressComplement: e.target.value })
+                    }
+                    placeholder="Ex: Sala 2"
+                  />
+                </label>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <label className="space-y-2">
+                    <span className="text-label">E-mail</span>
+                    <input
+                      type="email"
+                      className="w-full p-3.5 rounded-lg bg-white border border-slate-300 text-sm font-medium outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500"
+                      value={settings.breederEmail || ''}
+                      onChange={(e) =>
+                        updateSettings({ ...settings, breederEmail: e.target.value })
+                      }
+                      placeholder="contato@exemplo.com"
+                    />
+                  </label>
+
+                  <label className="space-y-2">
+                    <span className="text-label">Site</span>
+                    <input
+                      className="w-full p-3.5 rounded-lg bg-white border border-slate-300 text-sm font-medium outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500"
+                      value={settings.breederWebsite || ''}
+                      onChange={(e) =>
+                        updateSettings({ ...settings, breederWebsite: e.target.value })
+                      }
+                      placeholder="www.seucriatorio.com.br"
+                    />
+                  </label>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <label className="space-y-2">
+                    <span className="text-label">Telefone</span>
+                    <input
+                      className="w-full p-3.5 rounded-lg bg-white border border-slate-300 text-sm font-medium outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500"
+                      value={settings.breederPhone || ''}
+                      onChange={(e) =>
+                        updateSettings({ ...settings, breederPhone: e.target.value })
+                      }
+                      placeholder="(00) 0000-0000"
+                    />
+                  </label>
+
+                  <label className="space-y-2">
+                    <span className="text-label">Celular</span>
+                    <input
+                      className="w-full p-3.5 rounded-lg bg-white border border-slate-300 text-sm font-medium outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500"
+                      value={settings.breederMobile || ''}
+                      onChange={(e) =>
+                        updateSettings({ ...settings, breederMobile: e.target.value })
+                      }
+                      placeholder="(00) 00000-0000"
+                    />
+                  </label>
+                </div>
+              </section>
+            )}
+
+            {wizardStep === 3 && (
+              <section className="bg-white p-8 rounded-3xl border border-slate-100 shadow-sm space-y-6">
+                <div className="flex items-center gap-2 text-emerald-600 font-black text-sm">
+                  <Palette size={18} /> Aparência e tema
+                </div>
+
+                <div className="flex flex-wrap items-center gap-6">
+                  <div className="text-center">
+                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
+                      Primária
+                    </p>
+                    <button
+                      className="mt-2 w-12 h-12 rounded-2xl border border-slate-200 shadow-sm"
+                      style={{ backgroundColor: settings.primaryColor }}
+                      onClick={() => primaryColorRef.current?.click()}
+                    />
+                    <input
+                      ref={primaryColorRef}
+                      type="color"
+                      value={settings.primaryColor}
+                      onChange={(e) =>
+                        updateSettings({ ...settings, primaryColor: e.target.value })
+                      }
+                      className="sr-only"
+                    />
+                  </div>
+                  <div className="text-center">
+                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
+                      Destaque
+                    </p>
+                    <button
+                      className="mt-2 w-12 h-12 rounded-2xl border border-slate-200 shadow-sm"
+                      style={{ backgroundColor: settings.accentColor }}
+                      onClick={() => accentColorRef.current?.click()}
+                    />
+                    <input
+                      ref={accentColorRef}
+                      type="color"
+                      value={settings.accentColor}
+                      onChange={(e) => updateSettings({ ...settings, accentColor: e.target.value })}
+                      className="sr-only"
+                    />
+                  </div>
+
+                  <div className="flex-1 min-w-[240px]">
+                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3">
+                      Preview rápido
+                    </p>
+                    <div className="rounded-2xl border border-slate-100 p-4 flex items-center gap-3 shadow-sm">
                       <div
-                        className={`mt-4 text-center text-[11px] font-black uppercase tracking-widest rounded-xl py-2 ${
-                          isSelected ? 'bg-amber-400 text-slate-900' : 'bg-white/10 text-white/70'
+                        className="w-12 h-12 rounded-full flex items-center justify-center text-white font-black"
+                        style={{ backgroundColor: settings.primaryColor }}
+                      >
+                        AV
+                      </div>
+                      <div className="flex-1">
+                        <p className="text-sm font-black text-slate-800">Card de exemplo</p>
+                        <p
+                          className="text-[11px] font-bold"
+                          style={{ color: settings.accentColor }}
+                        >
+                          Cor de destaque aplicada
+                        </p>
+                      </div>
+                      <div
+                        className="px-3 py-1 rounded-full text-[11px] font-black"
+                        style={{ backgroundColor: settings.accentColor, color: '#fff' }}
+                      >
+                        Badge
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </section>
+            )}
+
+            {wizardStep === 4 && (
+              <section className="bg-white p-8 rounded-3xl border border-slate-100 shadow-sm space-y-6">
+                <h3 className="font-black flex items-center gap-2 text-slate-800">
+                  <Lock size={18} /> Segurança
+                </h3>
+                <p className="text-sm text-slate-600">Proteja sua conta com uma senha segura.</p>
+                <button
+                  onClick={() => setShowPasswordModal(true)}
+                  className={`${buttonPrimary} w-full py-3`}
+                >
+                  <Lock size={16} /> Trocar Senha
+                </button>
+              </section>
+            )}
+
+          </div>
+        )}
+
+        {activeTab === 'plano' && (
+          <div className="bg-slate-900 text-white p-10 rounded-3xl space-y-8">
+            <h3 className="text-2xl font-black">Plano Profissional</h3>
+
+            <div className="bg-white text-slate-900 p-6 rounded-2xl">
+              <p className="text-xs uppercase font-black text-slate-500">Plano atual</p>
+              <div className="mt-2 flex flex-wrap items-center gap-3">
+                <h3 className="text-2xl font-black">{planLabel}</h3>
+                <span
+                  className={`inline-flex items-center gap-2 rounded-full px-3 py-1 text-[11px] font-bold uppercase tracking-wider ${
+                    settings.plan === 'Profissional' || isAdmin
+                      ? 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white'
+                      : 'bg-slate-100 text-slate-600'
+                  }`}
+                >
+                  {settings.plan === 'Profissional' || isAdmin ? 'Premium' : 'Gratuito'}
+                </span>
+              </div>
+
+              {settings.plan === 'Básico' && !isAdmin && (
+                <p className="text-xs text-amber-600 font-black">
+                  Você esta usando o plano gratuito
+                </p>
+              )}
+
+              {settings.trialEndDate && !isAdmin && (
+                <p className="text-xs text-emerald-600 font-black">
+                  Trial ativo até {new Date(settings.trialEndDate).toLocaleDateString()}
+                </p>
+              )}
+
+              {settings.plan === 'Profissional' && !isTrial && !isAdmin && (
+                <div
+                  data-subscription-section
+                  className="mt-4 bg-slate-50 border border-slate-200 rounded-xl p-4 space-y-3"
+                >
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-xs font-black uppercase text-slate-500">
+                        Assinatura ativa
+                      </p>
+                      <p className="text-sm font-bold text-slate-800">
+                        {hasStripeCustomer
+                          ? 'Gerencie cobranças, upgrade/downgrade ou cancele a renovação automática.'
+                          : 'Pagamento único via Mercado Pago. Renove manualmente quando vencer.'}
+                      </p>
+                    </div>
+                    {hasStripeCustomer && (
+                      <button
+                        onClick={openBillingPortal}
+                        className={`${buttonPrimary} px-4 py-2 text-xs uppercase tracking-widest`}
+                      >
+                        Abrir portal
+                      </button>
+                    )}
+                  </div>
+                  <p className="text-[11px] text-slate-500">
+                    {hasStripeCustomer
+                      ? 'No portal você pode trocar período (mensal/anual), atualizar cartão e cancelar a recorrência.'
+                      : 'O plano não renova automaticamente. Quando vencer, faça um novo pagamento.'}
+                  </p>
+                  <div className="flex flex-wrap gap-2">
+                    <button
+                      onClick={openRenewModal}
+                      className="px-4 py-2 text-xs uppercase tracking-widest font-black rounded-xl bg-slate-900 text-white"
+                    >
+                      Renovar agora
+                    </button>
+                  </div>
+
+                  {/* Mostra info de período atual */}
+                  {daysSubscription !== null && (
+                    <div className="flex items-center gap-2 rounded-xl bg-slate-100 border border-slate-200 px-3 py-2">
+                      <Calendar size={14} className="text-slate-600" />
+                      <p className="text-[11px] text-slate-700">
+                        Período atual expira em{' '}
+                        <span className="font-black">{daysSubscription} dias</span> (
+                        {settings.subscriptionEndDate
+                          ? new Date(settings.subscriptionEndDate).toLocaleDateString()
+                          : ''}
+                        )
+                      </p>
+                    </div>
+                  )}
+
+                  {/* Mostra aviso de cancelamento */}
+                  {settings.subscriptionCancelAtPeriodEnd && (
+                    <div className="flex items-start gap-2 rounded-xl bg-amber-50 border border-amber-200 px-3 py-2">
+                      <AlertTriangle size={14} className="text-amber-600 mt-0.5" />
+                      <div>
+                        <p className="text-xs font-black text-amber-700">
+                          ⚠️ Renovação automática cancelada
+                        </p>
+                        <p className="text-[11px] text-amber-700">
+                          Seu plano PRO não renovará automaticamente. Reative no portal para manter
+                          o acesso após o vencimento.
+                        </p>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+
+            {!isAdmin && (settings.plan !== 'Profissional' || isTrial) && (
+              <>
+                <div className="bg-white/10 border border-white/10 rounded-2xl p-4 grid md:grid-cols-3 gap-3 text-xs">
+                  <div className="flex items-center gap-2 text-white/80">
+                    <ShieldCheck size={14} className="text-emerald-300" />7 dias de garantia sem
+                    risco
+                  </div>
+                  <div className="flex items-center gap-2 text-white/80">
+                    <Calendar size={14} className="text-emerald-300" />
+                    Troque o período quando quiser
+                  </div>
+                  <div className="flex items-center gap-2 text-white/80">
+                    <ExternalLink size={14} className="text-emerald-300" />
+                    Pagamento seguro via Stripe
+                  </div>
+                </div>
+
+                <div className="grid lg:grid-cols-4 md:grid-cols-2 gap-4">
+                  {PLANS.map((plan) => {
+                    const savings =
+                      plan.id !== 'monthly' && monthlyPrice
+                        ? Math.round((1 - plan.price / (monthlyPrice * plan.months)) * 100)
+                        : null;
+                    const badge = PLAN_BADGES[plan.id];
+                    const isSelected = selectedPlanId === plan.id;
+
+                    return (
+                      <button
+                        key={plan.id}
+                        onClick={() => setSelectedPlanId(plan.id)}
+                        className={`flex flex-col text-left p-5 rounded-2xl border transition-all ${
+                          isSelected
+                            ? 'bg-amber-400/20 border-amber-400 ring-2 ring-amber-400'
+                            : 'bg-white/5 border-white/10 hover:border-white/30'
                         }`}
                       >
-                        {isSelected ? 'Selecionado' : 'Selecionar'}
-                      </div>
-                    </button>
-                  );
-                })}
-              </div>
+                        <div className="flex items-start justify-between gap-3">
+                          <div>
+                            <p className="text-[11px] uppercase font-black text-slate-300">
+                              {plan.label}
+                            </p>
+                            <div className="flex items-end gap-1">
+                              <span className="text-2xl font-black text-white">
+                                R$ {plan.price}
+                              </span>
+                              <span className="text-xs text-slate-300">{plan.period}</span>
+                            </div>
+                          </div>
+                          {badge && (
+                            <span
+                              className={`text-[10px] font-black uppercase px-2 py-1 rounded-full ${
+                                badge.tone === 'amber'
+                                  ? 'bg-amber-400 text-slate-900'
+                                  : 'bg-emerald-400 text-emerald-950'
+                              }`}
+                            >
+                              {badge.label}
+                            </span>
+                          )}
+                        </div>
 
-              <button
-                onClick={() => setShowPaymentModal(true)}
-                className={`${buttonHighlight} w-full py-4 uppercase tracking-widest`}
-              >
-                Continuar com {selectedPlan.label}
-              </button>
+                        {savings !== null && (
+                          <div className="mt-2 text-[11px] font-bold text-emerald-300">
+                            Economize {savings}% no período
+                          </div>
+                        )}
 
-              <div className="grid md:grid-cols-2 gap-4">
-                <div className="bg-white/10 border border-white/10 rounded-2xl p-4">
-                  <p className="text-xs uppercase font-black text-slate-300">Posso cancelar quando quiser?</p>
-                  <p className="text-xs text-slate-200 mt-2">
-                    Sim. Você pode cancelar ou trocar o período diretamente no portal de cobrança, sem burocracia.
-                  </p>
+                        <ul className="mt-4 space-y-2 text-[11px] text-slate-200">
+                          {PLAN_FEATURES.map((feature) => (
+                            <li key={feature} className="flex items-start gap-2">
+                              <CheckCircle2 size={12} className="text-emerald-300 mt-0.5" />
+                              <span>{feature}</span>
+                            </li>
+                          ))}
+                        </ul>
+
+                        <div
+                          className={`mt-4 text-center text-[11px] font-black uppercase tracking-widest rounded-xl py-2 ${
+                            isSelected ? 'bg-amber-400 text-slate-900' : 'bg-white/10 text-white/70'
+                          }`}
+                        >
+                          {isSelected ? 'Selecionado' : 'Selecionar'}
+                        </div>
+                      </button>
+                    );
+                  })}
                 </div>
-                <div className="bg-white/10 border border-white/10 rounded-2xl p-4">
-                  <p className="text-xs uppercase font-black text-slate-300">E se eu estiver em teste?</p>
-                  <p className="text-xs text-slate-200 mt-2">
-                    Enquanto o trial estiver ativo, você tem acesso a todos os recursos e pode decidir depois.
-                  </p>
-                </div>
-              </div>
-            </>
-          )}
-        </div>
-      )}
 
-      <div className="sticky bottom-4 flex justify-end">
-        <button
-          onClick={handleSaveClick}
-          className={`${buttonPrimary} px-5 py-3 font-black shadow-lg shadow-emerald-300/30 hover:opacity-90`}
-          style={{ backgroundColor: settings.primaryColor }}
-        >
-          <Save size={16} /> Salvar alterações
-        </button>
-        {savedAt && (
-          <span className="ml-3 text-xs font-bold text-emerald-700 bg-emerald-50 border border-emerald-100 px-3 py-2 rounded-xl">
-            Salvo as {savedAt}
-          </span>
+                <button
+                  onClick={() => {
+                    setPaymentContext('new');
+                    setShowPaymentModal(true);
+                  }}
+                  className={`${buttonHighlight} w-full py-4 uppercase tracking-widest`}
+                >
+                  Continuar com {selectedPlan.label}
+                </button>
+
+                <div className="grid md:grid-cols-2 gap-4">
+                  <div className="bg-white/10 border border-white/10 rounded-2xl p-4">
+                    <p className="text-xs uppercase font-black text-slate-300">
+                      Posso cancelar quando quiser?
+                    </p>
+                    <p className="text-xs text-slate-200 mt-2">
+                      Sim. Você pode cancelar ou trocar o período diretamente no portal de cobrança,
+                      sem burocracia.
+                    </p>
+                  </div>
+                  <div className="bg-white/10 border border-white/10 rounded-2xl p-4">
+                    <p className="text-xs uppercase font-black text-slate-300">
+                      E se eu estiver em teste?
+                    </p>
+                    <p className="text-xs text-slate-200 mt-2">
+                      Enquanto o trial estiver ativo, você tem acesso a todos os recursos e pode
+                      decidir depois.
+                    </p>
+                  </div>
+                </div>
+              </>
+            )}
+          </div>
         )}
+
       </div>
-        </div>
 
       {showPaymentModal && (
-        <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50">
-          <div className="bg-white rounded-3xl p-8 w-full max-w-md">
+        <div
+          className="fixed inset-0 bg-black/70 flex items-center justify-center z-50"
+          onClick={() => {
+            setShowPaymentModal(false);
+            setPaymentStep('method');
+          }}
+        >
+          <div
+            className="bg-white rounded-3xl p-8 w-full max-w-md"
+            onClick={(e) => e.stopPropagation()}
+          >
             {paymentStep === 'method' ? (
               <>
-                <h3 className="font-black mb-4">Pagamento</h3>
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="font-black">
+                    {paymentContext === 'renew' ? 'Renovar plano' : 'Pagamento'}
+                  </h3>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setShowPaymentModal(false);
+                      setPaymentStep('method');
+                    }}
+                    className="text-slate-400 hover:text-slate-600 transition-colors"
+                    aria-label="Fechar"
+                  >
+                    <X size={20} />
+                  </button>
+                </div>
                 <div className="space-y-3">
                   <button
-                    onClick={startCheckout}
+                    onClick={handleStripePayment}
                     className="w-full py-4 bg-slate-900 text-white font-black rounded-xl"
                   >
-                    Pagar com Cartão (Stripe)
+                    {paymentContext === 'renew'
+                      ? hasStripeCustomer
+                        ? 'Gerenciar no Stripe (recorrente)'
+                        : 'Renovar com Stripe (recorrente)'
+                      : 'Pagar com Cartão (Stripe)'}
                   </button>
                   <button
                     onClick={startMercadoPagoCheckout}
                     className="w-full py-4 bg-emerald-500 text-white font-black rounded-xl"
                   >
-                    Pagar com Pix (Mercado Pago)
+                    {paymentContext === 'renew'
+                      ? 'Renovar com Mercado Pago (PIX/avulso)'
+                      : 'Pagar com Pix (Mercado Pago)'}
                   </button>
                 </div>
                 <p className="text-[11px] text-slate-400 mt-3">
-                  O Pix é confirmado rapidamente após o pagamento.
+                  {paymentContext === 'renew'
+                    ? 'Você pode renovar antes do vencimento. O prazo será somado ao tempo restante.'
+                    : 'O Pix é confirmado rapidamente após o pagamento.'}
                 </p>
               </>
             ) : (
@@ -1270,18 +1510,24 @@ const SettingsManager: React.FC<SettingsManagerProps> = ({ settings, updateSetti
             <div className="space-y-4">
               <div>
                 <label className="space-y-2">
-                  <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Senha atual</span>
+                  <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
+                    Senha atual
+                  </span>
                   <div className="relative flex">
                     <input
                       type={showPasswords.current ? 'text' : 'password'}
                       value={passwordForm.current}
-                      onChange={(e) => setPasswordForm({ ...passwordForm, current: e.target.value })}
+                      onChange={(e) =>
+                        setPasswordForm({ ...passwordForm, current: e.target.value })
+                      }
                       placeholder="Digite sua senha atual"
                       className="flex-1 p-3 rounded-l-2xl bg-slate-50 border border-slate-100 text-sm font-bold outline-none"
                     />
                     <button
                       type="button"
-                      onClick={() => setShowPasswords({ ...showPasswords, current: !showPasswords.current })}
+                      onClick={() =>
+                        setShowPasswords({ ...showPasswords, current: !showPasswords.current })
+                      }
                       className="px-4 border border-l-0 border-slate-100 rounded-r-2xl bg-slate-50 text-slate-400 hover:text-slate-600"
                     >
                       {showPasswords.current ? <EyeOff size={16} /> : <Eye size={16} />}
@@ -1292,7 +1538,9 @@ const SettingsManager: React.FC<SettingsManagerProps> = ({ settings, updateSetti
 
               <div className="space-y-2">
                 <label className="space-y-2">
-                  <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Nova senha</span>
+                  <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
+                    Nova senha
+                  </span>
                   <div className="relative flex">
                     <input
                       type={showPasswords.new ? 'text' : 'password'}
@@ -1303,7 +1551,9 @@ const SettingsManager: React.FC<SettingsManagerProps> = ({ settings, updateSetti
                     />
                     <button
                       type="button"
-                      onClick={() => setShowPasswords({ ...showPasswords, new: !showPasswords.new })}
+                      onClick={() =>
+                        setShowPasswords({ ...showPasswords, new: !showPasswords.new })
+                      }
                       className="px-4 border border-l-0 border-slate-100 rounded-r-2xl bg-slate-50 text-slate-400 hover:text-slate-600"
                     >
                       {showPasswords.new ? <EyeOff size={16} /> : <Eye size={16} />}
@@ -1314,18 +1564,24 @@ const SettingsManager: React.FC<SettingsManagerProps> = ({ settings, updateSetti
 
               <div className="space-y-2">
                 <label className="space-y-2">
-                  <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Confirmar nova senha</span>
+                  <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
+                    Confirmar nova senha
+                  </span>
                   <div className="relative flex">
                     <input
                       type={showPasswords.confirm ? 'text' : 'password'}
                       value={passwordForm.confirm}
-                      onChange={(e) => setPasswordForm({ ...passwordForm, confirm: e.target.value })}
+                      onChange={(e) =>
+                        setPasswordForm({ ...passwordForm, confirm: e.target.value })
+                      }
                       placeholder="Repita a nova senha"
                       className="flex-1 p-3 rounded-l-2xl bg-slate-50 border border-slate-100 text-sm font-bold outline-none"
                     />
                     <button
                       type="button"
-                      onClick={() => setShowPasswords({ ...showPasswords, confirm: !showPasswords.confirm })}
+                      onClick={() =>
+                        setShowPasswords({ ...showPasswords, confirm: !showPasswords.confirm })
+                      }
                       className="px-4 border border-l-0 border-slate-100 rounded-r-2xl bg-slate-50 text-slate-400 hover:text-slate-600"
                     >
                       {showPasswords.confirm ? <EyeOff size={16} /> : <Eye size={16} />}
@@ -1370,10 +1626,3 @@ const SettingsManager: React.FC<SettingsManagerProps> = ({ settings, updateSetti
 };
 
 export default SettingsManager;
-
-
-
-
-
-
-

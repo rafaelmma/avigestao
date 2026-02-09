@@ -10,6 +10,7 @@
 ## ✅ PRÉ-REQUISITOS (Antes de sair do trabalho)
 
 - [x] **Documentação salva em Git**
+
   - AUDITORIA_UX_UI.md
   - PLANO_IMPLEMENTACAO_OPCAO2.md
   - GUIA_RAPIDO_EXECUCAO_CASA.md
@@ -67,22 +68,22 @@ Para cada componente:
      - Copiar de PLANO_IMPLEMENTACAO_OPCAO2.md
      - Criar components/ui/Badge.tsx
      - Salvar
-  
+
   [x] Card.tsx
      - Copiar de PLANO_IMPLEMENTACAO_OPCAO2.md
      - Criar components/ui/Card.tsx
      - Salvar
-  
+
   [x] DropdownMenu.tsx
      - Copiar de PLANO_IMPLEMENTACAO_OPCAO2.md
      - Criar components/ui/DropdownMenu.tsx
      - Salvar
-  
+
   [x] AlertBanner.tsx
      - Copiar de PLANO_IMPLEMENTACAO_OPCAO2.md
      - Criar components/ui/AlertBanner.tsx
      - Salvar
-  
+
   [ ] Tabs.tsx
      - Copiar de PLANO_IMPLEMENTACAO_OPCAO2.md
      - Criar components/ui/Tabs.tsx
@@ -106,6 +107,7 @@ Para cada componente:
 ```
 
 **Resultado esperado:**
+
 ```
 ✓ lib/designSystem.ts criado
 ✓ index.css atualizado
@@ -172,6 +174,7 @@ Para cada componente:
 ```
 
 **Resultado esperado:**
+
 ```
 ✓ Cards muito mais limpos (60% menos badges)
 ✓ Modais reorganizados
@@ -336,12 +339,14 @@ git push
 ## 📊 RITMO RECOMENDADO
 
 ### FAST TRACK (2-3 dias):
+
 - **Noite 1:** 3h → Fases 1+2 ✓
 - **Manhã/Tarde 2:** 5h → Fases 3+4 ✓
 - **Tarde 3:** 2h → Fases 5+6+7 ✓
 - **Total:** 10h de trabalho
 
 ### NORMAL (1 semana):
+
 - **Noite 1:** 3h → Fase 1+2 ✓
 - **Noite 2:** 4h → Fase 3 ✓
 - **Noite 3:** 3h → Fase 4 ✓
@@ -350,6 +355,7 @@ git push
 - **Total:** 14h (2h/noite)
 
 ### RELAXADO (2 semanas):
+
 - **2h por noite** → 7 noites ✓
 
 ---
