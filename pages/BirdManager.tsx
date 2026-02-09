@@ -1814,6 +1814,7 @@ const BirdManager: React.FC<BirdManagerProps> = ({
                       ? 'text-xs'
                       : 'text-[10px]'
                   }`}
+                  onClick={() => setCurrentList('ibama-pendentes')}
                 >
                   Registro IBAMA pendente
                 </AlertBanner>

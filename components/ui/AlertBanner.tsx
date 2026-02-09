@@ -8,6 +8,7 @@ interface AlertBannerProps {
   onClose?: () => void;
   icon?: React.ReactNode;
   className?: string;
+  onClick?: () => void;
 }
 
 const AlertBanner: React.FC<AlertBannerProps> = ({
@@ -17,6 +18,7 @@ const AlertBanner: React.FC<AlertBannerProps> = ({
   onClose,
   icon,
   className = '',
+  onClick,
 }) => {
   const variantClasses = {
     success: 'bg-emerald-50 border-emerald-200 text-emerald-800 border-l-emerald-600',
@@ -34,7 +36,22 @@ const AlertBanner: React.FC<AlertBannerProps> = ({
 
   return (
     <div
-      className={`border-l-4 px-4 py-3 rounded-r-lg flex gap-3 ${variantClasses[variant]} ${className}`}
+      className={`border-l-4 px-4 py-3 rounded-r-lg flex gap-3 ${variantClasses[variant]} ${className} ${
+        onClick ? 'cursor-pointer hover:opacity-90' : ''
+      }`}
+      onClick={onClick}
+      role={onClick ? 'button' : undefined}
+      tabIndex={onClick ? 0 : undefined}
+      onKeyDown={
+        onClick
+          ? (event) => {
+              if (event.key === 'Enter' || event.key === ' ') {
+                event.preventDefault();
+                onClick();
+              }
+            }
+          : undefined
+      }
     >
       {icon || iconMap[variant]}
       <div className="flex-1">

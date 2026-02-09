@@ -569,7 +569,22 @@ const SettingsManager: React.FC<SettingsManagerProps> = ({
             {bannerMessage.map((banner, idx) => (
               <div
                 key={idx}
-                className="flex items-center justify-between p-4 rounded-2xl border border-amber-200 bg-amber-50 text-amber-800 text-sm font-bold shadow-sm"
+                className={`flex items-center justify-between p-4 rounded-2xl border border-amber-200 bg-amber-50 text-amber-800 text-sm font-bold shadow-sm ${
+                  banner.action ? 'cursor-pointer hover:opacity-95' : ''
+                }`}
+                onClick={banner.action}
+                role={banner.action ? 'button' : undefined}
+                tabIndex={banner.action ? 0 : undefined}
+                onKeyDown={
+                  banner.action
+                    ? (event) => {
+                        if (event.key === 'Enter' || event.key === ' ') {
+                          event.preventDefault();
+                          banner.action?.();
+                        }
+                      }
+                    : undefined
+                }
               >
                 <div className="flex items-center gap-2">
                   <AlertTriangle size={18} className="text-amber-500" />
@@ -577,7 +592,10 @@ const SettingsManager: React.FC<SettingsManagerProps> = ({
                 </div>
                 {banner.action && banner.actionLabel && (
                   <button
-                    onClick={banner.action}
+                    onClick={(event) => {
+                      event.stopPropagation();
+                      banner.action?.();
+                    }}
                     className="text-[11px] uppercase tracking-widest font-black text-amber-700 hover:text-amber-900 transition-colors"
                   >
                     {banner.actionLabel}

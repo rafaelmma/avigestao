@@ -21,10 +21,7 @@ import {
   Clock,
   DollarSign,
   Zap,
-  Maximize2,
-  Minimize2,
   Bell,
-  BellOff,
 } from 'lucide-react';
 
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
@@ -97,6 +94,10 @@ const Dashboard: React.FC<DashboardProps> = ({
 
   const dragItem = useRef<number | null>(null);
   const dragOverItem = useRef<number | null>(null);
+  const resizeWidgetId = useRef<string | null>(null);
+  const resizeStartX = useRef(0);
+  const resizeStartSize = useRef<WidgetSize>('medium');
+  const lastResizeSettings = useRef<BreederSettings | null>(null);
 
   const currentLayout =
     state.settings?.dashboardLayout && state.settings.dashboardLayout.length > 0
@@ -115,6 +116,11 @@ const Dashboard: React.FC<DashboardProps> = ({
   };
 
   const widgetSizes = state.settings?.widgetSizes || {};
+  const widgetSizesRef = useRef(widgetSizes);
+
+  useEffect(() => {
+    widgetSizesRef.current = widgetSizes;
+  }, [widgetSizes]);
 
   const toggleWidget = (id: string) => {
     let newLayout: string[];
@@ -135,16 +141,22 @@ const Dashboard: React.FC<DashboardProps> = ({
     onSave?.(updatedSettings);
   };
 
+  const setWidgetSize = (widgetId: string, size: WidgetSize, persist = false) => {
+    const updatedSizes = { ...widgetSizesRef.current, [widgetId]: size };
+    const updatedSettings = { ...state.settings, widgetSizes: updatedSizes };
+    updateSettings(updatedSettings);
+    lastResizeSettings.current = updatedSettings;
+    if (persist) {
+      onSave?.(updatedSettings);
+    }
+  };
+
   const cycleWidgetSize = (widgetId: string) => {
-    const currentSize = widgetSizes[widgetId] || 'medium';
+    const currentSize = widgetSizesRef.current[widgetId] || 'medium';
     const sizes: WidgetSize[] = ['small', 'medium', 'large'];
     const nextIndex = (sizes.indexOf(currentSize) + 1) % sizes.length;
     const newSize = sizes[nextIndex];
-    
-    const updatedSizes = { ...widgetSizes, [widgetId]: newSize };
-    const updatedSettings = { ...state.settings, widgetSizes: updatedSizes };
-    updateSettings(updatedSettings);
-    onSave?.(updatedSettings);
+    setWidgetSize(widgetId, newSize, true);
   };
 
   const getWidgetSize = (widgetId: string): WidgetSize => {
@@ -161,6 +173,54 @@ const Dashboard: React.FC<DashboardProps> = ({
       default: return 'lg:col-span-1';
     }
   };
+
+  const handleResizeStart = (widgetId: string, e: React.MouseEvent<HTMLButtonElement>) => {
+    if (widgetId === 'stats') return;
+    e.preventDefault();
+    e.stopPropagation();
+    resizeWidgetId.current = widgetId;
+    resizeStartX.current = e.clientX;
+    resizeStartSize.current = getWidgetSize(widgetId);
+    lastResizeSettings.current = null;
+    document.body.style.cursor = 'col-resize';
+    document.body.style.userSelect = 'none';
+  };
+
+  useEffect(() => {
+    const handleMouseMove = (e: MouseEvent) => {
+      if (!resizeWidgetId.current) return;
+
+      const deltaX = e.clientX - resizeStartX.current;
+      const sizes: WidgetSize[] = ['small', 'medium', 'large'];
+      const startIndex = sizes.indexOf(resizeStartSize.current);
+      const step = Math.round(deltaX / 80);
+      const nextIndex = Math.min(2, Math.max(0, startIndex + step));
+      const newSize = sizes[nextIndex];
+      const currentSize = widgetSizesRef.current[resizeWidgetId.current] || 'medium';
+
+      if (newSize !== currentSize) {
+        setWidgetSize(resizeWidgetId.current, newSize, false);
+      }
+    };
+
+    const handleMouseUp = () => {
+      if (!resizeWidgetId.current) return;
+      if (lastResizeSettings.current) {
+        onSave?.(lastResizeSettings.current);
+      }
+      resizeWidgetId.current = null;
+      document.body.style.cursor = '';
+      document.body.style.userSelect = '';
+    };
+
+    window.addEventListener('mousemove', handleMouseMove);
+    window.addEventListener('mouseup', handleMouseUp);
+
+    return () => {
+      window.removeEventListener('mousemove', handleMouseMove);
+      window.removeEventListener('mouseup', handleMouseUp);
+    };
+  }, [onSave, setWidgetSize]);
 
   const handleDragStart = (e: React.DragEvent<HTMLDivElement>, position: number) => {
     dragItem.current = position;
@@ -234,22 +294,42 @@ const Dashboard: React.FC<DashboardProps> = ({
   const cancelAtPeriodEnd = !!state.settings?.subscriptionCancelAtPeriodEnd;
 
   // Calcular quais alertas devem ser mostrados
-  const alerts: string[] = [];
-  
+  const alerts: Array<{ id: string; label: string; tab: string }> = [];
+
   if (alertPrefs.showSispassAlert && diffDays < (alertPrefs.sispassWarningDays || 30)) {
-    alerts.push(`SISPASS vence em ${diffDays} dias`);
+    alerts.push({
+      id: 'sispass',
+      label: `SISPASS vence em ${diffDays} dias`,
+      tab: 'documents',
+    });
   }
-  
-  if (alertPrefs.showCertificateAlert && certDiff !== null && certDiff < (alertPrefs.certificateWarningDays || 30)) {
-    alerts.push(`Certificado vence em ${certDiff} dias`);
+
+  if (
+    alertPrefs.showCertificateAlert &&
+    certDiff !== null &&
+    certDiff < (alertPrefs.certificateWarningDays || 30)
+  ) {
+    alerts.push({
+      id: 'certificate',
+      label: `Certificado vence em ${certDiff} dias`,
+      tab: 'documents',
+    });
   }
-  
+
   if (alertPrefs.showSubscriptionAlert) {
     if (subDiff !== null && subDiff < (alertPrefs.subscriptionWarningDays || 10) && subDiff > 0) {
-      alerts.push(`⚠️ Assinatura PRO vence em ${subDiff} dias - Renove agora!`);
+      alerts.push({
+        id: 'subscription-renew',
+        label: `⚠️ Assinatura PRO vence em ${subDiff} dias - Renove agora!`,
+        tab: 'settings',
+      });
     }
     if (cancelAtPeriodEnd && subDiff !== null) {
-      alerts.push(`Plano profissional termina em ${subDiff} dias (renovacao cancelada)`);
+      alerts.push({
+        id: 'subscription-cancel',
+        label: `Plano profissional termina em ${subDiff} dias (renovacao cancelada)`,
+        tab: 'settings',
+      });
     }
   }
 
@@ -259,11 +339,18 @@ const Dashboard: React.FC<DashboardProps> = ({
         return (
           <div className="space-y-4">
             {alerts.length > 0 && (
-              <div className="flex items-center justify-between p-3 rounded-2xl border border-amber-200 bg-amber-50 text-amber-800 text-sm font-bold">
-                <div className="flex items-center gap-2">
-                  <Clock size={16} className="text-amber-600" />
-                  <span>{alerts.join(' | ')}</span>
-                </div>
+              <div className="flex flex-wrap items-center gap-2 p-3 rounded-2xl border border-amber-200 bg-amber-50 text-amber-800 text-sm font-bold">
+                <Clock size={16} className="text-amber-600" />
+                {alerts.map((alert) => (
+                  <button
+                    key={alert.id}
+                    onClick={() => navigateTo(alert.tab)}
+                    className="px-2 py-1 rounded-full bg-amber-100/70 hover:bg-amber-200 transition-colors text-amber-900"
+                    title="Clique para resolver"
+                  >
+                    {alert.label}
+                  </button>
+                ))}
               </div>
             )}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 h-full">
@@ -537,7 +624,18 @@ const Dashboard: React.FC<DashboardProps> = ({
           <section>
             {/* Alerta de Registro IBAMA Pendente */}
             {state.birds.some((b) => b.ibamaBaixaPendente) && (
-              <div className="bg-amber-50 border-2 border-amber-300 rounded-3xl p-6 shadow-sm animate-in slide-in-from-top-2">
+              <div
+                className="bg-amber-50 border-2 border-amber-300 rounded-3xl p-6 shadow-sm animate-in slide-in-from-top-2 cursor-pointer hover:opacity-95"
+                onClick={() => navigateTo('birds-ibama')}
+                role="button"
+                tabIndex={0}
+                onKeyDown={(event) => {
+                  if (event.key === 'Enter' || event.key === ' ') {
+                    event.preventDefault();
+                    navigateTo('birds-ibama');
+                  }
+                }}
+              >
                 <div className="flex items-start gap-4">
                   <div className="p-3 bg-amber-100 rounded-2xl">
                     <Zap size={24} className="text-amber-700" />
@@ -553,7 +651,14 @@ const Dashboard: React.FC<DashboardProps> = ({
                         : 'aves necessitam'}{' '}
                       de registro no sistema IBAMA (óbito, fuga, venda ou doação).
                     </p>
-                    <PrimaryButton onClick={() => navigateTo('birds')}>Ver Aves</PrimaryButton>
+                    <PrimaryButton
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        navigateTo('birds-ibama');
+                      }}
+                    >
+                      Ver Pendências
+                    </PrimaryButton>
                   </div>
                 </div>
               </div>
@@ -581,16 +686,16 @@ const Dashboard: React.FC<DashboardProps> = ({
                     <GripVertical size={14} />
                   </div>
 
-                  {/* Resize Button (Visible on Hover) - Except for Stats */}
+                  {/* Resize Handle (Visible on Hover) - Except for Stats */}
                   {widgetId !== 'stats' && (
                     <button
-                      onClick={() => cycleWidgetSize(widgetId)}
-                      className="absolute -top-3 right-4 z-20 opacity-0 group-hover:opacity-100 transition-opacity bg-brand text-white p-1.5 rounded-md shadow-lg hover:bg-brand/80"
-                      title="Alterar tamanho"
+                      onMouseDown={(e) => handleResizeStart(widgetId, e)}
+                      onClick={(e) => e.preventDefault()}
+                      className="absolute top-1/2 right-1 -translate-y-1/2 z-20 opacity-0 group-hover:opacity-100 transition-opacity cursor-col-resize"
+                      title="Arraste para redimensionar"
+                      aria-label="Arraste para redimensionar"
                     >
-                      {getWidgetSize(widgetId) === 'small' ? <Minimize2 size={12} /> : 
-                       getWidgetSize(widgetId) === 'large' ? <Maximize2 size={12} /> : 
-                       <LayoutGrid size={12} />}
+                      <span className="block h-12 w-1.5 rounded-full bg-slate-200 hover:bg-brand shadow-sm" />
                     </button>
                   )}
 
