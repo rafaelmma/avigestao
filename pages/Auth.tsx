@@ -57,7 +57,7 @@ const Auth: React.FC<AuthProps> = ({
           onLogin({ userId: user.uid });
         }
       } else {
-        const { user, error } = await signUp(email, password);
+        const { user, error, initError, verificationError } = await signUp(email, password, name);
         setIsLoading(false);
         if (error) return alert(error);
         // Passa o breederName para criar as settings na primeira vez
@@ -65,7 +65,16 @@ const Auth: React.FC<AuthProps> = ({
           onLogin({ userId: user.uid, breederName: name });
         }
         // Mostra mensagem melhorada
-        alert('Conta criada com sucesso!\n\nVocê já pode começar a usar o sistema.');
+        alert(
+          verificationError
+            ? 'Conta criada! Nao foi possivel enviar o email de verificacao. Voce pode reenviar na tela de confirmacao.'
+            : 'Conta criada! Enviamos um email de verificacao. Verifique sua caixa de entrada para continuar.',
+        );
+        if (initError) {
+          alert(
+            'Conta criada, mas houve um problema ao iniciar o teste de 7 dias. Tente entrar novamente ou avise o suporte.',
+          );
+        }
         setEmail('');
         setPassword('');
         setName('');

@@ -31,10 +31,338 @@ const corsHandler = cors({
 });
 
 // ============================================
+// MAILERSEND HELPERS
+// ============================================
+const resolveMailerSendToken = () => {
+  let envConfig: { mailersend?: { api_token?: string } } = {};
+  if (process.env.FUNCTIONS_CONFIG) {
+    try {
+      envConfig = JSON.parse(process.env.FUNCTIONS_CONFIG) as {
+        mailersend?: { api_token?: string };
+      };
+    } catch {
+      envConfig = {};
+    }
+  }
+  return (
+    process.env.MAILERSEND_API_TOKEN || envConfig?.mailersend?.api_token || ''
+  );
+};
+
+const hasMailerSendToken = () => !!resolveMailerSendToken();
+
+const getMailerSendToken = () => {
+  const token = resolveMailerSendToken();
+  if (!token) {
+    throw new Error('MAILERSEND_API_TOKEN not configured');
+  }
+  return token;
+};
+
+const sendMailerSendEmail = async (payload: {
+  to: string;
+  subject: string;
+  html?: string;
+  text?: string;
+  replyTo?: string;
+}) => {
+  const token = getMailerSendToken();
+
+  const response = await fetch('https://api.mailersend.com/v1/email', {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${token}`,
+      'Content-Type': 'application/json',
+      'X-Requested-With': 'XMLHttpRequest',
+    },
+    body: JSON.stringify({
+      from: { email: 'contato@avigestao.com.br', name: 'AviGestao' },
+      to: [{ email: payload.to }],
+      subject: payload.subject,
+      text: payload.text,
+      html: payload.html,
+      reply_to: payload.replyTo ? { email: payload.replyTo } : undefined,
+    }),
+  });
+
+  if (!response.ok) {
+    const errorBody = await response.text();
+    throw new Error(`MailerSend error: ${response.status} ${errorBody}`);
+  }
+};
+
+const APP_URL = 'https://avigestao.com.br';
+const SUPPORT_EMAIL = 'contato@avigestao.com.br';
+
+const getUserContactInfo = async (
+  userId: string | null,
+  fallbackEmail?: string | null,
+): Promise<{ email: string | null; name: string }> => {
+  if (!userId) {
+    return { email: fallbackEmail ?? null, name: 'Criador' };
+  }
+
+  const userDoc = await db.collection('users').doc(userId).get();
+  const userData = userDoc.exists ? userDoc.data() : undefined;
+
+  const settingsDoc = await db
+    .collection('users')
+    .doc(userId)
+    .collection('settings')
+    .doc('preferences')
+    .get();
+  const settingsData = settingsDoc.exists ? settingsDoc.data() : undefined;
+
+  const email =
+    (userData?.email as string | undefined) ||
+    (settingsData?.breederEmail as string | undefined) ||
+    (fallbackEmail ?? null);
+  const name =
+    (settingsData?.breederName as string | undefined) ||
+    (userData?.breederName as string | undefined) ||
+    'Criador';
+
+  return { email: email ?? null, name };
+};
+
+type TransactionalTemplateType =
+  | 'welcome'
+  | 'welcome-pro'
+  | 'payment-success'
+  | 'payment-failed'
+  | 'subscription-canceled'
+  | 'subscription-cancel-scheduled';
+
+const buildTransactionalTemplate = (type: TransactionalTemplateType, data: { name: string }) => {
+  const base = {
+    footer: `Se precisar de ajuda, fale com a gente: ${SUPPORT_EMAIL}`,
+    appUrl: APP_URL,
+  };
+
+  switch (type) {
+    case 'welcome':
+      return {
+        subject: 'Bem-vindo ao AviGestao!',
+        text: `Ola ${data.name}, sua conta foi verificada com sucesso. Acesse ${base.appUrl} para comecar.\n\n${base.footer}`,
+        html: `
+          <h2>Bem-vindo ao AviGestao!</h2>
+          <p>Ola <strong>${data.name}</strong>, sua conta foi verificada com sucesso.</p>
+          <p>Acesse <a href="${base.appUrl}">AviGestao</a> para comecar.</p>
+          <p>${base.footer}</p>
+        `,
+      };
+    case 'welcome-pro':
+      return {
+        subject: 'Bem-vindo ao Plano Profissional!',
+        text: `Ola ${data.name}, seu plano Profissional esta ativo. Acesse ${base.appUrl} para aproveitar todos os recursos.\n\n${base.footer}`,
+        html: `
+          <h2>Bem-vindo ao Plano Profissional!</h2>
+          <p>Ola <strong>${data.name}</strong>, seu plano Profissional esta ativo.</p>
+          <p>Acesse <a href="${base.appUrl}">AviGestao</a> para aproveitar todos os recursos.</p>
+          <p>${base.footer}</p>
+        `,
+      };
+    case 'payment-success':
+      return {
+        subject: 'Pagamento confirmado',
+        text: `Ola ${data.name}, seu pagamento foi confirmado. Seu acesso esta ativo.\n\n${base.footer}`,
+        html: `
+          <h2>Pagamento confirmado</h2>
+          <p>Ola <strong>${data.name}</strong>, seu pagamento foi confirmado.</p>
+          <p>Seu acesso esta ativo e liberado.</p>
+          <p>${base.footer}</p>
+        `,
+      };
+    case 'payment-failed':
+      return {
+        subject: 'Falha no pagamento',
+        text: `Ola ${data.name}, houve uma falha no pagamento. Por favor, atualize seus dados no painel.\n\n${base.footer}`,
+        html: `
+          <h2>Falha no pagamento</h2>
+          <p>Ola <strong>${data.name}</strong>, tivemos uma falha no pagamento.</p>
+          <p>Atualize seus dados no painel para evitar interrupcao.</p>
+          <p>${base.footer}</p>
+        `,
+      };
+    case 'subscription-cancel-scheduled':
+      return {
+        subject: 'Cancelamento agendado',
+        text: `Ola ${data.name}, seu cancelamento foi agendado. Seu acesso segue ativo ate o fim do periodo.\n\n${base.footer}`,
+        html: `
+          <h2>Cancelamento agendado</h2>
+          <p>Ola <strong>${data.name}</strong>, seu cancelamento foi agendado.</p>
+          <p>Seu acesso segue ativo ate o fim do periodo.</p>
+          <p>${base.footer}</p>
+        `,
+      };
+    case 'subscription-canceled':
+      return {
+        subject: 'Assinatura cancelada',
+        text: `Ola ${data.name}, sua assinatura foi cancelada. Se quiser reativar, acesse ${base.appUrl}.\n\n${base.footer}`,
+        html: `
+          <h2>Assinatura cancelada</h2>
+          <p>Ola <strong>${data.name}</strong>, sua assinatura foi cancelada.</p>
+          <p>Se quiser reativar, acesse <a href="${base.appUrl}">AviGestao</a>.</p>
+          <p>${base.footer}</p>
+        `,
+      };
+    default:
+      return {
+        subject: 'Atualizacao da sua conta',
+        text: `Ola ${data.name}, houve uma atualizacao na sua conta.\n\n${base.footer}`,
+        html: `
+          <h2>Atualizacao da sua conta</h2>
+          <p>Ola <strong>${data.name}</strong>, houve uma atualizacao na sua conta.</p>
+          <p>${base.footer}</p>
+        `,
+      };
+  }
+};
+
+// ============================================
+// CONTACT FORM EMAIL
+// ============================================
+export const contactFormEmail = functions
+  .region('southamerica-east1')
+  .runWith({ secrets: ['MAILERSEND_API_TOKEN'] })
+  .https.onRequest((req, res) => {
+    corsHandler(req, res, async () => {
+      if (req.method === 'OPTIONS') {
+        res.status(204).send('');
+        return;
+      }
+
+      if (req.method !== 'POST') {
+        res.status(405).json({ error: 'Method not allowed' });
+        return;
+      }
+
+      const { name, email, message, phone, subject: contactSubject } = req.body || {};
+
+      if (!name || !email || !message) {
+        res.status(400).json({ error: 'Missing name, email, or message' });
+        return;
+      }
+
+      if (!hasMailerSendToken()) {
+        const hasEnv = !!process.env.MAILERSEND_API_TOKEN;
+        const hasFunctionsConfig = !!process.env.FUNCTIONS_CONFIG;
+        console.warn('contactFormEmail: MailerSend token missing', {
+          hasEnv,
+          hasFunctionsConfig,
+        });
+        res.status(503).json({ error: 'Email service not configured' });
+        return;
+      }
+
+      const subject = `Contato do site: ${name}${contactSubject ? ` - ${contactSubject}` : ''}`;
+      const text = `Nome: ${name}\nEmail: ${email}\nTelefone: ${phone || '-'}\nAssunto: ${contactSubject || '-'}\n\nMensagem:\n${message}`;
+      const html = `
+        <p><strong>Nome:</strong> ${name}</p>
+        <p><strong>Email:</strong> ${email}</p>
+        <p><strong>Telefone:</strong> ${phone || '-'}</p>
+        <p><strong>Assunto:</strong> ${contactSubject || '-'}</p>
+        <p><strong>Mensagem:</strong></p>
+        <p>${String(message).replace(/\n/g, '<br />')}</p>
+      `;
+
+      try {
+        await sendMailerSendEmail({
+          to: 'contato@avigestao.com.br',
+          subject,
+          text,
+          html,
+          replyTo: email,
+        });
+        res.status(200).json({ ok: true });
+      } catch (err: any) {
+        console.error('contactFormEmail error:', err?.message || err);
+        res.status(500).json({ error: 'Email send failed' });
+      }
+    });
+  });
+
+// ============================================
+// TRANSACTIONAL EMAIL (AUTH REQUIRED)
+// ============================================
+export const sendTransactionalEmail = functions
+  .region('southamerica-east1')
+  .runWith({ secrets: ['MAILERSEND_API_TOKEN'] })
+  .https.onCall(async (data, context) => {
+    if (!context.auth) {
+      throw new functions.https.HttpsError('unauthenticated', 'Authentication required');
+    }
+
+    const subject = String(data?.subject || '').trim();
+    const html = data?.html ? String(data.html) : undefined;
+    const text = data?.text ? String(data.text) : undefined;
+    const to = data?.to ? String(data.to) : context.auth.token.email;
+
+    if (!to || !subject || (!html && !text)) {
+      throw new functions.https.HttpsError('invalid-argument', 'Missing email content');
+    }
+
+    // Segurança: só permite enviar para o próprio email (a menos que seja admin via custom claim)
+    const isAdmin = !!context.auth.token.admin;
+    if (!isAdmin && to !== context.auth.token.email) {
+      throw new functions.https.HttpsError('permission-denied', 'Not allowed to email this recipient');
+    }
+
+    await sendMailerSendEmail({ to, subject, html, text });
+    return { ok: true };
+  });
+
+export const sendWelcomeEmailIfNeeded = functions
+  .region('southamerica-east1')
+  .runWith({ secrets: ['MAILERSEND_API_TOKEN'] })
+  .https.onCall(async (data, context) => {
+    if (!context.auth) {
+      throw new functions.https.HttpsError('unauthenticated', 'Authentication required');
+    }
+
+    if (!hasMailerSendToken()) {
+      console.warn('MAILERSEND_API_TOKEN not configured; skipping welcome email.');
+      return { ok: true, skipped: true, reason: 'missing-mailer-token' };
+    }
+
+    const optIn = data?.optIn !== false;
+    if (!optIn) {
+      return { ok: true, skipped: true, reason: 'opt-out' };
+    }
+
+    const userId = context.auth.uid;
+    const userRef = db.collection('users').doc(userId);
+    const userDoc = await userRef.get();
+
+    if (userDoc.exists && userDoc.data()?.welcomeEmailSent) {
+      return { ok: true, skipped: true, reason: 'already-sent' };
+    }
+
+    const contact = await getUserContactInfo(userId, context.auth.token.email ?? null);
+    if (!contact.email) {
+      throw new functions.https.HttpsError('failed-precondition', 'Missing email');
+    }
+
+    const template = buildTransactionalTemplate('welcome', { name: contact.name });
+    await sendMailerSendEmail({ to: contact.email, ...template });
+
+    await userRef.set(
+      {
+        welcomeEmailSent: true,
+        welcomeEmailSentAt: admin.firestore.FieldValue.serverTimestamp(),
+      },
+      { merge: true },
+    );
+
+    return { ok: true };
+  });
+
+// ============================================
 // STRIPE WEBHOOK - Cloud Function Handler Nativo
 // ============================================
 export const stripeWebhook = functions
   .region('southamerica-east1')
+  .runWith({ secrets: ['MAILERSEND_API_TOKEN'] })
   .https.onRequest(async (req, res) => {
     console.log('=== WEBHOOK RECEIVED ===');
     console.log('Method:', req.method);
@@ -374,6 +702,7 @@ export const createMercadoPagoCheckout = functions
 // ============================================
 export const mercadoPagoWebhook = functions
   .region('southamerica-east1')
+  .runWith({ secrets: ['MAILERSEND_API_TOKEN'] })
   .https.onRequest(async (req, res) => {
     try {
       if (req.method !== 'POST' && req.method !== 'GET') {
@@ -450,15 +779,31 @@ export const mercadoPagoWebhook = functions
         metadata: payment?.metadata,
       });
 
-      if (payment.status !== 'approved') {
-        res.status(200).send('pending');
-        return;
-      }
-
       const userId = (payment.metadata as any)?.userId || payment.external_reference;
       if (!userId) {
         console.error('MercadoPago payment missing userId/external_reference');
         res.status(200).send('missing_user');
+        return;
+      }
+
+      const failureStatuses = new Set(['rejected', 'cancelled', 'refunded', 'charged_back']);
+      if (failureStatuses.has(payment.status)) {
+        try {
+          const contact = await getUserContactInfo(String(userId), payment?.payer?.email);
+          if (contact.email) {
+            const template = buildTransactionalTemplate('payment-failed', { name: contact.name });
+            await sendMailerSendEmail({ to: contact.email, ...template });
+          }
+        } catch (err: any) {
+          console.error('mercadopago payment-failed email error:', err?.message || err);
+        }
+
+        res.status(200).send('failed');
+        return;
+      }
+
+      if (payment.status !== 'approved') {
+        res.status(200).send('pending');
         return;
       }
       const months = Number((payment.metadata as any)?.months || 1);
@@ -468,9 +813,16 @@ export const mercadoPagoWebhook = functions
         const settingsRef = userRef.collection('settings').doc('preferences');
         const [userDoc, settingsDoc] = await Promise.all([userRef.get(), settingsRef.get()]);
 
+        const existingPlan = settingsDoc.data()?.plan || userDoc.data()?.plan;
         const existingEnd =
           settingsDoc.data()?.subscriptionEndDate || userDoc.data()?.subscriptionEndDate;
         const now = new Date();
+        const existingEndDate = existingEnd ? new Date(existingEnd) : null;
+        const hadActive =
+          existingPlan === 'Profissional' &&
+          !!existingEndDate &&
+          !isNaN(existingEndDate.getTime()) &&
+          existingEndDate > now;
         let baseDate = existingEnd ? new Date(existingEnd) : now;
         if (isNaN(baseDate.getTime()) || baseDate < now) {
           baseDate = now;
@@ -503,6 +855,19 @@ export const mercadoPagoWebhook = functions
           },
           { merge: true },
         );
+
+        try {
+          const contact = await getUserContactInfo(String(userId), payment?.payer?.email);
+          if (contact.email) {
+            const template = buildTransactionalTemplate(
+              hadActive ? 'payment-success' : 'welcome-pro',
+              { name: contact.name },
+            );
+            await sendMailerSendEmail({ to: contact.email, ...template });
+          }
+        } catch (err: any) {
+          console.error('mercadopago payment-success email error:', err?.message || err);
+        }
       }
 
       res.status(200).send('ok');
@@ -677,6 +1042,21 @@ async function handleCheckoutCompleted(event: Stripe.Event) {
 
       await setUserAsPro(userId, session.customer as string);
       console.log('✅ User', userId, 'marked as PRO');
+
+      try {
+        const contact = await getUserContactInfo(userId, session.customer_email ?? null);
+        if (contact.email) {
+          const template = buildTransactionalTemplate('welcome-pro', { name: contact.name });
+          await sendMailerSendEmail({
+            to: contact.email,
+            subject: template.subject,
+            text: template.text,
+            html: template.html,
+          });
+        }
+      } catch (err) {
+        console.error('welcome-pro email failed:', err);
+      }
     } else {
       console.warn('⚠️ handleCheckoutCompleted - userId is null! Cannot update user');
     }
@@ -719,6 +1099,25 @@ async function handleSubscriptionUpdated(event: Stripe.Event) {
     if (subscription.status === 'active' || subscription.status === 'trialing') {
       await setUserAsPro(userId, (subscription as any)?.customer);
     }
+
+    if (cancelAtPeriodEnd) {
+      try {
+        const contact = await getUserContactInfo(userId, null);
+        if (contact.email) {
+          const template = buildTransactionalTemplate('subscription-cancel-scheduled', {
+            name: contact.name,
+          });
+          await sendMailerSendEmail({
+            to: contact.email,
+            subject: template.subject,
+            text: template.text,
+            html: template.html,
+          });
+        }
+      } catch (err) {
+        console.error('subscription-cancel-scheduled email failed:', err);
+      }
+    }
   }
 }
 
@@ -755,6 +1154,21 @@ async function handleInvoicePaymentFailed(event: Stripe.Event) {
       } catch (err) {
         console.log("Settings doc doesn't exist yet, skipping");
       }
+
+      try {
+        const contact = await getUserContactInfo(userId, (invoice as any)?.customer_email ?? null);
+        if (contact.email) {
+          const template = buildTransactionalTemplate('payment-failed', { name: contact.name });
+          await sendMailerSendEmail({
+            to: contact.email,
+            subject: template.subject,
+            text: template.text,
+            html: template.html,
+          });
+        }
+      } catch (err) {
+        console.error('payment-failed email failed:', err);
+      }
     }
   }
 
@@ -790,6 +1204,21 @@ async function handleInvoicePaymentSucceeded(event: Stripe.Event) {
   const invoicePaid = invoice.status === 'paid' || (invoice as any)?.paid;
   if (userId && invoicePaid) {
     await setUserAsPro(userId, customerId);
+
+    try {
+      const contact = await getUserContactInfo(userId, (invoice as any)?.customer_email ?? null);
+      if (contact.email) {
+        const template = buildTransactionalTemplate('payment-success', { name: contact.name });
+        await sendMailerSendEmail({
+          to: contact.email,
+          subject: template.subject,
+          text: template.text,
+          html: template.html,
+        });
+      }
+    } catch (err) {
+      console.error('payment-success email failed:', err);
+    }
   }
 }
 
@@ -833,6 +1262,21 @@ async function handleSubscriptionDeleted(event: Stripe.Event) {
     }
 
     console.log('✅ User downgraded to Básico after subscription deletion');
+
+    try {
+      const contact = await getUserContactInfo(userId, null);
+      if (contact.email) {
+        const template = buildTransactionalTemplate('subscription-canceled', { name: contact.name });
+        await sendMailerSendEmail({
+          to: contact.email,
+          subject: template.subject,
+          text: template.text,
+          html: template.html,
+        });
+      }
+    } catch (err) {
+      console.error('subscription-canceled email failed:', err);
+    }
   }
 }
 
@@ -1062,40 +1506,44 @@ export const debugCleanupTrial = functions
 // ============================================
 export const initializeNewUser = functions
   .region('southamerica-east1')
-  .https.onRequest(async (req, res) => {
-    const token = req.headers.authorization?.replace('Bearer ', '');
+  .https.onRequest((req, res) => {
+    return corsHandler(req, res, async () => {
+      if (req.method === 'OPTIONS') {
+        res.status(204).send('');
+        return;
+      }
 
-    if (!token) {
-      res.status(401).send('Unauthorized');
-      return;
-    }
+      if (req.method !== 'POST') {
+        res.status(405).send('Method not allowed');
+        return;
+      }
 
-    const userId = req.query.userId || req.body.userId;
-    if (!userId) {
-      res.status(400).send('Missing userId');
-      return;
-    }
+      const token = req.headers.authorization?.replace('Bearer ', '');
 
-    try {
-      console.log('🆕 Initializing new user:', userId);
+      if (!token) {
+        res.status(401).send('Unauthorized');
+        return;
+      }
 
-      // Calculate trial end date (7 days from now)
-      const now = new Date();
-      const trialEnd = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
-      const trialEndDate = trialEnd.toISOString().split('T')[0]; // YYYY-MM-DD format
+      const userId = req.query.userId || req.body.userId;
+      if (!userId) {
+        res.status(400).send('Missing userId');
+        return;
+      }
 
-      // Create settings subcollection with trial
-      const settingsRef = db
-        .collection('users')
-        .doc(userId)
-        .collection('settings')
-        .doc('preferences');
+      try {
+        console.log('🆕 Initializing new user:', userId);
+        const breederName = req.body?.breederName ?? '';
 
-      await settingsRef.set(
-        {
+        // Calculate trial end date (7 days from now)
+        const now = new Date();
+        const trialEnd = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
+        const trialEndDate = trialEnd.toISOString().split('T')[0]; // YYYY-MM-DD format
+
+        const settingsData = {
           plan: 'Básico',
           trialEndDate: trialEndDate,
-          breederName: 'Meu Criatório',
+          breederName,
           cpfCnpj: '',
           breederCategory: '',
           responsibleName: '',
@@ -1112,7 +1560,7 @@ export const initializeNewUser = functions
           addressState: '',
           addressComplement: '',
           sispassNumber: '',
-          registrationDate: admin.firestore.FieldValue.serverTimestamp(),
+          registrationDate: '',
           renewalDate: '',
           lastRenewalDate: '',
           certificate: {
@@ -1127,40 +1575,54 @@ export const initializeNewUser = functions
           subscriptionEndDate: '',
           subscriptionCancelAtPeriodEnd: false,
           subscriptionStatus: '',
+          onboardingDismissed: false,
           createdAt: admin.firestore.FieldValue.serverTimestamp(),
           updatedAt: admin.firestore.FieldValue.serverTimestamp(),
-        },
-        { merge: true },
-      );
+        };
 
-      // Also create main user doc if doesn't exist
-      const userRef = db.collection('users').doc(userId);
-      const userDoc = await userRef.get();
+        const preferencesRef = db
+          .collection('users')
+          .doc(userId)
+          .collection('settings')
+          .doc('preferences');
 
-      if (!userDoc.exists) {
+        const generalRef = db
+          .collection('users')
+          .doc(userId)
+          .collection('settings')
+          .doc('general');
+
+        await Promise.all([
+          preferencesRef.set(settingsData, { merge: true }),
+          generalRef.set(settingsData, { merge: true }),
+        ]);
+
+        // Always write trial fields on main user doc (merge)
+        const userRef = db.collection('users').doc(userId);
         await userRef.set(
           {
             plan: 'Básico',
             trialEndDate: trialEndDate,
+            breederName,
             createdAt: admin.firestore.FieldValue.serverTimestamp(),
             updatedAt: admin.firestore.FieldValue.serverTimestamp(),
           },
           { merge: true },
         );
+
+        console.log('✅ User initialized with 7-day trial until:', trialEndDate);
+
+        res.status(200).json({
+          success: true,
+          userId,
+          trialEndDate,
+          message: `User initialized with 7-day trial until ${trialEndDate}`,
+        });
+      } catch (err: any) {
+        console.error('Error initializing user:', err);
+        res.status(500).json({ error: err.message });
       }
-
-      console.log('✅ User initialized with 7-day trial until:', trialEndDate);
-
-      res.status(200).json({
-        success: true,
-        userId,
-        trialEndDate,
-        message: `User initialized with 7-day trial until ${trialEndDate}`,
-      });
-    } catch (err: any) {
-      console.error('Error initializing user:', err);
-      res.status(500).json({ error: err.message });
-    }
+    });
   });
 
 // ============================================

@@ -55,18 +55,17 @@ const PublicTournamentsWidget: React.FC<PublicTournamentsWidgetProps> = ({
 
   const loadTournaments = async () => {
     try {
-      const q = query(
-        collection(db, 'tournaments'),
-        where('status', 'in', ['upcoming', 'ongoing']),
-        orderBy('startDate', 'asc'),
-        limit(3),
-      );
+      const q = query(collection(db, 'tournaments'), orderBy('startDate', 'asc'), limit(10));
       const snapshot = await getDocs(q);
-      const data = snapshot.docs.map((doc) => ({
-        id: doc.id,
-        ...doc.data(),
-      })) as PublicTournament[];
-      setTournaments(data);
+      const data = snapshot.docs
+        .map((doc) => ({
+          id: doc.id,
+          ...doc.data(),
+        }))
+        .filter((tournament) =>
+          ['upcoming', 'ongoing'].includes(String((tournament as any).status)),
+        ) as PublicTournament[];
+      setTournaments(data.slice(0, 3));
     } catch (error) {
       console.error('Erro ao carregar torneios:', error);
     } finally {

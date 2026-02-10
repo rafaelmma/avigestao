@@ -65,6 +65,9 @@ const HelpCenter: React.FC = () => {
   const [aiResponse, setAiResponse] = useState('');
   const [isAILoading, setIsAILoading] = useState(false);
   const [aiError, setAiError] = useState('');
+  const openContactModal = () => {
+    window.dispatchEvent(new Event('open-contact-modal'));
+  };
 
   const handleAskAI = async () => {
     if (!aiQuestion.trim()) return;
@@ -95,6 +98,7 @@ const HelpCenter: React.FC = () => {
     setAiError('');
   };
 
+
   const filteredFaqs = useMemo(() => {
     if (!search.trim()) return faqs;
     const term = search.toLowerCase();
@@ -122,12 +126,12 @@ const HelpCenter: React.FC = () => {
                 <Sparkles size={14} /> Assistente IA
               </button>
             )}
-            <a
-              href="mailto:suporte@avigestao.com"
+            <button
+              onClick={openContactModal}
               className="px-4 py-2 bg-emerald-50 text-emerald-700 border border-emerald-100 rounded-xl text-xs font-black uppercase tracking-widest flex items-center gap-2 hover:bg-emerald-100"
             >
-              <MessageCircle size={14} /> Email Suporte
-            </a>
+              <MessageCircle size={14} /> Email Contato
+            </button>
             <a
               href="https://wa.me/?text=Preciso%20de%20ajuda%20no%20AviGestao"
               target="_blank"
@@ -138,6 +142,23 @@ const HelpCenter: React.FC = () => {
             </a>
           </div>
         </header>
+
+        <section className="bg-white rounded-[32px] border border-slate-100 shadow-sm p-6 md:p-8">
+          <div className="flex items-center justify-between gap-4 flex-wrap">
+            <div>
+              <h3 className="text-xl font-black text-slate-800">Contato rapido</h3>
+              <p className="text-slate-500 text-sm">
+                Abra o formulario de contato para falar com a equipe.
+              </p>
+            </div>
+            <button
+              onClick={openContactModal}
+              className="px-4 py-2.5 bg-emerald-600 text-white rounded-xl text-xs font-black uppercase tracking-widest flex items-center gap-2 hover:bg-emerald-700"
+            >
+              <MessageCircle size={14} /> Abrir contato
+            </button>
+          </div>
+        </section>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           <div className="bg-white p-8 rounded-[32px] border border-slate-100 shadow-sm text-center">

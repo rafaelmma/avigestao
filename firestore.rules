@@ -94,6 +94,16 @@ service cloud.firestore {
       match /documents/{documentId} {
         allow read, write: if isAuthenticated() && isOwner(userId);
       }
+
+      // Ring batches (lotes de anilhas)
+      match /ring_batches/{batchId} {
+        allow read, write: if isAuthenticated() && isOwner(userId);
+      }
+
+      // Rings (anilhas)
+      match /rings/{ringId} {
+        allow read, write: if isAuthenticated() && isOwner(userId);
+      }
     }
     
     // Catálogo global de medicamentos (leitura pública)

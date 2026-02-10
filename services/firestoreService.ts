@@ -29,6 +29,8 @@ import {
   ContinuousTreatment,
   BreederSettings,
   MedicationCatalogItem,
+  RingBatch,
+  RingItem,
 } from '../types';
 import { DEFAULT_MEDICATION_CATALOG } from '../constants/medicationCatalog';
 
@@ -161,6 +163,147 @@ export const getBirds = async (userId: string): Promise<Bird[]> => {
   } catch (error) {
     console.error('Erro ao buscar birds:', error);
     return [];
+  }
+};
+
+// ============= RINGS =============
+export const getRingBatches = async (userId: string): Promise<RingBatch[]> => {
+  try {
+    const batchesRef = collection(db, 'users', userId, 'ring_batches');
+    const snapshot = await getDocs(batchesRef);
+    return snapshot.docs.map(
+      (doc) => ({
+        id: doc.id,
+        ...doc.data(),
+      }) as RingBatch,
+    );
+  } catch (error) {
+    console.error('Erro ao buscar lotes de anilhas:', error);
+    return [];
+  }
+};
+
+export const addRingBatchInFirestore = async (
+  userId: string,
+  batch: Omit<RingBatch, 'id'>,
+): Promise<string | null> => {
+  try {
+    const batchesRef = collection(db, 'users', userId, 'ring_batches');
+    const docRef = await addDoc(
+      batchesRef,
+      removeUndefined({
+        ...batch,
+        createdAt: Timestamp.now(),
+      }),
+    );
+    return docRef.id;
+  } catch (error) {
+    console.error('Erro ao adicionar lote de anilhas:', error);
+    return null;
+  }
+};
+
+export const updateRingBatchInFirestore = async (
+  userId: string,
+  batchId: string,
+  updates: Partial<RingBatch>,
+): Promise<boolean> => {
+  try {
+    const batchRef = doc(db, 'users', userId, 'ring_batches', batchId);
+    const cleanedUpdates = cleanUndefined({
+      ...updates,
+    });
+    await updateDoc(batchRef, cleanedUpdates);
+    return true;
+  } catch (error) {
+    console.error('Erro ao atualizar lote de anilhas:', error);
+    return false;
+  }
+};
+
+export const getRings = async (userId: string): Promise<RingItem[]> => {
+  try {
+    const ringsRef = collection(db, 'users', userId, 'rings');
+    const snapshot = await getDocs(ringsRef);
+    return snapshot.docs.map(
+      (doc) => ({
+        id: doc.id,
+        ...doc.data(),
+      }) as RingItem,
+    );
+  } catch (error) {
+    console.error('Erro ao buscar anilhas:', error);
+    return [];
+  }
+};
+
+export const addRingItemsInFirestore = async (
+  userId: string,
+  items: Omit<RingItem, 'id'>[],
+): Promise<string[]> => {
+  if (!items.length) return [];
+
+  const ringsRef = collection(db, 'users', userId, 'rings');
+  const ids: string[] = [];
+  const maxBatchSize = 450;
+  let batch = writeBatch(db);
+  let count = 0;
+
+  for (const item of items) {
+    const docRef = doc(ringsRef);
+    ids.push(docRef.id);
+    batch.set(
+      docRef,
+      removeUndefined({
+        ...item,
+        createdAt: Timestamp.now(),
+      }),
+    );
+    count += 1;
+
+    if (count >= maxBatchSize) {
+      await batch.commit();
+      batch = writeBatch(db);
+      count = 0;
+    }
+  }
+
+  if (count > 0) {
+    await batch.commit();
+  }
+
+  return ids;
+};
+
+export const updateRingItemInFirestore = async (
+  userId: string,
+  ringId: string,
+  updates: Partial<RingItem>,
+): Promise<boolean> => {
+  try {
+    const ringRef = doc(db, 'users', userId, 'rings', ringId);
+    const cleanedUpdates = cleanUndefined({
+      ...updates,
+    });
+    await updateDoc(ringRef, cleanedUpdates);
+    return true;
+  } catch (error) {
+    console.error('Erro ao atualizar anilha:', error);
+    return false;
+  }
+};
+
+export const deleteRingItemInFirestore = async (
+  userId: string,
+  ringId: string,
+): Promise<boolean> => {
+  try {
+    const ringRef = doc(db, 'users', userId, 'rings', ringId);
+    await deleteDoc(ringRef);
+    return true;
+  } catch (error) {
+    console.error('Erro ao deletar anilha:', error);
+    return false;
   }
 };
 
@@ -394,6 +537,11 @@ export const getSettings = async (userId: string): Promise<BreederSettings | nul
     if (snapshot.exists()) {
       return snapshot.data() as BreederSettings;
     }
+    const generalRef = doc(db, 'users', userId, 'settings', 'general');
+    const generalSnapshot = await getDoc(generalRef);
+    if (generalSnapshot.exists()) {
+      return generalSnapshot.data() as BreederSettings;
+    }
     return null;
   } catch (error) {
     console.error('Erro ao buscar settings:', error);
@@ -404,11 +552,15 @@ export const getSettings = async (userId: string): Promise<BreederSettings | nul
 export const saveSettings = async (userId: string, settings: BreederSettings): Promise<boolean> => {
   try {
     const settingsRef = doc(db, 'users', userId, 'settings', 'preferences');
+    const generalRef = doc(db, 'users', userId, 'settings', 'general');
     const cleanedUpdates = cleanUndefined({
       ...settings,
       updatedAt: Timestamp.now(),
     });
-    await updateDoc(settingsRef, cleanedUpdates);
+    await Promise.all([
+      setDoc(settingsRef, cleanedUpdates, { merge: true }),
+      setDoc(generalRef, cleanedUpdates, { merge: true }),
+    ]);
     return true;
   } catch (error) {
     console.error('Erro ao salvar settings:', error);

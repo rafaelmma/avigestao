@@ -84,6 +84,47 @@ const formatCep = (value: string) => {
   return `${digits.slice(0, 5)}-${digits.slice(5)}`;
 };
 
+const formatDateForInput = (iso?: string) => {
+  if (!iso) return '';
+  const date = new Date(iso);
+  if (Number.isNaN(date.getTime())) return '';
+  return date.toLocaleDateString('pt-BR');
+};
+
+const maskDateInput = (value: string) => {
+  const digits = value.replace(/\D/g, '').slice(0, 8);
+  if (digits.length <= 2) return digits;
+  if (digits.length <= 4) return `${digits.slice(0, 2)}/${digits.slice(2)}`;
+  return `${digits.slice(0, 2)}/${digits.slice(2, 4)}/${digits.slice(4)}`;
+};
+
+const parseMaskedDate = (value: string) => {
+  const digits = value.replace(/\D/g, '');
+  if (digits.length !== 8) return null;
+  const day = Number(digits.slice(0, 2));
+  const month = Number(digits.slice(2, 4));
+  const year = Number(digits.slice(4, 8));
+  if (!day || !month || !year) return null;
+  const iso = `${year.toString().padStart(4, '0')}-${month
+    .toString()
+    .padStart(2, '0')}-${day.toString().padStart(2, '0')}`;
+  const date = new Date(iso);
+  if (Number.isNaN(date.getTime())) return null;
+  return iso;
+};
+
+const parseDateInput = (value: string) => {
+  const digits = value.replace(/\D/g, '');
+  if (digits.length === 8) {
+    const day = digits.slice(0, 2);
+    const month = digits.slice(2, 4);
+    const year = digits.slice(4, 8);
+    return `${year}-${month}-${day}`;
+  }
+  if (/^\d{4}-\d{2}-\d{2}$/.test(value)) return value;
+  return '';
+};
+
 const daysTo = (date?: string) => {
   if (!date) return null;
   const diff = Math.ceil((new Date(date).getTime() - Date.now()) / (1000 * 60 * 60 * 24));
@@ -99,7 +140,6 @@ const SettingsManager: React.FC<SettingsManagerProps> = ({
   const fileInputRef = useRef<HTMLInputElement>(null);
   const primaryColorRef = useRef<HTMLInputElement>(null);
   const accentColorRef = useRef<HTMLInputElement>(null);
-  const renewalDateRef = useRef<HTMLInputElement>(null);
 
   const [activeTab, setActiveTab] = useState<'perfil' | 'plano'>('perfil');
   const [selectedPlanId, setSelectedPlanId] = useState('monthly');
@@ -132,6 +172,9 @@ const SettingsManager: React.FC<SettingsManagerProps> = ({
   const [isFetchingCep, setIsFetchingCep] = useState(false);
   const [cepError, setCepError] = useState<string | null>(null);
   const lastCepLookupRef = useRef<string>('');
+
+  const [renewalInput, setRenewalInput] = useState('');
+  const [lastRenewalInput, setLastRenewalInput] = useState('');
 
   const isTrial = !!settings.trialEndDate && !isAdmin;
   const canUseLogo = !!isAdmin || settings.plan === 'Profissional' || !!settings.trialEndDate;
@@ -222,6 +265,11 @@ const SettingsManager: React.FC<SettingsManagerProps> = ({
       setHasStripeCustomer(false);
     }
   }, []);
+
+  useEffect(() => {
+    setRenewalInput(formatDateForInput(settings.renewalDate));
+    setLastRenewalInput(formatDateForInput(settings.lastRenewalDate));
+  }, [settings.renewalDate, settings.lastRenewalDate]);
 
   useEffect(() => {
     try {
@@ -816,12 +864,6 @@ const SettingsManager: React.FC<SettingsManagerProps> = ({
                   <label className="space-y-2">
                     <div className="flex items-center gap-2">
                       <span className="text-label">Número SISPASS</span>
-                      <div className="group relative cursor-help">
-                        <HelpCircle size={14} className="text-slate-400 hover:text-slate-600" />
-                        <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 hidden group-hover:block bg-slate-800 text-white text-xs px-3 py-2 rounded-lg whitespace-nowrap z-50">
-                          Número de registro do SISPASS/CTF junto ao IBAMA
-                        </div>
-                      </div>
                     </div>
                     <input
                       className="w-full p-3.5 rounded-lg bg-white border border-slate-300 text-sm font-medium outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500"
@@ -833,71 +875,61 @@ const SettingsManager: React.FC<SettingsManagerProps> = ({
                     />
                     <p className="text-xs text-slate-500">Encontre em sua licença SISPASS/CTF</p>
                   </label>
+
                   <label className="space-y-2">
                     <div className="flex items-center gap-2">
-                      <span className="text-label">Data de Renovação SISPASS</span>
-                      <div className="group relative cursor-help">
-                        <HelpCircle size={14} className="text-slate-400 hover:text-slate-600" />
-                        <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 hidden group-hover:block bg-slate-800 text-white text-xs px-3 py-2 rounded-lg whitespace-nowrap z-50">
-                          Data de vencimento da sua licença SISPASS/CTF
-                        </div>
-                      </div>
+                      <span className="text-label">Próxima Renovação</span>
                     </div>
                     <input
-                      ref={renewalDateRef}
-                      type="date"
+                      type="text"
+                      inputMode="numeric"
+                      placeholder="DD/MM/AAAA"
                       className="w-full p-3.5 rounded-lg bg-white border border-slate-300 text-sm font-medium outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500"
-                      value={settings.renewalDate}
-                      onChange={(e) => updateSettings({ ...settings, renewalDate: e.target.value })}
+                      value={renewalInput}
+                      onChange={(e) => {
+                        const masked = maskDateInput(e.target.value);
+                        setRenewalInput(masked);
+                        const iso = parseMaskedDate(masked);
+                        if (iso) {
+                          updateSettings({ ...settings, renewalDate: iso });
+                        }
+                      }}
+                      onBlur={() => {
+                        const iso = parseMaskedDate(renewalInput);
+                        if (!iso) {
+                          setRenewalInput(formatDateForInput(settings.renewalDate));
+                        }
+                      }}
                     />
                     <p className="text-[10px] text-slate-400">
                       Sistema avisa com 30 dias de antecedência
                     </p>
                   </label>
-                </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <label className="space-y-2">
                     <div className="flex items-center gap-2">
-                      <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
-                        Data de registro
-                      </span>
-                      <div className="group relative cursor-help">
-                        <HelpCircle size={14} className="text-slate-300 hover:text-slate-400" />
-                        <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 hidden group-hover:block bg-slate-800 text-white text-[10px] px-3 py-2 rounded-lg whitespace-nowrap z-50">
-                          Data de primeiro registro do seu criatório
-                        </div>
-                      </div>
+                      <span className="text-label">Última Renovação</span>
                     </div>
                     <input
-                      type="date"
-                      className="w-full p-3 rounded-2xl bg-slate-50 border border-slate-100 text-sm font-bold"
-                      value={settings.registrationDate}
-                      onChange={(e) =>
-                        updateSettings({ ...settings, registrationDate: e.target.value })
-                      }
-                    />
-                    <p className="text-[10px] text-slate-400">Data do registro original</p>
-                  </label>
-                  <label className="space-y-2">
-                    <div className="flex items-center gap-2">
-                      <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
-                        Última Renovação
-                      </span>
-                      <div className="group relative cursor-help">
-                        <HelpCircle size={14} className="text-slate-300 hover:text-slate-400" />
-                        <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 hidden group-hover:block bg-slate-800 text-white text-[10px] px-3 py-2 rounded-lg whitespace-nowrap z-50">
-                          Última vez que o SISPASS foi renovado
-                        </div>
-                      </div>
-                    </div>
-                    <input
-                      type="date"
-                      className="w-full p-3 rounded-2xl bg-slate-50 border border-slate-100 text-sm font-bold"
-                      value={settings.lastRenewalDate || ''}
-                      onChange={(e) =>
-                        updateSettings({ ...settings, lastRenewalDate: e.target.value })
-                      }
+                      type="text"
+                      inputMode="numeric"
+                      placeholder="DD/MM/AAAA"
+                      className="w-full p-3.5 rounded-lg bg-white border border-slate-300 text-sm font-medium outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500"
+                      value={lastRenewalInput}
+                      onChange={(e) => {
+                        const masked = maskDateInput(e.target.value);
+                        setLastRenewalInput(masked);
+                        const iso = parseMaskedDate(masked);
+                        if (iso) {
+                          updateSettings({ ...settings, lastRenewalDate: iso });
+                        }
+                      }}
+                      onBlur={() => {
+                        const iso = parseMaskedDate(lastRenewalInput);
+                        if (!iso) {
+                          setLastRenewalInput(formatDateForInput(settings.lastRenewalDate));
+                        }
+                      }}
                     />
                     <p className="text-[10px] text-slate-400">Data da última renovação</p>
                   </label>

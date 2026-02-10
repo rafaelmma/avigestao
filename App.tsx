@@ -14,13 +14,16 @@ import {
   MaintenanceTask,
   TournamentEvent,
   ContinuousTreatment,
+  RingBatch,
+  RingItem,
 } from './types';
-import { INITIAL_SETTINGS, MOCK_BIRDS, MOCK_MEDS } from './constants';
+import { INITIAL_SETTINGS } from './constants';
 import Sidebar from './components/Sidebar';
 import PageHeader from './components/ui/PageHeader';
 import PrimaryButton from './components/ui/PrimaryButton';
 import SecondaryButton from './components/ui/SecondaryButton';
 import Footer from './components/ui/Footer';
+import ContactModal from './components/ui/ContactModal';
 
 // Lazy-loaded pages
 const Dashboard = lazy(() => import('./pages/Dashboard'));
@@ -35,6 +38,7 @@ const TournamentCalendar = lazy(() => import('./pages/TournamentCalendar'));
 const TournamentManager = lazy(() => import('./pages/TournamentManager'));
 const HelpCenter = lazy(() => import('./pages/HelpCenter'));
 const DocumentsManager = lazy(() => import('./pages/DocumentsManager'));
+const RingsManager = lazy(() => import('./pages/RingsManager'));
 const Auth = lazy(() => import('./pages/Auth'));
 const BirdVerification = lazy(() => import('./pages/BirdVerification'));
 const AnalyticsPage = lazy(() => import('./pages/AnalyticsPage'));
@@ -43,9 +47,13 @@ const PublicTournaments = lazy(() => import('./pages/PublicTournaments'));
 const TournamentResults = lazy(() => import('./pages/TournamentResults'));
 const PublicBirds = lazy(() => import('./pages/PublicBirds'));
 const AdminUsers = lazy(() => import('./pages/AdminUsers'));
+const About = lazy(() => import('./pages/About'));
+const Privacy = lazy(() => import('./pages/Privacy'));
+const Terms = lazy(() => import('./pages/Terms'));
 
 // Firebase auth
 import { getAuth, onAuthStateChanged, signOut } from 'firebase/auth';
+import { httpsCallable } from 'firebase/functions';
 
 // Firestore services
 import {
@@ -100,7 +108,15 @@ import {
   syncPublicBirdsForUser,
   checkIfUserIsAdmin,
   checkIfUserIsAdminOnly,
+  getRingBatches,
+  getRings,
+  addRingBatchInFirestore,
+  addRingItemsInFirestore,
+  updateRingItemInFirestore,
+  deleteRingItemInFirestore,
 } from './services/firestoreService';
+import { functions } from './lib/firebase';
+import { initializeNewUser, sendVerificationEmail } from './services/authService';
 
 const STORAGE_KEY = 'avigestao_state_v2';
 const storageKeyForUser = (userId?: string) => (userId ? `${STORAGE_KEY}::${userId}` : STORAGE_KEY);
@@ -162,13 +178,13 @@ const clearAllCachedStates = () => {
 };
 
 const defaultState: AppState = {
-  birds: MOCK_BIRDS,
+  birds: [],
   deletedBirds: [],
   pairs: [],
   archivedPairs: [],
   deletedPairs: [],
   clutches: [],
-  medications: MOCK_MEDS,
+  medications: [],
   deletedMedications: [],
   medicationCatalog: [],
   applications: [],
@@ -183,6 +199,8 @@ const defaultState: AppState = {
   deletedTasks: [],
   tournaments: [],
   deletedTournaments: [],
+  ringBatches: [],
+  rings: [],
   settings: INITIAL_SETTINGS,
 };
 
@@ -193,13 +211,61 @@ const normalizeTrialEndDate = (value?: string) => {
   return parsed.getTime() >= Date.now() ? parsed.toISOString().split('T')[0] : undefined;
 };
 
+const getTabFromPath = (path: string) => {
+  if (path.startsWith('/about')) return 'about';
+  if (path.startsWith('/privacy')) return 'privacy';
+  if (path.startsWith('/terms')) return 'terms';
+  if (path.startsWith('/rings')) return 'rings';
+  if (path.startsWith('/public-tournaments')) return 'public-tournaments';
+  if (path.startsWith('/tournament-results')) return 'tournament-results';
+  if (path.startsWith('/statistics')) return 'statistics';
+  if (path.startsWith('/public-birds')) return 'public-birds';
+  if (path.startsWith('/verification')) return 'verification';
+  return 'dashboard';
+};
+
+const getPathFromTab = (tab: string) => {
+  switch (tab) {
+    case 'about':
+      return '/about';
+    case 'privacy':
+      return '/privacy';
+    case 'terms':
+      return '/terms';
+    case 'rings':
+      return '/rings';
+    case 'public-tournaments':
+      return '/public-tournaments';
+    case 'tournament-results':
+      return '/tournament-results';
+    case 'statistics':
+      return '/statistics';
+    case 'public-birds':
+      return '/public-birds';
+    case 'verification':
+      return '/verification';
+    default:
+      return '/';
+  }
+};
+
 const App: React.FC = () => {
-  const [activeTab, setActiveTab] = useState<string>('dashboard');
+  const [activeTab, setActiveTab] = useState<string>(() => {
+    if (typeof window === 'undefined') return 'dashboard';
+    return getTabFromPath(window.location.pathname);
+  });
   const [globalSearch, setGlobalSearch] = useState<string>('');
   const [state, setState] = useState<AppState>(() => defaultState);
   const [session, setSession] = useState<any>(null);
   const [isAdmin, setIsAdmin] = useState(false);
   const [isAdminOnly, setIsAdminOnly] = useState(false);
+  const [isEmailVerificationPending, setIsEmailVerificationPending] = useState(false);
+  const [verificationEmail, setVerificationEmail] = useState<string | null>(null);
+  const [isResendingVerification, setIsResendingVerification] = useState(false);
+  const [isCheckingVerification, setIsCheckingVerification] = useState(false);
+  const [wantsWelcomeEmail, setWantsWelcomeEmail] = useState(true);
+  const [isSendingWelcomeEmail, setIsSendingWelcomeEmail] = useState(false);
+  const [isContactOpen, setIsContactOpen] = useState(false);
 
   // Verifica se é uma rota pública (verificação de pássaro)
   const isPublicRoute = React.useMemo(() => {
@@ -237,6 +303,8 @@ const App: React.FC = () => {
     setIsAdmin(false);
     setState(defaultState);
     setHasHydratedOnce(false);
+    setIsEmailVerificationPending(false);
+    setVerificationEmail(null);
     setIsLoading(false);
     clearCachedState(userId);
     clearAllCachedStates();
@@ -254,6 +322,15 @@ const App: React.FC = () => {
 
   // Persist state + theme colors
   useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const handlePopState = () => {
+      setActiveTab(getTabFromPath(window.location.pathname));
+    };
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, []);
+
+  useEffect(() => {
     const root = document.documentElement;
     root.style.setProperty('--primary', state.settings.primaryColor);
     root.style.setProperty('--primary-hover', state.settings.primaryColor + 'ee');
@@ -264,6 +341,12 @@ const App: React.FC = () => {
     persistState(state, userId);
   }, [state, session, hasHydratedOnce]);
 
+  useEffect(() => {
+    const handleOpenContact = () => setIsContactOpen(true);
+    window.addEventListener('open-contact-modal', handleOpenContact);
+    return () => window.removeEventListener('open-contact-modal', handleOpenContact);
+  }, []);
+
   // Firebase Authentication
   useEffect(() => {
     let mounted = true;
@@ -273,6 +356,16 @@ const App: React.FC = () => {
 
       try {
         if (firebaseUser) {
+          if (!firebaseUser.emailVerified) {
+            setIsEmailVerificationPending(true);
+            setVerificationEmail(firebaseUser.email ?? null);
+            setSession(null);
+            setIsLoading(false);
+            return;
+          }
+
+          setIsEmailVerificationPending(false);
+          setVerificationEmail(null);
           const userId = firebaseUser.uid;
           const cached = loadCachedState(userId);
 
@@ -325,6 +418,8 @@ const App: React.FC = () => {
 
     lastValidSessionRef.current = newSession;
     setSession(newSession);
+    setIsEmailVerificationPending(false);
+    setVerificationEmail(null);
 
     const cached = loadCachedState(newUserId);
     if (cached.hasCache) {
@@ -354,7 +449,6 @@ const App: React.FC = () => {
           movements,
           transactions,
           deletedTransactions,
-          settings,
           medications,
           applications,
           clutches,
@@ -363,13 +457,14 @@ const App: React.FC = () => {
           tournaments,
           deletedTournaments,
           medicationCatalog,
+          ringBatches,
+          rings,
         ] = await Promise.all([
           getBirds(newUserId),
           getPairs(newUserId),
           getMovements(newUserId),
           getTransactions(newUserId),
           getDeletedTransactions(newUserId),
-          getSettings(newUserId),
           getMedications(newUserId),
           getApplications(newUserId),
           getClutches(newUserId),
@@ -378,7 +473,19 @@ const App: React.FC = () => {
           getTournaments(newUserId),
           getDeletedTournaments(newUserId),
           getMedicationCatalog(),
+          getRingBatches(newUserId),
+          getRings(newUserId),
         ]);
+
+        let settings = await getSettings(newUserId);
+        const shouldInitTrial = !adminStatus && !adminOnlyStatus && !settings?.trialEndDate;
+        if (shouldInitTrial && auth.currentUser) {
+          const initResult = await initializeNewUser(auth.currentUser);
+          if (initResult.error) {
+            console.warn('Falha ao inicializar novo usuario:', initResult.error);
+          }
+          settings = await getSettings(newUserId);
+        }
 
         syncPublicBirdsForUser(newUserId, birds);
 
@@ -431,14 +538,14 @@ const App: React.FC = () => {
 
         setState({
           ...defaultState,
-          birds: birds.length > 0 ? birds : MOCK_BIRDS,
+          birds: birds || [],
           pairs: pairs || [],
           movements: normalMovements,
           deletedMovements: deletedMovements,
           transactions: transactions || [],
           deletedTransactions: deletedTransactions || [],
           settings: mergedSettings,
-          medications: medications && medications.length > 0 ? medications : MOCK_MEDS,
+          medications: medications || [],
           applications: applications || [],
           medicationCatalog: medicationCatalog || [],
           clutches: clutches || [],
@@ -446,6 +553,8 @@ const App: React.FC = () => {
           tasks: tasks || [],
           tournaments: tournaments || [],
           deletedTournaments: deletedTournaments || [],
+          ringBatches: ringBatches || [],
+          rings: rings || [],
         });
 
         setHasHydratedOnce(true);
@@ -482,8 +591,98 @@ const App: React.FC = () => {
     }));
   };
 
+  const userNavigatedRef = useRef(false);
+
   const navigateTo = (tab: string) => {
     setActiveTab(tab);
+    if (typeof window !== 'undefined') {
+      const nextPath = getPathFromTab(tab);
+      if (window.location.pathname !== nextPath) {
+        window.history.pushState({}, '', nextPath);
+      }
+    }
+    if (!session?.user?.id) return;
+    userNavigatedRef.current = true;
+    const updatedSettings = { ...state.settings, lastActiveTab: tab, _autoViewPrefUpdate: true };
+    updateSettings(updatedSettings);
+    persistSettings(updatedSettings);
+  };
+
+  useEffect(() => {
+    if (!session?.user?.id) return;
+    if (userNavigatedRef.current) return;
+    const publicTabs = new Set([
+      'verification',
+      'public-tournaments',
+      'tournament-results',
+      'statistics',
+      'public-birds',
+      'about',
+      'privacy',
+      'terms',
+    ]);
+    if (publicTabs.has(activeTab)) return;
+    if (state.settings?.lastActiveTab && state.settings.lastActiveTab !== activeTab) {
+      setActiveTab(state.settings.lastActiveTab);
+    }
+  }, [activeTab, session?.user?.id, state.settings?.lastActiveTab]);
+
+  const handleResendVerification = async () => {
+    setIsResendingVerification(true);
+    try {
+      const { error } = await sendVerificationEmail(auth.currentUser ?? undefined);
+      if (error) {
+        toast.error(error);
+        return;
+      }
+      toast.success('Email de verificacao enviado!');
+    } finally {
+      setIsResendingVerification(false);
+    }
+  };
+
+  const handleSendWelcomeEmailIfNeeded = async () => {
+    if (!wantsWelcomeEmail) return;
+    setIsSendingWelcomeEmail(true);
+    try {
+      const sendWelcome = httpsCallable(functions, 'sendWelcomeEmailIfNeeded');
+      await sendWelcome({ optIn: true });
+    } catch (error) {
+      console.error('Erro ao enviar email de boas-vindas:', error);
+    } finally {
+      setIsSendingWelcomeEmail(false);
+    }
+  };
+
+  const handleCheckVerification = async () => {
+    setIsCheckingVerification(true);
+    try {
+      const currentUser = auth.currentUser;
+      if (!currentUser) {
+        toast.error('Usuario nao encontrado');
+        return;
+      }
+
+      await currentUser.reload();
+
+      if (!currentUser.emailVerified) {
+        toast.error('Email ainda nao verificado. Confira sua caixa de entrada.');
+        return;
+      }
+
+      const newSession = {
+        user: { id: currentUser.uid, email: currentUser.email },
+        access_token: await currentUser.getIdToken(),
+      };
+
+      await handleSession(newSession);
+      await handleSendWelcomeEmailIfNeeded();
+    } catch (error) {
+      console.error('Erro ao verificar email:', error);
+      toast.error('Erro ao verificar email');
+    } finally {
+      setIsCheckingVerification(false);
+    }
   };
 
   // ========== BIRD HANDLERS ==========
@@ -528,7 +727,7 @@ const App: React.FC = () => {
   const updateBird = async (bird: Bird) => {
     const userId = session?.user?.id;
     console.log('updateBird chamado:', { userId, birdId: bird.id, birdName: bird.name });
-    if (!userId) return;
+    if (!userId) return false;
 
     try {
       // Atualizar estado local PRIMEIRO para UI reagir imediatamente
@@ -611,6 +810,152 @@ const App: React.FC = () => {
     } catch (e) {
       console.error('Erro ao deletar ave permanentemente:', e);
       toast.error('Erro ao deletar ave permanentemente');
+    }
+  };
+
+  // ========== RING HANDLERS ==========
+
+  const addRingBatch = async (batch: Omit<RingBatch, 'id'>, items: Omit<RingItem, 'id'>[]) => {
+    const userId = session?.user?.id;
+    if (!userId) {
+      toast.error('Usuario nao autenticado');
+      return false;
+    }
+
+    try {
+      const batchId = await addRingBatchInFirestore(userId, batch);
+      if (!batchId) {
+        toast.error('Falha ao salvar lote de anilhas');
+        return false;
+      }
+
+      const batchWithId: RingBatch = { ...batch, id: batchId } as RingBatch;
+      let createdItems: RingItem[] = [];
+
+      let itemsToCreate = items;
+      if (!itemsToCreate.length && typeof batch.quantity === 'number') {
+        const count = Math.max(0, Math.floor(batch.quantity));
+        const width = Math.max(3, count.toString().length);
+        itemsToCreate = Array.from({ length: count }, (_, index) => {
+          const sequence = (index + 1).toString().padStart(width, '0');
+          return {
+            code: `${batchId.slice(0, 6)}-${sequence}`,
+            number: sequence,
+            year: batch.year,
+            state: batch.state,
+            color: batch.color,
+            species: batch.species,
+            sizeMm: batch.sizeMm,
+            personalization: batch.personalization,
+            status: 'estoque',
+          } as Omit<RingItem, 'id'>;
+        });
+      }
+
+      if (itemsToCreate.length) {
+        const itemsWithBatch = itemsToCreate.map((item) => ({ ...item, batchId }));
+        const ids = await addRingItemsInFirestore(userId, itemsWithBatch);
+        createdItems = itemsWithBatch.map((item, index) => ({
+          ...item,
+          id: ids[index],
+        }));
+      }
+
+      setState((prev) => ({
+        ...prev,
+        ringBatches: [...(prev.ringBatches || []), batchWithId],
+        rings: [...(prev.rings || []), ...createdItems],
+      }));
+
+      toast.success('Lote de anilhas adicionado');
+      return true;
+    } catch (error) {
+      console.error('Erro ao adicionar lote de anilhas:', error);
+      toast.error('Erro ao adicionar lote de anilhas');
+      return false;
+    }
+  };
+
+  const addRingItem = async (item: Omit<RingItem, 'id'>) => {
+    const userId = session?.user?.id;
+    if (!userId) {
+      toast.error('Usuario nao autenticado');
+      return false;
+    }
+
+    try {
+      const ids = await addRingItemsInFirestore(userId, [item]);
+      const id = ids[0];
+      if (!id) {
+        toast.error('Falha ao salvar anilha');
+        return false;
+      }
+      const ringWithId: RingItem = { ...item, id } as RingItem;
+      setState((prev) => ({
+        ...prev,
+        rings: [...(prev.rings || []), ringWithId],
+      }));
+      toast.success('Anilha adicionada');
+      return true;
+    } catch (error) {
+      console.error('Erro ao adicionar anilha:', error);
+      toast.error('Erro ao adicionar anilha');
+      return false;
+    }
+  };
+
+  const updateRingItem = async (ringId: string, updates: Partial<RingItem>) => {
+    const userId = session?.user?.id;
+    if (!userId) return false;
+
+    const previous = state.rings || [];
+    setState((prev) => ({
+      ...prev,
+      rings: (prev.rings || []).map((ring) =>
+        ring.id === ringId ? { ...ring, ...updates } : ring,
+      ),
+    }));
+
+    try {
+      const success = await updateRingItemInFirestore(userId, ringId, updates);
+      if (!success) {
+        setState((prev) => ({ ...prev, rings: previous }));
+        toast.error('Falha ao atualizar anilha');
+        return false;
+      }
+      return true;
+    } catch (error) {
+      console.error('Erro ao atualizar anilha:', error);
+      setState((prev) => ({ ...prev, rings: previous }));
+      toast.error('Erro ao atualizar anilha');
+      return false;
+    }
+  };
+
+  const deleteRingItem = async (ringId: string) => {
+    const userId = session?.user?.id;
+    if (!userId) return false;
+
+    const previous = state.rings || [];
+    setState((prev) => ({
+      ...prev,
+      rings: (prev.rings || []).filter((ring) => ring.id !== ringId),
+    }));
+
+    try {
+      const success = await deleteRingItemInFirestore(userId, ringId);
+      if (!success) {
+        setState((prev) => ({ ...prev, rings: previous }));
+        toast.error('Falha ao excluir anilha');
+        return false;
+      }
+      toast.success('Anilha excluida');
+      return true;
+    } catch (error) {
+      console.error('Erro ao excluir anilha:', error);
+      setState((prev) => ({ ...prev, rings: previous }));
+      toast.error('Erro ao excluir anilha');
+      return false;
     }
   };
 
@@ -1979,6 +2324,19 @@ const App: React.FC = () => {
             onSave={persistSettings}
           />
         );
+      case 'rings':
+        return (
+          <RingsManager
+            rings={state.rings || []}
+            ringBatches={state.ringBatches || []}
+            birds={state.birds}
+            addRingBatch={addRingBatch}
+            addRingItem={addRingItem}
+            updateRingItem={updateRingItem}
+            deleteRingItem={deleteRingItem}
+            updateBird={updateBird}
+          />
+        );
       case 'verification':
         return <BirdVerification birdId={birdIdFromUrl || ''} />;
       case 'analytics':
@@ -1997,6 +2355,12 @@ const App: React.FC = () => {
             birds={state.birds}
           />
         );
+      case 'about':
+        return <About />;
+      case 'privacy':
+        return <Privacy />;
+      case 'terms':
+        return <Terms />;
       case 'tournament-results':
         return <TournamentResults onBack={() => navigateTo('dashboard')} />;
       case 'admin-users':
@@ -2034,10 +2398,86 @@ const App: React.FC = () => {
         return 'Torneios';
       case 'settings':
         return 'Configurações';
+      case 'about':
+        return 'Sobre';
+      case 'privacy':
+        return 'Privacidade';
+      case 'terms':
+        return 'Termos de Uso';
+      case 'rings':
+        return 'Anilhas';
       default:
         return tab.charAt(0).toUpperCase() + tab.slice(1);
     }
   };
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
+        <div className="text-center">
+          <div className="inline-block w-16 h-16 border-4 border-indigo-200 border-t-indigo-600 rounded-full animate-spin" />
+          <p className="mt-4 text-lg font-semibold text-gray-700">Carregando dados...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (isEmailVerificationPending) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-slate-50 p-6">
+        <div className="w-full max-w-xl bg-white border border-slate-200 rounded-3xl p-8 shadow-lg">
+          <Toaster position="bottom-center" />
+          <h2 className="text-2xl font-black text-slate-900">Confirme seu email</h2>
+          <p className="text-slate-600 mt-2">
+            Enviamos um link de verificacao para{' '}
+            <span className="font-semibold text-slate-800">
+              {verificationEmail || 'seu email'}
+            </span>
+            .
+          </p>
+          <p className="text-xs text-slate-500 mt-2">
+            Verifique tambem a pasta de spam/lixo eletronico.
+          </p>
+
+          <div className="mt-6 space-y-4">
+            <label className="flex items-start gap-3 text-sm text-slate-600">
+              <input
+                type="checkbox"
+                className="mt-1"
+                checked={wantsWelcomeEmail}
+                onChange={(e) => setWantsWelcomeEmail(e.target.checked)}
+              />
+              Enviar email de boas-vindas (opcional).
+            </label>
+
+            <div className="flex flex-col gap-3">
+              <button
+                className="btn btn-primary"
+                onClick={handleCheckVerification}
+                disabled={isCheckingVerification}
+              >
+                {isCheckingVerification ? 'Verificando...' : 'Ja verifiquei'}
+              </button>
+              <button
+                className="btn btn-secondary"
+                onClick={handleResendVerification}
+                disabled={isResendingVerification}
+              >
+                {isResendingVerification ? 'Enviando...' : 'Reenviar email'}
+              </button>
+              <button className="btn btn-ghost" onClick={handleLogout}>
+                Sair
+              </button>
+            </div>
+
+            {isSendingWelcomeEmail && (
+              <p className="text-xs text-slate-500">Enviando email de boas-vindas...</p>
+            )}
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   if (!session) {
     // Rotas públicas que funcionam sem login
@@ -2047,6 +2487,9 @@ const App: React.FC = () => {
       'tournament-results',
       'statistics',
       'public-birds',
+      'about',
+      'privacy',
+      'terms',
     ];
 
     if (publicRoutes.includes(activeTab)) {
@@ -2095,19 +2538,8 @@ const App: React.FC = () => {
     );
   }
 
-  if (isLoading) {
-    return (
-      <div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
-        <div className="text-center">
-          <div className="inline-block w-16 h-16 border-4 border-indigo-200 border-t-indigo-600 rounded-full animate-spin" />
-          <p className="mt-4 text-lg font-semibold text-gray-700">Carregando dados...</p>
-        </div>
-      </div>
-    );
-  }
-
   return (
-    <div className="flex h-screen bg-gray-100">
+    <div className="min-h-screen bg-gray-100 overflow-hidden">
       <a href="#main-content" className="skip-link">
         Pular para o conteúdo
       </a>
@@ -2115,6 +2547,9 @@ const App: React.FC = () => {
       <Sidebar
         activeTab={activeTab}
         setActiveTab={navigateTo}
+        settings={state.settings}
+        updateSettings={updateSettings}
+        onSave={persistSettings}
         onLogout={handleLogout}
         breederName={state.settings?.breederName || 'Criador'}
         logoUrl={state.settings?.logoUrl}
@@ -2123,8 +2558,11 @@ const App: React.FC = () => {
         isAdmin={isAdmin}
         adminOnly={isAdminOnly}
       />
-      <main id="main-content" className="flex-1 overflow-auto ml-0 lg:ml-64">
-        <div className="p-3 md:p-4 lg:p-6 pb-24">
+      <main
+        id="main-content"
+        className="flex flex-col ml-0 lg:ml-64 h-[calc(100vh-var(--app-footer-height))] overflow-auto"
+      >
+        <div className="p-3 md:p-4 lg:p-6 pb-6">
           <PageHeader
             title={<>{getPageTitle(activeTab)}</>}
             subtitle=""
@@ -2155,8 +2593,14 @@ const App: React.FC = () => {
             {renderContent()}
           </Suspense>
         </div>
-        <Footer />
+        <Footer onContactClick={() => setIsContactOpen(true)} />
       </main>
+      <ContactModal
+        isOpen={isContactOpen}
+        onClose={() => setIsContactOpen(false)}
+        defaultName={state.settings?.breederName || 'Criador'}
+        defaultEmail={state.settings?.breederEmail || session?.user?.email || ''}
+      />
     </div>
   );
 };

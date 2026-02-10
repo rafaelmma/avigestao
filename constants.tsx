@@ -110,8 +110,8 @@ export const isDefaultBirdImage = (url?: string) => {
 export const BRAZILIAN_SPECIES = Object.keys(SPECIES_IMAGES);
 
 export const INITIAL_SETTINGS: BreederSettings = {
-  breederName: 'Meu Criatório',
-  cpfCnpj: '000.000.000-00',
+  breederName: '',
+  cpfCnpj: '',
   breederCategory: '',
   responsibleName: '',
   speciesRaised: '',
@@ -126,10 +126,10 @@ export const INITIAL_SETTINGS: BreederSettings = {
   addressCity: '',
   addressState: '',
   addressComplement: '',
-  sispassNumber: '1234567-8',
-  registrationDate: '2023-01-01',
-  renewalDate: '2025-12-31',
-  lastRenewalDate: '2024-08-01',
+  sispassNumber: '',
+  registrationDate: '',
+  renewalDate: '',
+  lastRenewalDate: '',
   certificate: {
     issuer: '',
     expiryDate: '',
@@ -146,81 +146,11 @@ export const INITIAL_SETTINGS: BreederSettings = {
 };
 
 export const MOCK_BIRDS: Bird[] = [
-  {
-    id: '1',
-    breederId: 'system-user',
-    ringNumber: 'SIS-2023-001',
-    species: 'Curió',
-    name: 'Mestre',
-    sex: 'Macho',
-    colorMutation: 'Clássico',
-    birthDate: '2022-10-10',
-    status: 'Ativo' as any,
-    location: 'Gaiola 01',
-    photoUrl: getDefaultBirdImage('Curió', 'Macho', '2022-10-10'),
-    createdAt: new Date().toISOString(),
-    classification: 'Exemplar' as any,
-    songTrainingStatus: 'Em Progresso' as any,
-    songType: 'Praia Clássico',
-    isRepeater: true,
-  },
+  
 ];
 
 export const MOCK_MEDS: Medication[] = [
-  {
-    id: 'm1',
-    name: 'Avitrin Complexo Vitamínico',
-    userId: 'system',
-    type: 'Vitamina' as any,
-    batch: 'AV-2024-01',
-    expiryDate: '2026-06-30',
-    stock: 2,
-  },
-  {
-    id: 'm2',
-    name: 'Allax (Ivomec)',
-    userId: 'system',
-    type: 'Antiparasitário' as any,
-    batch: 'ALX-998',
-    expiryDate: '2025-12-15',
-    stock: 1,
-  },
-  {
-    id: 'm3',
-    name: 'Coccidex',
-    userId: 'system',
-    type: 'Antibiótico' as any,
-    batch: 'CX-2023',
-    expiryDate: '2025-08-20',
-    stock: 3,
-  },
-  {
-    id: 'm4',
-    name: 'Glicopan Pet',
-    userId: 'system',
-    type: 'Vitamina' as any,
-    batch: 'GLI-554',
-    expiryDate: '2026-01-10',
-    stock: 1,
-  },
-  {
-    id: 'm5',
-    name: 'Avitrin E',
-    userId: 'system',
-    type: 'Vitamina' as any,
-    batch: 'AVE-112',
-    expiryDate: '2025-11-05',
-    stock: 4,
-  },
-  {
-    id: 'm6',
-    name: 'Enrofloxacina 10%',
-    userId: 'system',
-    type: 'Antibiótico' as any,
-    batch: 'ENR-887',
-    expiryDate: '2026-03-15',
-    stock: 2,
-  },
+  
   {
     id: 'm7',
     name: 'Mercepton',

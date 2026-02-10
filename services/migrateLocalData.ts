@@ -1,10 +1,9 @@
 export async function migrateLocalData() {
-  // Migração local desativada.
-  // O projeto usa Firebase; implementar migração para Firestore
-  // exige mapeamento e permissões de admin. Por enquanto
-  // apenas registra que a migração está desabilitada.
+  // Migracao local desativada.
+  // O projeto usa Firebase; implementar migracao para Firestore
+  // exige mapeamento e permissoes. Por enquanto apenas registra.
   console.warn(
-    'migrateLocalData: migração desativada — projeto usa Firebase. Implemente a migração para Firestore se necessário.'
+    'migrateLocalData: migracao desativada - projeto usa Firebase. Implemente a migracao para Firestore se necessario.',
   );
   return;
 }

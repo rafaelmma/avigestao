@@ -50,6 +50,44 @@ export interface BirdDocument {
   notes?: string;
 }
 
+export type RingStatus = 'estoque' | 'usada' | 'perdida';
+
+export interface RingBatch {
+  id: string;
+  supplier?: string;
+  species?: string;
+  quantity?: number;
+  sizeMm?: string;
+  year?: string;
+  state?: string;
+  color?: string;
+  startNumber?: string;
+  endNumber?: string;
+  engravingType?: string;
+  personalization?: string;
+  notes?: string;
+  createdAt?: string;
+}
+
+export interface RingItem {
+  id: string;
+  batchId?: string;
+  code?: string;
+  number?: string;
+  year?: string;
+  state?: string;
+  color?: string;
+  species?: string;
+  sizeMm?: string;
+  personalization?: string;
+  status: RingStatus;
+  assignedBirdId?: string;
+  assignedBirdName?: string;
+  assignedAt?: string;
+  lostReason?: string;
+  createdAt?: string;
+}
+
 export interface Bird {
   id: string;
   breederId: string; // UUID do criador (user_id)
@@ -260,6 +298,8 @@ export interface AlertPreferences {
 
 export type WidgetSize = 'small' | 'medium' | 'large';
 
+export type DashboardDensity = 'compact' | 'balanced' | 'airy';
+
 export interface WidgetSizeConfig {
   [widgetId: string]: WidgetSize;
 }
@@ -302,6 +342,10 @@ export interface BreederSettings {
   viewPreferences?: ViewPreferences; // Preferências de visualização do usuário
   alertPreferences?: AlertPreferences; // Preferências de alertas do dashboard
   widgetSizes?: WidgetSizeConfig; // Tamanhos personalizados dos widgets
+  dashboardDensity?: DashboardDensity; // Densidade visual do dashboard
+  sidebarCollapsedSections?: Record<string, boolean>; // Seções colapsadas do menu lateral
+  lastActiveTab?: string; // Última aba acessada pelo usuário
+  onboardingDismissed?: boolean; // Dicas do primeiro acesso dispensadas
 }
 // Estado global da aplicação
 export interface AppState {
@@ -335,6 +379,9 @@ export interface AppState {
 
   tournaments: TournamentEvent[];
   deletedTournaments?: TournamentEvent[];
+
+  ringBatches?: RingBatch[];
+  rings?: RingItem[];
 
   settings: BreederSettings;
 }

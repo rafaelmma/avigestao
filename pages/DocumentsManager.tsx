@@ -54,6 +54,28 @@ const DocumentsManager: React.FC<DocumentsManagerProps> = ({
   const [editCertificateIssuer, setEditCertificateIssuer] = useState(false);
   const sispassFileInputRef = useRef<HTMLInputElement>(null);
 
+  const maskDateInput = (value: string) => {
+    const digits = value.replace(/\D/g, '').slice(0, 8);
+    if (digits.length <= 2) return digits;
+    if (digits.length <= 4) return `${digits.slice(0, 2)}/${digits.slice(2)}`;
+    return `${digits.slice(0, 2)}/${digits.slice(2, 4)}/${digits.slice(4)}`;
+  };
+
+  const parseMaskedDate = (value: string) => {
+    const digits = value.replace(/\D/g, '');
+    if (digits.length !== 8) return null;
+    const day = Number(digits.slice(0, 2));
+    const month = Number(digits.slice(2, 4));
+    const year = Number(digits.slice(4, 8));
+    if (!day || !month || !year) return null;
+    const iso = `${year.toString().padStart(4, '0')}-${month
+      .toString()
+      .padStart(2, '0')}-${day.toString().padStart(2, '0')}`;
+    const date = new Date(iso);
+    if (Number.isNaN(date.getTime())) return null;
+    return iso;
+  };
+
   const handleSispassFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
@@ -183,6 +205,7 @@ const DocumentsManager: React.FC<DocumentsManagerProps> = ({
 
   const sispassNumberValue = isSispassConfigured ? settings.sispassNumber : '';
   const renewalDateValue = isSispassConfigured ? settings.renewalDate : '';
+  const [sispassRenewalInput, setSispassRenewalInput] = useState('');
   const lastRenewalValue = isSispassConfigured ? settings.lastRenewalDate || '' : '';
   const certificateIssuerValue = isCertificateConfigured ? settings.certificate?.issuer || '' : '';
   const certificateExpiryValue = isCertificateConfigured
@@ -198,6 +221,13 @@ const DocumentsManager: React.FC<DocumentsManagerProps> = ({
       setEditSispassNumber(true);
     }
   }, [isSispassConfigured]);
+
+  useEffect(() => {
+    const display = renewalDateValue
+      ? new Date(renewalDateValue).toLocaleDateString('pt-BR')
+      : '';
+    setSispassRenewalInput(display);
+  }, [renewalDateValue]);
 
   useEffect(() => {
     if (!isCertificateConfigured) {
@@ -418,10 +448,28 @@ const DocumentsManager: React.FC<DocumentsManagerProps> = ({
                       Renovacao
                     </label>
                     <input
-                      type="date"
+                      type="text"
+                      inputMode="numeric"
+                      placeholder="DD/MM/AAAA"
                       className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 font-bold text-slate-700 outline-none text-xs"
-                      value={renewalDateValue}
-                      onChange={(e) => updateSettings({ ...settings, renewalDate: e.target.value })}
+                      value={sispassRenewalInput}
+                      onChange={(e) => {
+                        const masked = maskDateInput(e.target.value);
+                        setSispassRenewalInput(masked);
+                        const iso = parseMaskedDate(masked);
+                        if (iso) {
+                          updateSettings({ ...settings, renewalDate: iso });
+                        }
+                      }}
+                      onBlur={() => {
+                        const iso = parseMaskedDate(sispassRenewalInput);
+                        if (!iso) {
+                          const display = renewalDateValue
+                            ? new Date(renewalDateValue).toLocaleDateString('pt-BR')
+                            : '';
+                          setSispassRenewalInput(display);
+                        }
+                      }}
                     />
                   </div>
                 </div>
