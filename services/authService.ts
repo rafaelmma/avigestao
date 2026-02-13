@@ -12,7 +12,7 @@ import { auth } from '../lib/firebase';
 const getErrorMessage = (err: unknown) => (err instanceof Error ? err.message : String(err));
 
 const AUTH_CONTINUE_URL =
-  import.meta.env.VITE_AUTH_CONTINUE_URL || 'https://avigestao-cf5fe.firebaseapp.com';
+  import.meta.env.VITE_AUTH_CONTINUE_URL || 'https://avigestao.com.br';
 
 const FUNCTIONS_BASE_URL =
   import.meta.env.VITE_FUNCTIONS_BASE_URL ||

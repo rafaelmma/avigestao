@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect } from 'react';
 import {
   Trophy,
   MapPin,
@@ -10,10 +10,11 @@ import {
   User,
   Clock,
   Eye,
+  Search,
 } from 'lucide-react';
 import { db, auth } from '../lib/firebase';
 import { collection, getDocs, query, where, orderBy, addDoc } from 'firebase/firestore';
-import /* APP_LOGO */ '../constants';
+import { APP_LOGO } from '../constants';
 import PrimaryButton from '../components/ui/PrimaryButton';
 import SecondaryButton from '../components/ui/SecondaryButton';
 import PageHeader from '../components/ui/PageHeader';
@@ -309,6 +310,18 @@ const PublicTournaments: React.FC<PublicTournamentsProps> = ({
     <>
       <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 p-4 md:p-8">
         <div className="max-w-6xl mx-auto">
+          {/* Logo Brand Header */}
+          <div className="flex items-center justify-between mb-8 pb-6 border-b border-slate-200">
+            <div className="flex items-center gap-4">
+              <div className="w-12 h-12 bg-white rounded-xl shadow-lg shadow-indigo-100 p-2 border border-indigo-50 flex items-center justify-center">
+                <img src={APP_LOGO} alt="AviGestão" className="w-full h-full object-contain" />
+              </div>
+              <div>
+                <span className="text-2xl font-black text-slate-900 tracking-tight">Avi<span className="text-indigo-600">Gestão</span></span>
+              </div>
+            </div>
+          </div>
+
           {/* Header */}
           <div className="mb-8">
             <PageHeader
@@ -319,19 +332,21 @@ const PublicTournaments: React.FC<PublicTournamentsProps> = ({
               }
               subtitle="Veja todos os torneios e competições abertas"
               actions={
-                <div className="flex items-center gap-2">
-                  <input
-                    placeholder="Buscar torneio, cidade ou organizador..."
-                    value={publicSearch}
-                    onChange={(e) => setPublicSearch(e.target.value)}
-                    className="px-3 py-2 border border-slate-300 rounded-lg"
-                    style={{ width: 320 }}
-                  />
+                <div className="flex items-center gap-3">
+                  <div className="relative">
+                    <Search size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" />
+                    <input
+                      placeholder="Buscar torneio ou cidade..."
+                      value={publicSearch}
+                      onChange={(e) => setPublicSearch(e.target.value)}
+                      className="pl-11 pr-4 py-2.5 bg-white border border-slate-200 rounded-xl focus:outline-none focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-400 transition-all w-72"
+                    />
+                  </div>
                   {onNavigateToHome && (
                     <SecondaryButton onClick={onNavigateToHome}>Voltar</SecondaryButton>
                   )}
-                  <PrimaryButton onClick={onNavigateToLogin}>
-                    Login <ArrowRight size={16} />
+                  <PrimaryButton onClick={onNavigateToLogin} className="flex items-center gap-2">
+                    Login <ArrowRight size={18} />
                   </PrimaryButton>
                 </div>
               }
@@ -747,3 +762,4 @@ const PublicTournaments: React.FC<PublicTournamentsProps> = ({
 };
 
 export default PublicTournaments;
+

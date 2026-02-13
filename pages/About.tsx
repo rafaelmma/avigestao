@@ -16,11 +16,14 @@ const About: React.FC = () => {
                                                                 Sistema simples e direto para criadores SISPASS.
                                                         </p>
                                                 </div>
-                                                <img
-                                                        src={APP_LOGO}
-                                                        alt="Logo AviGestao"
-                                                        className="h-16 w-auto rounded-xl bg-white p-2 shadow-sm"
-                                                />
+                                                <div className="bg-white p-2 rounded-2xl shadow-lg border-2 border-slate-200 ring-4 ring-slate-50">
+                                                        <img
+                                                                src={APP_LOGO}
+                                                                alt="Logo AviGestao"
+                                                                className="h-32 w-auto object-contain"
+                                                                loading="lazy"
+                                                        />
+                                                </div>
                                         </div>
 
                                         <div className="mt-8 space-y-6 text-sm leading-relaxed text-slate-700">

@@ -39,18 +39,17 @@ type VercelRes = {
 const setUserAsPro = async (userId: string | null | undefined, customerId?: string | null) => {
   if (!userId) return;
   try {
-    await db
-      .collection('users')
-      .doc(userId)
-      .set(
-        {
-          plan: 'Profissional',
-          trialEndDate: null,
-          stripeCustomerId: customerId || null,
-          updatedAt: admin.firestore.FieldValue.serverTimestamp(),
-        },
-        { merge: true },
-      );
+    const proPayload = {
+      plan: 'Profissional',
+      trialEndDate: null,
+      stripeCustomerId: customerId || null,
+      updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+    };
+    await db.collection('users').doc(userId).set(proPayload, { merge: true });
+    await Promise.all([
+      db.collection('users').doc(userId).collection('settings').doc('preferences').set(proPayload, { merge: true }),
+      db.collection('users').doc(userId).collection('settings').doc('general').set(proPayload, { merge: true }),
+    ]);
   } catch (e) {
     console.error('Failed to mark user as PRO:', e);
   }

@@ -91,7 +91,7 @@ const WizardLayout: React.FC<WizardLayoutProps> = ({
               type="button"
               onClick={goNext}
               disabled={currentStep === steps.length - 1}
-              className="px-4 py-2 rounded-xl text-xs font-black uppercase tracking-widest bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-50"
+              className="px-6 py-2 rounded-xl text-xs font-black uppercase tracking-widest bg-indigo-600 text-white hover:bg-indigo-700 disabled:opacity-50 shadow-md shadow-indigo-100 transition-all active:scale-95"
             >
               Próximo
             </button>

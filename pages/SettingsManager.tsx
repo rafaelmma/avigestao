@@ -15,6 +15,7 @@ import {
   ShieldCheck,
   AlertTriangle,
   CheckCircle2,
+  UsersRound,
   Save,
   Eye,
   EyeOff,
@@ -199,7 +200,6 @@ const SettingsManager: React.FC<SettingsManagerProps> = ({
     { id: 'resumo', label: 'Resumo' },
     { id: 'identidade', label: 'Identidade' },
     { id: 'perfil-criador', label: 'Perfil do criador' },
-    { id: 'aparencia', label: 'Aparência' },
     { id: 'seguranca', label: 'Segurança' },
   ];
 
@@ -259,12 +259,17 @@ const SettingsManager: React.FC<SettingsManagerProps> = ({
   }, [savedSnapshot, settings]);
 
   useEffect(() => {
-    try {
-      setHasStripeCustomer(!!localStorage.getItem('avigestao_stripe_customer'));
-    } catch {
-      setHasStripeCustomer(false);
-    }
-  }, []);
+    const isStripe =
+      !!settings.stripeCustomerId ||
+      settings.subscriptionProvider === 'stripe' ||
+      settings.subscriptionStatus === 'active' ||
+      settings.subscriptionStatus === 'trialing';
+    setHasStripeCustomer(isStripe);
+  }, [
+    settings.stripeCustomerId,
+    settings.subscriptionProvider,
+    settings.subscriptionStatus,
+  ]);
 
   useEffect(() => {
     setRenewalInput(formatDateForInput(settings.renewalDate));
@@ -581,7 +586,7 @@ const SettingsManager: React.FC<SettingsManagerProps> = ({
         <div>
           <h2 className="text-3xl font-bold text-slate-900">Configurações</h2>
           <p className="text-slate-500">
-            Ajuste dados do criatório, licenças, Certificado e aparência.
+            Ajuste dados do criatório, licenças e Certificado.
           </p>
         </div>
         <div className="flex flex-wrap gap-3 items-center">
@@ -1155,83 +1160,9 @@ const SettingsManager: React.FC<SettingsManagerProps> = ({
               </section>
             )}
 
+            {/* Appearance step removed per product decision (keep white theme). */}
+
             {wizardStep === 3 && (
-              <section className="bg-white p-8 rounded-3xl border border-slate-100 shadow-sm space-y-6">
-                <div className="flex items-center gap-2 text-emerald-600 font-black text-sm">
-                  <Palette size={18} /> Aparência e tema
-                </div>
-
-                <div className="flex flex-wrap items-center gap-6">
-                  <div className="text-center">
-                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
-                      Primária
-                    </p>
-                    <button
-                      className="mt-2 w-12 h-12 rounded-2xl border border-slate-200 shadow-sm"
-                      style={{ backgroundColor: settings.primaryColor }}
-                      onClick={() => primaryColorRef.current?.click()}
-                    />
-                    <input
-                      ref={primaryColorRef}
-                      type="color"
-                      value={settings.primaryColor}
-                      onChange={(e) =>
-                        updateSettings({ ...settings, primaryColor: e.target.value })
-                      }
-                      className="sr-only"
-                    />
-                  </div>
-                  <div className="text-center">
-                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
-                      Destaque
-                    </p>
-                    <button
-                      className="mt-2 w-12 h-12 rounded-2xl border border-slate-200 shadow-sm"
-                      style={{ backgroundColor: settings.accentColor }}
-                      onClick={() => accentColorRef.current?.click()}
-                    />
-                    <input
-                      ref={accentColorRef}
-                      type="color"
-                      value={settings.accentColor}
-                      onChange={(e) => updateSettings({ ...settings, accentColor: e.target.value })}
-                      className="sr-only"
-                    />
-                  </div>
-
-                  <div className="flex-1 min-w-[240px]">
-                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3">
-                      Preview rápido
-                    </p>
-                    <div className="rounded-2xl border border-slate-100 p-4 flex items-center gap-3 shadow-sm">
-                      <div
-                        className="w-12 h-12 rounded-full flex items-center justify-center text-white font-black"
-                        style={{ backgroundColor: settings.primaryColor }}
-                      >
-                        AV
-                      </div>
-                      <div className="flex-1">
-                        <p className="text-sm font-black text-slate-800">Card de exemplo</p>
-                        <p
-                          className="text-[11px] font-bold"
-                          style={{ color: settings.accentColor }}
-                        >
-                          Cor de destaque aplicada
-                        </p>
-                      </div>
-                      <div
-                        className="px-3 py-1 rounded-full text-[11px] font-black"
-                        style={{ backgroundColor: settings.accentColor, color: '#fff' }}
-                      >
-                        Badge
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </section>
-            )}
-
-            {wizardStep === 4 && (
               <section className="bg-white p-8 rounded-3xl border border-slate-100 shadow-sm space-y-6">
                 <h3 className="font-black flex items-center gap-2 text-slate-800">
                   <Lock size={18} /> Segurança
@@ -1292,7 +1223,7 @@ const SettingsManager: React.FC<SettingsManagerProps> = ({
                       </p>
                       <p className="text-sm font-bold text-slate-800">
                         {hasStripeCustomer
-                          ? 'Gerencie cobranças, upgrade/downgrade ou cancele a renovação automática.'
+                          ? 'Assinatura recorrente via Stripe ativa. Gerencie cobranças, upgrade/downgrade ou cancele a renovação automática.'
                           : 'Pagamento único via Mercado Pago. Renove manualmente quando vencer.'}
                       </p>
                     </div>

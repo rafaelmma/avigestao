@@ -1,4 +1,4 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
+﻿/* eslint-disable @typescript-eslint/no-explicit-any */
 /* eslint-disable @typescript-eslint/no-unused-vars */
 import React, { useState, useRef, Suspense, useEffect } from 'react';
 import {
@@ -52,11 +52,11 @@ const ALL_WIDGETS = [
     label: 'Resumo Superior (Plantel/Financeiro/Tarefas)',
     icon: <LayoutGrid size={16} />,
   },
-  { id: 'tournaments', label: 'Próximos Torneios', icon: <Trophy size={16} /> },
+  { id: 'tournaments', label: 'PrÃ³ximos Torneios', icon: <Trophy size={16} /> },
   { id: 'financial', label: 'Fluxo de Caixa', icon: <Wallet size={16} /> },
-  { id: 'species_chart', label: 'Gráfico de Espécies', icon: <TrendingUp size={16} /> },
+  { id: 'species_chart', label: 'GrÃ¡fico de EspÃ©cies', icon: <TrendingUp size={16} /> },
   { id: 'tasks', label: 'Tarefas de Manejo', icon: <ListTodo size={16} /> },
-  { id: 'breeding', label: 'Histórico de Posturas', icon: <Heart size={16} /> },
+  { id: 'breeding', label: 'HistÃ³rico de Posturas', icon: <Heart size={16} /> },
   { id: 'tips', label: 'Dicas de Manejo', icon: <Clock size={16} /> },
 ];
 
@@ -72,29 +72,29 @@ const StatCard = ({
 }: any) => (
   <div
     onClick={onClick}
-    className={`bg-white/80 rounded-2xl border transition-all h-full backdrop-blur ${
-      isWarning ? 'border-amber-200 bg-amber-50/50' : 'border-slate-200/70'
+    className={`bg-white/70 rounded-[2rem] border transition-all duration-500 h-full backdrop-blur-xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] hover:shadow-[0_20px_50px_rgba(79,70,229,0.1)] ${
+      isWarning ? 'border-amber-200 bg-amber-50/30' : 'border-slate-200/40'
     } ${
       onClick
-        ? 'cursor-pointer hover:shadow-lg hover:border-slate-300/70 active:scale-[0.985]'
+        ? 'cursor-pointer hover:shadow-2xl hover:shadow-blue-500/10 hover:border-blue-200/50 hover:-translate-y-1 active:scale-[0.98]'
         : 'shadow-sm'
     } ${
-      density === 'compact' ? 'p-4' : density === 'airy' ? 'p-6' : 'p-5'
+      density === 'compact' ? 'p-5' : density === 'airy' ? 'p-8' : 'p-6'
     }`}
   >
-    <div className="flex items-center gap-3 mb-4">
-      <div className="p-2 bg-slate-100 rounded-xl text-slate-600">{icon}</div>
-      <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">{label}</span>
+    <div className="flex items-center gap-4 mb-5">
+      <div className={`p-3 rounded-2xl transition-colors duration-300 ${isWarning ? 'bg-amber-100 text-amber-600' : 'bg-blue-50 text-blue-600'}`}>{icon}</div>
+      <span className="text-[11px] font-black text-slate-400 uppercase tracking-[0.15em]">{label}</span>
     </div>
     <div>
       <h4
-        className={`${density === 'compact' ? 'text-2xl' : 'text-3xl'} font-black tracking-tight ${
-          isWarning ? 'text-amber-700' : isPositive === false ? 'text-red-600' : 'text-slate-900'
+        className={`${density === 'compact' ? 'text-2xl' : 'text-4xl'} font-black tracking-tight leading-none ${
+          isWarning ? 'text-amber-700' : isPositive === false ? 'text-rose-600' : 'text-slate-900'
         }`}
       >
         {value}
       </h4>
-      <p className="text-[10px] font-semibold text-slate-500 uppercase mt-1 tracking-widest">
+      <p className="text-[11px] font-bold text-slate-500 uppercase mt-2 tracking-widest opacity-70">
         {subValue}
       </p>
     </div>
@@ -349,7 +349,7 @@ const Dashboard: React.FC<DashboardProps> = ({
         id: cancelAtPeriodEnd ? 'subscription-cancel' : 'subscription-renew',
         label: cancelAtPeriodEnd
           ? `Plano profissional termina em ${subDiff} dias (renovacao cancelada)`
-          : `⚠️ Assinatura PRO vence em ${subDiff} dias - Renove agora!`,
+          : `âš ï¸ Assinatura PRO vence em ${subDiff} dias - Renove agora!`,
         tab: 'settings',
       });
     }
@@ -405,7 +405,7 @@ const Dashboard: React.FC<DashboardProps> = ({
                 icon={<Clock size={20} className="text-orange-500" />}
                 label="SISPASS"
                 value={`${diffDays}d`}
-                subValue={diffDays < 30 ? 'Renovação Urgente' : 'Situação Regular'}
+                subValue={diffDays < 30 ? 'RenovaÃ§Ã£o Urgente' : 'SituaÃ§Ã£o Regular'}
                 isWarning={diffDays < 30}
                 density={dashboardDensity}
                 onClick={() => navigateTo('documents')}
@@ -472,7 +472,7 @@ const Dashboard: React.FC<DashboardProps> = ({
                       <TrendingDown size={14} />
                     </div>
                     <span className="text-[10px] font-black uppercase text-rose-700 tracking-widest">
-                      Saídas
+                      SaÃ­das
                     </span>
                   </div>
                   <span className="text-sm font-black text-rose-700">
@@ -484,7 +484,7 @@ const Dashboard: React.FC<DashboardProps> = ({
 
             <div className="mt-6 pt-6 border-t border-slate-50">
               <p className="text-slate-400 text-[10px] font-black uppercase tracking-widest mb-1">
-                Resultado do Período
+                Resultado do PerÃ­odo
               </p>
               <div className="flex items-end gap-2">
                 <p
@@ -518,7 +518,7 @@ const Dashboard: React.FC<DashboardProps> = ({
               <div className="p-2 bg-blue-50 text-blue-600 rounded-xl">
                 <TrendingUp size={18} />
               </div>
-              Espécies
+              EspÃ©cies
             </h3>
             <div className="flex-1 min-h-[150px] w-full">
               <ResponsiveContainer width="100%" height="100%">
@@ -543,7 +543,7 @@ const Dashboard: React.FC<DashboardProps> = ({
               <div className="p-2 bg-purple-50 text-purple-600 rounded-xl">
                 <ListTodo size={18} />
               </div>
-              Últimas Tarefas
+              Ãšltimas Tarefas
             </h3>
             <div className="space-y-3 flex-1 overflow-auto max-h-[200px] no-scrollbar">
               {state.tasks.slice(0, 4).map((t) => (
@@ -628,7 +628,7 @@ const Dashboard: React.FC<DashboardProps> = ({
       ? 'auto-rows-[minmax(200px,auto)] lg:auto-rows-[minmax(260px,auto)]'
       : 'auto-rows-[minmax(180px,auto)] lg:auto-rows-[minmax(220px,auto)]';
 
-  // Cálculo de dias restantes do Trial
+  // CÃ¡lculo de dias restantes do Trial
   const trialDays = state.settings.trialEndDate
     ? Math.ceil(
         (new Date(state.settings.trialEndDate).getTime() - new Date().getTime()) /
@@ -646,7 +646,7 @@ const Dashboard: React.FC<DashboardProps> = ({
   };
 
   return (
-    <WizardShell title="Dashboard" description="Visão geral do criatório, finanças e tarefas.">
+    <WizardShell title="Dashboard" description="VisÃ£o geral do criatÃ³rio, finanÃ§as e tarefas.">
       <div
         className={`relative w-full max-w-none px-6 xl:px-10 2xl:px-16 ${densitySpacing} animate-in fade-in duration-500 pb-12 bg-slate-50`}
       >
@@ -660,7 +660,7 @@ const Dashboard: React.FC<DashboardProps> = ({
               <PageHeader
                 title={<>Painel Geral</>}
                 subtitle={`Bem-vindo ao centro de comando do ${
-                  state.settings?.breederName || 'Seu Criatório'
+                  state.settings?.breederName || 'Seu CriatÃ³rio'
                 }.`}
                 actions={
                   <SecondaryButton onClick={() => setShowCustomizer(true)}>
@@ -745,14 +745,14 @@ const Dashboard: React.FC<DashboardProps> = ({
                   </div>
                   <div className="flex-1">
                     <h3 className="text-sm font-black text-amber-800 uppercase tracking-widest mb-1">
-                      ⚠️ Registro IBAMA Pendente
+                      âš ï¸ Registro IBAMA Pendente
                     </h3>
                     <p className="text-sm text-amber-700 font-bold mb-3">
                       {state.birds.filter((b) => b.ibamaBaixaPendente).length}{' '}
                       {state.birds.filter((b) => b.ibamaBaixaPendente).length === 1
                         ? 'ave necessita'
                         : 'aves necessitam'}{' '}
-                      de registro no sistema IBAMA (óbito, fuga, venda ou doação).
+                      de registro no sistema IBAMA (Ã³bito, fuga, venda ou doaÃ§Ã£o).
                     </p>
                     <PrimaryButton
                       onClick={(event) => {
@@ -760,7 +760,7 @@ const Dashboard: React.FC<DashboardProps> = ({
                         navigateTo('birds-ibama');
                       }}
                     >
-                      Ver Pendências
+                      Ver PendÃªncias
                     </PrimaryButton>
                   </div>
                 </div>
@@ -869,7 +869,7 @@ const Dashboard: React.FC<DashboardProps> = ({
                 {customizerTab === 'widgets' ? (
                   <>
                     <p className="text-xs text-slate-500 mb-4 font-semibold">
-                      Ative os módulos e arraste no painel para reordenar
+                      Ative os mÃ³dulos e arraste no painel para reordenar
                     </p>
                     {ALL_WIDGETS.map((widget) => (
                       <button
@@ -1062,6 +1062,7 @@ const Dashboard: React.FC<DashboardProps> = ({
 };
 
 export default Dashboard;
+
 
 
 

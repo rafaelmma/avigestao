@@ -1,166 +1,216 @@
-/* eslint-disable @typescript-eslint/no-explicit-any, @typescript-eslint/no-unused-vars */
+﻿/* eslint-disable @typescript-eslint/no-explicit-any, @typescript-eslint/no-unused-vars */
 import React, { useEffect, useState } from 'react';
-import { ArrowLeft, Share2, Download, AlertCircle, CheckCircle } from 'lucide-react';
+import {
+  ArrowLeft,
+  Share2,
+  Download,
+  AlertCircle,
+  CheckCircle,
+  Search,
+  QrCode,
+} from 'lucide-react';
 import { Bird } from '../types';
+import { APP_LOGO } from '../constants';
 import {
   recordBirdVerification,
   getPublicBirdById,
+  getPublicBirdByRingNumber,
   getPublicBreederByBirdId,
 } from '../services/firestoreService';
 
-const BirdVerification: React.FC<{ birdId: string }> = ({ birdId }) => {
+export const calculateFullAge = (birthDateString?: string) => {
+  if (!birthDateString) return 'Idade desc.';
+  const birthDate = new Date(birthDateString);
+  const today = new Date();
+
+  if (birthDate > today) return 'Recém-nascido';
+
+  let years = today.getFullYear() - birthDate.getFullYear();
+  let months = today.getMonth() - birthDate.getMonth();
+
+  if (months < 0 || (months === 0 && today.getDate() < birthDate.getDate())) {
+    years--;
+    months += 12;
+  }
+
+  if (years < 0) return 'Recém-nascido';
+  
+  const yearPart = years > 0 ? `${years} ano${years !== 1 ? 's' : ''}` : '';
+  const monthPart = months > 0 ? `${months} ${months !== 1 ? 'meses' : 'mês'}` : '';
+
+  if (years > 0 && months > 0) return `${yearPart} e ${monthPart}`;
+  if (years > 0) return yearPart;
+  if (months > 0) return monthPart;
+  return 'Recém-nascido';
+};
+
+const BirdVerification: React.FC<{ birdId?: string }> = ({ birdId: initialBirdId }) => {
+  const [searchId, setSearchId] = useState('');
+  const [currentBirdId, setCurrentBirdId] = useState(initialBirdId || '');
   const [bird, setBird] = useState<Bird | null>(null);
   const [breeder, setBreeder] = useState<any>(null);
   const [parentNames, setParentNames] = useState<{ fatherName?: string; motherName?: string }>({});
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [verified, setVerified] = useState(false);
 
   useEffect(() => {
+    if (currentBirdId) {
+      loadBirdData(currentBirdId);
+    }
+  }, [currentBirdId]);
+
+  const loadBirdData = async (id: string) => {
+    setLoading(true);
+    setError(null);
+    setVerified(false);
+    
     let mounted = true;
     const timeoutId = setTimeout(() => {
       if (mounted && loading) {
-        console.error('[BirdVerification] Timeout: Dados demoraram muito para carregar');
-        setError('Tempo esgotado ao carregar dados. Verifique sua conexão.');
+        setError('Tempo esgotado ao carregar dados. Verifique a conexão.');
         setLoading(false);
       }
-    }, 15000); // 15 segundos de timeout
+    }, 15000);
 
-    const loadBirdData = async () => {
-      try {
-        console.log('[BirdVerification] Carregando dados para birdId:', birdId);
+    try {
+      if (!id || id.trim() === '') {
+        setLoading(false);
+        return;
+      }
 
-        if (!birdId || birdId.trim() === '') {
-          throw new Error('ID do pássaro inválido');
-        }
+      // 1. Registrar leitura (apenas se for ID direto do QR, opcional)
+      try { await recordBirdVerification(id); } catch (verErr) { console.warn(verErr); }
 
-        // 1. Registrar leitura do QR code (público) - não bloqueia se falhar
-        try {
-          await recordBirdVerification(birdId);
-        } catch (verErr) {
-          console.warn('[BirdVerification] Falha ao registrar verificação:', verErr);
-        }
+      // 2. Tentar buscar por ID (Padrão QR Code)
+      let birdData = await getPublicBirdById(id);
 
-        // 2. Buscar dados públicos do pássaro no Firestore
-        const birdData = await getPublicBirdById(birdId);
-        console.log('[BirdVerification] Dados retornados:', birdData);
-
-        if (!mounted) return;
-
-        if (birdData) {
-          setBird(birdData);
-
-          // 3. Buscar nomes de pai e mãe (não bloqueia se falhar)
-          try {
-            const parentNames: { fatherName?: string; motherName?: string } = {};
-
-            if (birdData.fatherId) {
-              try {
-                const fatherData = await getPublicBirdById(birdData.fatherId);
-                if (fatherData?.name) {
-                  parentNames.fatherName = fatherData.name;
-                }
-              } catch (err) {
-                console.warn('Erro ao buscar dados do pai:', err);
-              }
-            }
-
-            if (birdData.motherId) {
-              try {
-                const motherData = await getPublicBirdById(birdData.motherId);
-                if (motherData?.name) {
-                  parentNames.motherName = motherData.name;
-                }
-              } catch (err) {
-                console.warn('Erro ao buscar dados da mãe:', err);
-              }
-            }
-
-            if (mounted) {
-              setParentNames(parentNames);
-            }
-          } catch (parentErr) {
-            console.warn('[BirdVerification] Falha ao buscar nomes dos pais:', parentErr);
-          }
-
-          // 4. Buscar dados do criador (não bloqueia se falhar)
-          try {
-            const breederData = await getPublicBreederByBirdId(birdId);
-            console.log('[BirdVerification] Dados do criador:', breederData);
-
-            if (breederData && mounted) {
-              setBreeder(breederData);
-            }
-          } catch (breederErr) {
-            console.warn('[BirdVerification] Falha ao buscar criador:', breederErr);
-          }
-
-          if (mounted) {
-            setVerified(true);
-            setLoading(false);
-            clearTimeout(timeoutId);
-          }
+      if (birdData) {
+        // Verificar se o pássaro é público antes de mostrar
+        if (!birdData.isPublic) {
+          setError('Este pássaro está configurado como Privado pelo criador e não pode ser consultado publicamente.');
+          setLoading(false);
           return;
         }
 
-        // Se não encontrar
-        if (mounted) {
-          console.error('[BirdVerification] Pássaro não encontrado para ID:', birdId);
-          setError('Pássaro não encontrado na base de dados');
-          setLoading(false);
-          clearTimeout(timeoutId);
+        setBird(birdData);
+        const actualId = birdData.id; // Usar o ID real do pássaro para as próximas buscas
+
+        // 4. Buscar nomes de pai e mãe
+        const pNames: { fatherName?: string; motherName?: string } = {};
+        if (birdData.fatherId) {
+          const f = await getPublicBirdById(birdData.fatherId);
+          if (f?.name) pNames.fatherName = f.name;
         }
-      } catch (err) {
-        console.error('[BirdVerification] Erro ao carregar dados:', err);
-        if (mounted) {
-          setError(err instanceof Error ? err.message : 'Erro ao carregar dados do pássaro');
-          setLoading(false);
-          clearTimeout(timeoutId);
+        if (birdData.motherId) {
+          const m = await getPublicBirdById(birdData.motherId);
+          if (m?.name) pNames.motherName = m.name;
         }
+        setParentNames(pNames);
+
+        // 5. Buscar dados do criador
+        const breederData = await getPublicBreederByBirdId(actualId);
+        if (breederData) setBreeder(breederData);
+
+        setVerified(true);
+        setLoading(false);
+      } else {
+        setError('Pássaro não encontrado na base de dados.');
+        setLoading(false);
       }
-    };
-
-    loadBirdData();
-
-    return () => {
-      mounted = false;
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Erro ao carregar dados.');
+      setLoading(false);
+    } finally {
       clearTimeout(timeoutId);
-    };
-  }, [birdId]);
-
-  const handleGoBack = () => {
-    window.history.back();
-  };
-
-  const handleShare = async () => {
-    const url = window.location.href;
-    if (navigator.share) {
-      navigator.share({ title: `Cartão ${bird?.name}`, url });
-    } else {
-      navigator.clipboard.writeText(url);
-      alert('Link copiado!');
     }
   };
 
-  const handleDownload = () => {
-    // Gera PDF ou imagem do cartão
-    window.print();
+  const handleSearch = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (searchId.trim()) {
+      setCurrentBirdId(searchId.trim());
+    }
   };
+
+  const handleGoBack = () => {
+    if (currentBirdId && !initialBirdId) {
+      setBird(null);
+      setCurrentBirdId('');
+      setError(null);
+    } else {
+      window.history.back();
+    }
+  };
+
+  if (!currentBirdId && !loading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-indigo-50/50 to-white py-12 px-4 flex items-center justify-center">
+        <div className="max-w-xl w-full text-center">
+          <div className="flex justify-center mb-8">
+            <div className="w-24 h-24 bg-white rounded-[40px] p-5 flex items-center justify-center shadow-xl shadow-indigo-100 border border-slate-100">
+              <img src={APP_LOGO} alt="AviGestão" className="w-full h-full object-contain" />
+            </div>
+          </div>
+          <h1 className="text-4xl font-black text-slate-900 tracking-tight mb-4">Verificação de Autenticidade</h1>
+          <p className="text-lg text-slate-500 font-medium mb-10">
+            Consulte a validade de certificados registrados na plataforma AviGestão através do ID único da ave.
+          </p>
+          
+          <form onSubmit={handleSearch} className="relative group">
+            <input
+              type="text"
+              placeholder="Digite o ID da Ave (Ex: frnR6NM...)"
+              value={searchId}
+              onChange={(e) => setSearchId(e.target.value)}
+              className="w-full px-8 py-6 bg-white border-2 border-slate-100 rounded-[32px] outline-none text-lg text-slate-700 font-bold focus:border-indigo-400 focus:ring-8 focus:ring-indigo-500/5 transition-all shadow-lg"
+            />
+            <button
+              type="submit"
+              className="absolute right-3 top-3 bottom-3 px-8 bg-indigo-600 text-white rounded-[24px] font-black uppercase text-xs tracking-widest hover:bg-indigo-700 transition-all active:scale-95 shadow-lg shadow-indigo-200"
+            >
+              <Search size={20} className="md:hidden" />
+              <span className="hidden md:inline">Verificar ID</span>
+            </button>
+          </form>
+
+          {/* Guia de como obter o ID */}
+          <div className="mt-12 bg-indigo-50/50 border border-indigo-100 rounded-[32px] p-8 text-left">
+            <h4 className="text-sm font-black text-indigo-900 uppercase tracking-widest mb-4 flex items-center gap-2">
+              <AlertCircle size={18} /> Como obter o ID da Ave?
+            </h4>
+            <ul className="space-y-3 text-sm text-indigo-700 font-medium">
+              <li className="flex gap-3">
+                <span className="flex-shrink-0 w-5 h-5 bg-indigo-200 text-indigo-700 rounded-full flex items-center justify-center text-[10px] font-black">1</span>
+                Acesse seu **Plantel** e clique na ave desejada.
+              </li>
+              <li className="flex gap-3">
+                <span className="flex-shrink-0 w-5 h-5 bg-indigo-200 text-indigo-700 rounded-full flex items-center justify-center text-[10px] font-black">2</span>
+                Na aba **Dados Básicos**, localize o campo **ID de Verificação**.
+              </li>
+              <li className="flex gap-3">
+                <span className="flex-shrink-0 w-5 h-5 bg-indigo-200 text-indigo-700 rounded-full flex items-center justify-center text-[10px] font-black">3</span>
+                Clique sobre o código para copiá-lo e cole aqui.
+              </li>
+            </ul>
+            <div className="mt-6 pt-6 border-t border-indigo-100">
+              <p className="text-[10px] font-bold text-indigo-400 uppercase tracking-widest italic">
+                Nota: Apenas aves marcadas como "Públicas" no cadastro podem ser consultadas por terceiros.
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-slate-50 flex items-center justify-center p-4">
-        <div className="text-center max-w-md">
-          <div className="w-20 h-20 rounded-full bg-blue-100 mx-auto mb-6 flex items-center justify-center">
-            <div className="w-16 h-16 rounded-full border-4 border-blue-200 border-t-blue-600 animate-spin"></div>
-          </div>
-          <h2 className="text-xl font-bold text-slate-900 mb-2">Verificando Autenticidade</h2>
-          <p className="text-slate-600 font-medium mb-4">
-            Aguarde enquanto carregamos os dados do pássaro...
-          </p>
-          <div className="bg-white rounded-lg p-4 shadow-sm">
-            <p className="text-sm text-slate-500">ID: {birdId.substring(0, 12)}...</p>
-          </div>
+      <div className="min-h-screen bg-gradient-to-br from-indigo-50/50 to-white flex items-center justify-center p-4">
+        <div className="text-center">
+          <div className="w-20 h-20 rounded-full border-4 border-indigo-100 border-t-indigo-600 animate-spin mx-auto mb-6"></div>
+          <h2 className="text-xl font-black text-slate-900">Consultando Base de Dados...</h2>
+          <p className="text-slate-500 font-medium mt-2">Buscando informações do pássaro {currentBirdId.substring(0, 8)}</p>
         </div>
       </div>
     );
@@ -168,254 +218,201 @@ const BirdVerification: React.FC<{ birdId: string }> = ({ birdId }) => {
 
   if (error || !bird) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-red-50 to-slate-50 flex items-center justify-center p-4">
-        <div className="bg-white rounded-2xl shadow-xl p-8 max-w-md w-full">
-          <div className="flex justify-center mb-4">
-            <AlertCircle className="text-red-500" size={48} />
+      <div className="min-h-screen bg-gradient-to-br from-indigo-50/50 to-white flex items-center justify-center p-4">
+        <div className="bg-white rounded-[48px] shadow-2xl p-12 max-w-lg w-full text-center border border-red-50 relative overflow-hidden">
+          <div className="absolute top-0 left-0 right-0 h-2 bg-red-500" />
+          <div className="w-20 h-20 bg-red-50 text-red-500 rounded-3xl flex items-center justify-center mx-auto mb-8 shadow-inner">
+            <AlertCircle size={40} />
           </div>
-          <h1 className="text-2xl font-bold text-slate-900 text-center mb-2">
-            Pássaro Não Encontrado
-          </h1>
-          <p className="text-slate-600 text-center mb-4">
-            {error || 'Não foi possível localizar este pássaro no sistema.'}
+          <h1 className="text-3xl font-black text-slate-900 mb-4 tracking-tight">Pássaro Não Encontrado</h1>
+          <p className="text-slate-500 font-medium mb-8 leading-relaxed">
+            {error || 'Não foi possível localizar este registro em nossa base de dados oficial.'}
           </p>
-          <div className="bg-slate-50 rounded-lg p-3 mb-6">
-            <p className="text-xs text-slate-500 text-center">ID buscado:</p>
-            <p className="text-sm text-slate-700 text-center font-mono break-all">{birdId}</p>
+          <div className="bg-slate-50 rounded-[24px] p-6 mb-10 border border-slate-100">
+            <p className="text-[10px] text-slate-400 font-black uppercase tracking-widest mb-1">ID Consultada</p>
+            <p className="text-sm font-mono font-bold text-slate-700 break-all">{currentBirdId}</p>
           </div>
-          <button
-            onClick={() => window.location.reload()}
-            className="w-full px-4 py-3 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700 transition-all mb-3"
-          >
-            Tentar Novamente
-          </button>
-          <button
-            onClick={() => window.close()}
-            className="w-full px-4 py-3 bg-slate-200 text-slate-700 rounded-lg font-semibold hover:bg-slate-300 transition-all"
-          >
-            Fechar
-          </button>
+          <div className="grid grid-cols-2 gap-4">
+            <button
+              onClick={() => { setCurrentBirdId(''); setError(null); }}
+              className="px-6 py-4 bg-indigo-600 text-white rounded-2xl font-black uppercase text-xs tracking-widest hover:bg-indigo-700 transition-all shadow-lg"
+            >
+              Nova Busca
+            </button>
+            <button
+              onClick={() => window.location.href = '/'}
+              className="px-6 py-4 bg-slate-100 text-slate-600 rounded-2xl font-black uppercase text-xs tracking-widest hover:bg-slate-200 transition-all"
+            >
+              Voltar
+            </button>
+          </div>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-slate-50 py-12 px-4">
-      <div className="max-w-4xl mx-auto">
-        {/* Header */}
-        <div className="mb-8">
-          <button
-            onClick={handleGoBack}
-            className="inline-flex items-center gap-2 text-blue-600 hover:text-blue-700 font-semibold mb-6"
-          >
-            <ArrowLeft size={20} />
-            Voltar
-          </button>
-
-          <div className="flex items-center gap-3 mb-4">
-            <CheckCircle className="text-emerald-500" size={32} />
-            <div>
-              <h1 className="text-2xl font-bold text-slate-900">Autenticidade verificada</h1>
-              <p className="text-slate-600 text-sm">Este pássaro está registrado no AviGestão.</p>
-            </div>
+    <div className="min-h-screen bg-gradient-to-br from-indigo-50/50 to-white py-12 px-4 shadow-inner">
+      <style dangerouslySetInnerHTML={{ __html: `
+        @media print {
+          body * { visibility: hidden; }
+          #printable-content, #printable-content * { visibility: visible; }
+          #printable-content { 
+            position: absolute; 
+            left: 0; 
+            top: 0; 
+            width: 100%;
+            padding: 0;
+            margin: 0;
+          }
+          .no-print { display: none !important; }
+          .rounded-[40px] { border-radius: 20px !important; }
+          .shadow-sm, .shadow-xl { box-shadow: none !important; border: 1px solid #eee !important; }
+        }
+      `}} />
+      <div className="max-w-4xl mx-auto" id="printable-content">
+        {/* Brand Header */}
+        <div className="flex items-center gap-4 mb-12">
+          <div className="w-16 h-16 bg-white rounded-[24px] p-3 flex items-center justify-center shadow-lg shadow-indigo-100 border border-slate-100">
+            <img src={APP_LOGO} alt="AviGestão" className="w-full h-full object-contain" />
+          </div>
+          <div>
+            <h1 className="text-3xl font-black text-slate-900 tracking-tight">AviGestão</h1>
+            <p className="text-indigo-600 font-bold text-sm uppercase tracking-widest">Autenticidade Garantida</p>
           </div>
         </div>
 
-        {/* Cards de Verificação */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
-          <div className="bg-white rounded-xl shadow-sm p-4 border-l-4 border-emerald-500">
-            <p className="text-xs text-slate-600 font-semibold uppercase tracking-wide mb-1">
-              Status
-            </p>
-            <p className="text-lg font-bold text-slate-900">{bird.status}</p>
+        {/* Back Link */}
+        <button
+          onClick={handleGoBack}
+          className="no-print inline-flex items-center gap-2 text-indigo-600 hover:text-indigo-700 font-black uppercase text-[10px] tracking-[0.2em] bg-white px-6 py-3 rounded-full border border-indigo-100 shadow-sm transition-all mb-10"
+        >
+          <ArrowLeft size={14} /> Voltar para Consulta
+        </button>
+
+        {/* Status Banner */}
+        <div className="flex flex-col md:flex-row items-center gap-6 p-8 bg-white rounded-[40px] border border-emerald-100 shadow-xl shadow-emerald-500/5 mb-8">
+          <div className="w-20 h-20 bg-emerald-50 text-emerald-500 rounded-[28px] flex items-center justify-center shrink-0 shadow-inner">
+            <CheckCircle size={40} />
           </div>
-          <div className="bg-white rounded-xl shadow-sm p-4 border-l-4 border-blue-500">
-            <p className="text-xs text-slate-600 font-semibold uppercase tracking-wide mb-1">
-              Anilha
-            </p>
-            <p className="text-lg font-bold text-slate-900">{bird.ringNumber || 'N/A'}</p>
-          </div>
-          <div className="bg-white rounded-xl shadow-sm p-4 border-l-4 border-amber-500">
-            <p className="text-xs text-slate-600 font-semibold uppercase tracking-wide mb-1">
-              Espécie
-            </p>
-            <p className="text-lg font-bold text-slate-900">{bird.species}</p>
+          <div className="text-center md:text-left">
+            <h2 className="text-2xl font-black text-slate-900 tracking-tight">Registro Verificado</h2>
+            <p className="text-slate-500 font-medium">Este exemplar possui uma identidade digital única validada pela plataforma.</p>
           </div>
         </div>
 
-        {/* Cartão Principal */}
-        <div className="bg-white rounded-2xl shadow-lg overflow-hidden mb-8">
-          <div className="bg-gradient-to-r from-slate-900 to-blue-900 px-8 py-6">
-            <h2 className="text-white text-2xl font-bold">{bird.name}</h2>
-            <p className="text-slate-300 text-sm">ID: {bird.id.substring(0, 8).toUpperCase()}</p>
-          </div>
-
-          <div className="p-8">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-              {/* Foto */}
-              <div className="flex flex-col items-center justify-center">
-                {bird.photoUrl ? (
-                  <img
-                    src={bird.photoUrl}
-                    alt={bird.name}
-                    className="w-full h-auto rounded-xl shadow-md max-w-sm object-cover"
-                  />
-                ) : (
-                  <div className="w-full max-w-sm aspect-square bg-gradient-to-br from-blue-100 to-slate-100 rounded-xl flex items-center justify-center">
-                    <span className="text-slate-400 font-semibold">Sem foto</span>
-                  </div>
-                )}
-              </div>
-
-              {/* Informações */}
-              <div className="space-y-6">
-                <div>
-                  <h3 className="text-xs font-bold text-slate-600 uppercase tracking-wide mb-4">
-                    Dados Pessoais
-                  </h3>
-                  <div className="space-y-3">
-                    <div className="flex justify-between border-b border-slate-200 pb-2">
-                      <span className="text-slate-600">Sexo</span>
-                      <span className="font-semibold text-slate-900">{bird.sex}</span>
-                    </div>
-                    <div className="flex justify-between border-b border-slate-200 pb-2">
-                      <span className="text-slate-600">Data Nascimento</span>
-                      <span className="font-semibold text-slate-900">
-                        {bird.birthDate
-                          ? new Date(bird.birthDate).toLocaleDateString('pt-BR')
-                          : 'N/A'}
-                      </span>
-                    </div>
-                    <div className="flex justify-between border-b border-slate-200 pb-2">
-                      <span className="text-slate-600">Cor/Mutação</span>
-                      <span className="font-semibold text-slate-900">
-                        {bird.colorMutation || 'Padrão'}
-                      </span>
-                    </div>
-                    <div className="flex justify-between border-b border-slate-200 pb-2">
-                      <span className="text-slate-600">Classificação</span>
-                      <span className="font-semibold text-slate-900">{bird.classification}</span>
-                    </div>
-                  </div>
-                </div>
-
-                <div>
-                  <h3 className="text-xs font-bold text-slate-600 uppercase tracking-wide mb-4">
-                    Localização
-                  </h3>
-                  <p className="text-slate-900 font-medium">{bird.location || 'Não informada'}</p>
-                </div>
-
-                <div>
-                  <h3 className="text-xs font-bold text-slate-600 uppercase tracking-wide mb-4">
-                    Genealogia
-                  </h3>
-                  <div className="space-y-2">
-                    <p className="text-sm">
-                      <span className="text-slate-600">Pai:</span>
-                      <span className="font-semibold">
-                        {' '}
-                        {parentNames.fatherName ||
-                          (bird.fatherId ? bird.fatherId.substring(0, 12) + '...' : 'Desconhecido')}
-                      </span>
-                    </p>
-                    <p className="text-sm">
-                      <span className="text-slate-600">Mãe:</span>
-                      <span className="font-semibold">
-                        {' '}
-                        {parentNames.motherName ||
-                          (bird.motherId ? bird.motherId.substring(0, 12) + '...' : 'Desconhecido')}
-                      </span>
-                    </p>
-                  </div>
-                </div>
-              </div>
+        {/* Info Grid */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
+          {/* Foto/Preview */}
+          <div className="bg-white rounded-[40px] p-8 border border-slate-100 shadow-sm flex items-center justify-center relative overflow-hidden group">
+            <div className="absolute top-0 right-0 p-6 opacity-5 group-hover:opacity-10 transition-opacity">
+              <QrCode size={120} className="text-indigo-600" />
             </div>
-
-            {/* Status de Treinamento (se aplicável) */}
-            {bird.songTrainingStatus && bird.songTrainingStatus !== 'Não Iniciado' && (
-              <div className="mt-8 pt-8 border-t border-slate-200">
-                <h3 className="text-xs font-bold text-slate-600 uppercase tracking-wide mb-4">
-                  Treinamento de Canto
-                </h3>
-                <div className="bg-blue-50 rounded-lg p-4 border border-blue-100">
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <p className="text-xs text-slate-600 font-medium mb-1">Status</p>
-                      <p className="font-semibold text-slate-900">{bird.songTrainingStatus}</p>
-                    </div>
-                    <div>
-                      <p className="text-xs text-slate-600 font-medium mb-1">Tipo de Canto</p>
-                      <p className="font-semibold text-slate-900">
-                        {bird.songType || 'Não definido'}
-                      </p>
-                    </div>
-                  </div>
-                  {bird.trainingNotes && (
-                    <p className="text-sm text-slate-700 mt-3 italic">{bird.trainingNotes}</p>
-                  )}
-                </div>
+            {bird.photoUrl ? (
+              <img src={bird.photoUrl} alt={bird.name} className="w-full h-64 object-cover rounded-[32px] shadow-2xl relative z-10" />
+            ) : (
+              <div className="w-full h-64 bg-slate-50 rounded-[32px] border-2 border-dashed border-slate-200 flex flex-col items-center justify-center text-slate-400 gap-3">
+                <AlertCircle size={40} />
+                <span className="font-black uppercase text-[10px] tracking-widest">Foto não disponível</span>
               </div>
             )}
           </div>
+
+          {/* Core Data */}
+          <div className="bg-white rounded-[40px] p-8 border border-slate-100 shadow-sm flex flex-col justify-between">
+            <div className="space-y-6">
+              <div>
+                <p className="text-[10px] text-indigo-600 font-black uppercase tracking-[0.25em] mb-1">Identificação</p>
+                <h3 className="text-4xl font-black text-slate-900 tracking-tight leading-none">{bird.name}</h3>
+                <p className="text-sm font-mono text-slate-400 mt-2 font-bold uppercase">ID: {bird.id}</p>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div className="p-4 bg-slate-50 rounded-2xl">
+                  <p className="text-[9px] text-slate-400 font-black uppercase tracking-widest mb-1">Status</p>
+                  <p className="font-black text-slate-800">{bird.status}</p>
+                </div>
+                <div className="p-4 bg-indigo-50/50 rounded-2xl">
+                  <p className="text-[9px] text-indigo-400 font-black uppercase tracking-widest mb-1">Anilha</p>
+                  <p className="font-black text-indigo-700">{bird.ringNumber || 'N/A'}</p>
+                </div>
+              </div>
+            </div>
+
+            <div className="no-print flex gap-4 mt-8">
+              <button onClick={() => window.print()} className="flex-1 py-4 bg-slate-900 text-white rounded-2xl font-black uppercase text-[10px] tracking-[0.2em] shadow-lg shadow-slate-200 hover:scale-105 transition-all active:scale-95 flex items-center justify-center gap-2">
+                <Download size={14} /> Imprimir Ficha
+              </button>
+              <button onClick={() => navigator.share ? navigator.share({url: window.location.href}) : alert('URL Copiada!')} className="p-4 bg-white border border-slate-200 text-slate-400 rounded-2xl hover:text-indigo-600 hover:border-indigo-100 transition-all">
+                <Share2 size={18} />
+              </button>
+            </div>
+          </div>
         </div>
 
-        {/* Criador Info */}
-        {breeder && (
-          <div className="bg-white rounded-xl shadow-sm p-6 border-l-4 border-amber-500 mb-8">
-            <h3 className="text-xs font-bold text-slate-600 uppercase tracking-wide mb-3">
-              Criador Responsável
-            </h3>
-            <div className="flex items-center gap-4">
-              {breeder.logoUrl && (
-                <img
-                  src={breeder.logoUrl}
-                  alt="Logo"
-                  className="w-16 h-16 rounded-lg object-contain"
-                />
-              )}
-              <div>
-                <p className="text-lg font-bold text-slate-900">
-                  {breeder.breederName || 'Criador'}
-                </p>
-                {breeder.sispassNumber && (
-                  <p className="text-sm text-slate-600">
-                    SISPASS: <span className="font-semibold">{breeder.sispassNumber}</span>
-                  </p>
-                )}
-                {breeder.cpfCnpj && (
-                  <p className="text-sm text-slate-600">
-                    CPF/CNPJ: <span className="font-semibold">{breeder.cpfCnpj}</span>
-                  </p>
-                )}
+        {/* Technical Details */}
+        <div className="bg-white rounded-[40px] p-10 border border-slate-100 shadow-sm mb-8 overflow-hidden relative">
+          <div className="absolute right-0 bottom-0 opacity-[0.03] -translate-x-1/2 -translate-y-1/2 pointer-events-none">
+            <CheckCircle size={400} />
+          </div>
+          <h3 className="text-xl font-black text-slate-900 mb-8 tracking-tight flex items-center gap-3">
+            <AlertCircle className="text-indigo-600" size={24} /> Ficha Técnica
+          </h3>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-10 relative z-10">
+            <div className="space-y-5">
+              <div className="flex justify-between items-center group">
+                <span className="text-sm font-bold text-slate-400 uppercase tracking-widest">Espécie</span>
+                <span className="font-black text-slate-900">{bird.species}</span>
+              </div>
+              <div className="flex justify-between items-center group">
+                <span className="text-sm font-bold text-slate-400 uppercase tracking-widest">Sexo</span>
+                <div
+                  className={`inline-flex items-center gap-2 px-3 py-1 rounded-xl text-xs font-black uppercase tracking-widest transition-all ${
+                    bird.sex === 'Macho'
+                      ? 'bg-blue-50 text-blue-600 border border-blue-100 shadow-sm'
+                      : bird.sex === 'Fêmea'
+                      ? 'bg-pink-50 text-pink-600 border border-pink-100 shadow-sm'
+                      : 'bg-slate-50 text-slate-500 border border-slate-100'
+                  }`}
+                >
+                  <span className="text-base leading-none">
+                    {bird.sex === 'Macho' ? '♂' : bird.sex === 'Fêmea' ? '♀' : '○'}
+                  </span>
+                  <span>{bird.sex}</span>
+                </div>
+              </div>
+              <div className="flex justify-between items-center group">
+                <span className="text-sm font-bold text-slate-400 uppercase tracking-widest">Idade</span>
+                <span className="font-black text-slate-900">{calculateFullAge(bird.birthDate)}</span>
+              </div>
+            </div>
+            <div className="space-y-5">
+              <div className="flex justify-between items-center group">
+                <span className="text-sm font-bold text-slate-400 uppercase tracking-widest">Pai</span>
+                <span className="font-black text-slate-900">{parentNames.fatherName || 'Público'}</span>
+              </div>
+              <div className="flex justify-between items-center group">
+                <span className="text-sm font-bold text-slate-400 uppercase tracking-widest">Mãe</span>
+                <span className="font-black text-slate-900">{parentNames.motherName || 'Público'}</span>
+              </div>
+              <div className="flex justify-between items-center group">
+                <span className="text-sm font-bold text-slate-400 uppercase tracking-widest">Criatório</span>
+                <span className="font-black text-slate-900">{breeder?.breederName || 'Privado'}</span>
               </div>
             </div>
           </div>
-        )}
-
-        {/* Ações */}
-        <div className="flex gap-3 justify-center">
-          <button
-            onClick={handleShare}
-            className="inline-flex items-center gap-2 px-6 py-3 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700 transition-all shadow-md"
-          >
-            <Share2 size={18} />
-            Compartilhar
-          </button>
-          <button
-            onClick={handleDownload}
-            className="inline-flex items-center gap-2 px-6 py-3 bg-slate-200 text-slate-900 rounded-lg font-semibold hover:bg-slate-300 transition-all"
-          >
-            <Download size={18} />
-            Imprimir
-          </button>
         </div>
 
-        {/* Rodapé */}
-        <div className="text-center mt-12 text-slate-500 text-sm">
-          <p>🔒 Esta página de verificação é autêntica e segura</p>
-          <p className="text-xs mt-2">Acessos são registrados para fins de compliance IBAMA</p>
+        {/* Compliance Footer */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 opacity-40 grayscale hover:grayscale-0 transition-all duration-700">
+          <div className="flex items-center gap-4 p-5 rounded-3xl border border-slate-200">
+            <div className="w-10 h-10 bg-slate-100 rounded-xl flex items-center justify-center text-slate-400 italic font-black">IB</div>
+            <p className="text-[10px] font-bold text-slate-500 uppercase leading-snug tracking-widest">Conformidade com normas de manejo de passeriformes silvestres.</p>
+          </div>
+          <div className="flex items-center gap-4 p-5 rounded-3xl border border-slate-200">
+            <div className="w-10 h-10 bg-slate-100 rounded-xl flex items-center justify-center text-slate-400"><CheckCircle size={18}/></div>
+            <p className="text-[10px] font-bold text-slate-500 uppercase leading-snug tracking-widest">Sistema de auditoria digital com timestamp imutável.</p>
+          </div>
         </div>
       </div>
     </div>

@@ -10,7 +10,13 @@ module.exports = {
   theme: {
     extend: {
       colors: {
-        brand: '#10b981', // emerald-500
+        brand: '#4f46e5', // Sapphire Indigo (Primária)
+        emerald: {
+          500: '#10b981', // Sucesso
+        },
+        slate: {
+          950: '#020617', // Midnight Deep
+        }
       }
     },
   },

@@ -739,7 +739,7 @@ const DocumentsManager: React.FC<DocumentsManagerProps> = ({
 
   return (
     <div className="space-y-8 animate-in fade-in duration-500 pb-12">
-      <WizardLayout title="Licenças & Documentos" steps={wizardSteps} showNavigation={false} />
+      <WizardLayout title="Licenças" steps={wizardSteps} showNavigation={false} />
 
       {renewingItem && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4 animate-in fade-in zoom-in-95 duration-200">

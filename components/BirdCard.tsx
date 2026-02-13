@@ -19,9 +19,9 @@ const BirdCardPrint: React.FC<BirdCardPrintProps> = ({
   allBirds = [],
 }) => {
   const [bgColor, setBgColor] = React.useState<'dark' | 'white' | 'custom'>('dark');
-  const [customBgStart, setCustomBgStart] = React.useState('#1a365d');
-  const [customBgEnd, setCustomBgEnd] = React.useState('#0f172a');
-  const [customBorder, setCustomBorder] = React.useState('#d97706');
+  const [customBgStart, setCustomBgStart] = React.useState('#4f46e5');
+  const [customBgEnd, setCustomBgEnd] = React.useState('#020617');
+  const [customBorder, setCustomBorder] = React.useState('#fbbf24');
   const customTextTone = React.useState<'light' | 'dark'>('light')[0];
   const [showCustomizer, setShowCustomizer] = React.useState(false);
   const [activeCustomizerCard, setActiveCustomizerCard] = React.useState<'id' | 'cert'>('id');
@@ -32,7 +32,7 @@ const BirdCardPrint: React.FC<BirdCardPrintProps> = ({
   const [idFontScale, setIdFontScale] = React.useState(100);
   const [certFontScale, setCertFontScale] = React.useState(100);
   const [customIdTextColor, setCustomIdTextColor] = React.useState('#fbbf24');
-  const [certTextColor, setCertTextColor] = React.useState('#1a365d');
+  const [certTextColor, setCertTextColor] = React.useState('#4f46e5');
   const [certBorderColor, setCertBorderColor] = React.useState('#f59e0b');
   const [certBgStart, setCertBgStart] = React.useState('#ffffff');
   const [certBgEnd, setCertBgEnd] = React.useState('#ffffff');
@@ -60,10 +60,10 @@ const BirdCardPrint: React.FC<BirdCardPrintProps> = ({
         bgColor === 'custom'
           ? `linear-gradient(135deg, ${customBgStart} 0%, ${customBgEnd} 100%)`
           : isDark
-          ? 'linear-gradient(135deg, #1a365d 0%, #0f172a 100%)'
+          ? 'linear-gradient(135deg, #4f46e5 0%, #020617 100%)'
           : '#ffffff';
-      const borderColor = bgColor === 'custom' ? customBorder : isDark ? '#d97706' : '#94a3b8';
-      const titleColor = bgColor === 'custom' ? customIdTextColor : isDark ? '#fbbf24' : '#1a365d';
+      const borderColor = bgColor === 'custom' ? customBorder : isDark ? '#d97706' : '#cbd5e1';
+      const titleColor = bgColor === 'custom' ? customIdTextColor : isDark ? '#fbbf24' : '#4f46e5';
       const labelColor =
         bgColor === 'custom'
           ? customTextTone === 'light'
@@ -79,7 +79,7 @@ const BirdCardPrint: React.FC<BirdCardPrintProps> = ({
           : isDark
           ? 'rgba(217, 119, 6, 0.2)'
           : 'rgba(100, 116, 139, 0.1)';
-      const tagColor = bgColor === 'custom' ? customIdTextColor : isDark ? '#fbbf24' : '#1a365d';
+      const tagColor = bgColor === 'custom' ? customIdTextColor : isDark ? '#fbbf24' : '#4f46e5';
       const certBgGradient = `linear-gradient(135deg, ${certBgStart} 0%, ${certBgEnd} 100%)`;
 
       // Função para gerar pedigree em formato texto compacto

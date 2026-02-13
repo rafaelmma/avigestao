@@ -14,14 +14,23 @@ interface BirdInfoSectionProps {
 export const calculateAge = (birthDate: string | Date): string => {
   const birth = typeof birthDate === 'string' ? new Date(birthDate) : birthDate;
   const today = new Date();
-  let age = today.getFullYear() - birth.getFullYear();
-  const monthDiff = today.getMonth() - birth.getMonth();
 
-  if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birth.getDate())) {
-    age--;
+  if (birth > today) return 'Recém-nascido';
+
+  let years = today.getFullYear() - birth.getFullYear();
+  let months = today.getMonth() - birth.getMonth();
+
+  if (months < 0 || (months === 0 && today.getDate() < birth.getDate())) {
+    years--;
+    months += 12;
   }
 
-  return `${age} ano${age !== 1 ? 's' : ''}`;
+  if (years < 0) return 'Recém-nascido';
+  if (years === 0) {
+    return months === 0 ? 'Recém-nascido' : `${months} meses`;
+  }
+
+  return months > 0 ? `${years}a ${months}m` : `${years} ano${years !== 1 ? 's' : ''}`;
 };
 
 const BirdInfoSection: React.FC<BirdInfoSectionProps> = ({
@@ -75,7 +84,20 @@ const BirdInfoSection: React.FC<BirdInfoSectionProps> = ({
             </div>
             <div>
               <label className="text-caption text-slate-500">Sexo</label>
-              <p className="text-body font-medium mt-1">{bird.sex}</p>
+              <div
+                className={`flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-black uppercase tracking-wider mt-1 w-fit transition-all ${
+                  bird.sex === 'Macho'
+                    ? 'bg-blue-50 text-blue-600 border border-blue-100 shadow-sm'
+                    : bird.sex === 'Fêmea'
+                    ? 'bg-pink-50 text-pink-600 border border-pink-100 shadow-sm'
+                    : 'bg-slate-50 text-slate-500 border border-slate-100'
+                }`}
+              >
+                <span className="text-base leading-none">
+                  {bird.sex === 'Macho' ? '♂' : bird.sex === 'Fêmea' ? '♀' : '○'}
+                </span>
+                <span>{bird.sex}</span>
+              </div>
             </div>
           </div>
 
@@ -95,6 +117,13 @@ const BirdInfoSection: React.FC<BirdInfoSectionProps> = ({
                 {bird.birthDate ? calculateAge(bird.birthDate as string | Date) : 'N/A'}
               </p>
             </div>
+          </div>
+
+          <div>
+            <label className="text-caption text-slate-500">ID de Verificação (QR Code)</label>
+            <p className="text-sm font-mono font-bold text-indigo-600 bg-indigo-50 px-3 py-1 rounded-lg border border-indigo-100 mt-1 inline-block">
+              {bird.id}
+            </p>
           </div>
         </div>
       </div>

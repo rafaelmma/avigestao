@@ -57,27 +57,15 @@ const Auth: React.FC<AuthProps> = ({
           onLogin({ userId: user.uid });
         }
       } else {
-        const { user, error, initError, verificationError } = await signUp(email, password, name);
+        const { user, error } = await signUp(email, password, name);
         setIsLoading(false);
         if (error) return alert(error);
-        // Passa o breederName para criar as settings na primeira vez
+
+        // Ao criar conta, o onAuthStateChanged do App.tsx vai detectar o usuário
+        // e mostrar a tela de verificação de e-mail automaticamente.
         if (user?.uid) {
           onLogin({ userId: user.uid, breederName: name });
         }
-        // Mostra mensagem melhorada
-        alert(
-          verificationError
-            ? 'Conta criada! Nao foi possivel enviar o email de verificacao. Voce pode reenviar na tela de confirmacao.'
-            : 'Conta criada! Enviamos um email de verificacao. Verifique sua caixa de entrada para continuar.',
-        );
-        if (initError) {
-          alert(
-            'Conta criada, mas houve um problema ao iniciar o teste de 7 dias. Tente entrar novamente ou avise o suporte.',
-          );
-        }
-        setEmail('');
-        setPassword('');
-        setName('');
       }
     } catch (err: unknown) {
       setIsLoading(false);
@@ -93,18 +81,18 @@ const Auth: React.FC<AuthProps> = ({
   return (
     <div className="min-h-screen flex bg-slate-50 animate-in fade-in duration-700">
       {/* Lado Esquerdo - Marketing / Visual (Oculto em Mobile) */}
-      <div className="hidden lg:flex lg:w-1/2 bg-[#0F172A] relative overflow-hidden flex-col justify-between p-16 text-white">
-        <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-brand/20 rounded-full blur-[100px] translate-x-1/2 -translate-y-1/2"></div>
-        <div className="absolute bottom-0 left-0 w-[500px] h-[500px] bg-amber-500/10 rounded-full blur-[100px] -translate-x-1/2 translate-y-1/2"></div>
+      <div className="hidden lg:flex lg:w-1/2 bg-[#020617] relative overflow-hidden flex-col justify-between p-16 text-white">
+        <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-indigo-600/20 rounded-full blur-[100px] translate-x-1/2 -translate-y-1/2"></div>
+        <div className="absolute bottom-0 left-0 w-[500px] h-[500px] bg-blue-500/10 rounded-full blur-[100px] -translate-x-1/2 translate-y-1/2"></div>
 
         <div className="relative z-10">
-          {/* Logo Grande e Destacada */}
-          <div className="w-48 h-48 bg-white rounded-3xl flex items-center justify-center mb-8 p-4 shadow-2xl shadow-black/40 border-4 border-white/20">
+          {/* Logo Circular e Elegante */}
+          <div className="w-44 h-44 bg-white rounded-full overflow-hidden flex items-center justify-center mb-10 p-4 shadow-[0_0_50px_rgba(79,70,229,0.3)] border-2 border-indigo-500/20 group hover:scale-105 transition-transform duration-500">
             <img src={APP_LOGO} className="w-full h-full object-contain" alt="AviGestão Logo" />
           </div>
           <h1 className="text-5xl font-black tracking-tight leading-tight mb-6">
             Gestão profissional <br />
-            <span className="text-transparent bg-clip-text bg-gradient-to-r from-brand to-emerald-300">
+            <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 to-cyan-300">
               para seu criatório.
             </span>
           </h1>
@@ -133,7 +121,7 @@ const Auth: React.FC<AuthProps> = ({
         <div className="w-full max-w-md space-y-8">
           {/* Logo para Mobile (visível apenas em telas pequenas) */}
           <div className="lg:hidden flex justify-center mb-8">
-            <div className="w-32 h-32 bg-white rounded-3xl flex items-center justify-center p-3 shadow-xl border-2 border-slate-200">
+            <div className="w-40 h-40 bg-white rounded-full overflow-hidden flex items-center justify-center p-4 shadow-xl border-2 border-indigo-100">
               <img src={APP_LOGO} className="w-full h-full object-contain" alt="AviGestão Logo" />
             </div>
           </div>

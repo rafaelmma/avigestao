@@ -1,16 +1,28 @@
 import React from 'react';
+import { APP_LOGO } from '../constants';
 
 const Privacy: React.FC = () => {
   return (
     <div className="min-h-screen bg-slate-50">
       <div className="mx-auto max-w-3xl px-6 py-16">
-        <div className="rounded-3xl border border-slate-200 bg-white p-10 shadow-sm">
-          <p className="text-xs font-black uppercase tracking-[0.2em] text-slate-400">
-            Politica de Privacidade
-          </p>
-          <h1 className="mt-2 text-3xl font-black text-slate-900">Politica de Privacidade</h1>
+        <div className="rounded-3xl border border-slate-200 bg-white p-10 shadow-sm relative overflow-hidden">
+          <div className="absolute top-0 right-0 w-64 h-64 bg-slate-50 rounded-full -mr-20 -mt-20 flex items-center justify-center p-20 opacity-40">
+            <img src={APP_LOGO} alt="" className="w-full h-full object-contain grayscale opacity-10" />
+          </div>
 
-          <div className="mt-8 space-y-6 text-sm leading-relaxed text-slate-700">
+          <div className="relative z-10 flex flex-col sm:flex-row sm:items-center justify-between gap-6 mb-8">
+            <div>
+              <p className="text-xs font-black uppercase tracking-[0.2em] text-slate-400">
+                Politica de Privacidade
+              </p>
+              <h1 className="mt-2 text-3xl font-black text-slate-900">Politica de Privacidade</h1>
+            </div>
+            <div className="w-24 h-24 bg-white border-2 border-slate-100 rounded-2xl p-1 shadow-sm flex-shrink-0">
+              <img src={APP_LOGO} alt="AviGestão" className="w-full h-full object-contain" />
+            </div>
+          </div>
+
+          <div className="mt-8 space-y-6 text-sm leading-relaxed text-slate-700 relative z-10">
             <section className="space-y-2">
               <h2 className="text-base font-black text-slate-900">1. Introducao</h2>
               <p>

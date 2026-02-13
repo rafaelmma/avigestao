@@ -65,6 +65,7 @@ import {
   Paperclip,
   Camera,
   Lock,
+  Globe,
   Syringe,
   HelpCircle,
 } from 'lucide-react';
@@ -246,7 +247,7 @@ const BirdManager: React.FC<BirdManagerProps> = ({
 
   // New Bird State
   const [newBird, setNewBird] = useState<Partial<Bird>>({
-    sex: 'Desconhecido',
+    sex: 'Macho',
     status: 'Ativo',
     species: BRAZILIAN_SPECIES[0],
     classification: 'Exemplar',
@@ -530,6 +531,8 @@ const BirdManager: React.FC<BirdManagerProps> = ({
     const birthDate = new Date(birthDateString);
     const today = new Date();
 
+    if (birthDate > today) return 'Recém-nascido';
+
     let years = today.getFullYear() - birthDate.getFullYear();
     let months = today.getMonth() - birthDate.getMonth();
 
@@ -538,11 +541,10 @@ const BirdManager: React.FC<BirdManagerProps> = ({
       months += 12;
     }
 
+    if (years < 0) return 'Recém-nascido';
     if (years === 0) {
-      return `${months} meses`;
+      return months === 0 ? 'Recém-nascido' : `${months} meses`;
     }
-
-    if (months < 0) months = 0;
 
     return months > 0 ? `${years}a ${months}m` : `${years} anos`;
   };
@@ -732,6 +734,19 @@ const BirdManager: React.FC<BirdManagerProps> = ({
   const pendingSexingBirds = state.birds.filter(
     (b) => b.sex === 'Desconhecido' && !b.sexing?.sentDate && b.status === 'Ativo' && !b.deletedAt,
   );
+  
+  // Log de debug: mostrar aves que aparecem como pendentes
+  if (currentList === 'sexagem' && pendingSexingBirds.length > 0) {
+    console.log('[SEXAGEM DEBUG] Pendentes de Envio:', pendingSexingBirds.map((b) => ({
+      id: b.id,
+      name: b.name,
+      sex: b.sex,
+      sentDate: b.sexing?.sentDate,
+      status: b.status,
+      deletedAt: b.deletedAt,
+    })));
+  }
+  
   const waitingResultBirds = state.birds.filter(
     (b) => b.sexing?.sentDate && !b.sexing?.resultDate && b.status === 'Ativo' && !b.deletedAt,
   );
@@ -754,6 +769,12 @@ const BirdManager: React.FC<BirdManagerProps> = ({
       // Validação de campos obrigatórios
       if (!newBird.name || newBird.name.trim() === '') {
         alert('❌ Nome da ave é obrigatório.');
+        return;
+      }
+
+      // Validação: Sexo não pode ser "Desconhecido" se vai ser usado em reprodução
+      if (newBird.sex === 'Desconhecido') {
+        alert('⚠️ Aviso: O sexo está como "Desconhecido". Por favor, selecione "Macho" ou "Fêmea" para que a ave possa ser usada em casais.');
         return;
       }
 
@@ -977,24 +998,57 @@ const BirdManager: React.FC<BirdManagerProps> = ({
   const handleSendToLab = () => {
     if (selectedForSexing.length === 0) return;
 
+    console.log('[handleSendToLab] INICIANDO com birds:', selectedForSexing.length);
+    console.log('[handleSendToLab] labForm:', labForm);
+    console.log('[handleSendToLab] selectedForSexing IDs:', selectedForSexing);
+
     selectedForSexing.forEach((birdId) => {
       const bird = state.birds.find((b) => b.id === birdId);
       if (bird) {
-        updateBird({
-          ...bird,
+        console.log(`[handleSendToLab] Atualizando bird ${bird.id} (${bird.name})`);
+        console.log(`[handleSendToLab] Bird completo:`, { 
+          id: bird.id,
+          name: bird.name,
+          sex: bird.sex,
+          status: bird.status,
+          deletedAt: bird.deletedAt,
+          sexing: bird.sexing,
+        });
+        console.log(`[handleSendToLab] bird.sexing ANTES:`, bird.sexing);
+        
+        // Validação: essa ave deveria ser pendente?
+        if (bird.sex !== 'Desconhecido') {
+          console.warn(`[handleSendToLab] ⚠️ ALERTA: Ave ${bird.name} tem sex="${bird.sex}" mas não é "Desconhecido"!`);
+        }
+        
+        // Enviar APENAS os campos que queremos atualizar, não o bird inteiro
+        // Isso evita que setDoc merge traga campos antigos indesejados
+        const updatedBird = {
+          id: bird.id,
           sexing: {
             ...bird.sexing,
             protocol: '', // Será preenchido ou deixado em branco
             laboratory: labForm.laboratory,
             sentDate: labForm.sentDate,
           },
+        };
+        
+        // Limpar campos vazios do sexing antes de enviar
+        Object.keys(updatedBird.sexing).forEach((key) => {
+          if ((updatedBird.sexing as any)[key] === '') {
+            delete (updatedBird.sexing as any)[key];
+          }
         });
+        
+        console.log(`[handleSendToLab] Novo sexing object (após limpeza):`, updatedBird.sexing);
+        updateBird(updatedBird as any);
       }
     });
 
     setSelectedForSexing([]);
     setShowSendLabModal(false);
     setLabForm({ laboratory: '', sentDate: new Date().toISOString().split('T')[0] });
+    console.log('[handleSendToLab] COMPLETO - modal fechado');
   };
 
   const handleOpenResultModal = (bird: Bird) => {
@@ -1011,6 +1065,10 @@ const BirdManager: React.FC<BirdManagerProps> = ({
   const handleSaveResult = () => {
     const bird = state.birds.find((b) => b.id === resultForm.birdId);
     if (bird) {
+      console.log('[handleSaveResult] SALVANDO resultado para bird:', { id: bird.id, name: bird.name });
+      console.log('[handleSaveResult] Novo sex:', resultForm.sex);
+      console.log('[handleSaveResult] Bird state ANTES:', { sex: bird.sex, sexing: bird.sexing });
+      
       // 1. Cria o documento automaticamente se houver anexo ou apenas para registro
       const newSexingDoc: BirdDocument = {
         id: Math.random().toString(36).substr(2, 9),
@@ -1023,8 +1081,9 @@ const BirdManager: React.FC<BirdManagerProps> = ({
 
       const existingDocs = bird.documents || [];
 
-      updateBird({
-        ...bird,
+      // Enviar APENAS os campos que queremos atualizar, não o bird inteiro
+      const updateData = {
+        id: bird.id,
         sex: resultForm.sex, // ATUALIZA O SEXO DA AVE NO PLANTEL
         documents: [...existingDocs, newSexingDoc], // ADICIONA AO REPOSITÓRIO DE DOCS
         sexing: {
@@ -1037,7 +1096,17 @@ const BirdManager: React.FC<BirdManagerProps> = ({
           protocol: resultForm.protocol,
           attachmentUrl: resultForm.attachmentUrl,
         },
+      };
+      
+      // Limpar campos vazios do sexing
+      Object.keys(updateData.sexing).forEach((key) => {
+        if ((updateData.sexing as any)[key] === '') {
+          delete (updateData.sexing as any)[key];
+        }
       });
+      
+      console.log('[handleSaveResult] sexing após limpeza:', updateData.sexing);
+      updateBird(updateData as any);
     }
     setShowResultModal(false);
   };
@@ -1062,7 +1131,16 @@ const BirdManager: React.FC<BirdManagerProps> = ({
     setIsDeletingBird(true);
     try {
       if (deleteConfirm.isPermanent && permanentlyDeleteBird) {
-        await svcDeleteBirdPermanent(deleteConfirm.birdId);
+        try {
+          await svcDeleteBirdPermanent(deleteConfirm.birdId);
+        } catch (err: any) {
+          // Se o documento já não existir no Firestore, tratar como sucesso localmente.
+          // Não registrar warning em produção — logar apenas em DEV para troubleshooting.
+          if (import.meta?.env?.DEV) {
+            console.debug('[handleConfirmDelete] Erro ao deletar permanentemente no Firestore:', err?.message || err);
+          }
+        }
+        // Atualiza o estado local independentemente do resultado do delete remoto
         permanentlyDeleteBird(deleteConfirm.birdId);
       } else {
         await svcDeleteBird(deleteConfirm.birdId);
@@ -1096,19 +1174,24 @@ const BirdManager: React.FC<BirdManagerProps> = ({
     }
   };
 
-  const handlePermanentDelete = (e: React.MouseEvent, id: string) => {
-    e.stopPropagation(); // Impede borbulhamento
+  const handlePermanentDelete = (e: React.MouseEvent | null | undefined, id: string) => {
+    try {
+      e?.stopPropagation?.(); // Impede borbulhamento (quando e for null, apenas ignora)
+    } catch (err) {
+      // Evitar crash se algum caller passou um valor inesperado
+      console.warn('[handlePermanentDelete] evento inválido:', err);
+    }
     if (permanentlyDeleteBird) permanentlyDeleteBird(id);
   };
 
   const resetNewBird = () => {
     setNewBird({
-      sex: 'Desconhecido',
+      sex: 'Macho',
       status: 'Ativo',
       species: BRAZILIAN_SPECIES[0],
       photoUrl: getDefaultBirdImage(
         BRAZILIAN_SPECIES[0],
-        'Desconhecido',
+        'Macho',
         new Date().toISOString().split('T')[0],
       ),
       birthDate: new Date().toISOString().split('T')[0],
@@ -1251,10 +1334,12 @@ const BirdManager: React.FC<BirdManagerProps> = ({
               />
             )}
 
-            <PrimaryButton onClick={handleOpenAddModal} className="flex items-center gap-2">
-              <Plus size={18} />
-              <span className="hidden md:inline">Nova Ave</span>
-            </PrimaryButton>
+            {currentList === 'plantel' && (
+              <PrimaryButton onClick={handleOpenAddModal} className="flex items-center gap-2">
+                <Plus size={18} />
+                <span className="hidden md:inline">Nova Ave</span>
+              </PrimaryButton>
+            )}
           </div>
         }
       />
@@ -1740,20 +1825,6 @@ const BirdManager: React.FC<BirdManagerProps> = ({
                   >
                     {bird.name}
                   </h4>
-                  <p
-                    className={`text-slate-500 flex items-center gap-1 ${
-                      viewPreferences.badgeSize === 'lg'
-                        ? 'text-sm'
-                        : viewPreferences.badgeSize === 'md'
-                        ? 'text-xs'
-                        : viewPreferences.badgeSize === 'sm'
-                        ? 'text-[10px]'
-                        : 'text-[8px]'
-                    }`}
-                  >
-                    <span className="truncate">{bird.ringNumber}</span>
-                    <HelpIcon tooltip="S/A = Número da Anilha (Anel de Identificação)" />
-                  </p>
                 </div>
                 <Badge
                   variant={getStatusBadgeVariant(bird.status)}
@@ -1763,44 +1834,117 @@ const BirdManager: React.FC<BirdManagerProps> = ({
                 </Badge>
               </div>
 
-              {/* Info essencial */}
-              <div
-                className={`space-y-1 ${viewPreferences.compactMode ? 'mb-2' : 'mb-4'} ${
-                  viewPreferences.badgeSize === 'lg'
-                    ? 'space-y-2'
-                    : viewPreferences.compactMode
-                    ? 'space-y-0.5'
-                    : 'space-y-1'
-                }`}
-              >
-                <p
-                  className={`text-slate-600 flex items-center gap-1 ${
+              {/* Infos em 2 colunas: Espécie | Anilha */}
+              <div className={`grid grid-cols-2 gap-3 ${viewPreferences.compactMode ? 'mb-2' : 'mb-4'}`}>
+                <div>
+                  <label className={`block font-semibold text-slate-400 uppercase ${
                     viewPreferences.badgeSize === 'lg'
-                      ? 'text-base'
-                      : viewPreferences.badgeSize === 'md'
-                      ? 'text-sm'
-                      : viewPreferences.badgeSize === 'sm'
-                      ? 'text-xs'
-                      : 'text-[10px]'
-                  }`}
-                >
-                  {normalizeSpeciesName(bird.species)}
-                  <HelpIcon tooltip="Espécie do pássaro" />
-                </p>
-                <p
-                  className={`text-slate-500 flex items-center gap-1 ${
-                    viewPreferences.badgeSize === 'lg'
-                      ? 'text-sm'
-                      : viewPreferences.badgeSize === 'md'
-                      ? 'text-xs'
-                      : viewPreferences.badgeSize === 'sm'
                       ? 'text-[10px]'
+                      : viewPreferences.badgeSize === 'md'
+                      ? 'text-[9px]'
                       : 'text-[8px]'
-                  }`}
-                >
-                  {calculateAge(bird.birthDate)}
-                  <HelpIcon tooltip={`Data de nascimento: ${bird.birthDate || 'N/A'}`} />
-                </p>
+                  }`}>
+                    Espécie
+                  </label>
+                  <p
+                    className={`text-slate-700 font-semibold mt-1 truncate ${
+                      viewPreferences.badgeSize === 'lg'
+                        ? 'text-sm'
+                        : viewPreferences.badgeSize === 'md'
+                        ? 'text-xs'
+                        : 'text-[10px]'
+                    }`}
+                  >
+                    {normalizeSpeciesName(bird.species)}
+                  </p>
+                </div>
+                <div>
+                  <label className={`block font-semibold text-slate-400 uppercase ${
+                    viewPreferences.badgeSize === 'lg'
+                      ? 'text-[10px]'
+                      : viewPreferences.badgeSize === 'md'
+                      ? 'text-[9px]'
+                      : 'text-[8px]'
+                  }`}>
+                    Anilha
+                  </label>
+                  <p
+                    className={`text-slate-700 font-mono font-bold mt-1 truncate ${
+                      viewPreferences.badgeSize === 'lg'
+                        ? 'text-sm'
+                        : viewPreferences.badgeSize === 'md'
+                        ? 'text-xs'
+                        : 'text-[10px]'
+                    }`}
+                  >
+                    {bird.ringNumber || '—'}
+                  </p>
+                </div>
+              </div>
+
+              {/* Sexo e Idade */}
+              <div className={`grid grid-cols-2 gap-3 ${viewPreferences.compactMode ? 'mb-2' : 'mb-4'}`}>
+                <div>
+                  <label className={`block font-semibold text-slate-400 uppercase ${
+                    viewPreferences.badgeSize === 'lg'
+                      ? 'text-[10px]'
+                      : viewPreferences.badgeSize === 'md'
+                      ? 'text-[9px]'
+                      : 'text-[8px]'
+                  }`}>
+                    Sexo
+                  </label>
+                  <div
+                    className={`mt-1 px-2.5 py-1.5 rounded-lg font-bold uppercase text-center border-2 ${
+                      bird.sex === 'Macho'
+                        ? 'bg-blue-50 text-blue-700 border-blue-200'
+                        : bird.sex === 'Fêmea'
+                        ? 'bg-pink-50 text-pink-700 border-pink-200'
+                        : 'bg-slate-50 text-slate-600 border-slate-200'
+                    } ${
+                      viewPreferences.badgeSize === 'lg'
+                        ? 'text-xs'
+                        : viewPreferences.badgeSize === 'md'
+                        ? 'text-[10px]'
+                        : 'text-[9px]'
+                    }`}
+                  >
+                    <div className="flex items-center justify-center gap-1.5">
+                      <span className="text-base leading-none">
+                        {bird.sex === 'Macho' ? '♂' : bird.sex === 'Fêmea' ? '♀' : '○'}
+                      </span>
+                      <span>
+                        {bird.sex === 'Macho'
+                          ? 'Macho'
+                          : bird.sex === 'Fêmea'
+                          ? 'Fêmea'
+                          : 'Indefinido'}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+                <div>
+                  <label className={`block font-semibold text-slate-400 uppercase ${
+                    viewPreferences.badgeSize === 'lg'
+                      ? 'text-[10px]'
+                      : viewPreferences.badgeSize === 'md'
+                      ? 'text-[9px]'
+                      : 'text-[8px]'
+                  }`}>
+                    Idade
+                  </label>
+                  <p
+                    className={`text-slate-700 font-semibold mt-1 ${
+                      viewPreferences.badgeSize === 'lg'
+                        ? 'text-sm'
+                        : viewPreferences.badgeSize === 'md'
+                        ? 'text-xs'
+                        : 'text-[10px]'
+                    }`}
+                  >
+                    {calculateAge(bird.birthDate)}
+                  </p>
+                </div>
               </div>
 
               {/* Alerta IBAMA se pendente */}
@@ -3118,7 +3262,7 @@ const BirdManager: React.FC<BirdManagerProps> = ({
                       >
                         <Edit size={18} /> Editar Dados
                       </button>
-                      {state.settings?.plan === 'Profissional' && (
+                      {isPro && (
                         <BirdCardPrint
                           bird={selectedBird}
                           breederName={state.settings?.breederName || 'AviGestão'}
@@ -3132,8 +3276,24 @@ const BirdManager: React.FC<BirdManagerProps> = ({
                   <div className="lg:col-span-8 space-y-8">
                     {/* ... (Existing Details Card) ... */}
                     <div className="bg-white p-10 rounded-[32px] border border-slate-100 shadow-sm space-y-8">
-                      <div className="flex justify-between">
-                        <h3 className="text-xl font-black text-slate-800">Dados Básicos</h3>
+                      <div className="flex justify-between items-start">
+                        <div>
+                          <h3 className="text-xl font-black text-slate-800">Dados Básicos</h3>
+                          <div
+                            className="flex items-center gap-2 mt-2 cursor-pointer group"
+                            onClick={() => {
+                              navigator.clipboard.writeText(selectedBird.id);
+                              alert('ID copiado!');
+                            }}
+                          >
+                            <span className="text-[10px] font-black text-indigo-600 bg-indigo-50 px-2 py-1 rounded border border-indigo-100 uppercase tracking-tighter">
+                              ID: {selectedBird.id}
+                            </span>
+                            <span className="text-[9px] font-bold text-slate-400 opacity-0 group-hover:opacity-100 transition-opacity">
+                              (Clique para copiar)
+                            </span>
+                          </div>
+                        </div>
                         <span
                           className={`px-3 py-1 rounded-lg text-xs font-black uppercase ${
                             selectedBird.status === 'Ativo'
@@ -3143,6 +3303,55 @@ const BirdManager: React.FC<BirdManagerProps> = ({
                         >
                           {selectedBird.status}
                         </span>
+                      </div>
+
+                      {/* Botão de Toggle Público/Privado */}
+                      <div className="flex flex-col gap-2 p-4 bg-slate-50 rounded-2xl border border-slate-100">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-3">
+                            <div
+                              className={`p-2.5 rounded-xl ${
+                                selectedBird.isPublic
+                                  ? 'bg-emerald-100 text-emerald-600'
+                                  : 'bg-slate-200 text-slate-500'
+                              }`}
+                            >
+                              {selectedBird.isPublic ? <Globe size={20} /> : <Lock size={20} />}
+                            </div>
+                            <div>
+                              <p className="text-sm font-black text-slate-800">
+                                {selectedBird.isPublic ? 'Perfil Público Ativo' : 'Perfil Privado'}
+                              </p>
+                              <p className="text-[10px] font-bold text-slate-500 uppercase tracking-tight">
+                                {selectedBird.isPublic
+                                  ? 'Qualquer pessoa com o ID pode consultar esta ave'
+                                  : 'Esta ave não aparecerá em consultas públicas'}
+                              </p>
+                            </div>
+                          </div>
+                          <button
+                            onClick={() => {
+                              const updated = {
+                                ...selectedBird,
+                                isPublic: !selectedBird.isPublic,
+                              };
+                              updateBird(updated);
+                              setSelectedBird(updated);
+                              toast.success(
+                                updated.isPublic
+                                  ? 'Ave agora é pública!'
+                                  : 'Ave agora é privada!',
+                              );
+                            }}
+                            className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${
+                              selectedBird.isPublic
+                                ? 'bg-amber-100 text-amber-700 hover:bg-amber-200'
+                                : 'bg-brand text-white hover:bg-brand/90 shadow-md'
+                            }`}
+                          >
+                            {selectedBird.isPublic ? 'Tornar Privada' : 'Tornar Pública'}
+                          </button>
+                        </div>
                       </div>
 
                       <div className="grid grid-cols-2 gap-6">
@@ -3174,9 +3383,20 @@ const BirdManager: React.FC<BirdManagerProps> = ({
                           <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
                             Sexo
                           </p>
-                          <p className="text-sm font-bold text-slate-800 mt-1">
-                            {selectedBird.sex}
-                          </p>
+                          <div
+                            className={`mt-1 inline-flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-black uppercase tracking-widest transition-all ${
+                              selectedBird.sex === 'Macho'
+                                ? 'bg-blue-50 text-blue-600 border border-blue-100 shadow-sm'
+                                : selectedBird.sex === 'Fêmea'
+                                ? 'bg-pink-50 text-pink-600 border border-pink-100 shadow-sm'
+                                : 'bg-slate-50 text-slate-500 border border-slate-100'
+                            }`}
+                          >
+                            <span className="text-lg leading-none">
+                              {selectedBird.sex === 'Macho' ? '♂' : selectedBird.sex === 'Fêmea' ? '♀' : '○'}
+                            </span>
+                            <span>{selectedBird.sex}</span>
+                          </div>
                         </div>
                         <div>
                           <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">

@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+﻿import React, { useEffect, useState } from 'react';
 import {
   LayoutDashboard,
   Bird as BirdIcon,
@@ -11,6 +11,7 @@ import {
   DollarSign,
   CalendarCheck,
   Trophy,
+  Medal,
   Dna,
   Zap,
   HelpCircle,
@@ -24,6 +25,7 @@ import {
   Archive,
   Shield,
   Users,
+  Mail,
 } from 'lucide-react';
 import { BreederSettings, SubscriptionPlan } from '../types';
 import { APP_LOGO_ICON } from '../constants';
@@ -45,6 +47,7 @@ interface SidebarProps {
   onClose?: () => void;
   onRefresh?: () => void;
   isRefreshing?: boolean;
+  unreadInboxCount?: number;
 }
 
 const Sidebar: React.FC<SidebarProps> = ({
@@ -64,6 +67,7 @@ const Sidebar: React.FC<SidebarProps> = ({
   onClose,
   onRefresh,
   isRefreshing,
+  unreadInboxCount = 0,
 }) => {
   const [collapsedSections, setCollapsedSections] = useState<Record<string, boolean>>(
     settings.sidebarCollapsedSections || {},
@@ -75,7 +79,7 @@ const Sidebar: React.FC<SidebarProps> = ({
 
   const menuSections = [
     {
-      title: 'Visão geral',
+      title: 'Painel Geral',
       items: [
         {
           id: 'dashboard',
@@ -92,49 +96,60 @@ const Sidebar: React.FC<SidebarProps> = ({
         },
       ],
     },
-    // Aves & Plantel: apenas para usuários que NÃO são adminOnly
+    {
+      title: 'Comunidade',
+      items: [
+        { id: 'statistics-feed', label: 'Feed da Comunidade', icon: <Users size={18} />, variant: 'main' },
+          { id: 'statistics-top', label: 'Top Criadores', icon: <Medal size={16} />, variant: 'sub' },
+          { id: 'statistics-recent', label: 'Aves Recentes', icon: <BirdIcon size={16} />, variant: 'sub' },
+        { id: 'community-inbox', label: 'Mensagens', icon: <Mail size={16} />, variant: 'sub' },
+          { id: 'public-tournaments', label: 'Torneios Públicos', icon: <Trophy size={16} />, variant: 'sub' },
+          { id: 'verification', label: 'Verificar Anilha', icon: <FileBadge size={16} />, variant: 'sub' },
+      ],
+    },
+    // Gestão de Aves: apenas para usuários que NÃO são adminOnly
     ...(adminOnly
       ? []
       : [
           {
-            title: 'Aves & Plantel',
+            title: 'Gestão de Aves',
             items: [
-              { id: 'birds', label: 'Plantel', icon: <BirdIcon size={18} />, variant: 'main' },
-              { id: 'birds-labels', label: 'Etiquetas', icon: <Archive size={16} />, variant: 'sub' },
-              { id: 'birds-history', label: 'Histórico', icon: <Archive size={16} />, variant: 'sub' },
+              { id: 'birds', label: 'Meu Plantel', icon: <BirdIcon size={18} />, variant: 'main' },
+              { id: 'rings', label: 'Controle de Anilhas', icon: <FileBadge size={16} />, variant: 'sub' },
               { id: 'sexing', label: 'Sexagem', icon: <Dna size={16} />, variant: 'sub' },
-              {
-                id: 'birds-ibama',
-                label: 'IBAMA Pendentes',
-                icon: <FileBadge size={16} />,
-                variant: 'sub',
-              },
+              { id: 'birds-history', label: 'Histórico & Arquivo', icon: <Archive size={16} />, variant: 'sub' },
               { id: 'birds-trash', label: 'Lixeira', icon: <Trash2 size={16} />, variant: 'sub' },
             ],
           },
         ]),
-    // Gestão do Criatório: apenas para usuários que NÃO são adminOnly
+    // Manejo & Produtividade: apenas para usuários que NÃO são adminOnly
     ...(adminOnly
       ? []
       : [
           {
-            title: 'Gestão do Criatório',
+            title: 'Manejo & Produtividade',
             items: [
-              { id: 'breeding', label: 'Acasalamentos', icon: <Heart size={18} /> },
-              { id: 'movements', label: 'Movimentações', icon: <ArrowRightLeft size={18} /> },
-              { id: 'documents', label: 'Licenças & Docs', icon: <FileBadge size={18} /> },
-              { id: 'rings', label: 'Anilhas', icon: <FileBadge size={18} /> },
-              { id: 'meds', label: 'Medicamentos', icon: <FlaskConical size={18} /> },
-              { id: 'finance', label: 'Financeiro', icon: <DollarSign size={18} />, pro: true },
+              { id: 'tasks', label: 'Agenda & Tarefas', icon: <CalendarCheck size={18} />, variant: 'main' },
+              { id: 'breeding', label: 'Acasalamentos', icon: <Heart size={18} />, variant: 'main' },
+              { id: 'meds', label: 'Medicamentos', icon: <FlaskConical size={18} />, variant: 'main' },
+              { id: 'movements', label: 'Movimentações', icon: <ArrowRightLeft size={16} />, variant: 'sub' },
+            ],
+          },
+        ]),
+    // Administrativo: apenas para usuários que NÃO são adminOnly
+    ...(adminOnly
+      ? []
+      : [
+          {
+            title: 'Administrativo',
+            items: [
+              { id: 'finance', label: 'Financeiro', icon: <DollarSign size={18} />, pro: true, variant: 'main' },
+              { id: 'documents', label: 'Licenças & Docs', icon: <FileBadge size={16} />, variant: 'sub' },
             ],
           },
         ]),
     {
-      title: 'Agenda',
-      items: [{ id: 'tasks', label: 'Agenda & Tarefas', icon: <CalendarCheck size={18} /> }],
-    },
-    {
-      title: 'Torneios & Eventos',
+      title: 'Torneios',
       items: [
         { id: 'tournaments', label: 'Calendário', icon: <Trophy size={18} />, variant: 'main' },
         {
@@ -151,7 +166,6 @@ const Sidebar: React.FC<SidebarProps> = ({
           variant: 'sub',
           pro: true,
         },
-        { id: 'statistics', label: 'Comunidade', icon: <BarChart3 size={16} />, variant: 'sub' },
       ],
     },
     {
@@ -167,6 +181,12 @@ const Sidebar: React.FC<SidebarProps> = ({
                 id: 'admin-users',
                 label: 'Gerenciar Usuários',
                 icon: <Users size={18} />,
+                adminOnly: true,
+              },
+              {
+                id: 'admin-community-moderation',
+                label: 'Revisar Reports',
+                icon: <Shield size={18} />,
                 adminOnly: true,
               },
             ],
@@ -223,41 +243,42 @@ const Sidebar: React.FC<SidebarProps> = ({
 
       <div
         className={`
-        fixed left-0 top-0 h-screen w-64 bg-slate-50 border-r border-slate-200 flex flex-col z-50 shadow-xl lg:shadow-none transition-transform duration-300
+        fixed left-0 top-0 h-screen w-64 bg-slate-50/80 backdrop-blur-xl border-r border-slate-200/60 flex flex-col z-50 shadow-2xl lg:shadow-none transition-transform duration-500
         ${isOpen ? 'translate-x-0' : '-translate-x-full'} lg:translate-x-0
       `}
       >
-        <div className="p-5 pb-4 flex flex-col items-center justify-center border-b border-slate-200 gap-3 relative">
+        <div className="p-6 pb-6 flex flex-col items-center justify-center border-b border-slate-200 gap-4 relative bg-white">
           <button
             onClick={onClose}
-            className="absolute top-4 right-4 lg:hidden text-slate-400 hover:text-slate-600"
+            className="absolute top-4 right-4 lg:hidden text-slate-400 hover:text-slate-600 p-2 hover:bg-slate-100 rounded-full transition-colors"
           >
             <X size={20} />
           </button>
-          <div className="w-20 h-20 bg-gradient-to-br from-blue-50 to-slate-50 border-2 border-slate-300 rounded-2xl p-2 flex items-center justify-center flex-shrink-0 shadow-md hover:shadow-lg transition-shadow">
+          <div className="w-32 h-32 bg-white border border-slate-100 rounded-[2rem] p-1.5 flex items-center justify-center flex-shrink-0 shadow-2xl shadow-blue-500/10 hover:shadow-blue-500/20 transition-all duration-500 hover:scale-105 ring-8 ring-slate-50">
             <img
               src={logoUrl || APP_LOGO_ICON}
               alt="Logo"
               className="w-full h-full object-contain"
+              loading="eager"
             />
           </div>
           <div className="text-center">
             <h1
               title={breederName || 'AviGestão'}
-              className="text-base font-bold text-slate-900 leading-tight"
+              className="text-lg font-black text-slate-900 leading-tight tracking-[0.02em]"
             >
               {breederName || 'AviGestão'}
             </h1>
             <span
-              className={`mt-2 inline-flex items-center gap-1 rounded-full px-3 py-1 text-[10px] font-bold uppercase tracking-wider ring-1 ring-inset ${
+              className={`mt-2.5 inline-flex items-center gap-1.5 rounded-full px-4 py-1.5 text-[10px] font-black uppercase tracking-[0.1em] ring-1 ring-inset shadow-sm ${
                 isAdmin
-                  ? 'bg-red-50 text-red-700 ring-red-200'
+                  ? 'bg-rose-50 text-rose-700 ring-rose-200'
                   : plan === 'Profissional'
-                  ? 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white ring-blue-200'
-                  : 'bg-slate-50 text-slate-700 ring-slate-200'
+                  ? 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white ring-blue-400 shadow-blue-200'
+                  : 'bg-white text-slate-600 ring-slate-200'
               }`}
             >
-              <Zap size={12} className={isAdmin ? 'text-red-600' : plan === 'Profissional' ? 'text-white' : 'text-slate-500'} />
+              <Zap size={11} className={isAdmin ? 'text-rose-600' : plan === 'Profissional' ? 'text-white' : 'text-slate-400'} />
               {planLabel}
             </span>
           </div>
@@ -299,7 +320,7 @@ const Sidebar: React.FC<SidebarProps> = ({
                 <button
                   type="button"
                   onClick={() => toggleSection(section.title)}
-                  className="w-full flex items-center justify-between px-3 text-[10px] font-black uppercase tracking-[0.18em] text-slate-600 hover:text-slate-800 transition-colors"
+                  className="w-full flex items-center justify-between px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.22em] text-slate-500 hover:text-slate-700 transition-colors"
                 >
                   {section.title}
                   <ChevronDown
@@ -313,32 +334,50 @@ const Sidebar: React.FC<SidebarProps> = ({
                   .map((item: any) => {
                     const isProFeature = item.pro && plan === 'Básico' && !hasTrial && !isAdmin;
                     const isDisabled = isProFeature;
-                    const isActive = activeTab === item.id;
+                    // For community sub-items we keep the main activeTab as 'statistics'
+                    let currentStatisticsView = undefined;
+                    try {
+                      currentStatisticsView = typeof localStorage !== 'undefined' ? localStorage.getItem('avigestao_statistics_view') : undefined;
+                    } catch {
+                      currentStatisticsView = undefined;
+                    }
+                    const isActive = activeTab === item.id || (activeTab === 'statistics' && currentStatisticsView === item.id);
                     const isSub = item.variant === 'sub';
                     const isAdminItem = !!item.adminOnly;
+
+                    const handleItemClick = () => {
+                      if (isDisabled) return goToSubscriptionPlans();
+                      // If this is a community sub-item (statistics-*), map to the main 'statistics' route
+                      if (item.id && item.id.startsWith('statistics-')) {
+                        try {
+                          localStorage.setItem('avigestao_statistics_view', item.id);
+                        } catch {}
+                        handleNavigation('statistics');
+                      } else {
+                        handleNavigation(item.id);
+                      }
+                    };
 
                     return (
                       <button
                         key={item.id}
-                        onClick={() =>
-                          isDisabled ? goToSubscriptionPlans() : handleNavigation(item.id)
-                        }
+                        onClick={handleItemClick}
                         aria-current={isActive ? 'page' : undefined}
                         aria-disabled={isDisabled}
                         aria-label={item.label + (isProFeature ? ' (recurso PRO)' : '')}
-                        className={`w-full flex items-center justify-between rounded-xl transition-all ${
-                          isSub ? 'px-3 py-2' : 'px-3 py-2.5'
+                        className={`w-full flex items-center justify-between rounded-xl transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/30 ${
+                          isSub ? 'px-3 py-2' : 'px-3.5 py-2.5'
                         } ${
                           isDisabled
-                            ? 'text-slate-500 bg-slate-50/70 hover:bg-slate-50 cursor-pointer opacity-85'
+                            ? 'text-slate-400 bg-slate-50 hover:bg-slate-50 cursor-pointer opacity-85'
                             : isActive
                             ? isAdminItem
                               ? 'bg-rose-600 text-white shadow-sm'
                               : 'bg-slate-900 text-white shadow-sm'
                             : isAdminItem
                             ? 'text-rose-700 hover:text-rose-800 hover:bg-rose-50'
-                            : 'text-slate-700 hover:text-slate-900 hover:bg-white'
-                        } ${isSub ? 'text-[11px]' : 'text-sm font-semibold'}`}
+                            : 'text-slate-700 hover:text-slate-900 hover:bg-slate-50'
+                        } ${isSub ? 'text-[12px] font-medium' : 'text-[13px] font-semibold'}`}
                         title={isDisabled ? 'Feature disponível apenas no plano PRO' : ''}
                       >
                         <div className={`flex items-center gap-3 ${isSub ? 'pl-2' : ''}`}>
@@ -356,6 +395,11 @@ const Sidebar: React.FC<SidebarProps> = ({
                             {item.icon}
                           </span>
                           <span className="flex-1 text-left">{item.label}</span>
+                          {item.id === 'community-inbox' && unreadInboxCount > 0 && (
+                            <span className="ml-2 inline-flex items-center justify-center min-w-[18px] h-[18px] px-1 text-[10px] font-bold rounded-full bg-rose-500 text-white">
+                              {unreadInboxCount}
+                            </span>
+                          )}
                           {isProFeature && (
                             <Zap
                               size={12}
@@ -379,7 +423,7 @@ const Sidebar: React.FC<SidebarProps> = ({
           {(plan === 'Básico' || hasTrial) && !isAdmin && (
             <button
               onClick={goToSubscriptionPlans}
-              className={`w-full flex items-center gap-2 px-3 py-2.5 rounded-lg font-semibold text-xs uppercase tracking-wide transition-all ${
+              className={`w-full flex items-center gap-2 px-3.5 py-2.5 rounded-xl font-semibold text-[11px] uppercase tracking-wider transition-all ${
                 hasTrial
                   ? 'bg-green-50 text-green-700 hover:bg-green-100'
                   : 'bg-blue-50 text-blue-700 hover:bg-blue-100'
@@ -391,7 +435,7 @@ const Sidebar: React.FC<SidebarProps> = ({
           )}
           <button
             onClick={() => handleNavigation('settings')}
-            className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all ${
+            className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-[13px] font-semibold transition-all ${
               activeTab === 'settings'
                 ? 'bg-slate-100 text-slate-900'
                 : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
@@ -404,7 +448,7 @@ const Sidebar: React.FC<SidebarProps> = ({
             <button
               onClick={onRefresh}
               disabled={isRefreshing}
-              className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all text-green-700 hover:bg-green-50 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-[13px] font-semibold transition-all text-green-700 hover:bg-green-50 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <RefreshCw
                 size={18}
@@ -415,7 +459,7 @@ const Sidebar: React.FC<SidebarProps> = ({
           )}
           <button
             onClick={onLogout}
-            className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all text-red-600 hover:bg-red-50"
+            className="w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-[13px] font-semibold transition-all text-red-600 hover:bg-red-50"
           >
             <LogOut size={18} className="flex-shrink-0" />
             Sair
@@ -427,3 +471,6 @@ const Sidebar: React.FC<SidebarProps> = ({
 };
 
 export default Sidebar;
+
+
+

@@ -1,5 +1,6 @@
 import {
   collection,
+  collectionGroup,
   doc,
   getDocs,
   getDoc,
@@ -35,11 +36,36 @@ import {
 import { DEFAULT_MEDICATION_CATALOG } from '../constants/medicationCatalog';
 
 // Helper para processar campos undefined como deleteField (Firestore não aceita undefined)
-const cleanUndefined = (obj: Record<string, unknown>) => {
+const cleanUndefined = (obj: Record<string, unknown>, isNested: boolean = false): Record<string, unknown> => {
   const result: Record<string, unknown> = {};
   for (const [key, value] of Object.entries(obj)) {
     if (value === undefined) {
-      result[key] = deleteField(); // Deleta o campo no Firestore
+      // Apenas usar deleteField no nível superior, não em objetos aninhados
+      if (!isNested) {
+        result[key] = deleteField();
+      }
+      // Em objetos aninhados, simplesmente não incluir o campo
+    } else if (value === '') {
+      // Remover strings vazias - deleteField apenas no nível superior
+      if (!isNested) {
+        result[key] = deleteField();
+      }
+      // Em objetos aninhados, não incluir campos vazios
+    } else if (value !== null && typeof value === 'object' && !Array.isArray(value) && !(value instanceof Date) && !(value instanceof Timestamp)) {
+      // Limpeza profunda (recursiva) para objetos aninhados
+      const cleanedNested = cleanUndefined(value as Record<string, unknown>, true);
+      // Só incluir o campo aninhado se ainda tem propriedades após limpeza
+      if (Object.keys(cleanedNested).length > 0) {
+        result[key] = cleanedNested;
+      }
+    } else if (Array.isArray(value)) {
+      // Para arrays, limpar undefined dentro do array
+      result[key] = value.map((item) => {
+        if (item !== null && typeof item === 'object' && !Array.isArray(item) && !(item instanceof Date) && !(item instanceof Timestamp)) {
+          return cleanUndefined(item as Record<string, unknown>, true);
+        }
+        return item;
+      });
     } else {
       result[key] = value;
     }
@@ -141,27 +167,48 @@ const syncPublicBird = async (userId: string, birdId: string, bird: Bird): Promi
       await deleteDoc(publicRef);
     }
   } catch (error) {
-     console.error('Erro ao sincronizar pássaro público:', getErrorMessage(error));
+      // Não poluir logs de produção com erros de permissão — logar apenas em DEV
+      debugLog('Erro ao sincronizar pássaro público:', getErrorMessage(error));
   }
 };
 
 // ============= BIRDS =============
 export const getBirds = async (userId: string): Promise<Bird[]> => {
   try {
+    console.log('[getBirds] Recarregando pássaros do Firestore para userId:', userId);
     const birdsRef = collection(db, 'users', userId, 'birds');
-    // Não filtrar por deletedAt aqui, deixar para a aplicação decidir
+    // Retornar apenas pássaros ativos (filtrar soft-deleted)
     const snapshot = await getDocs(birdsRef);
-    const birds = snapshot.docs.map(
-      (doc) =>
-        ({
-          id: doc.id,
-          ...doc.data(),
-        } as Bird),
-    );
+    console.log('[getBirds] Total de documentos obtidos:', snapshot.docs.length);
+    
+    const birds = snapshot.docs
+      .map((doc) => ({ id: doc.id, ...(doc.data() as any) } as Bird))
+      .filter((b) => !((b as any).deleted === true || !!b.deletedAt));
+    
+    console.log('[getBirds] Pássaros após filtro (excluindo deletados):', birds.length);
+    birds.forEach((b) => {
+      console.log(`[getBirds] Pássaro: ${b.id} - name="${b.name}", sex="${b.sex}", sexing=${JSON.stringify(b.sexing)}`);
+    });
+    
     debugLog('getBirds retornando:', birds);
     return birds;
   } catch (error) {
     console.error('Erro ao buscar birds:', error);
+    return [];
+  }
+};
+
+// Retorna apenas pássaros que foram movidos para a lixeira (soft-deleted)
+export const getDeletedBirds = async (userId: string): Promise<Bird[]> => {
+  try {
+    const birdsRef = collection(db, 'users', userId, 'birds');
+    const snapshot = await getDocs(birdsRef);
+    const birds = snapshot.docs
+      .map((doc) => ({ id: doc.id, ...(doc.data() as any) } as Bird))
+      .filter((b) => (b as any).deleted === true || !!b.deletedAt);
+    return birds;
+  } catch (error) {
+    console.error('Erro ao buscar pássaros na lixeira:', error);
     return [];
   }
 };
@@ -310,11 +357,14 @@ export const deleteRingItemInFirestore = async (
 export const addBird = async (userId: string, bird: Omit<Bird, 'id'>): Promise<string | null> => {
   try {
     const birdsRef = collection(db, 'users', userId, 'birds');
-    const docRef = await addDoc(birdsRef, {
+    // Garantir que breederId está definido antes de salvar
+    const birdWithBreederId = {
       ...bird,
+      breederId: bird.breederId || userId,
       createdAt: Timestamp.now(),
       updatedAt: Timestamp.now(),
-    });
+    };
+    const docRef = await addDoc(birdsRef, birdWithBreederId);
 
     // Criar índice público para permitir busca via QR code
     const indexRef = doc(db, 'bird_index', docRef.id);
@@ -327,7 +377,13 @@ export const addBird = async (userId: string, bird: Omit<Bird, 'id'>): Promise<s
     debugLog('[addBird] Índice público criado para:', docRef.id);
 
     if (bird.isPublic) {
-      await syncPublicBird(userId, docRef.id, { ...bird, id: docRef.id } as Bird);
+      try {
+        await syncPublicBird(userId, docRef.id, { ...bird, id: docRef.id } as Bird);
+      } catch (err: unknown) {
+        if (import.meta?.env?.DEV) {
+          console.debug('[addBird] Falha ao sincronizar pássaro público (ignorado):', getErrorMessage(err));
+        }
+      }
     }
 
     return docRef.id;
@@ -343,12 +399,54 @@ export const updateBird = async (
   updates: Partial<Bird>,
 ): Promise<boolean> => {
   try {
+    console.log('[updateBird-Firestore] INICIANDO atualização:', { userId, birdId, updatesKeys: Object.keys(updates) });
+    console.log('[updateBird-Firestore] Payload a ser escrito:', updates);
+    
     const birdRef = doc(db, 'users', userId, 'birds', birdId);
     const cleanedUpdates = cleanUndefined({
       ...updates,
       updatedAt: Timestamp.now(),
     });
+    
+    console.log('[updateBird-Firestore] Payload limpo (após cleanUndefined):', cleanedUpdates);
+    
+    // Usar updateDoc ao invés de setDoc para evitar que campos antigos sejam preservados
+    // updateDoc faz update de verdade sem merge de campos antigos
     await updateDoc(birdRef, cleanedUpdates);
+    console.log('[updateBird-Firestore] ✓ updateDoc executado com sucesso');
+
+    // Leitura de verificação: ler o documento após a escrita para garantir que
+    // o Firestore persistiu os valores.
+    try {
+      const after = await getDoc(birdRef);
+      if (after.exists()) {
+        const afterData = after.data() as Bird;
+        console.log('[updateBird-Firestore] ✓ Documento APÓS update (verificação):', {
+          id: afterData.id,
+          sex: afterData.sex,
+          sexing: afterData.sexing,
+          documents: afterData.documents,
+          updatedAt: afterData.updatedAt,
+        });
+        // Dump completo do sexing para debug
+        console.log('[updateBird-Firestore] SEXING COMPLETO APÓS UPDATE:', JSON.stringify(afterData.sexing, null, 2));
+        
+        // Validar que os campos foram de fato persistidos
+        const expectedFields = ['sex', 'sexing', 'documents'];
+        for (const field of expectedFields) {
+          if (field in cleanedUpdates) {
+            const persisted = (afterData as any)[field];
+            const expected = (cleanedUpdates as any)[field];
+            const match = JSON.stringify(persisted) === JSON.stringify(expected);
+            console.log(`[updateBird-Firestore] Campo "${field}": ${match ? '✓ MATCH' : '✗ MISMATCH'} (persisted=${JSON.stringify(persisted)}, expected=${JSON.stringify(expected)})`);
+          }
+        }
+      } else {
+        console.warn('[updateBird-Firestore] ✗ Documento NÃO EXISTE após update!');
+      }
+    } catch (err) {
+      console.error('[updateBird-Firestore] Erro na verificação pós-escrita:', getErrorMessage(err));
+    }
 
     // Garantir que o índice público existe (para pássaros antigos)
     const indexRef = doc(db, 'bird_index', birdId);
@@ -365,12 +463,19 @@ export const updateBird = async (
 
     const updatedSnapshot = await getDoc(birdRef);
     if (updatedSnapshot.exists()) {
-      await syncPublicBird(userId, birdId, updatedSnapshot.data() as Bird);
+      try {
+        await syncPublicBird(userId, birdId, updatedSnapshot.data() as Bird);
+      } catch (err: unknown) {
+        if (import.meta?.env?.DEV) {
+          console.debug('[updateBird] Falha ao sincronizar pássaro público (ignorado):', getErrorMessage(err));
+        }
+      }
     }
 
+    console.log('[updateBird-Firestore] ✓✓✓ Atualização COMPLETA com sucesso');
     return true;
   } catch (error) {
-    console.error('Erro ao atualizar bird:', error);
+    console.error('[updateBird-Firestore] ✗ Erro ao atualizar bird:', error);
     return false;
   }
 };
@@ -430,10 +535,16 @@ export const syncPublicBirdsForUser = async (userId: string, birds: Bird[]): Pro
 export const deleteBird = async (userId: string, birdId: string): Promise<boolean> => {
   try {
     const birdRef = doc(db, 'users', userId, 'birds', birdId);
-    await updateDoc(birdRef, {
-      deleted: true,
-      deletedAt: Timestamp.now(),
-    });
+    // Usar setDoc com merge para evitar erro "No document to update" quando o
+    // documento não existir (evita warnings em produção).
+    await setDoc(
+      birdRef,
+      {
+        deleted: true,
+        deletedAt: Timestamp.now(),
+      },
+      { merge: true },
+    );
     return true;
   } catch (error) {
     console.error('Erro ao deletar bird:', error);
@@ -486,6 +597,7 @@ export const addPair = async (userId: string, pair: Omit<Pair, 'id'>): Promise<s
     const pairsRef = collection(db, 'users', userId, 'pairs');
     const docRef = await addDoc(pairsRef, {
       ...pair,
+      userId: pair.userId || userId,
       createdAt: Timestamp.now(),
       updatedAt: Timestamp.now(),
     });
@@ -507,7 +619,8 @@ export const updatePair = async (
       ...updates,
       updatedAt: Timestamp.now(),
     });
-    await updateDoc(pairRef, cleanedUpdates);
+    // Usar setDoc com merge para upsert e evitar erro se o doc não existir
+    await setDoc(pairRef, cleanedUpdates, { merge: true });
     return true;
   } catch (error) {
     console.error('Erro ao atualizar pair:', error);
@@ -518,13 +631,32 @@ export const updatePair = async (
 export const deletePair = async (userId: string, pairId: string): Promise<boolean> => {
   try {
     const pairRef = doc(db, 'users', userId, 'pairs', pairId);
-    await updateDoc(pairRef, {
-      deleted: true,
-      deletedAt: Timestamp.now(),
-    });
+    // Usar setDoc com merge para marcar soft-delete sem depender do documento existir
+    await setDoc(
+      pairRef,
+      {
+        deleted: true,
+        deletedAt: Timestamp.now(),
+      },
+      { merge: true },
+    );
     return true;
   } catch (error) {
     console.error('Erro ao deletar pair:', error);
+    return false;
+  }
+};
+
+export const permanentlyDeletePairInFirestore = async (
+  userId: string,
+  pairId: string,
+): Promise<boolean> => {
+  try {
+    const pairRef = doc(db, 'users', userId, 'pairs', pairId);
+    await deleteDoc(pairRef);
+    return true;
+  } catch (error) {
+    console.error('Erro ao deletar pair permanentemente:', error);
     return false;
   }
 };
@@ -798,7 +930,8 @@ export const updateMovementInFirestore = async (
       ...updates,
       updatedAt: Timestamp.now(),
     });
-    await updateDoc(movementRef, cleanedUpdates);
+    // Usar setDoc com merge para evitar erro se o movimento não existir e permitir upsert
+    await setDoc(movementRef, cleanedUpdates, { merge: true });
     return true;
   } catch (error) {
     console.error('Erro ao atualizar movement:', error);
@@ -1327,6 +1460,54 @@ export const getClutches = async (userId: string): Promise<Clutch[]> => {
   }
 };
 
+export const addClutchInFirestore = async (
+  userId: string,
+  clutch: Clutch,
+): Promise<string | null> => {
+  try {
+    const clutchId = clutch.id;
+    if (!clutchId) {
+      console.error('[addClutchInFirestore] Ninhada sem ID!', clutch);
+      return null;
+    }
+
+    const clutchRef = doc(db, 'users', userId, 'clutches', clutchId);
+    const clutchData = cleanUndefined({
+      ...clutch,
+      id: clutchId,
+      createdAt: Timestamp.now(),
+      updatedAt: Timestamp.now(),
+    });
+
+    await setDoc(clutchRef, clutchData);
+    return clutchId;
+  } catch (error) {
+    console.error('Erro ao adicionar clutch:', error);
+    return null;
+  }
+};
+
+export const updateClutchInFirestore = async (
+  userId: string,
+  clutchId: string,
+  updates: Partial<Clutch>,
+): Promise<boolean> => {
+  try {
+    const clutchRef = doc(db, 'users', userId, 'clutches', clutchId);
+    const cleanedUpdates = cleanUndefined({
+      ...updates,
+      id: clutchId,
+      updatedAt: Timestamp.now(),
+    });
+
+    await setDoc(clutchRef, cleanedUpdates, { merge: true });
+    return true;
+  } catch (error) {
+    console.error('Erro ao atualizar clutch:', error);
+    return false;
+  }
+};
+
 // ============= TREATMENTS =============
 export const getTreatments = async (userId: string): Promise<ContinuousTreatment[]> => {
   try {
@@ -1798,9 +1979,63 @@ export const getPublicBirdById = async (birdId: string): Promise<Bird | null> =>
       trainingNotes: data.trainingNotes || '',
       photoUrl: data.photoUrl || '',
       manualAncestors: data.manualAncestors || {},
+      isPublic: data.isPublic || false,
     } as Bird;
   } catch (error: unknown) {
     console.error('[getPublicBirdById] Erro ao buscar pássaro público:', getErrorMessage(error));
+    return null;
+  }
+};
+
+/**
+ * Busca dados públicos de um pássaro por Número de Anilha (sem autenticação necessária)
+ * Útil quando o usuário não tem o ID do QR Code em mãos
+ */
+export const getPublicBirdByRingNumber = async (ringNumber: string): Promise<Bird | null> => {
+  try {
+    debugLog('[getPublicBirdByRingNumber] Buscando por anilha:', ringNumber);
+
+    if (!ringNumber) return null;
+
+    // Usar Collection Group Query para buscar em todos os subdocumentos 'birds' de todos os usuários
+    const birdsQuery = query(
+      collectionGroup(db, 'birds'),
+      where('ringNumber', '==', ringNumber),
+      limit(1)
+    );
+
+    const snapshot = await getDocs(birdsQuery);
+
+    if (snapshot.empty) {
+      console.warn('[getPublicBirdByRingNumber] Nenhuma ave encontrada com anilha:', ringNumber);
+      return null;
+    }
+
+    const doc = snapshot.docs[0];
+    const data = doc.data();
+
+    return {
+      id: doc.id,
+      name: data.name || '',
+      species: data.species || '',
+      sex: data.sex || '',
+      status: data.status || '',
+      ringNumber: data.ringNumber || '',
+      birthDate: data.birthDate || '',
+      colorMutation: data.colorMutation || '',
+      classification: data.classification || '',
+      location: data.location || '',
+      fatherId: data.fatherId || '',
+      motherId: data.motherId || '',
+      songTrainingStatus: data.songTrainingStatus || '',
+      songType: data.songType || '',
+      trainingNotes: data.trainingNotes || '',
+      photoUrl: data.photoUrl || '',
+      manualAncestors: data.manualAncestors || {},
+      isPublic: data.isPublic || false,
+    } as Bird;
+  } catch (error: unknown) {
+    console.error('[getPublicBirdByRingNumber] Erro ao buscar pássaro por anilha:', getErrorMessage(error));
     return null;
   }
 };

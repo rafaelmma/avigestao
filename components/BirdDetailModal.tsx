@@ -72,7 +72,21 @@ const BirdDetailModal: React.FC<BirdDetailModalProps> = ({
         {/* Header */}
         <div className="p-6 border-b border-slate-200 flex items-center justify-between bg-slate-50">
           <div className="flex-1">
-            <h2 className="text-h2 font-bold text-slate-900">{bird.name}</h2>
+            <div className="flex items-center gap-3">
+              <h2 className="text-h2 font-bold text-slate-900">{bird.name}</h2>
+              <span className="px-3 py-1 bg-slate-200 text-slate-600 rounded-full text-[10px] font-mono font-bold">
+                ID: {bird.id}
+              </span>
+              {bird.isPublic ? (
+                <span className="px-3 py-1 bg-emerald-100 text-emerald-700 rounded-full text-[9px] font-black uppercase tracking-widest">
+                  Público
+                </span>
+              ) : (
+                <span className="px-3 py-1 bg-slate-100 text-slate-400 rounded-full text-[9px] font-black uppercase tracking-widest">
+                  Privado
+                </span>
+              )}
+            </div>
             <p className="text-body-sm text-slate-600 mt-1">
               {bird.ringNumber} • {bird.species}
             </p>

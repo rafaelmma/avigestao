@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect } from 'react';
 import {
   Bird as BirdIcon,
   Search,
@@ -10,9 +10,11 @@ import {
   X,
   Users,
   Award,
-  TreePine,
   ArrowLeft,
 } from 'lucide-react';
+import { APP_LOGO } from '../constants';
+import PrimaryButton from '../components/ui/PrimaryButton';
+import SecondaryButton from '../components/ui/SecondaryButton';
 import { db } from '../lib/firebase';
 import { collection, query, where, getDocs } from 'firebase/firestore';
 import { Bird, BreederSettings } from '../types';
@@ -124,22 +126,27 @@ const PublicBirds: React.FC<PublicBirdsProps> = ({ onNavigateToHome }) => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 py-12 px-4">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 py-8 px-4">
       <div className="max-w-7xl mx-auto space-y-8">
+        {/* Logo Brand Header */}
+        <div className="flex items-center justify-between mb-8 pb-6 border-b border-slate-200">
+          <div className="flex items-center gap-4">
+            <div className="w-12 h-12 bg-white rounded-xl shadow-lg shadow-indigo-100 p-2 border border-indigo-50 flex items-center justify-center">
+              <img src={APP_LOGO} alt="AviGestão" className="w-full h-full object-contain" />
+            </div>
+            <div>
+              <span className="text-2xl font-black text-slate-900 tracking-tight">Avi<span className="text-indigo-600">Gestão</span></span>
+            </div>
+          </div>
+          {onNavigateToHome && (
+            <SecondaryButton onClick={onNavigateToHome} className="flex items-center gap-2">
+              <ArrowLeft size={18} /> Voltar para início
+            </SecondaryButton>
+          )}
+        </div>
+
         {/* Header */}
         <div className="text-center space-y-4">
-          {onNavigateToHome && (
-            <div className="flex justify-start">
-              <button
-                type="button"
-                onClick={onNavigateToHome}
-                className="inline-flex items-center gap-2 px-4 py-2 text-sm font-bold text-slate-600 bg-white border border-slate-200 rounded-xl hover:border-brand/40 hover:text-brand transition-all shadow-sm"
-              >
-                <ArrowLeft size={16} />
-                Voltar para início
-              </button>
-            </div>
-          )}
           <div className="flex items-center justify-center gap-3">
             <div className="p-4 bg-gradient-to-br from-blue-500 to-purple-600 rounded-2xl shadow-lg">
               <BirdIcon size={32} className="text-white" />
@@ -176,20 +183,20 @@ const PublicBirds: React.FC<PublicBirdsProps> = ({ onNavigateToHome }) => {
               placeholder="Buscar por nome, espécie, anilha ou criador..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-12 pr-4 py-4 bg-slate-50 rounded-2xl text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-brand/30 transition-all"
+              className="w-full pl-12 pr-4 py-4 bg-slate-50 border border-slate-100 rounded-2xl text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-400 transition-all shadow-sm"
             />
           </div>
 
           {/* Filter Toggle Button */}
           <button
             onClick={() => setShowFilters(!showFilters)}
-            className="flex items-center gap-2 text-sm font-semibold text-slate-600 hover:text-brand transition-colors"
+            className="flex items-center gap-2 text-sm font-bold text-slate-600 hover:text-indigo-600 transition-colors"
           >
-            <Filter size={16} />
+            <Filter size={18} />
             {showFilters ? 'Ocultar Filtros' : 'Mostrar Filtros'}
             <ChevronDown
-              size={16}
-              className={`transition-transform ${showFilters ? 'rotate-180' : ''}`}
+              size={18}
+              className={`transition-transform duration-300 ${showFilters ? 'rotate-180' : ''}`}
             />
           </button>
 
@@ -203,7 +210,7 @@ const PublicBirds: React.FC<PublicBirdsProps> = ({ onNavigateToHome }) => {
                 <select
                   value={selectedSpecies}
                   onChange={(e) => setSelectedSpecies(e.target.value)}
-                  className="w-full px-4 py-3 bg-slate-50 rounded-xl text-slate-900 focus:outline-none focus:ring-2 focus:ring-brand/30"
+                  className="w-full px-4 py-3 bg-slate-50 border border-slate-100 rounded-xl text-slate-900 focus:outline-none focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-400"
                 >
                   {species.map((s) => (
                     <option key={s} value={s}>
@@ -343,9 +350,10 @@ const PublicBirds: React.FC<PublicBirdsProps> = ({ onNavigateToHome }) => {
                   <div className="pt-3 border-t border-slate-100">
                     <div className="flex items-center justify-between text-xs">
                       <span className="text-slate-400 font-medium">Ver árvore genealógica</span>
-                      <TreePine
-                        size={16}
-                        className="text-brand group-hover:translate-x-1 transition-transform"
+                      <img
+                        src={APP_LOGO}
+                        alt="AviGestão"
+                        className="h-4 w-4 rounded-full object-contain group-hover:translate-x-1 transition-transform"
                       />
                     </div>
                   </div>
@@ -446,7 +454,11 @@ const PublicBirds: React.FC<PublicBirdsProps> = ({ onNavigateToHome }) => {
                 <div className="lg:col-span-2">
                   <div className="bg-slate-50 rounded-2xl p-6">
                     <h3 className="text-lg font-black text-slate-900 mb-4 flex items-center gap-2">
-                      <TreePine size={20} className="text-brand" />
+                      <img
+                        src={APP_LOGO}
+                        alt="AviGestão"
+                        className="h-5 w-5 rounded-full object-contain"
+                      />
                       Árvore Genealógica
                     </h3>
                     <div className="overflow-x-auto">
@@ -468,3 +480,4 @@ const PublicBirds: React.FC<PublicBirdsProps> = ({ onNavigateToHome }) => {
 };
 
 export default PublicBirds;
+

@@ -118,7 +118,7 @@ const ResetPassword: React.FC = () => {
         <div className="absolute bottom-0 left-0 w-[500px] h-[500px] bg-amber-500/10 rounded-full blur-[100px] -translate-x-1/2 translate-y-1/2"></div>
 
         <div className="relative z-10 text-center">
-          <div className="w-48 h-48 bg-white rounded-3xl flex items-center justify-center mb-8 p-4 shadow-2xl mx-auto">
+          <div className="w-56 h-56 bg-white rounded-[2.5rem] flex items-center justify-center mb-8 p-1 shadow-2xl mx-auto border-4 border-white/20">
             <img src={APP_LOGO} className="w-full h-full object-contain" alt="AviGestão Logo" />
           </div>
           <div className="bg-white/5 backdrop-blur-sm p-8 rounded-3xl border border-white/10 max-w-md">
@@ -134,7 +134,7 @@ const ResetPassword: React.FC = () => {
         <div className="w-full max-w-md space-y-8">
           {/* Logo para Mobile */}
           <div className="lg:hidden flex justify-center mb-8">
-            <div className="w-32 h-32 bg-white rounded-3xl flex items-center justify-center p-3 shadow-xl border-2 border-slate-200">
+            <div className="w-40 h-40 bg-white rounded-[2rem] flex items-center justify-center p-1 shadow-xl border-2 border-slate-200">
               <img src={APP_LOGO} className="w-full h-full object-contain" alt="AviGestão Logo" />
             </div>
           </div>

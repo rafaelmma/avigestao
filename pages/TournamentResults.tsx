@@ -1,7 +1,9 @@
-import React, { useState, useEffect } from 'react';
-import { Trophy, Download, Star } from 'lucide-react';
+﻿import React, { useState, useEffect } from 'react';
+import { Trophy, Download, Star, ArrowLeft } from 'lucide-react';
 import PageHeader from '../components/ui/PageHeader';
 import PrimaryButton from '../components/ui/PrimaryButton';
+import SecondaryButton from '../components/ui/SecondaryButton';
+import { APP_LOGO } from '../constants';
 import { db } from '../lib/firebase';
 import { collection, getDocs, query, where, orderBy } from 'firebase/firestore';
 
@@ -134,6 +136,18 @@ const TournamentResults: React.FC<Props> = ({ onBack }) => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 p-4 md:p-8">
       <div className="max-w-6xl mx-auto print:max-w-full">
+        {/* Logo Brand Header */}
+        <div className="flex items-center justify-between mb-8 pb-6 border-b border-slate-200 print:hidden">
+          <div className="flex items-center gap-4">
+            <div className="w-12 h-12 bg-white rounded-xl shadow-lg shadow-indigo-100 p-2 border border-indigo-50 flex items-center justify-center">
+              <img src={APP_LOGO} alt="AviGestão" className="w-full h-full object-contain" />
+            </div>
+            <div>
+              <span className="text-2xl font-black text-slate-900 tracking-tight">Avi<span className="text-indigo-600">Gestão</span></span>
+            </div>
+          </div>
+        </div>
+
         <PageHeader
           title={
             <>
@@ -141,7 +155,7 @@ const TournamentResults: React.FC<Props> = ({ onBack }) => {
             </>
           }
           subtitle="Acompanhe os resultados dos torneios"
-          actions={<PrimaryButton onClick={onBack}>Voltar</PrimaryButton>}
+          actions={<SecondaryButton onClick={onBack}>Voltar</SecondaryButton>}
         />
 
         <div className="bg-white rounded-xl border border-slate-200 p-6 space-y-4">
@@ -192,9 +206,9 @@ const TournamentResults: React.FC<Props> = ({ onBack }) => {
             <div className="flex gap-2 pt-4 border-t print:hidden">
               <button
                 onClick={() => setViewMode('inscritos')}
-                className={`flex-1 px-4 py-2 rounded-lg font-semibold text-sm ${
+                className={`flex-1 px-4 py-3 rounded-xl font-bold text-sm transition-all ${
                   viewMode === 'inscritos'
-                    ? 'bg-blue-600 text-white'
+                    ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-100'
                     : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
                 }`}
               >
@@ -202,9 +216,9 @@ const TournamentResults: React.FC<Props> = ({ onBack }) => {
               </button>
               <button
                 onClick={() => setViewMode('resultados')}
-                className={`flex-1 px-4 py-2 rounded-lg font-semibold text-sm ${
+                className={`flex-1 px-4 py-3 rounded-xl font-bold text-sm transition-all ${
                   viewMode === 'resultados'
-                    ? 'bg-green-600 text-white'
+                    ? 'bg-emerald-600 text-white shadow-lg shadow-emerald-100'
                     : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
                 }`}
               >
@@ -212,9 +226,9 @@ const TournamentResults: React.FC<Props> = ({ onBack }) => {
               </button>
               <button
                 onClick={() => setViewMode('classificacao')}
-                className={`flex-1 px-4 py-2 rounded-lg font-semibold text-sm ${
+                className={`flex-1 px-4 py-3 rounded-xl font-bold text-sm transition-all ${
                   viewMode === 'classificacao'
-                    ? 'bg-amber-600 text-white'
+                    ? 'bg-amber-500 text-white shadow-lg shadow-amber-100'
                     : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
                 }`}
               >
@@ -496,3 +510,4 @@ const TournamentResults: React.FC<Props> = ({ onBack }) => {
 };
 
 export default TournamentResults;
+

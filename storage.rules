@@ -23,6 +23,21 @@ service firebase.storage {
       allow read: if true;
       allow write: if request.auth != null;
     }
+
+    // Regra para anexos do feed comunitário
+    match /community_posts/attachments/{allPaths=**} {
+      // Leitura pública para exibir anexos
+      allow read: if true;
+
+      // Escrita apenas por usuários autenticados; exigir imagem e tamanho máximo de 5MB
+      // Recomendamos incluir metadata.authorId no upload para facilitar auditoria
+      allow write: if request.auth != null
+        && request.resource.size < 5 * 1024 * 1024
+        && request.resource.contentType.matches('image/.*');
+      // Deleção: somente proprietário do objeto (não há forma direta de verificar owner sem metadata),
+      // então permitimos delete apenas para authenticated (admins podem gerenciar via console/Cloud Functions)
+      allow delete: if request.auth != null;
+    }
     
     // Bloqueia acesso a qualquer outro caminho
     match /{allPaths=**} {

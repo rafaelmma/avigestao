@@ -702,90 +702,98 @@ const BreedingManager: React.FC<BreedingManagerProps> = ({
                   return (
                     <div
                       key={pair.id}
-                      className={`group bg-white rounded-[32px] border overflow-hidden shadow-sm hover:shadow-xl transition-all duration-300 ${
-                        currentList === 'trash' ? 'opacity-80' : ''
+                      className={`group bg-white rounded-[28px] border overflow-hidden shadow-sm hover:shadow-lg transition-all duration-300 ${
+                        currentList === 'trash' ? 'opacity-70' : ''
                       } ${
                         pair.lastHatchDate
-                          ? 'border-emerald-200 bg-gradient-to-br from-white via-white to-emerald-50/20'
+                          ? 'border-emerald-200 bg-gradient-to-br from-white via-white to-emerald-50/30'
                           : 'border-slate-100'
                       }`}
                     >
                       {pair.lastHatchDate && (
-                        <div className="h-1 bg-gradient-to-r from-emerald-400 to-emerald-500" />
+                        <div className="h-1.5 bg-gradient-to-r from-emerald-400 via-emerald-500 to-emerald-600" />
                       )}
-                      <div className="p-6 flex items-center justify-between bg-slate-50/50">
-                        <div className="flex items-center gap-4">
-                          <div
-                            className={`w-12 h-12 bg-white rounded-lg flex items-center justify-center shadow-sm border group-hover:scale-105 transition-transform ${
-                              pair.lastHatchDate
-                                ? 'text-emerald-600 border-emerald-200'
-                                : 'text-red-500 border-slate-100'
-                            }`}
-                          >
-                            <Heart
-                              size={24}
-                              fill={pair.status === 'Ativo' ? 'currentColor' : 'none'}
-                            />
-                          </div>
-                          <div>
-                            <div className="flex items-center gap-2">
-                              <h3 className="font-bold text-slate-900 leading-tight">
-                                {pair.name}
-                              </h3>
-                              {pair.lastHatchDate && (
-                                <span className="px-2 py-0.5 bg-emerald-50 text-emerald-700 text-xs font-medium rounded-md border border-emerald-200">
-                                  Com Filhotes
-                                </span>
-                              )}
-                            </div>
-                            <p className="text-xs text-slate-600 font-medium">
-                              Unido em: {new Date(pair.startDate).toLocaleDateString('pt-BR')}
-                            </p>
-                            {pair.lastHatchDate && (
-                              <p className="text-xs text-emerald-700 font-semibold">
-                                Última ninhada:{' '}
-                                {new Date(pair.lastHatchDate).toLocaleDateString('pt-BR')}
-                              </p>
-                            )}
+                      
+                      {/* Cabeçalho: Nome do Casal + Badge */}
+                      <div className="px-6 pt-5 pb-3 border-b border-slate-100/50">
+                        <div className="flex items-start justify-between gap-3 mb-2">
+                          <h3 className="font-bold text-slate-900 text-lg leading-tight flex-1">
+                            Casal {pair.name}
+                          </h3>
+                          {pair.lastHatchDate && (
+                            <span className="px-2.5 py-1 bg-emerald-50 text-emerald-700 text-xs font-semibold rounded-lg border border-emerald-200 whitespace-nowrap">
+                              ✓ Reproduzindo
+                            </span>
+                          )}
+                        </div>
+                        <p className="text-xs text-slate-500">
+                          {new Date(pair.startDate).toLocaleDateString('pt-BR')}
+                        </p>
+                      </div>
+
+                      {/* Pais: Macho | Fêmea */}
+                      <div className="px-6 py-4 grid grid-cols-2 gap-3">
+                        <div>
+                          <label className="block text-[9px] font-bold text-slate-400 uppercase tracking-widest mb-1.5">
+                            ♂ Macho
+                          </label>
+                          <div className="px-3 py-2.5 bg-blue-50 border-2 border-blue-200 rounded-lg text-sm font-bold text-blue-800 truncate">
+                            {getBirdName(pair.maleId)}
                           </div>
                         </div>
+                        <div>
+                          <label className="block text-[9px] font-bold text-slate-400 uppercase tracking-widest mb-1.5">
+                            ♀ Fêmea
+                          </label>
+                          <div className="px-3 py-2.5 bg-pink-50 border-2 border-pink-200 rounded-lg text-sm font-bold text-pink-800 truncate">
+                            {getBirdName(pair.femaleId)}
+                          </div>
+                        </div>
+                      </div>
 
-                        {currentList === 'active' && (
-                          <div className="flex items-center gap-2">
-                            {pair.lastHatchDate && (
-                              <button
-                                onClick={() => handleArchiveClick(pair.id)}
-                                className="text-slate-300 hover:text-amber-500 transition-colors p-2"
-                                title="Arquivar para Histórico"
-                              >
-                                <Archive size={18} />
-                              </button>
-                            )}
+                      {/* Espécie */}
+                      <div className="px-6 py-2">
+                        <label className="block text-[9px] font-bold text-slate-400 uppercase tracking-widest mb-1">
+                          Espécie
+                        </label>
+                        <p className="text-sm font-semibold text-slate-700">
+                          {getPairSpecies(pair.id) || '—'}
+                        </p>
+                      </div>
+
+                      {/* Última Ninhada */}
+                      {pair.lastHatchDate && (
+                        <div className="px-6 py-2 border-t border-emerald-100/50 bg-emerald-50/20">
+                          <label className="block text-[9px] font-bold text-slate-400 uppercase tracking-widest mb-1">
+                            Última Ninhada
+                          </label>
+                          <p className="text-sm font-semibold text-emerald-700">
+                            {new Date(pair.lastHatchDate).toLocaleDateString('pt-BR')}
+                          </p>
+                        </div>
+                      )}
+
+                      {/* Ações */}
+                      {currentList === 'active' && (
+                        <div className="px-6 py-3 border-t border-slate-100 flex justify-end gap-2 bg-slate-50/30">
+                          {pair.lastHatchDate && (
                             <button
-                              onClick={() => handleDeleteClick(pair.id)}
-                              className="text-slate-300 hover:text-rose-500 transition-colors p-2"
-                              title="Mover para Lixeira"
+                              onClick={() => handleArchiveClick(pair.id)}
+                              className="p-2 text-slate-400 hover:text-amber-600 hover:bg-amber-50 rounded-lg transition-all"
+                              title="Arquivar"
                             >
-                              <Trash2 size={18} />
+                              <Archive size={16} />
                             </button>
-                          </div>
-                        )}
-                      </div>
-
-                      <div className="p-6 flex items-center justify-around relative gap-3">
-                        <span className="inline-flex px-3 py-1 rounded-full text-elderly-label uppercase bg-blue-50 text-blue-600 border border-blue-100 max-w-[120px] truncate">
-                          {getBirdName(pair.maleId)}
-                        </span>
-                        <div className="flex flex-col items-center gap-1">
-                          <Heart size={20} className="text-slate-200" fill="currentColor" />
-                          <span className="px-2 py-0.5 rounded-full text-elderly-label uppercase bg-slate-50 text-slate-500 border border-slate-100 max-w-[120px] truncate">
-                            {getPairSpecies(pair.id)}
-                          </span>
+                          )}
+                          <button
+                            onClick={() => handleDeleteClick(pair.id)}
+                            className="p-2 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-all"
+                            title="Mover para Lixeira"
+                          >
+                            <Trash2 size={16} />
+                          </button>
                         </div>
-                        <span className="inline-flex px-3 py-1 rounded-full text-elderly-label uppercase bg-rose-50 text-rose-600 border border-rose-100 max-w-[120px] truncate">
-                          {getBirdName(pair.femaleId)}
-                        </span>
-                      </div>
+                      )}
 
                       {currentList === 'active' ? (
                         <div className="p-6 pt-0">

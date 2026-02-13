@@ -17,6 +17,7 @@ import {
   RingBatch,
   RingItem,
 } from './types';
+import { Mail } from 'lucide-react';
 import { INITIAL_SETTINGS } from './constants';
 import Sidebar from './components/Sidebar';
 import PageHeader from './components/ui/PageHeader';
@@ -43,10 +44,12 @@ const Auth = lazy(() => import('./pages/Auth'));
 const BirdVerification = lazy(() => import('./pages/BirdVerification'));
 const AnalyticsPage = lazy(() => import('./pages/AnalyticsPage'));
 const PublicStatistics = lazy(() => import('./pages/PublicStatistics'));
+const CommunityInbox = lazy(() => import('./pages/CommunityInbox'));
 const PublicTournaments = lazy(() => import('./pages/PublicTournaments'));
 const TournamentResults = lazy(() => import('./pages/TournamentResults'));
 const PublicBirds = lazy(() => import('./pages/PublicBirds'));
 const AdminUsers = lazy(() => import('./pages/AdminUsers'));
+const AdminCommunityModeration = lazy(() => import('./pages/Admin/CommunityModeration'));
 const About = lazy(() => import('./pages/About'));
 const Privacy = lazy(() => import('./pages/Privacy'));
 const Terms = lazy(() => import('./pages/Terms'));
@@ -63,6 +66,8 @@ import {
   getPairs,
   addPair as addPairToFirestore,
   updatePair as updatePairInFirestore,
+  deletePair as deletePairInFirestore,
+  permanentlyDeletePairInFirestore,
   getMovements,
   addMovementInFirestore,
   updateMovementInFirestore,
@@ -98,6 +103,8 @@ import {
   restoreApplicationInFirestore,
   permanentlyDeleteApplicationInFirestore,
   getClutches,
+  addClutchInFirestore,
+  updateClutchInFirestore,
   getTreatments,
   addTreatmentInFirestore,
   updateTreatmentInFirestore,
@@ -115,7 +122,8 @@ import {
   updateRingItemInFirestore,
   deleteRingItemInFirestore,
 } from './services/firestoreService';
-import { functions } from './lib/firebase';
+import { db, functions } from './lib/firebase';
+import { collection, onSnapshot, query, where } from 'firebase/firestore';
 import { initializeNewUser, sendVerificationEmail } from './services/authService';
 
 const STORAGE_KEY = 'avigestao_state_v2';
@@ -219,6 +227,7 @@ const getTabFromPath = (path: string) => {
   if (path.startsWith('/public-tournaments')) return 'public-tournaments';
   if (path.startsWith('/tournament-results')) return 'tournament-results';
   if (path.startsWith('/statistics')) return 'statistics';
+  if (path.startsWith('/community-inbox')) return 'community-inbox';
   if (path.startsWith('/public-birds')) return 'public-birds';
   if (path.startsWith('/verification')) return 'verification';
   return 'dashboard';
@@ -240,6 +249,8 @@ const getPathFromTab = (tab: string) => {
       return '/tournament-results';
     case 'statistics':
       return '/statistics';
+    case 'community-inbox':
+      return '/community-inbox';
     case 'public-birds':
       return '/public-birds';
     case 'verification':
@@ -266,6 +277,7 @@ const App: React.FC = () => {
   const [wantsWelcomeEmail, setWantsWelcomeEmail] = useState(true);
   const [isSendingWelcomeEmail, setIsSendingWelcomeEmail] = useState(false);
   const [isContactOpen, setIsContactOpen] = useState(false);
+  const [unreadInboxCount, setUnreadInboxCount] = useState(0);
 
   // Verifica se é uma rota pública (verificação de pássaro)
   const isPublicRoute = React.useMemo(() => {
@@ -341,11 +353,35 @@ const App: React.FC = () => {
     persistState(state, userId);
   }, [state, session, hasHydratedOnce]);
 
+  // (theme handling removed — app uses default light theme)
+
   useEffect(() => {
     const handleOpenContact = () => setIsContactOpen(true);
     window.addEventListener('open-contact-modal', handleOpenContact);
     return () => window.removeEventListener('open-contact-modal', handleOpenContact);
   }, []);
+
+  useEffect(() => {
+    const userId = session?.user?.id;
+    if (!userId) {
+      setUnreadInboxCount(0);
+      return;
+    }
+
+    const messagesRef = collection(db, 'community_messages');
+    const q = query(messagesRef, where('toUserId', '==', userId), where('read', '==', false));
+    const unsub = onSnapshot(
+      q,
+      (snap) => {
+        setUnreadInboxCount(snap.size);
+      },
+      (err) => {
+        console.error('Erro ao carregar contagem de mensagens não lidas', err);
+        setUnreadInboxCount(0);
+      },
+    );
+    return () => unsub();
+  }, [session?.user?.id]);
 
   // Firebase Authentication
   useEffect(() => {
@@ -357,11 +393,17 @@ const App: React.FC = () => {
       try {
         if (firebaseUser) {
           if (!firebaseUser.emailVerified) {
-            setIsEmailVerificationPending(true);
-            setVerificationEmail(firebaseUser.email ?? null);
-            setSession(null);
-            setIsLoading(false);
-            return;
+            // Allow admins to bypass email verification so portal admins can sign in
+            // without verifying email. Uses `checkIfUserIsAdmin` helper from firestoreService.
+            const isAdminUser = await checkIfUserIsAdmin(firebaseUser.uid).catch(() => false);
+            if (!isAdminUser) {
+              setIsEmailVerificationPending(true);
+              setVerificationEmail(firebaseUser.email ?? null);
+              setSession(null);
+              setIsLoading(false);
+              return;
+            }
+            // otherwise continue as if verified
           }
 
           setIsEmailVerificationPending(false);
@@ -478,7 +520,11 @@ const App: React.FC = () => {
         ]);
 
         let settings = await getSettings(newUserId);
-        const shouldInitTrial = !adminStatus && !adminOnlyStatus && !settings?.trialEndDate;
+        const shouldInitTrial =
+          !adminStatus &&
+          !adminOnlyStatus &&
+          !settings?.trialEndDate &&
+          !settings?.plan;
         if (shouldInitTrial && auth.currentUser) {
           const initResult = await initializeNewUser(auth.currentUser);
           if (initResult.error) {
@@ -536,10 +582,14 @@ const App: React.FC = () => {
         console.log('Sample movimento normal:', normalMovements[0]);
         console.log('Sample movimento deletado:', deletedMovements[0]);
 
+        const { activePairs, archivedPairs, deletedPairs } = splitPairsByStatus(pairs || []);
+
         setState({
           ...defaultState,
           birds: birds || [],
-          pairs: pairs || [],
+          pairs: activePairs,
+          archivedPairs,
+          deletedPairs,
           movements: normalMovements,
           deletedMovements: deletedMovements,
           transactions: transactions || [],
@@ -699,6 +749,10 @@ const App: React.FC = () => {
       // Salvar no Firestore primeiro
       const birdData = { ...bird };
       delete (birdData as any).id;
+      // Garantir que breederId está definido
+      if (!birdData.breederId) {
+        birdData.breederId = userId;
+      }
       console.log('Salvando no Firestore...', birdData);
       const newId = await addBirdToFirestore(userId, birdData);
       console.log('ID retornado do Firestore:', newId);
@@ -713,6 +767,23 @@ const App: React.FC = () => {
         ...prev,
         birds: [...prev.birds, birdWithId],
       }));
+
+      // Recarregar do Firestore para garantir sincronização
+      console.log('[addBird] Recarregando dados do Firestore após sucesso');
+      const reloadedBirds = await getBirds(userId);
+      if (reloadedBirds) {
+        setState((prev) => ({
+          ...prev,
+          birds: reloadedBirds,
+        }));
+        const addedBird = reloadedBirds.find((b) => b.id === newId);
+        console.log('[addBird] Ave adicionada e confirmada no Firestore:', { 
+          id: addedBird?.id, 
+          name: addedBird?.name,
+          sex: addedBird?.sex,
+          status: addedBird?.status,
+        });
+      }
 
       toast.success('Ave adicionada com sucesso!');
       return true;
@@ -730,7 +801,13 @@ const App: React.FC = () => {
     if (!userId) return false;
 
     try {
+      // Remover campos de controle de status antes de salvar
+      const { deletedAt, archivedAt, ...birdData } = bird as any;
+
       // Atualizar estado local PRIMEIRO para UI reagir imediatamente
+      const birdBefore = state.birds.find((b) => b.id === bird.id);
+      console.log('[updateBird] Estado ANTES:', { id: birdBefore?.id, sex: birdBefore?.sex, sexing: birdBefore?.sexing });
+      
       setState((prev) => ({
         ...prev,
         birds: prev.birds.map((b) => (b.id === bird.id ? { ...b, ...bird } : b)),
@@ -738,7 +815,7 @@ const App: React.FC = () => {
 
       // Depois salvar no Firestore
       console.log('Atualizando no Firestore...', bird);
-      const success = await updateBirdInFirestore(userId, bird.id, bird);
+      const success = await updateBirdInFirestore(userId, bird.id, birdData);
       console.log('Resultado da atualização no Firestore:', success);
 
       if (!success) {
@@ -750,6 +827,24 @@ const App: React.FC = () => {
           ),
         }));
         throw new Error('Falha ao atualizar no banco de dados');
+      }
+
+      // Recarregar dados do Firestore após update bem-sucedido para garantir consistência
+      console.log('[updateBird] Recarregando dados do Firestore após update bem-sucedido');
+      const reloadedBirds = await getBirds(userId);
+      if (reloadedBirds) {
+        setState((prev) => ({
+          ...prev,
+          birds: reloadedBirds,
+        }));
+        const birdAfter = reloadedBirds.find((b) => b.id === bird.id);
+        console.log('[updateBird] Estado DEPOIS (após reload do Firestore):', { 
+          id: birdAfter?.id, 
+          sex: birdAfter?.sex, 
+          sexing: birdAfter?.sexing,
+          sentDate: birdAfter?.sexing?.sentDate,
+          laboratory: birdAfter?.sexing?.laboratory,
+        });
       }
 
       toast.success('Ave atualizada com sucesso!');
@@ -861,10 +956,16 @@ const App: React.FC = () => {
         }));
       }
 
+      // Recarregar do Firestore para garantir sincronização
+      const [reloadedBatches, reloadedRings] = await Promise.all([
+        getRingBatches(userId),
+        getRings(userId),
+      ]);
+
       setState((prev) => ({
         ...prev,
-        ringBatches: [...(prev.ringBatches || []), batchWithId],
-        rings: [...(prev.rings || []), ...createdItems],
+        ringBatches: reloadedBatches || [],
+        rings: reloadedRings || [],
       }));
 
       toast.success('Lote de anilhas adicionado');
@@ -890,10 +991,12 @@ const App: React.FC = () => {
         toast.error('Falha ao salvar anilha');
         return false;
       }
-      const ringWithId: RingItem = { ...item, id } as RingItem;
+
+      // Recarregar do Firestore para garantir sincronização
+      const reloadedRings = await getRings(userId);
       setState((prev) => ({
         ...prev,
-        rings: [...(prev.rings || []), ringWithId],
+        rings: reloadedRings || [],
       }));
       toast.success('Anilha adicionada');
       return true;
@@ -961,6 +1064,43 @@ const App: React.FC = () => {
 
   // ========== PAIR HANDLERS ==========
 
+  const splitPairsByStatus = (pairs: Pair[]) => {
+    const isTimestamp = (value: unknown) =>
+      !!value && typeof (value as { toDate?: () => Date }).toDate === 'function';
+
+    const hasValue = (value: unknown) => {
+      if (!value) return false;
+      if (isTimestamp(value)) return true;
+      if (typeof value === 'string' && value.length > 0) return true;
+      return false;
+    };
+
+    const isDeleted = (pair: Pair) =>
+      hasValue((pair as any).deletedAt);
+
+    const isArchived = (pair: Pair) =>
+      !isDeleted(pair) && hasValue((pair as any).archivedAt);
+
+    const deletedPairs = pairs.filter(isDeleted);
+    const archivedPairs = pairs.filter(isArchived);
+    const activePairs = pairs.filter((p) => !isDeleted(p) && !isArchived(p));
+
+    return { activePairs, archivedPairs, deletedPairs };
+  };
+
+  const reloadPairsFromFirestore = async (userId: string) => {
+    const reloadedPairs = await getPairs(userId);
+    if (reloadedPairs) {
+      const { activePairs, archivedPairs, deletedPairs } = splitPairsByStatus(reloadedPairs);
+      setState((prev) => ({
+        ...prev,
+        pairs: activePairs,
+        archivedPairs,
+        deletedPairs,
+      }));
+    }
+  };
+
   const addPair = async (pair: Pair) => {
     const userId = session?.user?.id;
     console.log('addPair chamado:', { userId, pairId: pair.id });
@@ -987,6 +1127,10 @@ const App: React.FC = () => {
         ...prev,
         pairs: [...prev.pairs, pairWithId],
       }));
+
+      // Recarregar do Firestore para garantir sincronização
+      console.log('[addPair] Recarregando casais do Firestore após sucesso');
+      await reloadPairsFromFirestore(userId);
       toast.success('Casal adicionado com sucesso!');
       return true;
     } catch (e) {
@@ -1001,8 +1145,11 @@ const App: React.FC = () => {
     if (!userId) return;
 
     try {
+      // Remover campos de controle de status antes de salvar
+      const { archivedAt, deletedAt, ...pairData } = pair as any;
+      
       // Salvar no Firestore primeiro
-      const success = await updatePairInFirestore(userId, pair.id, pair);
+      const success = await updatePairInFirestore(userId, pair.id, pairData);
 
       if (!success) {
         throw new Error('Falha ao atualizar no banco de dados');
@@ -1025,38 +1172,38 @@ const App: React.FC = () => {
     if (!userId) return;
 
     try {
-      setState((prev) => {
-        const found = prev.pairs.find((p) => p.id === id);
-        if (!found) return prev;
-        const deleted = { ...found, deletedAt: new Date().toISOString() };
-        return {
-          ...prev,
-          pairs: prev.pairs.filter((p) => p.id !== id),
-          deletedPairs: [...(prev.deletedPairs || []), deleted],
-        };
-      });
+      const success = await deletePairInFirestore(userId, id);
+      if (!success) throw new Error('Falha ao deletar casal no banco de dados');
+      await reloadPairsFromFirestore(userId);
     } catch (e) {
       console.error('Erro ao deletar casal:', e);
     }
   };
 
-  const restorePair = (id: string) =>
-    setState((prev) => {
-      const found = (prev.deletedPairs || []).find((p) => p.id === id);
-      if (!found) return prev;
-      return {
-        ...prev,
-        pairs: [...prev.pairs, { ...found, deletedAt: undefined }],
-        deletedPairs: (prev.deletedPairs || []).filter((p) => p.id !== id),
-      };
-    });
+  const restorePair = async (id: string) => {
+    const userId = session?.user?.id;
+    if (!userId) return;
+
+    try {
+      const success = await updatePairInFirestore(userId, id, {
+        deletedAt: undefined,
+        archivedAt: undefined,
+      });
+      if (!success) throw new Error('Falha ao restaurar casal no banco de dados');
+      await reloadPairsFromFirestore(userId);
+    } catch (e) {
+      console.error('Erro ao restaurar casal:', e);
+    }
+  };
 
   const permanentlyDeletePair = async (id: string) => {
+    const userId = session?.user?.id;
+    if (!userId) return;
+
     try {
-      setState((prev) => ({
-        ...prev,
-        deletedPairs: (prev.deletedPairs || []).filter((p) => p.id !== id),
-      }));
+      const success = await permanentlyDeletePairInFirestore(userId, id);
+      if (!success) throw new Error('Falha ao deletar casal permanentemente');
+      await reloadPairsFromFirestore(userId);
       toast.success('Casal removido permanentemente');
     } catch (e) {
       console.error('Erro ao deletar casal permanentemente:', e);
@@ -1065,54 +1212,46 @@ const App: React.FC = () => {
   };
 
   const archivePair = async (id: string) => {
+    const userId = session?.user?.id;
+    if (!userId) return;
+
     try {
-      setState((prev) => {
-        const found = prev.pairs.find((p) => p.id === id);
-        if (!found) return prev;
-        return {
-          ...prev,
-          pairs: prev.pairs.filter((p) => p.id !== id),
-          archivedPairs: [
-            ...(prev.archivedPairs || []),
-            { ...found, archivedAt: new Date().toISOString() },
-          ],
-        };
+      const success = await updatePairInFirestore(userId, id, {
+        archivedAt: new Date().toISOString(),
       });
+      if (!success) throw new Error('Falha ao arquivar casal no banco de dados');
+      await reloadPairsFromFirestore(userId);
     } catch (e) {
       console.error('Erro ao arquivar casal:', e);
     }
   };
 
   const unarchivePair = async (id: string) => {
+    const userId = session?.user?.id;
+    if (!userId) return;
+
     try {
-      setState((prev) => {
-        const found = (prev.archivedPairs || []).find((p) => p.id === id);
-        if (!found) return prev;
-        return {
-          ...prev,
-          pairs: [...prev.pairs, { ...found, archivedAt: undefined }],
-          archivedPairs: (prev.archivedPairs || []).filter((p) => p.id !== id),
-        };
+      const success = await updatePairInFirestore(userId, id, {
+        archivedAt: undefined,
       });
+      if (!success) throw new Error('Falha ao reativar casal no banco de dados');
+      await reloadPairsFromFirestore(userId);
     } catch (e) {
       console.error('Erro ao reativar casal:', e);
     }
   };
 
   const archiveFromTrashToPairs = async (id: string) => {
+    const userId = session?.user?.id;
+    if (!userId) return;
+
     try {
-      setState((prev) => {
-        const found = (prev.deletedPairs || []).find((p) => p.id === id);
-        if (!found) return prev;
-        return {
-          ...prev,
-          deletedPairs: (prev.deletedPairs || []).filter((p) => p.id !== id),
-          archivedPairs: [
-            ...(prev.archivedPairs || []),
-            { ...found, deletedAt: undefined, archivedAt: new Date().toISOString() },
-          ],
-        };
+      const success = await updatePairInFirestore(userId, id, {
+        deletedAt: undefined,
+        archivedAt: new Date().toISOString(),
       });
+      if (!success) throw new Error('Falha ao mover casal para histórico');
+      await reloadPairsFromFirestore(userId);
     } catch (e) {
       console.error('Erro ao mover para arquivo:', e);
     }
@@ -1128,10 +1267,26 @@ const App: React.FC = () => {
     }
 
     try {
+      // Salvar no Firestore primeiro
+      const savedId = await addClutchInFirestore(userId, clutch);
+      if (!savedId) {
+        throw new Error('Falha ao salvar postura no banco de dados');
+      }
+
+      // Atualizar estado local com o ID confirmado
       setState((prev) => ({
         ...prev,
-        clutches: [...prev.clutches, clutch],
+        clutches: [...prev.clutches, { ...clutch, id: savedId }],
       }));
+
+      // Recarregar do Firestore para garantir sincronização
+      const reloadedClutches = await getClutches(userId);
+      if (reloadedClutches) {
+        setState((prev) => ({
+          ...prev,
+          clutches: reloadedClutches,
+        }));
+      }
       toast.success('Postura adicionada!');
       return true;
     } catch (e) {
@@ -1146,10 +1301,24 @@ const App: React.FC = () => {
     if (!userId) return;
 
     try {
+      const success = await updateClutchInFirestore(userId, clutch.id, clutch);
+      if (!success) {
+        throw new Error('Falha ao atualizar postura no banco de dados');
+      }
+
       setState((prev) => ({
         ...prev,
         clutches: prev.clutches.map((c) => (c.id === clutch.id ? clutch : c)),
       }));
+
+      // Recarregar do Firestore para garantir sincronização
+      const reloadedClutches = await getClutches(userId);
+      if (reloadedClutches) {
+        setState((prev) => ({
+          ...prev,
+          clutches: reloadedClutches,
+        }));
+      }
       toast.success('Postura atualizada!');
     } catch (e) {
       console.error('Erro ao atualizar postura:', e);
@@ -1228,6 +1397,9 @@ const App: React.FC = () => {
     if (!userId) return;
 
     try {
+      // Remover campos de controle de status antes de salvar
+      const { deletedAt, archivedAt, ...movData } = mov as any;
+
       // Atualizar estado local PRIMEIRO
       setState((prev) => ({
         ...prev,
@@ -1235,7 +1407,7 @@ const App: React.FC = () => {
       }));
 
       // Depois salvar no Firestore
-      await updateMovementInFirestore(userId, mov.id, mov);
+      await updateMovementInFirestore(userId, mov.id, movData);
 
       toast.success('Movimentação atualizada!');
     } catch (e) {
@@ -1397,6 +1569,9 @@ const App: React.FC = () => {
     if (!userId) return;
 
     try {
+      // Remover campos de controle de status antes de salvar
+      const { deletedAt, archivedAt, ...medData } = med as any;
+      
       // Atualizar estado local PRIMEIRO
       setState((prev) => ({
         ...prev,
@@ -1404,7 +1579,7 @@ const App: React.FC = () => {
       }));
 
       // Depois atualizar no Firestore
-      await updateMedicationInFirestore(userId, med.id, med);
+      await updateMedicationInFirestore(userId, med.id, medData);
       toast.success('Medicamento atualizado!');
     } catch (e) {
       console.error('Erro ao atualizar medicamento:', e);
@@ -1512,6 +1687,9 @@ const App: React.FC = () => {
     if (!userId) return;
 
     try {
+      // Remover campos de controle de status antes de salvar
+      const { deletedAt, archivedAt, ...appData } = app as any;
+      
       // Atualizar estado local PRIMEIRO
       setState((prev) => ({
         ...prev,
@@ -1519,7 +1697,7 @@ const App: React.FC = () => {
       }));
 
       // Depois atualizar no Firestore
-      await updateApplicationInFirestore(userId, app.id, app);
+      await updateApplicationInFirestore(userId, app.id, appData);
       toast.success('Aplicação atualizada!');
     } catch (e) {
       console.error('Erro ao atualizar aplicação:', e);
@@ -1641,6 +1819,9 @@ const App: React.FC = () => {
     if (!userId) return;
 
     try {
+      // Remover campos de controle de status antes de salvar
+      const { deletedAt, archivedAt, ...treatmentData } = t as any;
+      
       // Atualizar estado local PRIMEIRO
       setState((prev) => ({
         ...prev,
@@ -1648,7 +1829,7 @@ const App: React.FC = () => {
       }));
 
       // Depois atualizar no Firestore
-      await updateTreatmentInFirestore(userId, t.id, t);
+      await updateTreatmentInFirestore(userId, t.id, treatmentData);
       toast.success('Tratamento atualizado!');
     } catch (e) {
       console.error('Erro ao atualizar tratamento:', e);
@@ -1751,9 +1932,14 @@ const App: React.FC = () => {
       // Salvar no Firestore
       await saveTransactionToFirestore(userId, t);
 
+      // Recarregar do Firestore para garantir sincronização
+      const allTransactions = await getTransactions(userId);
+      const deletedTransactions = await getDeletedTransactions(userId);
+      
       setState((prev) => ({
         ...prev,
-        transactions: [...prev.transactions, t],
+        transactions: allTransactions || [],
+        deletedTransactions: deletedTransactions || [],
       }));
       toast.success('Transação adicionada!');
       return true;
@@ -1864,6 +2050,9 @@ const App: React.FC = () => {
     if (!userId) return;
 
     try {
+      // Remover campos de controle de status antes de salvar
+      const { deletedAt, archivedAt, ...taskData } = t as any;
+      
       // Atualizar estado local PRIMEIRO
       setState((prev) => ({
         ...prev,
@@ -1871,7 +2060,7 @@ const App: React.FC = () => {
       }));
 
       // Depois atualizar no Firestore
-      await updateTaskInFirestore(userId, t.id, t);
+      await updateTaskInFirestore(userId, t.id, taskData);
       toast.success('Tarefa atualizada!');
     } catch (e) {
       console.error('Erro ao atualizar tarefa:', e);
@@ -2001,6 +2190,9 @@ const App: React.FC = () => {
     if (!userId) return;
 
     try {
+      // Remover campos de controle de status antes de salvar
+      const { deletedAt, archivedAt, ...eventData } = e as any;
+      
       // Atualizar estado local PRIMEIRO
       setState((prev) => ({
         ...prev,
@@ -2008,7 +2200,7 @@ const App: React.FC = () => {
       }));
 
       // Depois atualizar no Firestore
-      await updateEventInFirestore(userId, e.id, e);
+      await updateEventInFirestore(userId, e.id, eventData);
       toast.success('Evento atualizado!');
     } catch (e) {
       console.error('Erro ao atualizar evento:', e);
@@ -2345,6 +2537,8 @@ const App: React.FC = () => {
         return <TournamentManager />;
       case 'statistics':
         return <PublicStatistics />;
+      case 'community-inbox':
+        return <CommunityInbox />;
       case 'public-birds':
         return <PublicBirds onNavigateToHome={() => navigateTo('dashboard')} />;
       case 'public-tournaments':
@@ -2365,6 +2559,8 @@ const App: React.FC = () => {
         return <TournamentResults onBack={() => navigateTo('dashboard')} />;
       case 'admin-users':
         return <AdminUsers currentUserId={session?.user?.id} />;
+      case 'admin-community-moderation':
+        return <AdminCommunityModeration currentUserId={session?.user?.id} />;
       default:
         return (
           <Dashboard
@@ -2384,6 +2580,16 @@ const App: React.FC = () => {
         return 'Painel';
       case 'birds':
         return 'Plantel';
+      case 'birds-labels':
+        return 'Etiquetas';
+      case 'birds-history':
+        return 'Histórico';
+      case 'sexing':
+        return 'Sexagem';
+      case 'birds-ibama':
+        return 'IBAMA Pendentes';
+      case 'birds-trash':
+        return 'Lixeira';
       case 'breeding':
         return 'Reprodução';
       case 'meds':
@@ -2406,6 +2612,14 @@ const App: React.FC = () => {
         return 'Termos de Uso';
       case 'rings':
         return 'Anilhas';
+      case 'community-inbox':
+        return 'Inbox da Comunidade';
+      case 'documents':
+        return 'Licenças';
+      case 'analytics':
+        return 'Relatórios';
+      case 'statistics':
+        return 'Comunidade';
       default:
         return tab.charAt(0).toUpperCase() + tab.slice(1);
     }
@@ -2413,7 +2627,7 @@ const App: React.FC = () => {
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
+      <div className="flex items-center justify-center h-screen bg-gradient-to-br from-blue-50 to-indigo-100 overflow-hidden">
         <div className="text-center">
           <div className="inline-block w-16 h-16 border-4 border-indigo-200 border-t-indigo-600 rounded-full animate-spin" />
           <p className="mt-4 text-lg font-semibold text-gray-700">Carregando dados...</p>
@@ -2424,55 +2638,30 @@ const App: React.FC = () => {
 
   if (isEmailVerificationPending) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-slate-50 p-6">
-        <div className="w-full max-w-xl bg-white border border-slate-200 rounded-3xl p-8 shadow-lg">
+      <div className="h-screen flex items-center justify-center bg-slate-50 p-6 overflow-y-auto">
+        <div className="w-full max-w-md bg-white border border-slate-200 rounded-[2.5rem] p-10 shadow-2xl text-center my-auto">
           <Toaster position="bottom-center" />
-          <h2 className="text-2xl font-black text-slate-900">Confirme seu email</h2>
-          <p className="text-slate-600 mt-2">
-            Enviamos um link de verificacao para{' '}
-            <span className="font-semibold text-slate-800">
-              {verificationEmail || 'seu email'}
-            </span>
-            .
+          <div className="w-20 h-20 bg-blue-50 text-blue-600 rounded-full flex items-center justify-center mx-auto mb-6">
+            <Mail size={40} />
+          </div>
+          <h2 className="text-3xl font-black text-slate-900 tracking-tight">E-mail enviado!</h2>
+          <p className="text-slate-600 mt-4 leading-relaxed">
+            Enviamos um link de ativação para:<br />
+            <span className="font-bold text-slate-900 block mt-1">{verificationEmail}</span>
           </p>
-          <p className="text-xs text-slate-500 mt-2">
-            Verifique tambem a pasta de spam/lixo eletronico.
+          <p className="text-sm text-slate-500 mt-6 leading-relaxed">
+            Clique no link dentro do e-mail para confirmar sua conta e começar a usar o sistema.
+            <br />
+            <span className="text-xs mt-2 block">(Não esqueça de olhar na pasta de Spam)</span>
           </p>
 
-          <div className="mt-6 space-y-4">
-            <label className="flex items-start gap-3 text-sm text-slate-600">
-              <input
-                type="checkbox"
-                className="mt-1"
-                checked={wantsWelcomeEmail}
-                onChange={(e) => setWantsWelcomeEmail(e.target.checked)}
-              />
-              Enviar email de boas-vindas (opcional).
-            </label>
-
-            <div className="flex flex-col gap-3">
-              <button
-                className="btn btn-primary"
-                onClick={handleCheckVerification}
-                disabled={isCheckingVerification}
-              >
-                {isCheckingVerification ? 'Verificando...' : 'Ja verifiquei'}
-              </button>
-              <button
-                className="btn btn-secondary"
-                onClick={handleResendVerification}
-                disabled={isResendingVerification}
-              >
-                {isResendingVerification ? 'Enviando...' : 'Reenviar email'}
-              </button>
-              <button className="btn btn-ghost" onClick={handleLogout}>
-                Sair
-              </button>
-            </div>
-
-            {isSendingWelcomeEmail && (
-              <p className="text-xs text-slate-500">Enviando email de boas-vindas...</p>
-            )}
+          <div className="mt-10">
+            <button
+              className="w-full py-4 bg-slate-100 hover:bg-slate-200 text-slate-600 font-bold rounded-2xl transition-all"
+              onClick={handleLogout}
+            >
+              Voltar para o Login
+            </button>
           </div>
         </div>
       </div>
@@ -2494,52 +2683,58 @@ const App: React.FC = () => {
 
     if (publicRoutes.includes(activeTab)) {
       return (
-        <Suspense
-          fallback={<div className="flex items-center justify-center min-h-screen bg-gray-50" />}
-        >
-          {renderContent()}
+        <div className="h-screen overflow-y-auto bg-gray-50">
+          <Suspense
+            fallback={<div className="flex items-center justify-center h-screen bg-gray-50" />}
+          >
+            {renderContent()}
+          </Suspense>
           <Toaster position="bottom-center" />
-        </Suspense>
+        </div>
       );
     }
 
     // Se for rota pública (verificação de pássaro com ID), mostra sem autenticação
     if (isPublicRoute && birdIdFromUrl) {
       return (
-        <Suspense
-          fallback={<div className="flex items-center justify-center min-h-screen bg-gray-50" />}
-        >
-          <BirdVerification birdId={birdIdFromUrl} />
+        <div className="h-screen overflow-y-auto bg-gray-50">
+          <Suspense
+            fallback={<div className="flex items-center justify-center h-screen bg-gray-50" />}
+          >
+            <BirdVerification birdId={birdIdFromUrl} />
+          </Suspense>
           <Toaster position="bottom-center" />
-        </Suspense>
+        </div>
       );
     }
 
     // Caso contrário, pede login
     return (
-      <Suspense
-        fallback={<div className="flex items-center justify-center min-h-screen bg-gray-50" />}
-      >
-        <Auth
-          onLogin={(settings) => {
-            if (settings) {
-              setState((prev) => ({
-                ...prev,
-                settings: { ...prev.settings, ...settings },
-              }));
-            }
-          }}
-          onNavigateToPublicTournaments={() => navigateTo('public-tournaments')}
-          onNavigateToResults={() => navigateTo('tournament-results')}
-          onNavigateToPublicBirds={() => navigateTo('public-birds')}
-        />
+      <div className="h-screen overflow-y-auto bg-slate-50">
+        <Suspense
+          fallback={<div className="flex items-center justify-center h-screen bg-gray-50" />}
+        >
+          <Auth
+            onLogin={(settings) => {
+              if (settings) {
+                setState((prev) => ({
+                  ...prev,
+                  settings: { ...prev.settings, ...settings },
+                }));
+              }
+            }}
+            onNavigateToPublicTournaments={() => navigateTo('public-tournaments')}
+            onNavigateToResults={() => navigateTo('tournament-results')}
+            onNavigateToPublicBirds={() => navigateTo('public-birds')}
+          />
+        </Suspense>
         <Toaster position="bottom-center" />
-      </Suspense>
+      </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gray-100 overflow-hidden">
+    <div className="h-screen bg-gray-100 overflow-hidden">
       <a href="#main-content" className="skip-link">
         Pular para o conteúdo
       </a>
@@ -2560,34 +2755,18 @@ const App: React.FC = () => {
       />
       <main
         id="main-content"
-        className="flex flex-col ml-0 lg:ml-64 h-[calc(100vh-var(--app-footer-height))] overflow-auto"
+        className="h-full ml-0 lg:ml-64 flex flex-col overflow-y-auto overflow-x-hidden"
       >
-        <div className="p-3 md:p-4 lg:p-6 pb-6">
+        <div className="p-3 md:p-4 lg:p-6 pb-6 flex-1">
           <PageHeader
             title={<>{getPageTitle(activeTab)}</>}
             subtitle=""
-            actions={
-              <div className="flex items-center gap-2 w-full">
-                <div className="relative flex-1">
-                  <input
-                    placeholder="Pesquisar globalmente..."
-                    value={globalSearch}
-                    onChange={(e) => setGlobalSearch(e.target.value)}
-                    className="w-full px-3 py-2 border border-slate-300 rounded-lg"
-                    aria-label="Pesquisa global"
-                  />
-                </div>
-                <SecondaryButton onClick={() => navigateTo('settings')}>
-                  Configurações
-                </SecondaryButton>
-                <PrimaryButton onClick={handleLogout}>Sair</PrimaryButton>
-              </div>
-            }
+            actions={null}
           />
 
           <Suspense
             fallback={
-              <div className="flex items-center justify-center min-h-screen">Carregando...</div>
+              <div className="flex items-center justify-center min-h-[400px]">Carregando...</div>
             }
           >
             {renderContent()}

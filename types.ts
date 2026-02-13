@@ -207,6 +207,7 @@ export interface Pair {
   startDate: string;
   endDate?: string;
   lastHatchDate?: string;
+  archivedAt?: string;
   deletedAt?: string;
 }
 
@@ -338,6 +339,11 @@ export interface BreederSettings {
   subscriptionCancelAtPeriodEnd?: boolean; // Se a recorrencia foi cancelada
   subscriptionStatus?: string; // Estado bruto vindo do Stripe (active, trialing, etc)
   subscriptionProvider?: string; // ex: 'mercadopago', 'stripe', 'manual'
+  stripeCustomerId?: string; // Customer ID do Stripe quando existe assinatura
+  communityOptIn?: boolean; // Aceitar aparecer na comunidade
+  communityShowProfile?: boolean; // Exibir perfil público
+  communityShowResults?: boolean; // Exibir resultados/estatísticas
+  communityAllowContact?: boolean; // Permitir contato via comunidade
   subscriptionMonths?: number; // número de meses comprados (1,3,6,12)
   viewPreferences?: ViewPreferences; // Preferências de visualização do usuário
   alertPreferences?: AlertPreferences; // Preferências de alertas do dashboard

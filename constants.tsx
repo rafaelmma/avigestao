@@ -143,6 +143,10 @@ export const INITIAL_SETTINGS: BreederSettings = {
   subscriptionEndDate: '',
   subscriptionCancelAtPeriodEnd: false,
   subscriptionStatus: '',
+  communityOptIn: false,
+  communityShowProfile: false,
+  communityShowResults: false,
+  communityAllowContact: false,
 };
 
 export const MOCK_BIRDS: Bird[] = [

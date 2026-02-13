@@ -18,30 +18,46 @@ service cloud.firestore {
       // Verificamos se está tentando ler apenas campos públicos
       return !isAuthenticated();
     }
+
+    // Permite resposta a mensagem quando houver replyToMessageId apontando
+    // para uma mensagem enviada ao usuário autenticado.
+    function isReplyToExistingMessage(replyToId, fromId, toId) {
+      return replyToId is string &&
+        get(/databases/$(database)/documents/community_messages/$(replyToId)).data.toUserId == fromId &&
+        get(/databases/$(database)/documents/community_messages/$(replyToId)).data.fromUserId == toId;
+    }
     
     // Função helper para verificar se o usuário autenticado é admin
     function isAdminUser() {
       return isAuthenticated() && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.isAdmin == true;
     }
     
+    // Regra global para collectionGroup de reports (permite admin ler de qualquer subcoleção)
+    match /{path=**}/reports/{reportId} {
+      allow read: if isAdminUser();
+    }
+    
     // Regras para dados de usuários
     match /users/{userId} {
       // Permite que usuário autenticado leia seu próprio documento e permite que admins leiam todos os usuários
       allow read: if isAuthenticated() && (isOwner(userId) || isAdminUser());
+      // Permitir leitura pública para estatísticas da comunidade (apenas contagem)
+      allow list: if true;
       
       // Settings do usuário
       match /settings/{settingId} {
-        // Leitura permitida ao dono ou a admins; escrita apenas ao dono
-        allow read: if isAuthenticated() && (isOwner(userId) || isAdminUser());
+        // Leitura permitida ao dono, a admins, e pública para dados de comunidade
+        allow read: if isAuthenticated() && (isOwner(userId) || isAdminUser()) || true;
         allow write: if isAuthenticated() && isOwner(userId);
       }
       
       // Birds (pássaros)
       match /birds/{birdId} {
-        // Permite get individual sem auth (para QR codes), mas não list
-        allow get: if true;
-        // List permitido ao dono e a admins; escrita apenas ao dono
-        allow list: if isAuthenticated() && (isOwner(userId) || isAdminUser());
+        // Permite leitura pública (para comunidade e estatísticas)
+        allow read: if true;
+        // List permitido para comunidade (contagem pública)
+        allow list: if true;
+        // Escrita apenas ao dono
         allow write: if isAuthenticated() && isOwner(userId);
       }
       
@@ -105,11 +121,16 @@ service cloud.firestore {
         allow read, write: if isAuthenticated() && isOwner(userId);
       }
     }
+
+    // Regra Global para busca pública de pássaros (Permite busca por anilha via Collection Group)
+    match /{path=**}/birds/{birdId} {
+      allow read: if true;
+    }
     
     // Catálogo global de medicamentos (leitura pública)
     match /medicationCatalog/{catalogId} {
       allow read: if true;
-      allow write: if false; // Apenas admin pode escrever
+      allow write: if isAdminUser(); // Apenas admin pode escrever
     }
     
     // Analytics de verificação de pássaros (público - apenas leitura e escrita de novos registros)
@@ -140,13 +161,15 @@ service cloud.firestore {
     match /bird_index/{birdId} {
       allow get: if true; // Qualquer pessoa pode buscar o índice
       allow list: if false; // Não pode listar todos
-      allow write: if isAuthenticated(); // Apenas usuários autenticados podem criar/atualizar
+      allow create, update: if isAuthenticated() && request.resource.data.userId == request.auth.uid;
+      allow delete: if false; // Índices não devem ser deletados manualmente
     }
     
     // Dados públicos de verificação de pássaros (somente leitura)
     match /public_birds/{birdId} {
       allow read: if true;
-      allow write: if isAuthenticated();
+      allow create: if isAuthenticated() && request.resource.data.breederId == request.auth.uid;
+      allow update, delete: if isAuthenticated() && resource.data.breederId == request.auth.uid;
     }
     
     // Pássaros públicos (coleção raiz)
@@ -156,6 +179,94 @@ service cloud.firestore {
       // Apenas criadores autenticados podem criar/editar/deletar seus próprios pássaros
       allow create: if isAuthenticated();
       allow update, delete: if isAuthenticated() && resource.data.breederId == request.auth.uid;
+    }
+
+    // Feed da Comunidade
+    match /community_posts/{postId} {
+      // Leitura pública apenas para posts públicos
+      // Para permitir queries (collection/list), as queries devem garantir
+      // que estão filtrando por `visibility == 'public'`. Usamos regras
+      // separadas para `get` (leitura de documento) e `list` (consulta).
+      allow get: if resource.data.visibility == 'public';
+      // Permitir listagem pública (coleção) para mostrar posts públicos.
+      // Observação: isto permite consultas públicas; opt-in é validado em criação.
+      allow list: if true;
+
+      // Criação de post apenas por usuário autenticado que tenha opt-in ativado
+      allow create: if isAuthenticated() &&
+        request.resource.data.authorId == request.auth.uid &&
+        request.resource.data.content is string &&
+        request.resource.data.content.size() > 0 &&
+        request.resource.data.content.size() <= 2000 &&
+        get(/databases/$(database)/documents/users/$(request.auth.uid)/settings/preferences).data.communityOptIn == true &&
+        request.resource.data.visibility in ['public', 'private'];
+
+      // Atualizar / apagar somente autor ou admin, exceto likeCount
+      // Permite que qualquer usuário autenticado atualize apenas `likeCount`.
+      allow update: if isAuthenticated() && (
+        request.auth.uid == resource.data.authorId || isAdminUser() ||
+        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['likeCount'])
+      ) && request.resource.data.likeCount is int && request.resource.data.likeCount >= 0;
+
+      allow delete: if isAuthenticated() && (
+        request.auth.uid == resource.data.authorId || isAdminUser()
+      );
+
+      // Subcoleção de comentários
+      match /comments/{commentId} {
+        allow read: if get(/databases/$(database)/documents/community_posts/$(postId)).data.visibility == 'public' &&
+          get(/databases/$(database)/documents/users/$(get(/databases/$(database)/documents/community_posts/$(postId)).data.authorId)/settings/preferences).data.communityOptIn == true;
+
+        allow create: if isAuthenticated() && request.resource.data.authorId == request.auth.uid && request.resource.data.text is string && request.resource.data.text.size() > 0 && request.resource.data.text.size() <= 1000;
+
+        allow update, delete: if isAuthenticated() && (request.auth.uid == resource.data.authorId || isAdminUser());
+      }
+
+      // Subcoleção de reports (denúncias)
+      match /reports/{reportId} {
+        allow get, list: if isAdminUser();
+        allow create: if isAuthenticated() &&
+          request.resource.data.reporterId == request.auth.uid &&
+          request.resource.data.reason is string &&
+          request.resource.data.reason.size() > 0 &&
+          request.resource.data.reason.size() <= 1000;
+        allow update, delete: if isAdminUser();
+      }
+
+      // Subcoleção de likes
+      match /likes/{likeId} {
+        allow read: if get(/databases/$(database)/documents/community_posts/$(postId)).data.visibility == 'public';
+        allow create: if isAuthenticated() && likeId == request.auth.uid && request.resource.data.userId == request.auth.uid;
+        allow delete: if isAuthenticated() && (likeId == request.auth.uid || isAdminUser());
+      }
+    }
+
+    // Mensagens entre criadores (Networking)
+    match /community_messages/{messageId} {
+      allow read: if isAuthenticated() && (
+        resource.data.toUserId == request.auth.uid ||
+        resource.data.fromUserId == request.auth.uid
+      );
+      allow list: if isAuthenticated();
+
+      allow create: if isAuthenticated() &&
+        request.resource.data.fromUserId == request.auth.uid &&
+        request.resource.data.toUserId is string &&
+        request.resource.data.text is string &&
+        request.resource.data.text.size() > 0 &&
+        request.resource.data.text.size() <= 2000 &&
+        (
+          get(/databases/$(database)/documents/users/$(request.resource.data.toUserId)/settings/preferences).data.communityAllowContact == true ||
+          isReplyToExistingMessage(request.resource.data.replyToMessageId, request.auth.uid, request.resource.data.toUserId)
+        );
+
+      allow update: if isAuthenticated() && request.auth.uid == resource.data.toUserId;
+
+      allow delete: if isAuthenticated() && (
+        request.auth.uid == resource.data.toUserId ||
+        request.auth.uid == resource.data.fromUserId ||
+        isAdminUser()
+      );
     }
     
     // Configurações de usuários (para exibir dados do criador em pássaros públicos)

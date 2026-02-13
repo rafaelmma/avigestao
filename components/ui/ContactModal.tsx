@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { APP_LOGO } from '../../constants';
 
 interface ContactModalProps {
   isOpen: boolean;
@@ -80,23 +81,32 @@ const ContactModal: React.FC<ContactModalProps> = ({
 
   return (
     <div className="fixed inset-0 z-[60] flex items-center justify-center bg-slate-900/50 px-4">
-      <div className="w-full max-w-lg rounded-3xl bg-white p-6 shadow-xl">
-        <div className="flex items-start justify-between">
-          <div>
-            <p className="text-xs font-black uppercase tracking-[0.2em] text-slate-400">Contato</p>
-            <h2 className="text-2xl font-black text-slate-900">Fale com a equipe</h2>
+      <div className="w-full max-w-lg rounded-3xl bg-white p-6 shadow-xl relative overflow-hidden">
+        <div className="absolute -top-6 -right-6 w-32 h-32 bg-slate-50 rounded-full flex items-center justify-center p-6 opacity-50">
+          <img src={APP_LOGO} alt="" className="w-full h-full object-contain grayscale opacity-20" />
+        </div>
+
+        <div className="flex items-start justify-between relative z-10">
+          <div className="flex items-center gap-4">
+            <div className="w-16 h-16 bg-white border-2 border-slate-100 rounded-2xl p-1 shadow-sm flex-shrink-0">
+              <img src={APP_LOGO} alt="AviGestão" className="w-full h-full object-contain" />
+            </div>
+            <div>
+              <p className="text-xs font-black uppercase tracking-[0.2em] text-slate-400">Contato</p>
+              <h2 className="text-2xl font-black text-slate-900 leading-tight">Fale com a equipe</h2>
+            </div>
           </div>
           <button
             type="button"
             onClick={onClose}
-            className="text-slate-400 hover:text-slate-600"
+            className="text-slate-400 hover:text-slate-600 bg-slate-50 p-2 rounded-full transition-colors"
             aria-label="Fechar"
           >
             ✕
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="mt-6 space-y-4">
+        <form onSubmit={handleSubmit} className="mt-6 space-y-4 relative z-10">
           <div className="grid gap-3 sm:grid-cols-2">
             <label className="text-xs font-semibold text-slate-600">
               Nome

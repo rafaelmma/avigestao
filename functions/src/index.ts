@@ -358,6 +358,204 @@ export const sendWelcomeEmailIfNeeded = functions
   });
 
 // ============================================
+// COMMUNITY POSTS AGGREGATION
+// Increment author's community post counter on create, decrement on delete
+// ============================================
+export const onCommunityPostCreate = functions
+  .region('southamerica-east1')
+  .firestore.document('community_posts/{postId}')
+  .onCreate(async (snap, context) => {
+    const data = snap.data();
+    const authorId = data?.authorId;
+    if (!authorId) return null;
+
+    const userRef = db.collection('users').doc(authorId);
+    await userRef.set(
+      {
+        communityStats: {
+          postCount: admin.firestore.FieldValue.increment(1),
+        },
+      },
+      { merge: true },
+    );
+    return null;
+  });
+
+export const onCommunityPostDelete = functions
+  .region('southamerica-east1')
+  .firestore.document('community_posts/{postId}')
+  .onDelete(async (snap, context) => {
+    const data = snap.data();
+    const authorId = data?.authorId;
+    if (!authorId) return null;
+
+    const userRef = db.collection('users').doc(authorId);
+    await userRef.set(
+      {
+        communityStats: {
+          postCount: admin.firestore.FieldValue.increment(-1),
+        },
+      },
+      { merge: true },
+    );
+    return null;
+  });
+
+// ============================================
+// COMMUNITY MESSAGES NOTIFICATION
+// ============================================
+export const onCommunityMessageCreate = functions
+  .region('southamerica-east1')
+  .firestore.document('community_messages/{messageId}')
+  .onCreate(async (snap) => {
+    const data = snap.data();
+    const toUserId = data?.toUserId as string | undefined;
+    const fromName = (data?.fromName as string | undefined) || 'Criador';
+    const text = (data?.text as string | undefined) || '';
+
+    if (!toUserId) return null;
+
+    const contact = await getUserContactInfo(toUserId, null);
+
+    const subject = 'Nova mensagem na comunidade';
+    const preview = text.length > 140 ? `${text.slice(0, 140)}...` : text;
+    const textBody = `Ola ${contact.name},\n\nVoce recebeu uma nova mensagem de ${fromName} na comunidade do AviGestao.\n\nMensagem:\n${preview}\n\nAcesse ${APP_URL} para responder.\n\n${SUPPORT_EMAIL}`;
+    const htmlBody = `
+      <p>Ola <strong>${contact.name}</strong>,</p>
+      <p>Voce recebeu uma nova mensagem de <strong>${fromName}</strong> na comunidade do AviGestao.</p>
+      <p><strong>Mensagem:</strong></p>
+      <p>${String(preview).replace(/\n/g, '<br />')}</p>
+      <p>Acesse <a href="${APP_URL}">${APP_URL}</a> para responder.</p>
+      <p>${SUPPORT_EMAIL}</p>
+    `;
+
+    if (hasMailerSendToken() && contact.email) {
+      try {
+        await sendMailerSendEmail({
+          to: contact.email,
+          subject,
+          text: textBody,
+          html: htmlBody,
+        });
+      } catch (err: any) {
+        console.error('onCommunityMessageCreate email error:', err?.message || err);
+      }
+    } else {
+      console.warn('onCommunityMessageCreate: email skipped (missing token or recipient email)');
+    }
+
+    try {
+      const userDoc = await db.collection('users').doc(toUserId).get();
+      const userData = userDoc.exists ? userDoc.data() : undefined;
+      const tokens = (userData?.fcmTokens as string[] | undefined) || [];
+      if (tokens.length > 0) {
+        await admin.messaging().sendEachForMulticast({
+          tokens,
+          notification: {
+            title: 'Nova mensagem na comunidade',
+            body: `${fromName}: ${preview}`,
+          },
+          data: {
+            type: 'community_message',
+          },
+        });
+      }
+    } catch (err: any) {
+      console.error('onCommunityMessageCreate push error:', err?.message || err);
+    }
+
+    return null;
+  });
+
+// ============================================
+// ADMIN: Delete community post (safe)
+// Callable by admins only. Deletes post doc, comments, reports and storage attachments.
+// ============================================
+export const adminDeleteCommunityPost = functions
+  .region('southamerica-east1')
+  .https.onCall(async (data, context) => {
+    if (!context.auth) {
+      throw new functions.https.HttpsError('unauthenticated', 'Authentication required');
+    }
+
+    const callerUid = context.auth.uid;
+
+    // Quick check for admin custom claim
+    const isAdminClaim = !!context.auth.token?.admin;
+
+    let isAdmin = isAdminClaim;
+    if (!isAdmin) {
+      const userDoc = await db.collection('users').doc(callerUid).get();
+      isAdmin = !!(userDoc.exists && userDoc.data()?.isAdmin);
+    }
+
+    if (!isAdmin) {
+      throw new functions.https.HttpsError('permission-denied', 'Admin only');
+    }
+
+    const postId = String(data?.postId || '').trim();
+    if (!postId) {
+      throw new functions.https.HttpsError('invalid-argument', 'Missing postId');
+    }
+
+    const postRef = db.collection('community_posts').doc(postId);
+    const postSnap = await postRef.get();
+    if (!postSnap.exists) {
+      throw new functions.https.HttpsError('not-found', 'Post not found');
+    }
+
+    const postData = postSnap.data() || {};
+    const attachments: string[] = Array.isArray(postData.attachments) ? postData.attachments : [];
+
+    // Delete attachments from Storage (best-effort)
+    const bucket = admin.storage().bucket();
+    for (const url of attachments) {
+      try {
+        // Attempt to parse a Google Storage download URL and extract object path
+        // URL form: https://firebasestorage.googleapis.com/v0/b/<bucket>/o/<path>?alt=media
+        const m = String(url).match(/\/o\/([^?]+)/);
+        const objectPath = m ? decodeURIComponent(m[1]) : null;
+        if (objectPath) {
+          await bucket.file(objectPath).delete().catch((err) => {
+            console.warn('[adminDeleteCommunityPost] failed delete file', objectPath, err?.message || err);
+          });
+        } else {
+          // Fallback: try to find the known prefix
+          const idx = String(url).indexOf('/community_posts/attachments/');
+          if (idx >= 0) {
+            const path = decodeURIComponent(url.slice(idx + 1));
+            await bucket.file(path).delete().catch(() => {});
+          }
+        }
+      } catch (err) {
+        console.error('[adminDeleteCommunityPost] attachment delete error', err);
+      }
+    }
+
+    // Delete reports & comments subcollections (batched best-effort)
+    const deletes: Promise<any>[] = [];
+
+    const reportsSnap = await postRef.collection('reports').get();
+    reportsSnap.forEach((r) => deletes.push(postRef.collection('reports').doc(r.id).delete()));
+
+    const commentsSnap = await postRef.collection('comments').get();
+    commentsSnap.forEach((c) => deletes.push(postRef.collection('comments').doc(c.id).delete()));
+
+    try {
+      await Promise.all(deletes);
+    } catch (err) {
+      console.warn('[adminDeleteCommunityPost] subcollection deletes had errors', err);
+    }
+
+    // Finally remove the post document
+
+    
+    await postRef.delete();
+
+    return { ok: true };
+  });
+
+// ============================================
 // STRIPE WEBHOOK - Cloud Function Handler Nativo
 // ============================================
 export const stripeWebhook = functions
@@ -877,6 +1075,27 @@ export const mercadoPagoWebhook = functions
     }
   });
 
+// DEBUG: list recent community posts (admin only)
+export const debugListCommunityPosts = functions.region('southamerica-east1').https.onCall(async (data, context) => {
+  if (!context.auth) {
+    throw new functions.https.HttpsError('unauthenticated', 'Usuário não autenticado');
+  }
+  const uid = context.auth.uid;
+  const userDoc = await db.collection('users').doc(uid).get();
+  const isAdmin = userDoc.exists && (userDoc.data() as any).isAdmin === true;
+  if (!isAdmin) {
+    throw new functions.https.HttpsError('permission-denied', 'Apenas admins podem usar esta função');
+  }
+
+  const snaps = await db.collection('community_posts').orderBy('createdAt', 'desc').limit(30).get();
+  const rows: any[] = [];
+  snaps.forEach((d) => {
+    const data = d.data();
+    rows.push({ id: d.id, authorId: data.authorId, visibility: data.visibility, createdAt: data.createdAt ? data.createdAt.toDate().toISOString() : null, snippet: (data.content || '').slice(0, 200) });
+  });
+  return { ok: true, count: rows.length, posts: rows };
+});
+
 // ============================================
 // SUBSCRIPTION STATUS
 // ============================================
@@ -930,25 +1149,36 @@ export const getSubscriptionStatus = functions
 // ============================================
 // WEBHOOK HANDLERS
 // ============================================
-async function setUserAsPro(userId: string | null, customerId?: string | null) {
+async function setUserAsPro(
+  userId: string | null,
+  customerId?: string | null,
+  status?: string | null,
+) {
   if (!userId) {
     console.warn('setUserAsPro - userId is null, returning');
     return;
   }
   try {
     console.log('setUserAsPro - Setting user', userId, 'as PRO with customerId', customerId);
+    const proPayload = {
+      plan: 'Profissional',
+      trialEndDate: admin.firestore.FieldValue.delete(),
+      stripeCustomerId: customerId || null,
+      subscriptionProvider: 'stripe',
+      subscriptionStatus: status || 'active',
+      updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+    };
     await db
       .collection('users')
       .doc(userId)
       .set(
-        {
-          plan: 'Profissional',
-          trialEndDate: admin.firestore.FieldValue.delete(), // APAGAR o campo trialEndDate
-          stripeCustomerId: customerId || null,
-          updatedAt: admin.firestore.FieldValue.serverTimestamp(),
-        },
+        proPayload,
         { merge: true },
       );
+    await Promise.all([
+      db.collection('users').doc(userId).collection('settings').doc('preferences').set(proPayload, { merge: true }),
+      db.collection('users').doc(userId).collection('settings').doc('general').set(proPayload, { merge: true }),
+    ]);
     console.log('✅ setUserAsPro - Successfully marked', userId, 'as PRO');
   } catch (e) {
     console.error('❌ Failed to mark user as PRO:', e);
@@ -1035,12 +1265,53 @@ async function handleCheckoutCompleted(event: Stripe.Event) {
               currentPeriodEnd: currentPeriodEnd ? new Date(currentPeriodEnd * 1000) : null,
               cancelAtPeriodEnd: false,
             },
+            subscriptionProvider: 'stripe',
+            subscriptionStatus: subscription.status,
+            subscriptionEndDate: currentPeriodEnd
+              ? new Date(currentPeriodEnd * 1000).toISOString()
+              : '',
             updatedAt: admin.firestore.FieldValue.serverTimestamp(),
           },
           { merge: true },
         );
 
-      await setUserAsPro(userId, session.customer as string);
+      await Promise.all([
+        setUserAsPro(userId, session.customer as string, subscription.status),
+        db
+          .collection('users')
+          .doc(userId)
+          .collection('settings')
+          .doc('preferences')
+          .set(
+            {
+              subscriptionProvider: 'stripe',
+              subscriptionStatus: subscription.status,
+              subscriptionEndDate: currentPeriodEnd
+                ? new Date(currentPeriodEnd * 1000).toISOString()
+                : '',
+              subscriptionCancelAtPeriodEnd: false,
+              updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+            },
+            { merge: true },
+          ),
+        db
+          .collection('users')
+          .doc(userId)
+          .collection('settings')
+          .doc('general')
+          .set(
+            {
+              subscriptionProvider: 'stripe',
+              subscriptionStatus: subscription.status,
+              subscriptionEndDate: currentPeriodEnd
+                ? new Date(currentPeriodEnd * 1000).toISOString()
+                : '',
+              subscriptionCancelAtPeriodEnd: false,
+              updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+            },
+            { merge: true },
+          ),
+      ]);
       console.log('✅ User', userId, 'marked as PRO');
 
       try {
@@ -1091,13 +1362,54 @@ async function handleSubscriptionUpdated(event: Stripe.Event) {
             currentPeriodEnd: currentPeriodEnd ? new Date(currentPeriodEnd * 1000) : null,
             cancelAtPeriodEnd: cancelAtPeriodEnd,
           },
+          subscriptionProvider: 'stripe',
+          subscriptionStatus: subscription.status,
+          subscriptionEndDate: currentPeriodEnd
+            ? new Date(currentPeriodEnd * 1000).toISOString()
+            : '',
           updatedAt: admin.firestore.FieldValue.serverTimestamp(),
         },
         { merge: true },
       );
 
     if (subscription.status === 'active' || subscription.status === 'trialing') {
-      await setUserAsPro(userId, (subscription as any)?.customer);
+      await Promise.all([
+        setUserAsPro(userId, (subscription as any)?.customer, subscription.status),
+        db
+          .collection('users')
+          .doc(userId)
+          .collection('settings')
+          .doc('preferences')
+          .set(
+            {
+              subscriptionProvider: 'stripe',
+              subscriptionStatus: subscription.status,
+              subscriptionEndDate: currentPeriodEnd
+                ? new Date(currentPeriodEnd * 1000).toISOString()
+                : '',
+              subscriptionCancelAtPeriodEnd: cancelAtPeriodEnd,
+              updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+            },
+            { merge: true },
+          ),
+        db
+          .collection('users')
+          .doc(userId)
+          .collection('settings')
+          .doc('general')
+          .set(
+            {
+              subscriptionProvider: 'stripe',
+              subscriptionStatus: subscription.status,
+              subscriptionEndDate: currentPeriodEnd
+                ? new Date(currentPeriodEnd * 1000).toISOString()
+                : '',
+              subscriptionCancelAtPeriodEnd: cancelAtPeriodEnd,
+              updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+            },
+            { merge: true },
+          ),
+      ]);
     }
 
     if (cancelAtPeriodEnd) {
@@ -1203,7 +1515,7 @@ async function handleInvoicePaymentSucceeded(event: Stripe.Event) {
 
   const invoicePaid = invoice.status === 'paid' || (invoice as any)?.paid;
   if (userId && invoicePaid) {
-    await setUserAsPro(userId, customerId);
+    await setUserAsPro(userId, customerId, 'active');
 
     try {
       const contact = await getUserContactInfo(userId, (invoice as any)?.customer_email ?? null);
@@ -1360,6 +1672,120 @@ export const debugReadUser = functions
       });
     } catch (err: any) {
       console.error('Error:', err);
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+// ============================================
+// DEBUG LOOKUP USER BY EMAIL (TEMPORARY)
+// ============================================
+export const debugFindUserByEmail = functions
+  .region('southamerica-east1')
+  .https.onRequest(async (req, res) => {
+    const token = req.query.token || req.body.token;
+    if (token !== 'debug123456') {
+      res.status(403).send('Unauthorized');
+      return;
+    }
+
+    const email = (req.query.email || req.body.email) as string | undefined;
+    if (!email) {
+      res.status(400).send('Missing email');
+      return;
+    }
+
+    try {
+      const usersSnapshot = await db
+        .collection('users')
+        .where('email', '==', email)
+        .limit(5)
+        .get();
+
+      if (usersSnapshot.empty) {
+        res.status(404).json({ found: false, email });
+        return;
+      }
+
+      const results = await Promise.all(
+        usersSnapshot.docs.map(async (doc) => {
+          const data = doc.data();
+          const settingsDoc = await db
+            .collection('users')
+            .doc(doc.id)
+            .collection('settings')
+            .doc('preferences')
+            .get();
+          const settings = settingsDoc.exists ? settingsDoc.data() : undefined;
+          return {
+            userId: doc.id,
+            userPlan: data?.plan ?? null,
+            userTrialEndDate: data?.trialEndDate ?? null,
+            settingsPlan: settings?.plan ?? null,
+            settingsTrialEndDate: settings?.trialEndDate ?? null,
+            subscriptionStatus: data?.subscription?.status ?? null,
+          };
+        }),
+      );
+
+      res.status(200).json({ found: true, email, results });
+    } catch (err: any) {
+      console.error('debugFindUserByEmail error:', err);
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+// ============================================
+// DEBUG LOOKUP AUTH USER BY EMAIL (TEMPORARY)
+// ============================================
+export const debugFindAuthUserByEmail = functions
+  .region('southamerica-east1')
+  .https.onRequest(async (req, res) => {
+    const token = req.query.token || req.body.token;
+    if (token !== 'debug123456') {
+      res.status(403).send('Unauthorized');
+      return;
+    }
+
+    const email = (req.query.email || req.body.email) as string | undefined;
+    if (!email) {
+      res.status(400).send('Missing email');
+      return;
+    }
+
+    try {
+      const userRecord = await admin.auth().getUserByEmail(email);
+      const userId = userRecord.uid;
+
+      const userDoc = await db.collection('users').doc(userId).get();
+      const userData = userDoc.exists ? userDoc.data() : undefined;
+      const settingsDoc = await db
+        .collection('users')
+        .doc(userId)
+        .collection('settings')
+        .doc('preferences')
+        .get();
+      const settingsData = settingsDoc.exists ? settingsDoc.data() : undefined;
+
+      res.status(200).json({
+        found: true,
+        email,
+        userId,
+        auth: {
+          uid: userRecord.uid,
+          email: userRecord.email,
+          emailVerified: userRecord.emailVerified,
+          disabled: userRecord.disabled,
+        },
+        firestore: {
+          userPlan: userData?.plan ?? null,
+          userTrialEndDate: userData?.trialEndDate ?? null,
+          settingsPlan: settingsData?.plan ?? null,
+          settingsTrialEndDate: settingsData?.trialEndDate ?? null,
+          subscriptionStatus: userData?.subscription?.status ?? null,
+        },
+      });
+    } catch (err: any) {
+      console.error('debugFindAuthUserByEmail error:', err);
       res.status(500).json({ error: err.message });
     }
   });
@@ -1535,6 +1961,32 @@ export const initializeNewUser = functions
         console.log('🆕 Initializing new user:', userId);
         const breederName = req.body?.breederName ?? '';
 
+        // Safety check: do not initialize if user already has a plan/subscription or an existing trial
+        const userRef = db.collection('users').doc(String(userId));
+        const preferencesRef = db
+          .collection('users')
+          .doc(String(userId))
+          .collection('settings')
+          .doc('preferences');
+        const generalRef = db
+          .collection('users')
+          .doc(String(userId))
+          .collection('settings')
+          .doc('general');
+
+        const [userDoc, prefDoc] = await Promise.all([userRef.get(), preferencesRef.get()]);
+        const userData = userDoc.exists ? userDoc.data() : undefined;
+        const prefData = prefDoc.exists ? prefDoc.data() : undefined;
+
+        if (
+          (userData && (userData.plan === 'Profissional' || (userData.subscription && ['active','trialing'].includes(userData.subscription.status)))) ||
+          (prefData && (prefData.plan === 'Profissional' || !!prefData.trialEndDate))
+        ) {
+          console.log('initializeNewUser - already provisioned or has active subscription/trial, skipping for', userId);
+          res.status(200).json({ skipped: true, reason: 'already_provisioned' });
+          return;
+        }
+
         // Calculate trial end date (7 days from now)
         const now = new Date();
         const trialEnd = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
@@ -1544,6 +1996,10 @@ export const initializeNewUser = functions
           plan: 'Básico',
           trialEndDate: trialEndDate,
           breederName,
+          communityOptIn: false,
+          communityShowProfile: false,
+          communityShowResults: false,
+          communityAllowContact: false,
           cpfCnpj: '',
           breederCategory: '',
           responsibleName: '',
@@ -1580,25 +2036,12 @@ export const initializeNewUser = functions
           updatedAt: admin.firestore.FieldValue.serverTimestamp(),
         };
 
-        const preferencesRef = db
-          .collection('users')
-          .doc(userId)
-          .collection('settings')
-          .doc('preferences');
-
-        const generalRef = db
-          .collection('users')
-          .doc(userId)
-          .collection('settings')
-          .doc('general');
-
         await Promise.all([
           preferencesRef.set(settingsData, { merge: true }),
           generalRef.set(settingsData, { merge: true }),
         ]);
 
         // Always write trial fields on main user doc (merge)
-        const userRef = db.collection('users').doc(userId);
         await userRef.set(
           {
             plan: 'Básico',
