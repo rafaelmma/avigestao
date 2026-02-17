@@ -47,8 +47,9 @@ import {
   User,
   Clock,
 } from 'lucide-react';
-import { db } from '../lib/firebase';
+import { db, functions } from '../lib/firebase';
 import { collection, getDocs, query, where, updateDoc, doc, Timestamp } from 'firebase/firestore';
+import { httpsCallable } from 'firebase/functions';
 import { BreederSettings } from '../types';
 import toast from 'react-hot-toast';
 
@@ -132,6 +133,23 @@ const AdminUsers: React.FC<AdminUsersProps> = ({ currentUserId }) => {
           const birdsRef = collection(db, `users/${userId}/birds`);
           const birdsSnapshot = await getDocs(birdsRef);
 
+          // Parse createdAt robustly (handles Firestore Timestamp, ISO string, or missing)
+          const rawCreated = userDoc.data()?.createdAt;
+          let createdAtStr: string | undefined = undefined;
+          if (rawCreated) {
+            try {
+              if (rawCreated?.toDate) {
+                const dt = rawCreated.toDate();
+                if (!isNaN(dt.getTime())) createdAtStr = dt.toLocaleDateString('pt-BR');
+              } else {
+                const dt = new Date(rawCreated);
+                if (!isNaN(dt.getTime())) createdAtStr = dt.toLocaleDateString('pt-BR');
+              }
+            } catch (e) {
+              // fallback: leave undefined
+            }
+          }
+
           usersData.push({
             id: userId,
             email: userDoc.data()?.email || undefined,
@@ -141,7 +159,7 @@ const AdminUsers: React.FC<AdminUsersProps> = ({ currentUserId }) => {
             adminOnly: userDoc.data()?.adminOnly || false,
             breederName: userSettings.breederName || 'Sem Nome',
             plan: userSettings.plan || 'Básico',
-            createdAt: userDoc.data()?.createdAt?.toDate?.().toLocaleDateString?.('pt-BR') || userDoc.data()?.createdAt,
+            createdAt: createdAtStr || undefined,
             active: !userDoc.data()?.disabled,
             isAdmin: userDoc.data()?.isAdmin || false,
             totalBirds: birdsSnapshot.size,
@@ -331,28 +349,12 @@ const AdminUsers: React.FC<AdminUsersProps> = ({ currentUserId }) => {
   };
 
   const changePlan = async (userId: string, newPlan: 'Básico' | 'Profissional') => {
+    setActionLoading(true);
     try {
-      setActionLoading(true);
-      const userRef = doc(db, 'users', userId);
-      const settingsRef = doc(db, 'users', userId, 'settings', 'preferences');
-      
-      // Atualizar em ambos os locais
-      await Promise.all([
-        updateDoc(userRef, {
-          plan: newPlan,
-          updatedAt: Timestamp.now(),
-        }),
-        updateDoc(settingsRef, {
-          plan: newPlan,
-          updatedAt: Timestamp.now(),
-        }),
-      ]);
+      const changePlanFn = httpsCallable(functions, 'adminChangePlan');
+      await changePlanFn({ userId, newPlan });
 
-      setUsers((prev) =>
-        prev.map((u) =>
-          u.id === userId ? { ...u, plan: newPlan } : u
-        )
-      );
+      setUsers((prev) => prev.map((u) => (u.id === userId ? { ...u, plan: newPlan } : u)));
 
       toast.success(`Plano alterado para ${newPlan}`);
       if (selectedUser?.id === userId) {

@@ -61,6 +61,9 @@ export const signUp = async (email: string, password: string, breederName?: stri
     let verificationError: string | null = null;
     try {
       await sendEmailVerification(userCredential.user, getActionCodeSettings());
+      // Simplified flow: Redirect to login page after showing a message
+      alert('Conta criada com sucesso! Verifique seu e-mail para ativar a conta.');
+      window.location.href = '/login';
     } catch (error: unknown) {
       verificationError = getErrorMessage(error);
     }

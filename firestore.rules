@@ -48,7 +48,7 @@ service cloud.firestore {
       match /settings/{settingId} {
         // Leitura permitida ao dono, a admins, e pública para dados de comunidade
         allow read: if isAuthenticated() && (isOwner(userId) || isAdminUser()) || true;
-        allow write: if isAuthenticated() && isOwner(userId);
+        allow write: if isAuthenticated() && (isOwner(userId) || isAdminUser());
       }
       
       // Birds (pássaros)
