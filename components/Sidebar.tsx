@@ -80,6 +80,17 @@ const Sidebar: React.FC<SidebarProps> = ({
 
   const menuSections = [
     {
+      title: 'Configurações',
+      items: [
+        {
+          id: 'settings',
+          label: 'Configurações',
+          icon: <Settings size={18} />,
+          variant: 'main',
+        },
+      ],
+    },
+    {
       title: 'Painel Geral',
       items: [
         {
@@ -283,6 +294,12 @@ const Sidebar: React.FC<SidebarProps> = ({
               {planLabel}
             </span>
           </div>
+          <button
+            onClick={() => handleNavigation('settings')}
+            className="mt-4 px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 transition-colors"
+          >
+            Acessar Configurações
+          </button>
         </div>
 
         <div className="p-4">
