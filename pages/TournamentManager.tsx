@@ -1599,7 +1599,7 @@ const TournamentManager: React.FC = () => {
                     if (!emails) return;
                     try {
                       await navigator.clipboard.writeText(emails);
-                      alert('Emails copiados.');
+                      alert('E-mails copiados.');
                     } catch {
                       alert(emails);
                     }

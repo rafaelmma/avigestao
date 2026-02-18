@@ -714,6 +714,8 @@ export const createCheckoutSession = functions
         return;
       }
 
+      console.log('Stripe Checkout Request:', { userId, priceId });
+
       // Check if customer already exists
       const userDoc = await db.collection('users').doc(userId).get();
       const userData = userDoc.data();
@@ -745,10 +747,17 @@ export const createCheckoutSession = functions
         metadata: { userId },
       });
 
+      console.log('Stripe Session Created:', { sessionId: session.id, url: session.url });
       res.status(200).json({ url: session.url, customerId });
     } catch (err: any) {
-      console.error('Checkout error:', err);
-      res.status(500).json({ error: err.message });
+      console.error('Checkout error:', {
+        message: err.message,
+        stack: err.stack,
+      });
+      res.status(500).json({ 
+        error: err.message || 'Erro ao criar checkout',
+        details: process.env.NODE_ENV === 'development' ? err.message : undefined 
+      });
     }
   });
 
@@ -845,6 +854,15 @@ export const createMercadoPagoCheckout = functions
         return;
       }
 
+      // Get user email from Firebase
+      const userRecord = await admin.auth().getUser(userId);
+      const payerEmail = userRecord.email || decodedToken.email;
+
+      if (!payerEmail) {
+        res.status(400).json({ error: 'User email not found' });
+        return;
+      }
+
       const mp = getMercadoPagoClient();
       const preference = new Preference(mp);
       const frontendUrl = process.env.FRONTEND_URL || 'https://avigestao-cf5fe.web.app';
@@ -852,9 +870,14 @@ export const createMercadoPagoCheckout = functions
         process.env.MERCADOPAGO_WEBHOOK_URL ||
         'https://southamerica-east1-avigestao-cf5fe.cloudfunctions.net/mercadoPagoWebhook';
 
-      const payerEmail = (req.body?.payerEmail || process.env.MERCADOPAGO_TEST_PAYER_EMAIL) as
-        | string
-        | undefined;
+      console.log('MercadoPago Preference Request:', {
+        planId,
+        planLabel,
+        price,
+        months,
+        payerEmail,
+        useSandbox: process.env.MERCADOPAGO_USE_SANDBOX,
+      });
 
       const response = await preference.create({
         body: {
@@ -867,7 +890,7 @@ export const createMercadoPagoCheckout = functions
               currency_id: 'BRL',
             },
           ],
-          ...(payerEmail ? { payer: { email: payerEmail } } : {}),
+          payer: { email: payerEmail },
           external_reference: userId,
           notification_url: webhookUrl,
           back_urls: {
@@ -885,13 +908,34 @@ export const createMercadoPagoCheckout = functions
         },
       });
 
-      const useSandbox = process.env.MERCADOPAGO_USE_SANDBOX === 'true';
-      const checkoutUrl = useSandbox ? response.sandbox_init_point : response.init_point;
+      console.log('MercadoPago Preference Response:', {
+        id: response.id,
+        init_point: response.init_point,
+        sandbox_init_point: response.sandbox_init_point,
+      });
 
+      // Use sandbox_init_point if available (test mode), otherwise use init_point (production)
+      const useSandbox = process.env.MERCADOPAGO_USE_SANDBOX === 'true';
+      const checkoutUrl = useSandbox 
+        ? (response.sandbox_init_point || response.init_point)
+        : (response.init_point || response.sandbox_init_point);
+
+      if (!checkoutUrl) {
+        throw new Error('No checkout URL available from MercadoPago');
+      }
+
+      console.log('Checkout URL:', checkoutUrl);
       res.status(200).json({ url: checkoutUrl, preferenceId: response.id });
     } catch (err: any) {
-      console.error('MercadoPago checkout error:', err);
-      res.status(500).json({ error: err.message });
+      console.error('MercadoPago checkout error:', {
+        message: err.message,
+        stack: err.stack,
+        response: err.response?.data,
+      });
+      res.status(500).json({ 
+        error: err.message || 'Erro ao criar checkout',
+        details: process.env.NODE_ENV === 'development' ? err.response?.data : undefined 
+      });
     }
   });
 
@@ -1031,6 +1075,7 @@ export const mercadoPagoWebhook = functions
         await userRef.set(
           {
             plan: 'Profissional',
+            isProActive: true,
             trialEndDate: null,
             subscriptionEndDate: endDate.toISOString(),
             subscriptionCancelAtPeriodEnd: false,
@@ -1044,6 +1089,7 @@ export const mercadoPagoWebhook = functions
         await settingsRef.set(
           {
             plan: 'Profissional',
+            isProActive: true,
             trialEndDate: admin.firestore.FieldValue.delete(),
             subscriptionEndDate: endDate.toISOString(),
             subscriptionCancelAtPeriodEnd: false,
@@ -1146,6 +1192,116 @@ export const getSubscriptionStatus = functions
     }
   });
 
+const isBirdActive = (data?: any) => {
+  if (!data) return false;
+  return data.deleted !== true && !data.deletedAt;
+};
+
+const updateActiveBirdsCount = async (userId: string, delta: number) => {
+  const userRef = db.collection('users').doc(userId);
+  await db.runTransaction(async (tx) => {
+    const snap = await tx.get(userRef);
+    const current = Number(snap.data()?.activeBirdsCount || 0);
+    const next = Math.max(0, current + delta);
+    tx.set(userRef, { activeBirdsCount: next }, { merge: true });
+  });
+};
+
+export const onBirdCreated = functions
+  .region('southamerica-east1')
+  .firestore.document('users/{userId}/birds/{birdId}')
+  .onCreate(async (snap, context) => {
+    if (isBirdActive(snap.data())) {
+      await updateActiveBirdsCount(context.params.userId, 1);
+    }
+  });
+
+export const onBirdUpdated = functions
+  .region('southamerica-east1')
+  .firestore.document('users/{userId}/birds/{birdId}')
+  .onUpdate(async (snap, context) => {
+    const beforeActive = isBirdActive(snap.before.data());
+    const afterActive = isBirdActive(snap.after.data());
+    if (beforeActive === afterActive) return;
+    await updateActiveBirdsCount(context.params.userId, afterActive ? 1 : -1);
+  });
+
+export const onBirdDeleted = functions
+  .region('southamerica-east1')
+  .firestore.document('users/{userId}/birds/{birdId}')
+  .onDelete(async (snap, context) => {
+    if (isBirdActive(snap.data())) {
+      await updateActiveBirdsCount(context.params.userId, -1);
+    }
+  });
+
+export const syncExpiredProPlans = functions
+  .region('southamerica-east1')
+  .pubsub.schedule('every 12 hours')
+  .timeZone('America/Sao_Paulo')
+  .onRun(async () => {
+    const nowIso = new Date().toISOString();
+    const usersSnap = await db
+      .collection('users')
+      .where('isProActive', '==', true)
+      .where('subscriptionEndDate', '<', nowIso)
+      .get();
+
+    if (usersSnap.empty) return null;
+
+    const batch = db.batch();
+    usersSnap.docs.forEach((doc) => {
+      batch.set(
+        doc.ref,
+        {
+          plan: 'Básico',
+          isProActive: false,
+          updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+        },
+        { merge: true },
+      );
+      const settingsRef = doc.ref.collection('settings').doc('preferences');
+      batch.set(
+        settingsRef,
+        {
+          plan: 'Básico',
+          isProActive: false,
+          updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+        },
+        { merge: true },
+      );
+    });
+
+    await batch.commit();
+    return null;
+  });
+
+export const syncActiveBirdCounts = functions
+  .region('southamerica-east1')
+  .pubsub.schedule('every 1 hours')
+  .timeZone('America/Sao_Paulo')
+  .onRun(async () => {
+    const usersSnap = await db
+      .collection('users')
+      .where('activeBirdsCount', '==', null)
+      .get();
+
+    if (usersSnap.empty) return null;
+
+    for (const docSnap of usersSnap.docs) {
+      const userId = docSnap.id;
+      const birdsSnap = await db.collection('users').doc(userId).collection('birds').get();
+      const activeCount = birdsSnap.docs.filter((doc) => isBirdActive(doc.data())).length;
+      await db
+        .collection('users')
+        .doc(userId)
+        .set({ activeBirdsCount: activeCount }, { merge: true });
+    }
+
+    return null;
+  });
+
+
 // ============================================
 // WEBHOOK HANDLERS
 // ============================================
@@ -1162,6 +1318,7 @@ async function setUserAsPro(
     console.log('setUserAsPro - Setting user', userId, 'as PRO with customerId', customerId);
     const proPayload = {
       plan: 'Profissional',
+      isProActive: true,
       trialEndDate: admin.firestore.FieldValue.delete(),
       stripeCustomerId: customerId || null,
       subscriptionProvider: 'stripe',
@@ -1410,6 +1567,43 @@ async function handleSubscriptionUpdated(event: Stripe.Event) {
             { merge: true },
           ),
       ]);
+    } else {
+      await Promise.all([
+        db
+          .collection('users')
+          .doc(userId)
+          .set(
+            {
+              plan: 'Básico',
+              isProActive: false,
+              subscriptionStatus: subscription.status,
+              subscriptionEndDate: currentPeriodEnd
+                ? new Date(currentPeriodEnd * 1000).toISOString()
+                : '',
+              subscriptionCancelAtPeriodEnd: cancelAtPeriodEnd,
+              updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+            },
+            { merge: true },
+          ),
+        db
+          .collection('users')
+          .doc(userId)
+          .collection('settings')
+          .doc('preferences')
+          .set(
+            {
+              plan: 'Básico',
+              isProActive: false,
+              subscriptionStatus: subscription.status,
+              subscriptionEndDate: currentPeriodEnd
+                ? new Date(currentPeriodEnd * 1000).toISOString()
+                : '',
+              subscriptionCancelAtPeriodEnd: cancelAtPeriodEnd,
+              updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+            },
+            { merge: true },
+          ),
+      ]);
     }
 
     if (cancelAtPeriodEnd) {
@@ -1547,6 +1741,7 @@ async function handleSubscriptionDeleted(event: Stripe.Event) {
       .doc(userId)
       .update({
         plan: 'Básico',
+        isProActive: false,
         subscription: { status: 'canceled' },
         trialEndDate: admin.firestore.FieldValue.delete(),
         subscriptionEndDate: '',
@@ -1563,6 +1758,7 @@ async function handleSubscriptionDeleted(event: Stripe.Event) {
         .doc('preferences')
         .update({
           plan: 'Básico',
+          isProActive: false,
           subscription: { status: 'canceled' },
           trialEndDate: admin.firestore.FieldValue.delete(),
           subscriptionEndDate: '',

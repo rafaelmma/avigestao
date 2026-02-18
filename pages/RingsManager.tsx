@@ -25,7 +25,7 @@ const RING_SIZE_SUGGESTIONS = [
   { label: 'Azulao', size: '2.8' },
   { label: 'Pintassilgo / Pintagol', size: '2.8' },
   { label: 'Cardeal / Melro', size: '3.5' },
-  { label: 'Agapornis (todas as especies)', size: '4.5' },
+  { label: 'Agapornis (todas as espécies)', size: '4.5' },
   { label: 'Kakariki / Catarina', size: '4.5' },
   { label: 'Forpus (tuim)', size: '3.5-4.0' },
   { label: 'Calopsita', size: '5.5' },
@@ -180,7 +180,7 @@ const RingsManager: React.FC<RingsManagerProps> = ({
     setBatchStatus(null);
 
     if (!batchForm.species && !batchForm.startNumber && !batchForm.quantity) {
-      setBatchStatus('Preencha pelo menos especie ou numeracao para cadastrar o lote.');
+      setBatchStatus('Preencha pelo menos espécie ou numeração para cadastrar o lote.');
       return;
     }
 
@@ -188,10 +188,10 @@ const RingsManager: React.FC<RingsManagerProps> = ({
     const hasQuantityOnly = !!batchForm.quantity && !hasRange;
     if (hasQuantityOnly) {
       const confirmed = window.confirm(
-        'Sem numeracao inicial/final o sistema vai gerar uma numeracao interna. Deseja continuar?',
+        'Sem numeração inicial/final o sistema vai gerar uma numeração interna. Deseja continuar?',
       );
       if (!confirmed) {
-        setBatchStatus('Informe a numeracao inicial e final para gerar a sequencia real.');
+        setBatchStatus('Informe a numeração inicial e final para gerar a sequência real.');
         return;
       }
     }
@@ -234,7 +234,7 @@ const RingsManager: React.FC<RingsManagerProps> = ({
         });
         setBatchStatus(items.length ? 'Lote e anilhas gerados.' : 'Lote salvo.');
       } else {
-        setBatchStatus('Nao foi possivel salvar o lote.');
+        setBatchStatus('Não foi possível salvar o lote.');
       }
     } finally {
       setIsSavingBatch(false);
@@ -246,7 +246,7 @@ const RingsManager: React.FC<RingsManagerProps> = ({
     setManualStatus(null);
 
     if (!manualForm.code.trim()) {
-      setManualStatus('Informe o codigo da anilha.');
+      setManualStatus('Informe o código da anilha.');
       return;
     }
 
@@ -276,7 +276,7 @@ const RingsManager: React.FC<RingsManagerProps> = ({
         });
         setManualStatus('Anilha adicionada ao estoque.');
       } else {
-        setManualStatus('Nao foi possivel salvar a anilha.');
+        setManualStatus('Não foi possível salvar a anilha.');
       }
     } finally {
       setIsSavingManual(false);
@@ -344,7 +344,7 @@ const RingsManager: React.FC<RingsManagerProps> = ({
   const renderPreview = (personalization: string, number: string) => (
     <div className="mt-2 rounded-xl border border-slate-200 bg-slate-100 px-4 py-3">
       <p className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">
-        Previa
+        Prévia
       </p>
       <div className="mt-2 flex items-center gap-3">
         <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-slate-300 text-[10px] font-black text-slate-700">
@@ -362,7 +362,7 @@ const RingsManager: React.FC<RingsManagerProps> = ({
       <div>
         <h2 className="text-2xl font-black text-slate-900">Anilhas</h2>
         <p className="text-sm text-slate-500">
-          Controle de estoque com base no formulario da Capri.
+          Controle de estoque com base no formulário da Capri.
         </p>
       </div>
 
@@ -387,7 +387,7 @@ const RingsManager: React.FC<RingsManagerProps> = ({
           <form onSubmit={handleBatchSubmit} className="mt-4 space-y-4">
             <div className="grid gap-4 sm:grid-cols-2">
               <label className="text-xs font-semibold text-slate-600">
-                Passaro / Especie
+                Pássaro / Espécie
                 <select
                   className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2 text-sm"
                   value={batchForm.species}
@@ -413,7 +413,7 @@ const RingsManager: React.FC<RingsManagerProps> = ({
                 />
               </label>
               <label className="text-xs font-semibold text-slate-600">
-                Altura / Diametro (mm)
+                Altura / Diâmetro (mm)
                 <input
                   className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2 text-sm"
                   value={batchForm.sizeMm}
@@ -421,7 +421,7 @@ const RingsManager: React.FC<RingsManagerProps> = ({
                   placeholder="Ex: 5"
                 />
                 <p className="mt-1 text-[10px] text-slate-400">
-                  Bitola sugerida (ajustavel)
+                  Bitola sugerida (ajustável)
                 </p>
               </label>
               <label className="text-xs font-semibold text-slate-600">
@@ -452,7 +452,7 @@ const RingsManager: React.FC<RingsManagerProps> = ({
                 />
               </label>
               <label className="text-xs font-semibold text-slate-600">
-                Numeracao inicial
+                Numeração inicial
                 <input
                   className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2 text-sm"
                   value={batchForm.startNumber}
@@ -463,7 +463,7 @@ const RingsManager: React.FC<RingsManagerProps> = ({
                 />
               </label>
               <label className="text-xs font-semibold text-slate-600">
-                Numeracao final
+                Numeração final
                 <input
                   className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2 text-sm"
                   value={batchForm.endNumber}
@@ -474,11 +474,11 @@ const RingsManager: React.FC<RingsManagerProps> = ({
                 />
               </label>
               <p className="text-[11px] text-slate-400 sm:col-span-2">
-                Se voce nao informar numeracao inicial e final, o sistema vai gerar uma numeracao
-                interna editavel para as anilhas desse lote.
+                Se você não informar numeração inicial e final, o sistema vai gerar uma numeração
+                interna editável para as anilhas desse lote.
               </p>
               <label className="text-xs font-semibold text-slate-600">
-                Tipo de gravacao
+                Tipo de gravação
                 <input
                   className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2 text-sm"
                   value={batchForm.engravingType}
@@ -489,7 +489,7 @@ const RingsManager: React.FC<RingsManagerProps> = ({
                 />
               </label>
               <label className="text-xs font-semibold text-slate-600">
-                Personalizacao
+                Personalização
                 <input
                   className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2 text-sm"
                   value={batchForm.personalization}
@@ -522,12 +522,12 @@ const RingsManager: React.FC<RingsManagerProps> = ({
           <h3 className="text-lg font-black text-slate-900">Adicionar anilha avulsa</h3>
           <form onSubmit={handleManualSubmit} className="mt-4 space-y-4">
             <label className="text-xs font-semibold text-slate-600">
-              Codigo
+              Código
               <input
                 className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2 text-sm"
                 value={manualForm.code}
                 onChange={(e) => setManualForm((prev) => ({ ...prev, code: e.target.value }))}
-                placeholder="Digite o codigo"
+                placeholder="Digite o código"
               />
             </label>
             <label className="text-xs font-semibold text-slate-600">
@@ -547,7 +547,7 @@ const RingsManager: React.FC<RingsManagerProps> = ({
             </label>
             <div className="grid gap-3 sm:grid-cols-2">
               <label className="text-xs font-semibold text-slate-600">
-                Especie
+                Espécie
                 <select
                   className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2 text-sm"
                   value={manualForm.species}
@@ -586,14 +586,14 @@ const RingsManager: React.FC<RingsManagerProps> = ({
                 />
               </label>
               <label className="text-xs font-semibold text-slate-600">
-                Altura / Diametro
+                Altura / Diâmetro
                 <input
                   className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2 text-sm"
                   value={manualForm.sizeMm}
                   onChange={(e) => setManualForm((prev) => ({ ...prev, sizeMm: e.target.value }))}
                 />
                 <p className="mt-1 text-[10px] text-slate-400">
-                  Bitola sugerida (ajustavel)
+                  Bitola sugerida (ajustável)
                 </p>
               </label>
             </div>
@@ -608,12 +608,12 @@ const RingsManager: React.FC<RingsManagerProps> = ({
       </div>
 
       <Card className="p-6">
-        <h3 className="text-lg font-black text-slate-900">Anilhas e identificacao</h3>
+        <h3 className="text-lg font-black text-slate-900">Anilhas e identificação</h3>
         <div className="mt-3 space-y-4 text-sm leading-relaxed text-slate-600">
           <p>
-            A identificacao correta dos filhotes e uma etapa essencial da criacao responsavel. As
+            A identificação correta dos filhotes é uma etapa essencial da criação responsável. As
             anilhas oficiais numeradas ajudam a manter o controle do plantel, evitam erros de
-            linhagem e apoiam o cumprimento das boas praticas de criacao. Utilize sempre fornecedor
+            linhagem e apoiam o cumprimento das boas práticas de criação. Utilize sempre fornecedor
             autorizado.
           </p>
 
@@ -623,10 +623,10 @@ const RingsManager: React.FC<RingsManagerProps> = ({
                 Por que registrar
               </p>
               <ul className="mt-2 list-disc space-y-1 pl-4">
-                <li>Organizacao do plantel e das linhagens.</li>
-                <li>Historico completo de cada ave.</li>
+                <li>Organização do plantel e das linhagens.</li>
+                <li>Histórico completo de cada ave.</li>
                 <li>Controle de estoque e uso das anilhas.</li>
-                <li>Facilidade para auditorias e comprovacoes.</li>
+                <li>Facilidade para auditorias e comprovações.</li>
               </ul>
             </div>
             <div>
@@ -634,18 +634,18 @@ const RingsManager: React.FC<RingsManagerProps> = ({
                 O que registrar
               </p>
               <ul className="mt-2 list-disc space-y-1 pl-4">
-                <li>Numero, ano, cor e tamanho da anilha.</li>
+                <li>Número, ano, cor e tamanho da anilha.</li>
                 <li>Origem/fornecedor e lote de compra.</li>
-                <li>Especie e filhote associado.</li>
-                <li>Observacoes e historico de uso.</li>
+                <li>Espécie e filhote associado.</li>
+                <li>Observações e histórico de uso.</li>
               </ul>
             </div>
           </div>
 
           <p>
-            No AviGestao, voce pode cadastrar lotes, adicionar anilhas avulsas e vincular cada
-            anilha ao filhote. Em casos de fuga ou obito, a anilha pode ser marcada como perdida e
-            fica inutilizavel.
+            No AviGestão, você pode cadastrar lotes, adicionar anilhas avulsas e vincular cada
+            anilha ao filhote. Em casos de fuga ou óbito, a anilha pode ser marcada como perdida e
+            fica inutilizável.
           </p>
         </div>
       </Card>
@@ -674,7 +674,7 @@ const RingsManager: React.FC<RingsManagerProps> = ({
               className="rounded-lg border border-slate-200 px-3 py-2 text-xs"
               value={filterSpecies}
               onChange={(e) => setFilterSpecies(e.target.value)}
-              placeholder="Especie"
+              placeholder="Espécie"
             />
           </div>
         </div>
@@ -683,12 +683,12 @@ const RingsManager: React.FC<RingsManagerProps> = ({
           <table className="w-full text-left text-xs">
             <thead>
               <tr className="text-slate-400">
-                <th className="py-2">Codigo</th>
-                <th className="py-2">Especie</th>
+                <th className="py-2">Código</th>
+                <th className="py-2">Espécie</th>
                 <th className="py-2">Ano</th>
                 <th className="py-2">Status</th>
                 <th className="py-2">Ave</th>
-                <th className="py-2 text-right">Acoes</th>
+                <th className="py-2 text-right">Ações</th>
               </tr>
             </thead>
             <tbody>
@@ -741,14 +741,14 @@ const RingsManager: React.FC<RingsManagerProps> = ({
           <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-xl">
             <h4 className="text-lg font-black text-slate-900">Vincular anilha</h4>
             <p className="text-xs text-slate-500">
-              {linkingRing.code || linkingRing.number || 'Sem codigo'}
+              {linkingRing.code || linkingRing.number || 'Sem código'}
             </p>
             <select
               className="mt-4 w-full rounded-xl border border-slate-200 px-3 py-2 text-sm"
               value={selectedBirdId}
               onChange={(e) => setSelectedBirdId(e.target.value)}
             >
-              <option value="">Selecione o passaro</option>
+              <option value="">Selecione o pássaro</option>
               {birds.map((bird) => (
                 <option key={bird.id} value={bird.id}>
                   {bird.name} - {bird.species}
@@ -770,7 +770,7 @@ const RingsManager: React.FC<RingsManagerProps> = ({
           <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-xl">
             <h4 className="text-lg font-black text-slate-900">Baixa de anilha</h4>
             <p className="text-xs text-slate-500">
-              Motivo de inutilizacao (fuga, obito, entrega ao IBAMA).
+              Motivo de inutilização (fuga, óbito, entrega ao IBAMA).
             </p>
             <select
               className="mt-4 w-full rounded-xl border border-slate-200 px-3 py-2 text-sm"
@@ -778,7 +778,7 @@ const RingsManager: React.FC<RingsManagerProps> = ({
               onChange={(e) => setLossReason(e.target.value)}
             >
               <option value="Fuga">Fuga</option>
-              <option value="Obito">Obito</option>
+              <option value="Obito">Óbito</option>
               <option value="Entregue ao IBAMA">Entregue ao IBAMA</option>
               <option value="Danificada">Danificada</option>
             </select>
@@ -795,16 +795,16 @@ const RingsManager: React.FC<RingsManagerProps> = ({
           <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-xl">
             <h4 className="text-lg font-black text-slate-900">Editar anilha</h4>
             <p className="text-xs text-slate-500">
-              Atualize a numeracao, cor e personalizacao da anilha.
+              Atualize a numeração, cor e personalização da anilha.
             </p>
             <div className="mt-4 space-y-3">
               <label className="text-xs font-semibold text-slate-600">
-                Numeracao
+                Numeração
                 <input
                   className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2 text-sm"
                   value={editForm.number}
                   onChange={(e) => setEditForm((prev) => ({ ...prev, number: e.target.value }))}
-                  placeholder="Digite a numeracao"
+                  placeholder="Digite a numeração"
                 />
               </label>
               <label className="text-xs font-semibold text-slate-600">
@@ -817,7 +817,7 @@ const RingsManager: React.FC<RingsManagerProps> = ({
                 />
               </label>
               <label className="text-xs font-semibold text-slate-600">
-                Personalizacao
+                Personalização
                 <input
                   className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2 text-sm"
                   value={editForm.personalization}
@@ -849,7 +849,7 @@ const RingsManager: React.FC<RingsManagerProps> = ({
               <span className="font-semibold text-slate-700">
                 {deleteRing.code || deleteRing.number || '-'}
               </span>
-              ? Esta acao nao pode ser desfeita.
+              ? Esta ação não pode ser desfeita.
             </p>
             <div className="mt-5 flex justify-end gap-2">
               <SecondaryButton onClick={() => setDeleteRing(null)}>Cancelar</SecondaryButton>

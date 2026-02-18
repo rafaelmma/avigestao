@@ -48,7 +48,17 @@ import {
   Clock,
 } from 'lucide-react';
 import { db, functions } from '../lib/firebase';
-import { collection, getDocs, query, where, updateDoc, doc, Timestamp } from 'firebase/firestore';
+import {
+  collection,
+  getDocs,
+  query,
+  where,
+  updateDoc,
+  doc,
+  Timestamp,
+  setDoc,
+  deleteField,
+} from 'firebase/firestore';
 import { httpsCallable } from 'firebase/functions';
 import { BreederSettings } from '../types';
 import toast from 'react-hot-toast';
@@ -102,6 +112,24 @@ const AdminUsers: React.FC<AdminUsersProps> = ({ currentUserId }) => {
   const [actionLoading, setActionLoading] = useState(false);
   const [sortBy, setSortBy] = useState<'name' | 'date' | 'plan'>('date');
 
+  const isTrialActive = (trialEndDate?: string) => {
+    if (!trialEndDate) return false;
+    const dt = new Date(trialEndDate);
+    if (isNaN(dt.getTime())) return false;
+    return dt.getTime() >= new Date().getTime();
+  };
+
+  const normalizeDate = (value: any): string | undefined => {
+    if (!value) return undefined;
+    try {
+      const dt = typeof value?.toDate === 'function' ? value.toDate() : new Date(value);
+      if (isNaN(dt.getTime())) return undefined;
+      return dt.toISOString();
+    } catch {
+      return undefined;
+    }
+  };
+
   // Carregar usuários
   useEffect(() => {
     const loadUsers = async () => {
@@ -115,59 +143,58 @@ const AdminUsers: React.FC<AdminUsersProps> = ({ currentUserId }) => {
         for (const userDoc of snapshot.docs) {
           const userId = userDoc.id;
           
-          // Pegar settings do usuário
-          const settingsRef = collection(db, `users/${userId}/settings`);
-          const settingsSnapshot = await getDocs(settingsRef);
-          
+          // Pegar settings do usuário - especificamente do documento "preferences"
           let userSettings: Partial<BreederSettings> = {
             breederName: 'Sem Nome',
-            plan: 'Básico',
           };
 
-          if (settingsSnapshot.docs.length > 0) {
-            const settingsDoc = settingsSnapshot.docs[0];
-            userSettings = settingsDoc.data() as Partial<BreederSettings>;
+          try {
+            const preferencesDoc = await getDocs(
+              collection(db, `users/${userId}/settings`)
+            );
+            // Procurar especificamente pelo documento "preferences"
+            const prefsDoc = preferencesDoc.docs.find(doc => doc.id === 'preferences');
+            if (prefsDoc) {
+              userSettings = prefsDoc.data() as Partial<BreederSettings>;
+            } else if (preferencesDoc.docs.length > 0) {
+              // Fallback para o primeiro documento se "preferences" não existir
+              userSettings = preferencesDoc.docs[0].data() as Partial<BreederSettings>;
+            }
+          } catch (e) {
+            console.trace('Erro ao buscar settings do usuário:', e);
           }
 
           // Contar aves
           const birdsRef = collection(db, `users/${userId}/birds`);
           const birdsSnapshot = await getDocs(birdsRef);
 
-          // Parse createdAt robustly (handles Firestore Timestamp, ISO string, or missing)
-          const rawCreated = userDoc.data()?.createdAt;
-          let createdAtStr: string | undefined = undefined;
-          if (rawCreated) {
-            try {
-              if (rawCreated?.toDate) {
-                const dt = rawCreated.toDate();
-                if (!isNaN(dt.getTime())) createdAtStr = dt.toLocaleDateString('pt-BR');
-              } else {
-                const dt = new Date(rawCreated);
-                if (!isNaN(dt.getTime())) createdAtStr = dt.toLocaleDateString('pt-BR');
-              }
-            } catch (e) {
-              // fallback: leave undefined
-            }
-          }
+          const createdAtIso = normalizeDate(userDoc.data()?.createdAt);
+          const lastLoginIso = normalizeDate(userDoc.data()?.lastLogin);
+          const planFromSettings = userSettings.plan || undefined;
+          const planFromUser = userDoc.data()?.plan || undefined;
+          const resolvedPlan = planFromSettings || planFromUser || 'Básico';
+          const trialFromSettings = normalizeDate(userSettings.trialEndDate);
+          const trialFromUser = normalizeDate(userDoc.data()?.trialEndDate);
+          const resolvedTrialEndDate = trialFromSettings || trialFromUser || undefined;
 
           usersData.push({
             id: userId,
             email: userDoc.data()?.email || undefined,
             phone: userDoc.data()?.phone || undefined,
             displayName: userDoc.data()?.displayName || undefined,
-            trialEndDate: userDoc.data()?.trialEndDate || undefined,
+            trialEndDate: resolvedTrialEndDate,
             adminOnly: userDoc.data()?.adminOnly || false,
             breederName: userSettings.breederName || 'Sem Nome',
-            plan: userSettings.plan || 'Básico',
-            createdAt: createdAtStr || undefined,
+            plan: resolvedPlan,
+            createdAt: createdAtIso || undefined,
             active: !userDoc.data()?.disabled,
             isAdmin: userDoc.data()?.isAdmin || false,
             totalBirds: birdsSnapshot.size,
-            lastLogin: userDoc.data()?.lastLogin?.toDate?.().toLocaleString?.('pt-BR') || userDoc.data()?.lastLogin,
+            lastLogin: lastLoginIso || undefined,
             subscriptionStatus: userDoc.data()?.subscriptionStatus || 'inactive',
             // Dados do settings (endereço e contato) - usando nomes corretos
                 // Calcular dias restantes e tipo de período
-                subscriptionEndDate: userSettings.subscriptionEndDate || undefined,
+                subscriptionEndDate: normalizeDate(userSettings.subscriptionEndDate) || undefined,
                 subscriptionCancelAtPeriodEnd: userSettings.subscriptionCancelAtPeriodEnd || false,
                 subscriptionDaysRemaining: userSettings.subscriptionEndDate 
                   ? Math.ceil((new Date(userSettings.subscriptionEndDate).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24))
@@ -351,21 +378,120 @@ const AdminUsers: React.FC<AdminUsersProps> = ({ currentUserId }) => {
   const changePlan = async (userId: string, newPlan: 'Básico' | 'Profissional') => {
     setActionLoading(true);
     try {
-      const changePlanFn = httpsCallable(functions, 'adminChangePlan');
-      await changePlanFn({ userId, newPlan });
+      // Atualizar o documento principal do usuário
+      const userRef = doc(db, 'users', userId);
+      await setDoc(userRef, {
+        plan: newPlan,
+        isProActive: newPlan === 'Profissional',
+        updatedAt: Timestamp.now(),
+      }, { merge: true });
 
-      setUsers((prev) => prev.map((u) => (u.id === userId ? { ...u, plan: newPlan } : u)));
+      // Atualizar o documento de settings/preferences
+      const settingsRef = doc(db, 'users', userId, 'settings', 'preferences');
+      const updateData: any = {
+        plan: newPlan,
+        isProActive: newPlan === 'Profissional',
+        updatedAt: Timestamp.now(),
+        subscriptionCancelAtPeriodEnd: false,
+      };
+      
+      // Remover trialEndDate se estiver fazendo upgrade (migrar para Profissional)
+      if (newPlan === 'Profissional') {
+        updateData.trialEndDate = deleteField();
+      }
 
-      toast.success(`Plano alterado para ${newPlan}`);
+      await setDoc(settingsRef, updateData, { merge: true });
+
+      // Atualizar UI local
+      setUsers((prev) =>
+        prev.map((u) =>
+          u.id === userId
+            ? { 
+                ...u, 
+                plan: newPlan, 
+                trialEndDate: newPlan === 'Profissional' ? undefined : u.trialEndDate,
+                subscriptionCancelAtPeriodEnd: false 
+              }
+            : u,
+        ),
+      );
+
+      toast.success(`Plano alterado para ${newPlan} com sucesso!`);
+      
       if (selectedUser?.id === userId) {
-        setSelectedUser({ ...selectedUser, plan: newPlan });
+        setSelectedUser({
+          ...selectedUser,
+          plan: newPlan,
+          trialEndDate: newPlan === 'Profissional' ? undefined : selectedUser.trialEndDate,
+          subscriptionCancelAtPeriodEnd: false,
+        });
       }
     } catch (error) {
       console.error('Erro ao mudar plano:', error);
-      toast.error('Erro ao mudar plano do usuário');
+      toast.error('Erro ao mudar plano do usuário. Verifique os logs.');
     } finally {
       setActionLoading(false);
     }
+  };
+
+  const exportUsersDetailed = () => {
+    const csv = [
+      [
+        'ID',
+        'Nome do Criatório',
+        'E-mail',
+        'Plano',
+        'Trial Até',
+        'Status Assinatura',
+        'Vencimento Assinatura',
+        'Provedor',
+        'Meses',
+        'Dias Restantes',
+        'Renovacao Cancelada',
+        'Aves',
+        'Status',
+        'Admin',
+        'AdminOnly',
+        'Data Criação',
+        'Último Acesso',
+      ].join(','),
+      ...filteredUsers.map((u) =>
+        [
+          u.id,
+          `"${u.breederName}"`,
+          u.email || '',
+          u.plan,
+          u.trialEndDate ? new Date(u.trialEndDate).toLocaleDateString('pt-BR') : '',
+          u.subscriptionStatus || '',
+          u.subscriptionEndDate ? new Date(u.subscriptionEndDate).toLocaleDateString('pt-BR') : '',
+          u.subscriptionProvider || '',
+          u.subscriptionMonths ?? '',
+          u.subscriptionDaysRemaining ?? '',
+          u.subscriptionCancelAtPeriodEnd ? 'Sim' : 'Não',
+          u.totalBirds || 0,
+          u.active ? 'Ativo' : 'Inativo',
+          u.isAdmin ? 'Sim' : 'Não',
+          u.adminOnly ? 'Sim' : 'Não',
+          u.createdAt ? new Date(u.createdAt).toLocaleDateString('pt-BR') : '',
+          u.lastLogin ? new Date(u.lastLogin).toLocaleString('pt-BR') : '',
+        ].join(',')
+      ),
+    ].join('\n');
+
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    const url = URL.createObjectURL(blob);
+    link.setAttribute('href', url);
+    link.setAttribute(
+      'download',
+      `relatorio_completo_usuarios_${new Date().toISOString().split('T')[0]}.csv`,
+    );
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+
+    toast.success('Relatório completo exportado com sucesso');
   };
 
   const exportUsers = () => {
@@ -418,13 +544,22 @@ const AdminUsers: React.FC<AdminUsersProps> = ({ currentUserId }) => {
             Total: <span className="font-bold">{filteredUsers.length}</span> usuários
           </p>
         </div>
-        <button
-          onClick={exportUsers}
-          className="flex items-center gap-2 px-4 py-2 bg-slate-100 text-slate-700 rounded-xl hover:bg-slate-200 transition-all font-semibold"
-        >
-          <Download size={20} />
-          Exportar
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={exportUsersDetailed}
+            className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-all font-semibold"
+          >
+            <Download size={20} />
+            Relatório completo
+          </button>
+          <button
+            onClick={exportUsers}
+            className="flex items-center gap-2 px-4 py-2 bg-slate-100 text-slate-700 rounded-xl hover:bg-slate-200 transition-all font-semibold"
+          >
+            <Download size={20} />
+            Exportar
+          </button>
+        </div>
       </div>
 
       {/* Filtros */}
@@ -526,6 +661,11 @@ const AdminUsers: React.FC<AdminUsersProps> = ({ currentUserId }) => {
                       >
                         {user.plan}
                       </span>
+                      {isTrialActive(user.trialEndDate) && (
+                        <span className="ml-2 inline-block px-2 py-1 rounded-full text-xs font-bold bg-emerald-100 text-emerald-800">
+                          Trial
+                        </span>
+                      )}
                     </td>
                     <td className="px-6 py-4 font-bold text-slate-900">{user.totalBirds || 0}</td>
                     <td className="px-6 py-4">
@@ -784,11 +924,13 @@ const AdminUsers: React.FC<AdminUsersProps> = ({ currentUserId }) => {
                         <span className="font-semibold text-slate-900">{selectedUser.subscriptionStatus}</span>
                       </div>
                     )}
-                    {selectedUser.trialEndDate && (
+                    {isTrialActive(selectedUser.trialEndDate) && (
                       <div className="flex justify-between items-center">
                         <span className="text-slate-600 text-sm">Período Teste Até:</span>
                         <span className="font-semibold text-slate-900">
-                          {new Date(selectedUser.trialEndDate).toLocaleDateString('pt-BR')}
+                          {selectedUser.trialEndDate
+                            ? new Date(selectedUser.trialEndDate).toLocaleDateString('pt-BR')
+                            : ''}
                         </span>
                       </div>
                     )}
@@ -850,7 +992,7 @@ const AdminUsers: React.FC<AdminUsersProps> = ({ currentUserId }) => {
                     Histórico
                   </h3>
                   <div className="space-y-2 ml-6">
-                    {selectedUser.createdAt && (
+                    {selectedUser.createdAt && !isNaN(new Date(selectedUser.createdAt).getTime()) && (
                       <div className="flex justify-between items-center">
                         <span className="text-slate-600 text-sm">Cadastrado em:</span>
                         <span className="font-semibold text-slate-900">
@@ -858,7 +1000,7 @@ const AdminUsers: React.FC<AdminUsersProps> = ({ currentUserId }) => {
                         </span>
                       </div>
                     )}
-                    {selectedUser.lastLogin && (
+                    {selectedUser.lastLogin && !isNaN(new Date(selectedUser.lastLogin).getTime()) && (
                       <div className="flex justify-between items-center">
                         <span className="text-slate-600 text-sm">Último Acesso:</span>
                         <span className="font-semibold text-slate-900">

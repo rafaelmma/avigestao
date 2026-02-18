@@ -3,10 +3,12 @@ import { Eye, TrendingUp, BarChart3, MapPin } from 'lucide-react';
 import {
   BirdVerificationRecord,
   getAllBirdVerifications,
+  getBirds,
   getPublicBirdById,
 } from '../services/firestoreService';
 import { Bird } from '../types';
 import WizardShell from '../components/WizardShell';
+import { getAuth } from 'firebase/auth';
 
 interface VerificationStats {
   birdId: string;
@@ -51,10 +53,19 @@ const AnalyticsPage: React.FC = () => {
     try {
       setLoading(true);
 
-      // Carregar pássaros do localStorage
-      const stored = localStorage.getItem('avigestao_state_v2');
-      const birds: Bird[] = stored ? JSON.parse(stored)?.birds || [] : [];
+      const auth = getAuth();
+      const currentUser = auth.currentUser;
+      if (!currentUser) {
+        setStats([]);
+        setTotalVerifications(0);
+        setLocationStats([]);
+        return;
+      }
+
+      // Carregar pássaros do usuário logado
+      const birds: Bird[] = (await getBirds(currentUser.uid)) || [];
       const birdsMap = new Map(birds.map((b) => [b.id, b.name]));
+      const birdIds = new Set(birds.map((b) => b.id));
 
       // Carregar todas as verificações
       const verifications = await getAllBirdVerifications();
@@ -71,8 +82,9 @@ const AnalyticsPage: React.FC = () => {
         return new Date(String(t));
       };
 
-      // Filtrar por data
+      // Filtrar por pássaros do usuário e por data
       const filtered = verifications.filter((v) => {
+        if (!birdIds.has(v.birdId)) return false;
         const timestamp = toDateFrom((v as unknown as Record<string, unknown>).timestamp);
         return timestamp >= dateRange.from && timestamp <= dateRange.to;
       });

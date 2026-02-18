@@ -17,14 +17,16 @@ import {
   RingBatch,
   RingItem,
 } from './types';
-import { Mail } from 'lucide-react';
+import { Mail, X } from 'lucide-react';
 import { INITIAL_SETTINGS } from './constants';
+import { hasActiveProPlan } from './lib/subscription';
 import Sidebar from './components/Sidebar';
 import PageHeader from './components/ui/PageHeader';
 import PrimaryButton from './components/ui/PrimaryButton';
 import SecondaryButton from './components/ui/SecondaryButton';
 import Footer from './components/ui/Footer';
 import ContactModal from './components/ui/ContactModal';
+import PlanComparative from './components/PlanComparative';
 
 // Lazy-loaded pages
 const Dashboard = lazy(() => import('./pages/Dashboard'));
@@ -48,6 +50,8 @@ const CommunityInbox = lazy(() => import('./pages/CommunityInbox'));
 const PublicTournaments = lazy(() => import('./pages/PublicTournaments'));
 const TournamentResults = lazy(() => import('./pages/TournamentResults'));
 const PublicBirds = lazy(() => import('./pages/PublicBirds'));
+const TopBreedersPage = lazy(() => import('./pages/TopBreedersPage'));
+const RecentBirdsPage = lazy(() => import('./pages/RecentBirdsPage'));
 const AdminUsers = lazy(() => import('./pages/AdminUsers'));
 const AdminCommunityModeration = lazy(() => import('./pages/Admin/CommunityModeration'));
 const About = lazy(() => import('./pages/About'));
@@ -229,6 +233,8 @@ const getTabFromPath = (path: string) => {
   if (path.startsWith('/statistics')) return 'statistics';
   if (path.startsWith('/community-inbox')) return 'community-inbox';
   if (path.startsWith('/public-birds')) return 'public-birds';
+  if (path.startsWith('/top-breeders')) return 'top-breeders';
+  if (path.startsWith('/recent-birds')) return 'recent-birds';
   if (path.startsWith('/verification')) return 'verification';
   return 'dashboard';
 };
@@ -253,6 +259,10 @@ const getPathFromTab = (tab: string) => {
       return '/community-inbox';
     case 'public-birds':
       return '/public-birds';
+    case 'top-breeders':
+      return '/top-breeders';
+    case 'recent-birds':
+      return '/recent-birds';
     case 'verification':
       return '/verification';
     default:
@@ -266,8 +276,8 @@ const App: React.FC = () => {
     return getTabFromPath(window.location.pathname);
   });
   const [globalSearch, setGlobalSearch] = useState<string>('');
-  const [state, setState] = useState<AppState>(() => defaultState);
   const [session, setSession] = useState<any>(null);
+  const [state, setState] = useState<AppState>(defaultState);
   const [isAdmin, setIsAdmin] = useState(false);
   const [isAdminOnly, setIsAdminOnly] = useState(false);
   const [isEmailVerificationPending, setIsEmailVerificationPending] = useState(false);
@@ -278,6 +288,7 @@ const App: React.FC = () => {
   const [isSendingWelcomeEmail, setIsSendingWelcomeEmail] = useState(false);
   const [isContactOpen, setIsContactOpen] = useState(false);
   const [unreadInboxCount, setUnreadInboxCount] = useState(0);
+  const [showUpgradeModal, setShowUpgradeModal] = useState(false);
 
   // Verifica se é uma rota pública (verificação de pássaro)
   const isPublicRoute = React.useMemo(() => {
@@ -528,7 +539,7 @@ const App: React.FC = () => {
         if (shouldInitTrial && auth.currentUser) {
           const initResult = await initializeNewUser(auth.currentUser);
           if (initResult.error) {
-            console.warn('Falha ao inicializar novo usuario:', initResult.error);
+            console.warn('Falha ao inicializar novo usuário:', initResult.error);
           }
           settings = await getSettings(newUserId);
         }
@@ -623,7 +634,7 @@ const App: React.FC = () => {
 
     try {
       await saveSettings(userId, settings);
-      setState((prev) => ({ ...prev, settings }));
+      setState((prev: any) => ({ ...prev, settings }));
       // Só mostrar toast se não for alteração automática de preferências de visualização
       if (!(settings as any)._autoViewPrefUpdate) {
         toast.success('Configurações salvas');
@@ -635,7 +646,7 @@ const App: React.FC = () => {
   };
 
   const updateSettings = (updates: Partial<BreederSettings>) => {
-    setState((prev) => ({
+    setState((prev: any) => ({
       ...prev,
       settings: { ...prev.settings, ...updates },
     }));
@@ -682,10 +693,13 @@ const App: React.FC = () => {
     try {
       const { error } = await sendVerificationEmail(auth.currentUser ?? undefined);
       if (error) {
-        toast.error(error);
+        toast.error('Erro ao reenviar o e-mail de verificação.');
         return;
       }
-      toast.success('Email de verificacao enviado!');
+      toast.success('E-mail de verificação reenviado com sucesso!');
+    } catch (err) {
+      console.error('Erro ao reenviar e-mail de verificação:', err);
+      toast.error('Erro ao reenviar e-mail de verificação.');
     } finally {
       setIsResendingVerification(false);
     }
@@ -698,7 +712,7 @@ const App: React.FC = () => {
       const sendWelcome = httpsCallable(functions, 'sendWelcomeEmailIfNeeded');
       await sendWelcome({ optIn: true });
     } catch (error) {
-      console.error('Erro ao enviar email de boas-vindas:', error);
+      console.error('Erro ao enviar e-mail de boas-vindas:', error);
     } finally {
       setIsSendingWelcomeEmail(false);
     }
@@ -709,14 +723,14 @@ const App: React.FC = () => {
     try {
       const currentUser = auth.currentUser;
       if (!currentUser) {
-        toast.error('Usuario nao encontrado');
+        toast.error('Usuário não encontrado');
         return;
       }
 
       await currentUser.reload();
 
       if (!currentUser.emailVerified) {
-        toast.error('Email ainda nao verificado. Confira sua caixa de entrada.');
+        toast.error('E-mail ainda não verificado. Confira sua caixa de entrada.');
         return;
       }
 
@@ -728,8 +742,8 @@ const App: React.FC = () => {
       await handleSession(newSession);
       await handleSendWelcomeEmailIfNeeded();
     } catch (error) {
-      console.error('Erro ao verificar email:', error);
-      toast.error('Erro ao verificar email');
+      console.error('Erro ao verificar e-mail:', error);
+      toast.error('Erro ao verificar e-mail');
     } finally {
       setIsCheckingVerification(false);
     }
@@ -746,6 +760,13 @@ const App: React.FC = () => {
     }
 
     try {
+      // Validar limite de aves no plano Básico
+      const isBasicPlan = !hasActiveProPlan(state.settings);
+      if (isBasicPlan && state.birds.length >= 5) {
+        toast.error('Limite de 5 aves atingido no plano Básico. Faça upgrade para Profissional para adicionar mais aves.');
+        return false;
+      }
+
       // Salvar no Firestore primeiro
       const birdData = { ...bird };
       delete (birdData as any).id;
@@ -763,7 +784,7 @@ const App: React.FC = () => {
 
       // Atualizar estado local com o ID do Firestore
       const birdWithId = { ...bird, id: newId };
-      setState((prev) => ({
+      setState((prev: any) => ({
         ...prev,
         birds: [...prev.birds, birdWithId],
       }));
@@ -772,13 +793,13 @@ const App: React.FC = () => {
       console.log('[addBird] Recarregando dados do Firestore após sucesso');
       const reloadedBirds = await getBirds(userId);
       if (reloadedBirds) {
-        setState((prev) => ({
+        setState((prev: any) => ({
           ...prev,
           birds: reloadedBirds,
         }));
-        const addedBird = reloadedBirds.find((b) => b.id === newId);
-        console.log('[addBird] Ave adicionada e confirmada no Firestore:', { 
-          id: addedBird?.id, 
+        const addedBird = reloadedBirds.find((b: any) => b.id === newId);
+        console.log('[addBird] Ave adicionada e confirmada no Firestore:', {
+          id: addedBird?.id,
           name: addedBird?.name,
           sex: addedBird?.sex,
           status: addedBird?.status,
@@ -913,7 +934,7 @@ const App: React.FC = () => {
   const addRingBatch = async (batch: Omit<RingBatch, 'id'>, items: Omit<RingItem, 'id'>[]) => {
     const userId = session?.user?.id;
     if (!userId) {
-      toast.error('Usuario nao autenticado');
+      toast.error('Usuário não autenticado');
       return false;
     }
 
@@ -980,7 +1001,7 @@ const App: React.FC = () => {
   const addRingItem = async (item: Omit<RingItem, 'id'>) => {
     const userId = session?.user?.id;
     if (!userId) {
-      toast.error('Usuario nao autenticado');
+      toast.error('Usuário não autenticado');
       return false;
     }
 
@@ -2324,6 +2345,7 @@ const App: React.FC = () => {
             permanentlyDeleteBird={permanentlyDeleteBird}
             saveSettings={handleSaveSettings}
             isAdmin={isAdmin}
+            onShowUpgradeModal={() => setShowUpgradeModal(true)}
           />
         );
       case 'birds-labels':
@@ -2340,6 +2362,7 @@ const App: React.FC = () => {
             initialList="etiquetas"
             titleOverride="Etiquetas"
             isAdmin={isAdmin}
+            onShowUpgradeModal={() => setShowUpgradeModal(true)}
           />
         );
       case 'birds-history':
@@ -2356,6 +2379,7 @@ const App: React.FC = () => {
             initialList="histórico"
             titleOverride="Histórico do Plantel"
             isAdmin={isAdmin}
+            onShowUpgradeModal={() => setShowUpgradeModal(true)}
           />
         );
       case 'birds-ibama':
@@ -2541,6 +2565,10 @@ const App: React.FC = () => {
         return <CommunityInbox />;
       case 'public-birds':
         return <PublicBirds onNavigateToHome={() => navigateTo('dashboard')} />;
+      case 'top-breeders':
+        return <TopBreedersPage />;
+      case 'recent-birds':
+        return <RecentBirdsPage />;
       case 'public-tournaments':
         return (
           <PublicTournaments
@@ -2620,6 +2648,10 @@ const App: React.FC = () => {
         return 'Relatórios';
       case 'statistics':
         return 'Comunidade';
+      case 'top-breeders':
+        return 'Top Criadores';
+      case 'recent-birds':
+        return 'Aves Recentes';
       default:
         return tab.charAt(0).toUpperCase() + tab.slice(1);
     }
@@ -2655,7 +2687,21 @@ const App: React.FC = () => {
             <span className="text-xs mt-2 block">(Não esqueça de olhar na pasta de Spam)</span>
           </p>
 
-          <div className="mt-10">
+          <div className="mt-10 space-y-3">
+            <button
+              className="w-full py-4 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-2xl transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+              onClick={handleResendVerification}
+              disabled={isResendingVerification}
+            >
+              {isResendingVerification ? 'Reenviando...' : 'Reenviar e-mail de verificação'}
+            </button>
+            <button
+              className="w-full py-4 bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 font-bold rounded-2xl transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+              onClick={handleCheckVerification}
+              disabled={isCheckingVerification}
+            >
+              {isCheckingVerification ? 'Verificando...' : 'Já verifiquei meu e-mail'}
+            </button>
             <button
               className="w-full py-4 bg-slate-100 hover:bg-slate-200 text-slate-600 font-bold rounded-2xl transition-all"
               onClick={handleLogout}
@@ -2780,6 +2826,21 @@ const App: React.FC = () => {
         defaultName={state.settings?.breederName || 'Criador'}
         defaultEmail={state.settings?.breederEmail || session?.user?.email || ''}
       />
+      {showUpgradeModal && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-start justify-center overflow-y-auto">
+          <div className="relative w-full max-w-6xl mx-auto my-8 px-4">
+            <button
+              onClick={() => setShowUpgradeModal(false)}
+              className="absolute top-4 right-4 z-10 bg-white rounded-full p-2 shadow-lg hover:bg-slate-100 transition-colors"
+            >
+              <X className="w-6 h-6 text-slate-600" />
+            </button>
+            <div className="bg-white rounded-2xl shadow-2xl p-8">
+              <PlanComparative currentPlan={state.settings?.plan || 'Básico'} />
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

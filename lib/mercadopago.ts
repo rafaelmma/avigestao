@@ -1,9 +1,7 @@
 import { getAuth } from 'firebase/auth';
 
-const metaEnv = (import.meta as unknown as { env?: Record<string, string> })?.env;
-const PRIMARY_FUNCTIONS_URL = metaEnv?.VITE_FUNCTIONS_URL || 'https://api.avigestao.com.br';
-const FALLBACK_FUNCTIONS_URL =
-  metaEnv?.VITE_FUNCTIONS_FALLBACK_URL || 'https://southamerica-east1-avigestao-cf5fe.cloudfunctions.net';
+// Use Cloud Functions URL directly (already has CORS configured)
+const FUNCTIONS_URL = 'https://southamerica-east1-avigestao-cf5fe.cloudfunctions.net';
 
 const postJson = async (
   baseUrl: string,
@@ -11,7 +9,10 @@ const postJson = async (
   token: string,
   body?: Record<string, unknown>,
 ) => {
-  const res = await fetch(`${baseUrl}/${path}`, {
+  const url = `${baseUrl}/${path}`;
+  console.log('Fazendo requisição MercadoPago:', { url, hasBody: !!body });
+
+  const res = await fetch(url, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -35,29 +36,11 @@ const postJson = async (
       typeof parsedData === 'object' && parsedData !== null
         ? ((parsedData as Record<string, unknown>)['error'] as string | undefined) || String(parsedData)
         : String(parsedData);
+    console.error('Erro na requisição MercadoPago:', { status: res.status, msg });
     throw { status: res.status, message: msg };
   }
 
   return parsedData;
-};
-
-const requestWithFallback = async (path: string, token: string, body?: Record<string, unknown>) => {
-  const isTestHost =
-    typeof window !== 'undefined' &&
-    (window.location.hostname.includes('web.app') ||
-      window.location.hostname.includes('localhost'));
-  const primaryFirst = isTestHost ? FALLBACK_FUNCTIONS_URL : PRIMARY_FUNCTIONS_URL;
-  const secondary = isTestHost ? PRIMARY_FUNCTIONS_URL : FALLBACK_FUNCTIONS_URL;
-
-  try {
-    return await postJson(primaryFirst, path, token, body);
-  } catch (err: unknown) {
-    const status = typeof err === 'object' && err !== null ? (err as Record<string, unknown>)['status'] : undefined;
-    if (typeof status === 'number' && status < 500) {
-      throw err;
-    }
-    return await postJson(secondary, path, token, body);
-  }
 };
 
 export async function iniciarPagamentoMercadoPago(payload: {
@@ -66,20 +49,31 @@ export async function iniciarPagamentoMercadoPago(payload: {
   price: number;
   months: number;
 }) {
-  const auth = getAuth();
-  const user = auth.currentUser;
+  try {
+    const auth = getAuth();
+    const user = auth.currentUser;
 
-  if (!user) throw new Error('Usuário não autenticado');
+    if (!user) throw new Error('Usuário não autenticado');
 
-  const token = await user.getIdToken();
-  const data = (await requestWithFallback('createMercadoPagoCheckout', token, payload)) as {
-    url?: string;
-    error?: string;
-  };
+    const token = await user.getIdToken();
 
-  if (data.url) {
-    window.location.href = data.url;
-  } else {
-    throw new Error(data.error || 'Erro ao abrir pagamento PIX');
+    console.log('Iniciando checkout MercadoPago:', payload);
+
+    const data = (await postJson(FUNCTIONS_URL, 'createMercadoPagoCheckout', token, payload)) as {
+      url?: string;
+      preferenceId?: string;
+      error?: string;
+    };
+
+    console.log('Resposta MercadoPago:', data);
+
+    if (data.url) {
+      window.location.href = data.url;
+    } else {
+      throw new Error(data.error || 'Erro ao abrir pagamento MercadoPago');
+    }
+  } catch (error: any) {
+    console.error('Erro ao iniciar pagamento MercadoPago:', error);
+    throw new Error(error.message || 'Erro ao processar pagamento com MercadoPago');
   }
 }

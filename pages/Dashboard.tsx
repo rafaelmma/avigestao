@@ -52,11 +52,11 @@ const ALL_WIDGETS = [
     label: 'Resumo Superior (Plantel/Financeiro/Tarefas)',
     icon: <LayoutGrid size={16} />,
   },
-  { id: 'tournaments', label: 'PrÃ³ximos Torneios', icon: <Trophy size={16} /> },
+  { id: 'tournaments', label: 'Próximos Torneios', icon: <Trophy size={16} /> },
   { id: 'financial', label: 'Fluxo de Caixa', icon: <Wallet size={16} /> },
-  { id: 'species_chart', label: 'GrÃ¡fico de EspÃ©cies', icon: <TrendingUp size={16} /> },
+  { id: 'species_chart', label: 'Gráfico de Espécies', icon: <TrendingUp size={16} /> },
   { id: 'tasks', label: 'Tarefas de Manejo', icon: <ListTodo size={16} /> },
-  { id: 'breeding', label: 'HistÃ³rico de Posturas', icon: <Heart size={16} /> },
+  { id: 'breeding', label: 'Histórico de Posturas', icon: <Heart size={16} /> },
   { id: 'tips', label: 'Dicas de Manejo', icon: <Clock size={16} /> },
 ];
 
@@ -405,7 +405,7 @@ const Dashboard: React.FC<DashboardProps> = ({
                 icon={<Clock size={20} className="text-orange-500" />}
                 label="SISPASS"
                 value={`${diffDays}d`}
-                subValue={diffDays < 30 ? 'RenovaÃ§Ã£o Urgente' : 'SituaÃ§Ã£o Regular'}
+                subValue={diffDays < 30 ? 'Renovação Urgente' : 'Situação Regular'}
                 isWarning={diffDays < 30}
                 density={dashboardDensity}
                 onClick={() => navigateTo('documents')}
@@ -472,7 +472,7 @@ const Dashboard: React.FC<DashboardProps> = ({
                       <TrendingDown size={14} />
                     </div>
                     <span className="text-[10px] font-black uppercase text-rose-700 tracking-widest">
-                      SaÃ­das
+                      Saídas
                     </span>
                   </div>
                   <span className="text-sm font-black text-rose-700">
@@ -484,7 +484,7 @@ const Dashboard: React.FC<DashboardProps> = ({
 
             <div className="mt-6 pt-6 border-t border-slate-50">
               <p className="text-slate-400 text-[10px] font-black uppercase tracking-widest mb-1">
-                Resultado do PerÃ­odo
+                Resultado do Período
               </p>
               <div className="flex items-end gap-2">
                 <p
@@ -518,7 +518,7 @@ const Dashboard: React.FC<DashboardProps> = ({
               <div className="p-2 bg-blue-50 text-blue-600 rounded-xl">
                 <TrendingUp size={18} />
               </div>
-              EspÃ©cies
+              Espécies
             </h3>
             <div className="flex-1 min-h-[150px] w-full">
               <ResponsiveContainer width="100%" height="100%">
@@ -543,7 +543,7 @@ const Dashboard: React.FC<DashboardProps> = ({
               <div className="p-2 bg-purple-50 text-purple-600 rounded-xl">
                 <ListTodo size={18} />
               </div>
-              Ãšltimas Tarefas
+              Últimas Tarefas
             </h3>
             <div className="space-y-3 flex-1 overflow-auto max-h-[200px] no-scrollbar">
               {state.tasks.slice(0, 4).map((t) => (
@@ -628,7 +628,7 @@ const Dashboard: React.FC<DashboardProps> = ({
       ? 'auto-rows-[minmax(200px,auto)] lg:auto-rows-[minmax(260px,auto)]'
       : 'auto-rows-[minmax(180px,auto)] lg:auto-rows-[minmax(220px,auto)]';
 
-  // CÃ¡lculo de dias restantes do Trial
+  // Cálculo de dias restantes do Trial
   const trialDays = state.settings.trialEndDate
     ? Math.ceil(
         (new Date(state.settings.trialEndDate).getTime() - new Date().getTime()) /
@@ -646,7 +646,7 @@ const Dashboard: React.FC<DashboardProps> = ({
   };
 
   return (
-    <WizardShell title="Dashboard" description="VisÃ£o geral do criatÃ³rio, finanÃ§as e tarefas.">
+    <WizardShell title="Dashboard" description="Visão geral do criatório, finanças e tarefas.">
       <div
         className={`relative w-full max-w-none px-6 xl:px-10 2xl:px-16 ${densitySpacing} animate-in fade-in duration-500 pb-12 bg-slate-50`}
       >
@@ -660,7 +660,7 @@ const Dashboard: React.FC<DashboardProps> = ({
               <PageHeader
                 title={<>Painel Geral</>}
                 subtitle={`Bem-vindo ao centro de comando do ${
-                  state.settings?.breederName || 'Seu CriatÃ³rio'
+                  state.settings?.breederName || 'Seu Criatório'
                 }.`}
                 actions={
                   <SecondaryButton onClick={() => setShowCustomizer(true)}>
@@ -716,7 +716,7 @@ const Dashboard: React.FC<DashboardProps> = ({
                     <p className="text-emerald-700">Use em licencas e certificados.</p>
                   </div>
                   <div className="bg-white/70 border border-emerald-100 rounded-2xl p-3">
-                    <p className="font-bold">Email e telefone</p>
+                    <p className="font-bold">E-mail e telefone</p>
                     <p className="text-emerald-700">Facilita suporte e comunicacao.</p>
                   </div>
                 </div>
@@ -752,7 +752,7 @@ const Dashboard: React.FC<DashboardProps> = ({
                       {state.birds.filter((b) => b.ibamaBaixaPendente).length === 1
                         ? 'ave necessita'
                         : 'aves necessitam'}{' '}
-                      de registro no sistema IBAMA (Ã³bito, fuga, venda ou doaÃ§Ã£o).
+                      de registro no sistema IBAMA (óbito, fuga, venda ou doação).
                     </p>
                     <PrimaryButton
                       onClick={(event) => {
@@ -760,7 +760,7 @@ const Dashboard: React.FC<DashboardProps> = ({
                         navigateTo('birds-ibama');
                       }}
                     >
-                      Ver PendÃªncias
+                      Ver Pendências
                     </PrimaryButton>
                   </div>
                 </div>
@@ -869,7 +869,7 @@ const Dashboard: React.FC<DashboardProps> = ({
                 {customizerTab === 'widgets' ? (
                   <>
                     <p className="text-xs text-slate-500 mb-4 font-semibold">
-                      Ative os mÃ³dulos e arraste no painel para reordenar
+                      Ative os módulos e arraste no painel para reordenar
                     </p>
                     {ALL_WIDGETS.map((widget) => (
                       <button

@@ -45,7 +45,7 @@ export const initializeNewUser = async (user: User, breederName?: string) => {
 
     if (!response.ok) {
       const message = await response.text();
-      return { error: message || 'Falha ao inicializar usuario' };
+      return { error: message || 'Falha ao inicializar usuário' };
     }
 
     return { error: null };
@@ -82,7 +82,7 @@ export const sendVerificationEmail = async (user?: User) => {
   try {
     const target = user ?? auth.currentUser;
     if (!target) {
-      return { error: 'Nenhum usuario autenticado' };
+      return { error: 'Nenhum usuário autenticado' };
     }
     await sendEmailVerification(target, getActionCodeSettings());
     return { error: null };

@@ -39,12 +39,16 @@ type VercelRes = {
 const setUserAsPro = async (userId: string | null | undefined, customerId?: string | null) => {
   if (!userId) return;
   try {
-    const proPayload = {
+    const proPayload: any = {
       plan: 'Profissional',
-      trialEndDate: null,
       stripeCustomerId: customerId || null,
       updatedAt: admin.firestore.FieldValue.serverTimestamp(),
     };
+    
+    // Use deleteField para remover trialEndDate completamente
+    proPayload.trialEndDate = admin.firestore.FieldValue.delete();
+    proPayload.subscriptionCancelAtPeriodEnd = false;
+    
     await db.collection('users').doc(userId).set(proPayload, { merge: true });
     await Promise.all([
       db.collection('users').doc(userId).collection('settings').doc('preferences').set(proPayload, { merge: true }),

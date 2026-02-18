@@ -1,10 +1,7 @@
 ﻿import { getAuth } from 'firebase/auth';
 
-// Usar domínio customizado para produção e fallback para ambiente de testes
-const metaEnv = (import.meta as unknown as { env?: Record<string, string> })?.env;
-const PRIMARY_FUNCTIONS_URL = metaEnv?.VITE_FUNCTIONS_URL || 'https://api.avigestao.com.br';
-const FALLBACK_FUNCTIONS_URL =
-  metaEnv?.VITE_FUNCTIONS_FALLBACK_URL || 'https://southamerica-east1-avigestao-cf5fe.cloudfunctions.net';
+// Use Cloud Functions URL directly (already has CORS configured)
+const FUNCTIONS_URL = 'https://southamerica-east1-avigestao-cf5fe.cloudfunctions.net';
 
 const postJson = async (
   baseUrl: string,
@@ -12,7 +9,10 @@ const postJson = async (
   token: string,
   body?: Record<string, unknown>,
 ) => {
-  const res = await fetch(`${baseUrl}/${path}`, {
+  const url = `${baseUrl}/${path}`;
+  console.log('Fazendo requisição:', { url, hasBody: !!body });
+
+  const res = await fetch(url, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -36,47 +36,39 @@ const postJson = async (
       typeof parsedData === 'object' && parsedData !== null
         ? ((parsedData as Record<string, unknown>)['error'] as string | undefined) || String(parsedData)
         : String(parsedData);
+    console.error('Erro na requisição:', { status: res.status, msg });
     throw { status: res.status, message: msg };
   }
 
   return parsedData;
 };
 
-const requestWithFallback = async (path: string, token: string, body?: Record<string, unknown>) => {
-  const isTestHost =
-    typeof window !== 'undefined' &&
-    (window.location.hostname.includes('web.app') ||
-      window.location.hostname.includes('localhost'));
-  const primaryFirst = isTestHost ? FALLBACK_FUNCTIONS_URL : PRIMARY_FUNCTIONS_URL;
-  const secondary = isTestHost ? PRIMARY_FUNCTIONS_URL : FALLBACK_FUNCTIONS_URL;
-
-  try {
-    return await postJson(primaryFirst, path, token, body);
-  } catch (err: unknown) {
-    const status = typeof err === 'object' && err !== null ? (err as Record<string, unknown>)['status'] : undefined;
-    if (typeof status === 'number' && status < 500) {
-      throw err;
-    }
-    return await postJson(secondary, path, token, body);
-  }
-};
-
 export async function assinarPlano(priceId: string) {
-  const auth = getAuth();
-  const user = auth.currentUser;
+  try {
+    const auth = getAuth();
+    const user = auth.currentUser;
 
-  if (!user) throw new Error('Usuário não autenticado');
+    if (!user) throw new Error('Usuário não autenticado');
 
-  const token = await user.getIdToken();
+    const token = await user.getIdToken();
 
-  const data = (await requestWithFallback('createCheckoutSession', token, { priceId })) as {
-    url?: string;
-    error?: string;
-  };
-  if (data.url) {
-    window.location.href = data.url;
-  } else {
-    throw new Error(data.error || 'Erro ao criar sessão de checkout');
+    console.log('Iniciando checkout Stripe:', { priceId, userId: user.uid });
+
+    const data = (await postJson(FUNCTIONS_URL, 'createCheckoutSession', token, { priceId })) as {
+      url?: string;
+      error?: string;
+    };
+
+    console.log('Resposta Stripe:', data);
+
+    if (data.url) {
+      window.location.href = data.url;
+    } else {
+      throw new Error(data.error || 'Erro ao criar sessão de checkout');
+    }
+  } catch (error: any) {
+    console.error('Erro ao assinar plano:', error);
+    throw new Error(error.message || 'Erro ao processar pagamento com Stripe');
   }
 }
 
@@ -88,7 +80,7 @@ export async function abrirPortalCliente() {
 
   const token = await user.getIdToken();
 
-  const data = (await requestWithFallback('createPortalSession', token)) as {
+  const data = (await postJson(FUNCTIONS_URL, 'createPortalSession', token)) as {
     url?: string;
     error?: string;
   };
@@ -107,5 +99,5 @@ export async function verificarAssinatura() {
 
   const token = await user.getIdToken();
 
-  return await requestWithFallback('getSubscriptionStatus', token);
+  return await postJson(FUNCTIONS_URL, 'getSubscriptionStatus', token);
 }

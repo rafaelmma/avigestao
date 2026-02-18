@@ -44,7 +44,7 @@ const Auth: React.FC<AuthProps> = ({
         const { error } = await resetPassword(email);
         setIsLoading(false);
         if (error) return alert(error);
-        alert('Email de recuperação enviado! Verifique sua caixa de entrada.');
+        alert('E-mail de recuperação enviado! Verifique sua caixa de entrada.');
         setIsForgotPassword(false);
         return;
       }
@@ -136,7 +136,7 @@ const Auth: React.FC<AuthProps> = ({
             </h2>
             <p className="text-slate-500 mt-2">
               {isForgotPassword
-                ? 'Digite seu email para receber o link de recuperação.'
+                ? 'Digite seu e-mail para receber o link de recuperação.'
                 : isLogin
                 ? 'Acesse o painel para gerenciar suas aves.'
                 : 'Comece com todos os recursos do Plano Profissional liberados.'}
@@ -177,7 +177,7 @@ const Auth: React.FC<AuthProps> = ({
                 htmlFor="email"
                 className="text-xs font-black uppercase text-slate-400 tracking-widest"
               >
-                Email
+                E-mail
               </label>
               <div className="relative">
                 <Mail
@@ -253,7 +253,7 @@ const Auth: React.FC<AuthProps> = ({
                 </>
               ) : (
                 <>
-                  {isForgotPassword ? 'Enviar email' : isLogin ? 'Entrar' : 'Criar conta'}{' '}
+                  {isForgotPassword ? 'Enviar e-mail' : isLogin ? 'Entrar' : 'Criar conta'}{' '}
                   <ArrowRight size={18} />
                 </>
               )}

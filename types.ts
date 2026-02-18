@@ -339,6 +339,8 @@ export interface BreederSettings {
   subscriptionCancelAtPeriodEnd?: boolean; // Se a recorrencia foi cancelada
   subscriptionStatus?: string; // Estado bruto vindo do Stripe (active, trialing, etc)
   subscriptionProvider?: string; // ex: 'mercadopago', 'stripe', 'manual'
+  isProActive?: boolean; // Flag para acesso PRO efetivo (backend)
+  activeBirdsCount?: number; // Contagem de aves ativas para limite do plano básico
   stripeCustomerId?: string; // Customer ID do Stripe quando existe assinatura
   communityOptIn?: boolean; // Aceitar aparecer na comunidade
   communityShowProfile?: boolean; // Exibir perfil público

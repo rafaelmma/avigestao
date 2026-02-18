@@ -72,6 +72,7 @@ const Sidebar: React.FC<SidebarProps> = ({
   const [collapsedSections, setCollapsedSections] = useState<Record<string, boolean>>(
     settings.sidebarCollapsedSections || {},
   );
+  const [searchQuery, setSearchQuery] = useState('');
 
   useEffect(() => {
     setCollapsedSections(settings.sidebarCollapsedSections || {});
@@ -100,8 +101,8 @@ const Sidebar: React.FC<SidebarProps> = ({
       title: 'Comunidade',
       items: [
         { id: 'statistics-feed', label: 'Feed da Comunidade', icon: <Users size={18} />, variant: 'main' },
-          { id: 'statistics-top', label: 'Top Criadores', icon: <Medal size={16} />, variant: 'sub' },
-          { id: 'statistics-recent', label: 'Aves Recentes', icon: <BirdIcon size={16} />, variant: 'sub' },
+          { id: 'top-breeders', label: 'Top Criadores', icon: <Medal size={16} />, variant: 'sub' },
+          { id: 'recent-birds', label: 'Aves Recentes', icon: <BirdIcon size={16} />, variant: 'sub' },
         { id: 'community-inbox', label: 'Mensagens', icon: <Mail size={16} />, variant: 'sub' },
           { id: 'public-tournaments', label: 'Torneios Públicos', icon: <Trophy size={16} />, variant: 'sub' },
           { id: 'verification', label: 'Verificar Anilha', icon: <FileBadge size={16} />, variant: 'sub' },
@@ -284,184 +285,55 @@ const Sidebar: React.FC<SidebarProps> = ({
           </div>
         </div>
 
-        {hasTrial && trialDaysLeft >= 0 && (
-          <div className="px-4 py-4 border-b border-blue-200 bg-gradient-to-r from-blue-50 via-white to-emerald-50">
-            <div className="flex items-center gap-2">
-              <div className="h-8 w-8 rounded-xl bg-blue-600 text-white flex items-center justify-center shadow-sm">
-                <Zap size={16} />
-              </div>
-              <div>
-                <p className="text-[10px] font-black uppercase tracking-[0.2em] text-blue-700">
-                  Teste PRO ativo
-                </p>
-                <p className="text-2xl font-black text-slate-900 leading-tight">
-                  {trialDaysLeft} dias
-                </p>
-                <p className="text-[11px] text-slate-500">Aproveite todos os recursos premium.</p>
-              </div>
-            </div>
-          </div>
-        )}
+        <div className="p-4">
+          <input
+            type="text"
+            placeholder="Pesquisar..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="w-full p-2 border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+          />
+        </div>
 
-        <nav
-          className="flex-1 px-3 py-4 space-y-5 overflow-y-auto"
-          role="navigation"
-          aria-label="Menu principal"
-        >
-          {menuSections.map((section) => {
-            const isCollapsed = collapsedSections[section.title];
-            const isOpenSection = !isCollapsed;
-
-            return (
-              <div
-                key={section.title}
-                className="space-y-2 pb-3 border-b border-slate-200/60 last:border-b-0"
+        <div className="flex-1 overflow-y-auto">
+          {menuSections.map((section) => (
+            <div key={section.title} className="mb-4">
+              <button
+                onClick={() => toggleSection(section.title)}
+                className="w-full flex items-center justify-between px-4 py-2 text-slate-700 hover:bg-slate-100 rounded-md"
               >
-                <button
-                  type="button"
-                  onClick={() => toggleSection(section.title)}
-                  className="w-full flex items-center justify-between px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.22em] text-slate-500 hover:text-slate-700 transition-colors"
-                >
-                  {section.title}
-                  <ChevronDown
-                    size={14}
-                    className={`${isOpenSection ? 'rotate-180' : ''} transition-transform`}
-                  />
-                </button>
-                {isOpenSection && <div className="space-y-1">
-                {section.items
-                  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                  .map((item: any) => {
-                    const isProFeature = item.pro && plan === 'Básico' && !hasTrial && !isAdmin;
-                    const isDisabled = isProFeature;
-                    // For community sub-items we keep the main activeTab as 'statistics'
-                    let currentStatisticsView = undefined;
-                    try {
-                      currentStatisticsView = typeof localStorage !== 'undefined' ? localStorage.getItem('avigestao_statistics_view') : undefined;
-                    } catch {
-                      currentStatisticsView = undefined;
-                    }
-                    const isActive = activeTab === item.id || (activeTab === 'statistics' && currentStatisticsView === item.id);
-                    const isSub = item.variant === 'sub';
-                    const isAdminItem = !!item.adminOnly;
-
-                    const handleItemClick = () => {
-                      if (isDisabled) return goToSubscriptionPlans();
-                      // If this is a community sub-item (statistics-*), map to the main 'statistics' route
-                      if (item.id && item.id.startsWith('statistics-')) {
-                        try {
-                          localStorage.setItem('avigestao_statistics_view', item.id);
-                        } catch {}
-                        handleNavigation('statistics');
-                      } else {
-                        handleNavigation(item.id);
-                      }
-                    };
-
-                    return (
+                <span className="font-bold text-sm">{section.title}</span>
+                {collapsedSections[section.title] ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
+              </button>
+              {!collapsedSections[section.title] && (
+                <ul className="mt-2 space-y-1">
+                  {section.items.map((item) => (
+                    <li key={item.id}>
                       <button
-                        key={item.id}
-                        onClick={handleItemClick}
-                        aria-current={isActive ? 'page' : undefined}
-                        aria-disabled={isDisabled}
-                        aria-label={item.label + (isProFeature ? ' (recurso PRO)' : '')}
-                        className={`w-full flex items-center justify-between rounded-xl transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/30 ${
-                          isSub ? 'px-3 py-2' : 'px-3.5 py-2.5'
-                        } ${
-                          isDisabled
-                            ? 'text-slate-400 bg-slate-50 hover:bg-slate-50 cursor-pointer opacity-85'
-                            : isActive
-                            ? isAdminItem
-                              ? 'bg-rose-600 text-white shadow-sm'
-                              : 'bg-slate-900 text-white shadow-sm'
-                            : isAdminItem
-                            ? 'text-rose-700 hover:text-rose-800 hover:bg-rose-50'
-                            : 'text-slate-700 hover:text-slate-900 hover:bg-slate-50'
-                        } ${isSub ? 'text-[12px] font-medium' : 'text-[13px] font-semibold'}`}
-                        title={isDisabled ? 'Feature disponível apenas no plano PRO' : ''}
+                        onClick={() => handleNavigation(item.id)}
+                        className={`w-full flex items-center gap-2 px-4 py-2 text-sm rounded-md transition-colors ${
+                          activeTab === item.id
+                            ? 'bg-blue-100 text-blue-700 font-bold'
+                            : 'text-slate-600 hover:bg-slate-100'
+                        }`}
                       >
-                        <div className={`flex items-center gap-3 ${isSub ? 'pl-2' : ''}`}>
-                          <span
-                            className={`flex-shrink-0 w-5 h-5 flex items-center justify-center ${
-                              isDisabled
-                                ? 'text-slate-400'
-                                : isActive
-                                ? 'text-white'
-                                : isAdminItem
-                                ? 'text-rose-500'
-                                : 'text-slate-600'
-                            }`}
-                          >
-                            {item.icon}
-                          </span>
-                          <span className="flex-1 text-left">{item.label}</span>
-                          {item.id === 'community-inbox' && unreadInboxCount > 0 && (
-                            <span className="ml-2 inline-flex items-center justify-center min-w-[18px] h-[18px] px-1 text-[10px] font-bold rounded-full bg-rose-500 text-white">
-                              {unreadInboxCount}
-                            </span>
-                          )}
-                          {isProFeature && (
-                            <Zap
-                              size={12}
-                              className="text-amber-500 fill-amber-500 flex-shrink-0"
-                            />
-                          )}
-                        </div>
-                        {isActive && (
-                          <ChevronRight size={16} className="opacity-60 flex-shrink-0" />
-                        )}
+                        {item.icon}
+                        {item.label}
                       </button>
-                    );
-                  })}
-                </div>}
-              </div>
-            );
-          })}
-        </nav>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+          ))}
+        </div>
 
-        <div className="px-3 py-4 border-t border-slate-200 space-y-2">
-          {(plan === 'Básico' || hasTrial) && !isAdmin && (
-            <button
-              onClick={goToSubscriptionPlans}
-              className={`w-full flex items-center gap-2 px-3.5 py-2.5 rounded-xl font-semibold text-[11px] uppercase tracking-wider transition-all ${
-                hasTrial
-                  ? 'bg-green-50 text-green-700 hover:bg-green-100'
-                  : 'bg-blue-50 text-blue-700 hover:bg-blue-100'
-              }`}
-            >
-              <Zap size={14} className="flex-shrink-0" />
-              {hasTrial ? 'Upgrade PRO' : 'Upgrade PRO'}
-            </button>
-          )}
-          <button
-            onClick={() => handleNavigation('settings')}
-            className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-[13px] font-semibold transition-all ${
-              activeTab === 'settings'
-                ? 'bg-slate-100 text-slate-900'
-                : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
-            }`}
-          >
-            <Settings size={18} className="flex-shrink-0" />
-            Configurações
-          </button>
-          {onRefresh && (
-            <button
-              onClick={onRefresh}
-              disabled={isRefreshing}
-              className="w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-[13px] font-semibold transition-all text-green-700 hover:bg-green-50 disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              <RefreshCw
-                size={18}
-                className={`flex-shrink-0 ${isRefreshing ? 'animate-spin' : ''}`}
-              />
-              {isRefreshing ? 'Atualizando...' : 'Atualizar'}
-            </button>
-          )}
+        <div className="p-4 border-t border-slate-200">
           <button
             onClick={onLogout}
-            className="w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-[13px] font-semibold transition-all text-red-600 hover:bg-red-50"
+            className="w-full flex items-center gap-2 px-4 py-2 text-sm text-red-600 hover:bg-red-50 rounded-md"
           >
-            <LogOut size={18} className="flex-shrink-0" />
+            <LogOut size={18} />
             Sair
           </button>
         </div>

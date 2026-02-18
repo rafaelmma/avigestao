@@ -29,6 +29,7 @@ import {
   ViewPreferences,
 } from '../types';
 import { getStatusBadgeVariant } from '../lib/designSystem';
+import { hasActiveProPlan } from '../lib/subscription';
 import { syncPublicBirdsForUser } from '../services/firestoreService';
 import {
   Plus,
@@ -104,6 +105,7 @@ interface BirdManagerProps {
   showListTabs?: boolean;
   includeSexingTab?: boolean;
   titleOverride?: string;
+  onShowUpgradeModal?: () => void;
 }
 
 const BirdManager: React.FC<BirdManagerProps> = ({
@@ -120,6 +122,7 @@ const BirdManager: React.FC<BirdManagerProps> = ({
   showListTabs = true,
   includeSexingTab = true,
   titleOverride,
+  onShowUpgradeModal,
 }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [showModal, setShowModal] = useState(false);
@@ -241,9 +244,11 @@ const BirdManager: React.FC<BirdManagerProps> = ({
   const birdPhotoInputRef = useRef<HTMLInputElement>(null);
 
   // Verificação de Plano
-  const isLimitReached =
-    !isAdmin && state.settings.plan === 'Básico' && state.birds.length >= MAX_FREE_BIRDS;
-  const isPro = isAdmin || state.settings.plan === 'Profissional' || !!state.settings.trialEndDate;
+  const hasPaidPlan = hasActiveProPlan(state.settings);
+  const isBasicPlan = !isAdmin && !hasPaidPlan;
+  const isLimitReached = isBasicPlan && state.birds.length >= MAX_FREE_BIRDS;
+  const isPro = isAdmin || hasPaidPlan;
+  const isExpiredPro = !isAdmin && state.settings.plan === 'Profissional' && !hasPaidPlan;
 
   // New Bird State
   const [newBird, setNewBird] = useState<Partial<Bird>>({
@@ -1343,6 +1348,17 @@ const BirdManager: React.FC<BirdManagerProps> = ({
           </div>
         }
       />
+
+      {currentList === 'plantel' && isBasicPlan && (
+        <AlertBanner
+          variant={isLimitReached ? 'danger' : isExpiredPro ? 'warning' : 'info'}
+          title={isExpiredPro ? 'Assinatura expirada' : 'Plano básico'}
+        >
+          {isExpiredPro
+            ? `Sua assinatura PRO expirou. Você pode cadastrar até ${MAX_FREE_BIRDS} aves (${state.birds.length}/${MAX_FREE_BIRDS}).`
+            : `Você pode cadastrar até ${MAX_FREE_BIRDS} aves (${state.birds.length}/${MAX_FREE_BIRDS}).`}
+        </AlertBanner>
+      )}
 
       {/* --- MODO CENTRAL DE SEXAGEM --- */}
       {currentList === 'sexagem' && (
@@ -4189,12 +4205,30 @@ const BirdManager: React.FC<BirdManagerProps> = ({
               Limite Atingido!
             </h3>
             <p className="text-slate-500 font-medium mt-4 max-w-sm mx-auto leading-relaxed">
-              {state.settings.plan === 'Básico' && state.birds.length >= MAX_FREE_BIRDS && !isAdmin
+              {isLimitReached
                 ? `Você atingiu o limite de ${MAX_FREE_BIRDS} aves do plano básico. Migre para o profissional e tenha gestão ilimitada.`
-                : 'O upload de fotos personalizadas é exclusivo do Plano Profissional.'}
+                : isExpiredPro
+                  ? 'Sua assinatura PRO expirou. Renove para voltar a ter recursos ilimitados.'
+                  : 'O upload de fotos personalizadas é exclusivo do Plano Profissional.'}
             </p>
             <div className="mt-10 space-y-3">
-              <button className="w-full py-5 bg-amber-500 text-white font-black text-xs uppercase tracking-[0.2em] rounded-2xl shadow-xl shadow-amber-200 hover:scale-[1.02] transition-all">
+              <button
+                onClick={() => {
+                  setShowUpgradeModal(false);
+                  if (onShowUpgradeModal) {
+                    onShowUpgradeModal();
+                  } else {
+                    // Fallback: navega para /settings se callback não disponível
+                    try {
+                      localStorage.setItem('avigestao_settings_tab', 'plano');
+                    } catch {
+                      // ignore storage issues
+                    }
+                    window.location.href = '/settings';
+                  }
+                }}
+                className="w-full py-5 bg-amber-500 text-white font-black text-xs uppercase tracking-[0.2em] rounded-2xl shadow-xl shadow-amber-200 hover:scale-[1.02] transition-all"
+              >
                 Assinar Plano PRO
               </button>
               <button

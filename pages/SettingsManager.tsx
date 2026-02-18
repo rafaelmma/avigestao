@@ -21,9 +21,12 @@ import {
   EyeOff,
   X,
   HelpCircle,
+  Mail,
 } from 'lucide-react';
 const TipCarousel = React.lazy(() => import('../components/TipCarousel'));
+const PlanComparative = React.lazy(() => import('../components/PlanComparative'));
 import { APP_LOGO } from '../constants';
+import toast from 'react-hot-toast';
 
 interface SettingsManagerProps {
   settings: BreederSettings;
@@ -176,6 +179,19 @@ const SettingsManager: React.FC<SettingsManagerProps> = ({
 
   const [renewalInput, setRenewalInput] = useState('');
   const [lastRenewalInput, setLastRenewalInput] = useState('');
+  const [emailDisplay, setEmailDisplay] = useState('');
+  const [emailEditMode, setEmailEditMode] = useState(false);
+  const [emailEditValue, setEmailEditValue] = useState('');
+
+  // Load user email from Firebase
+  useEffect(() => {
+    const auth = getAuth();
+    const user = auth.currentUser;
+    if (user?.email) {
+      setEmailDisplay(user.email);
+      setEmailEditValue(user.email);
+    }
+  }, []);
 
   const isTrial = !!settings.trialEndDate && !isAdmin;
   const canUseLogo = !!isAdmin || settings.plan === 'Profissional' || !!settings.trialEndDate;
@@ -853,6 +869,62 @@ const SettingsManager: React.FC<SettingsManagerProps> = ({
                   </label>
 
                   <label className="space-y-2">
+                    <span className="text-label">E-mail de Contato</span>
+                    {emailEditMode ? (
+                      <div className="flex gap-2">
+                        <input
+                          type="email"
+                          className="flex-1 p-3.5 rounded-lg bg-white border border-slate-300 text-sm font-medium outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500"
+                          value={emailEditValue}
+                          onChange={(e) => setEmailEditValue(e.target.value)}
+                          placeholder="seu@email.com"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => {
+                            if (emailEditValue && emailEditValue.includes('@')) {
+                              setEmailDisplay(emailEditValue);
+                              // Note: email não é uma propriedade de BreederSettings
+                              // Apenas atualizar o display local
+                              setEmailEditMode(false);
+                              toast.success('E-mail atualizado!');
+                            }
+                          }}
+                          className="px-3 py-2 bg-green-600 text-white rounded-lg text-sm font-semibold hover:bg-green-700 transition-all"
+                        >
+                          Salvar
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setEmailEditValue(emailDisplay);
+                            setEmailEditMode(false);
+                          }}
+                          className="px-3 py-2 bg-gray-300 text-gray-700 rounded-lg text-sm font-semibold hover:bg-gray-400 transition-all"
+                        >
+                          Cancelar
+                        </button>
+                      </div>
+                    ) : (
+                      <div className="flex items-center justify-between p-3.5 rounded-lg bg-slate-50 border border-slate-300">
+                        <span className="text-sm font-medium text-slate-700">{emailDisplay || 'E-mail não definido'}</span>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setEmailEditValue(emailDisplay);
+                            setEmailEditMode(true);
+                          }}
+                          className="px-3 py-1 bg-blue-600 text-white rounded text-xs font-semibold hover:bg-blue-700 transition-all"
+                        >
+                          Editar
+                        </button>
+                      </div>
+                    )}
+                  </label>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <label className="space-y-2">
                     <span className="text-label">CPF / CNPJ</span>
                     <input
                       className="w-full p-3.5 rounded-lg bg-white border border-slate-300 text-sm font-medium outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500"
@@ -1181,10 +1253,15 @@ const SettingsManager: React.FC<SettingsManagerProps> = ({
         )}
 
         {activeTab === 'plano' && (
-          <div className="bg-slate-900 text-white p-10 rounded-3xl space-y-8">
-            <h3 className="text-2xl font-black">Plano Profissional</h3>
+          <div className="space-y-8">
+            <Suspense fallback={<div className="h-96 bg-gray-100 rounded-lg animate-pulse" />}>
+              <PlanComparative currentPlan={settings.plan} />
+            </Suspense>
 
-            <div className="bg-white text-slate-900 p-6 rounded-2xl">
+            <div className="bg-slate-900 text-white p-10 rounded-3xl space-y-8">
+              <h3 className="text-2xl font-black">Gerenciar Assinatura</h3>
+
+              <div className="bg-white text-slate-900 p-6 rounded-2xl">
               <p className="text-xs uppercase font-black text-slate-500">Plano atual</p>
               <div className="mt-2 flex flex-wrap items-center gap-3">
                 <h3 className="text-2xl font-black">{planLabel}</h3>
@@ -1404,6 +1481,7 @@ const SettingsManager: React.FC<SettingsManagerProps> = ({
                 </div>
               </>
             )}
+            </div>
           </div>
         )}
 

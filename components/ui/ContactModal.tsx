@@ -42,7 +42,7 @@ const ContactModal: React.FC<ContactModalProps> = ({
     setStatus(null);
 
     if (!name.trim() || !email.trim() || !subject.trim() || !message.trim()) {
-      setStatus('Preencha nome, email, assunto e mensagem.');
+      setStatus('Preencha nome, e-mail, assunto e mensagem.');
       return;
     }
 
@@ -61,7 +61,7 @@ const ContactModal: React.FC<ContactModalProps> = ({
 
       if (!response.ok) {
         if (response.status === 503) {
-          throw new Error('Servico de email nao configurado.');
+          throw new Error('Serviço de e-mail não configurado.');
         }
         const text = await response.text();
         throw new Error(text || 'Falha ao enviar.');
@@ -118,7 +118,7 @@ const ContactModal: React.FC<ContactModalProps> = ({
               />
             </label>
             <label className="text-xs font-semibold text-slate-600">
-              Email
+              E-mail
               <input
                 type="email"
                 className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2 text-sm"

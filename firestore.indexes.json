@@ -48,6 +48,14 @@
   // ]
   "indexes": [
     {
+      "collectionGroup": "public_birds",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "isPublic", "mode": "ASCENDING" },
+        { "fieldPath": "createdAt", "mode": "DESCENDING" }
+      ]
+    },
+    {
       "collectionGroup": "community_messages",
       "queryScope": "COLLECTION",
       "fields": [
