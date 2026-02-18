@@ -52,6 +52,7 @@ const DocumentsManager: React.FC<DocumentsManagerProps> = ({
   };
   const [editSispassNumber, setEditSispassNumber] = useState(false);
   const [editCertificateIssuer, setEditCertificateIssuer] = useState(false);
+  const [localSispassNumber, setLocalSispassNumber] = useState('');
   const sispassFileInputRef = useRef<HTMLInputElement>(null);
 
   const maskDateInput = (value: string) => {
@@ -221,6 +222,10 @@ const DocumentsManager: React.FC<DocumentsManagerProps> = ({
       setEditSispassNumber(true);
     }
   }, [isSispassConfigured]);
+
+  useEffect(() => {
+    setLocalSispassNumber(settings.sispassNumber || '');
+  }, [settings.sispassNumber]);
 
   useEffect(() => {
     const display = renewalDateValue
@@ -410,12 +415,22 @@ const DocumentsManager: React.FC<DocumentsManagerProps> = ({
                             : ''
                         }`}
                         placeholder="Ex: 1234567-8 (numero do registro)"
-                        value={sispassNumberValue}
-                        onChange={(e) =>
-                          updateSettings({ ...settings, sispassNumber: e.target.value })
-                        }
+                        value={localSispassNumber}
+                        onChange={(e) => {
+                          setLocalSispassNumber(e.target.value);
+                          updateSettings({ ...settings, sispassNumber: e.target.value });
+                        }}
                         disabled={isSispassConfigured && !editSispassNumber}
-                        onBlur={() => {
+                        onBlur={async () => {
+                          console.log('[DocumentsManager] onBlur SISPASS number');
+                          console.log('[DocumentsManager] Valor atual:', localSispassNumber);
+                          console.log('[DocumentsManager] Valor no settings:', settings.sispassNumber);
+                          if (localSispassNumber !== settings.sispassNumber) {
+                            const updatedSettings = { ...settings, sispassNumber: localSispassNumber };
+                            console.log('[DocumentsManager] Atualizando e salvando...', updatedSettings.sispassNumber);
+                            updateSettings(updatedSettings);
+                            await onSave?.(updatedSettings);
+                          }
                           if (isSispassConfigured) setEditSispassNumber(false);
                         }}
                       />
@@ -461,9 +476,18 @@ const DocumentsManager: React.FC<DocumentsManagerProps> = ({
                           updateSettings({ ...settings, renewalDate: iso });
                         }
                       }}
-                      onBlur={() => {
+                      onBlur={async () => {
+                        console.log('[DocumentsManager] onBlur renewalDate');
+                        console.log('[DocumentsManager] Input value:', sispassRenewalInput);
                         const iso = parseMaskedDate(sispassRenewalInput);
-                        if (!iso) {
+                        console.log('[DocumentsManager] Parsed ISO:', iso);
+                        console.log('[DocumentsManager] Current renewalDate:', settings.renewalDate);
+                        if (iso && iso !== settings.renewalDate) {
+                          const updatedSettings = { ...settings, renewalDate: iso };
+                          console.log('[DocumentsManager] Atualizando e salvando renewalDate...');
+                          updateSettings(updatedSettings);
+                          await onSave?.(updatedSettings);
+                        } else if (!iso) {
                           const display = renewalDateValue
                             ? new Date(renewalDateValue).toLocaleDateString('pt-BR')
                             : '';

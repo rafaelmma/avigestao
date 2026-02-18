@@ -26,9 +26,11 @@ import {
   Shield,
   Users,
   Mail,
+  BookOpen,
 } from 'lucide-react';
 import { BreederSettings, SubscriptionPlan } from '../types';
 import { APP_LOGO_ICON } from '../constants';
+import { hasActiveProPlan } from '../lib/subscription';
 
 interface SidebarProps {
   activeTab: string;
@@ -80,17 +82,6 @@ const Sidebar: React.FC<SidebarProps> = ({
 
   const menuSections = [
     {
-      title: 'Configurações',
-      items: [
-        {
-          id: 'settings',
-          label: 'Configurações',
-          icon: <Settings size={18} />,
-          variant: 'main',
-        },
-      ],
-    },
-    {
       title: 'Painel Geral',
       items: [
         {
@@ -111,12 +102,12 @@ const Sidebar: React.FC<SidebarProps> = ({
     {
       title: 'Comunidade',
       items: [
-        { id: 'statistics-feed', label: 'Feed da Comunidade', icon: <Users size={18} />, variant: 'main' },
-          { id: 'top-breeders', label: 'Top Criadores', icon: <Medal size={16} />, variant: 'sub' },
-          { id: 'recent-birds', label: 'Aves Recentes', icon: <BirdIcon size={16} />, variant: 'sub' },
+        { id: 'statistics', label: 'Visão Geral', icon: <BarChart3 size={16} />, variant: 'main' },
+        { id: 'top-breeders', label: 'Top Criadores', icon: <Medal size={16} />, variant: 'sub' },
+        { id: 'recent-birds', label: 'Aves Recentes', icon: <BirdIcon size={16} />, variant: 'sub' },
         { id: 'community-inbox', label: 'Mensagens', icon: <Mail size={16} />, variant: 'sub' },
-          { id: 'public-tournaments', label: 'Torneios Públicos', icon: <Trophy size={16} />, variant: 'sub' },
-          { id: 'verification', label: 'Verificar Anilha', icon: <FileBadge size={16} />, variant: 'sub' },
+        { id: 'verification', label: 'Verificar Anilha', icon: <FileBadge size={16} />, variant: 'sub' },
+        { id: 'library', label: 'Central de Biblioteca', icon: <BookOpen size={16} />, variant: 'sub' },
       ],
     },
     // Gestão de Aves: apenas para usuários que NÃO são adminOnly
@@ -156,25 +147,26 @@ const Sidebar: React.FC<SidebarProps> = ({
             title: 'Administrativo',
             items: [
               { id: 'finance', label: 'Financeiro', icon: <DollarSign size={18} />, pro: true, variant: 'main' },
-              { id: 'documents', label: 'Licenças & Docs', icon: <FileBadge size={16} />, variant: 'sub' },
+              { id: 'documents', label: 'Licenças & Docs', icon: <FileBadge size={16} />, variant: 'sub', pro: true },
             ],
           },
         ]),
     {
       title: 'Torneios',
       items: [
-        { id: 'tournaments', label: 'Calendário', icon: <Trophy size={18} />, variant: 'main' },
+        { id: 'public-tournaments', label: 'Torneios Públicos', icon: <Trophy size={18} />, variant: 'main' },
+        { id: 'tournaments', label: 'Meu Calendário', icon: <CalendarCheck size={16} />, variant: 'sub' },
         {
           id: 'tournament-manager',
-          label: 'Gerenciar Torneios',
-          icon: <Trophy size={16} />,
+          label: 'Criar Torneios',
+          icon: <Zap size={16} />,
           variant: 'sub',
           pro: true,
         },
         {
           id: 'tournament-results',
           label: 'Resultados',
-          icon: <Trophy size={16} />,
+          icon: <Medal size={16} />,
           variant: 'sub',
           pro: true,
         },
@@ -235,14 +227,21 @@ const Sidebar: React.FC<SidebarProps> = ({
     handleNavigation('settings');
   };
 
-  const hasTrial = !!trialEndDate && !isAdmin;
-  const planLabel = isAdmin ? 'ADMIN' : hasTrial ? 'PRO (Teste)' : `Plano ${plan}`;
-
-  let trialDaysLeft = 0;
-  if (hasTrial && trialEndDate) {
-    const diffTime = new Date(trialEndDate).getTime() - new Date().getTime();
-    trialDaysLeft = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-  }
+  // Verifica se tem trial ativo (ainda não expirou)
+  const trialEndTime = trialEndDate ? new Date(trialEndDate).getTime() : 0;
+  const now = new Date().getTime();
+  const hasActiveTrial = !!trialEndDate && trialEndTime > now && !isAdmin;
+  const trialDaysLeft = hasActiveTrial ? Math.ceil((trialEndTime - now) / (1000 * 60 * 60 * 24)) : 0;
+  
+  // Verifica se tem acesso Pro (plano Profissional ou trial ativo)
+  const hasProAccess = hasActiveProPlan(settings) || isAdmin;
+  
+  // Label do plano
+  const planLabel = isAdmin 
+    ? 'ADMIN' 
+    : hasActiveTrial 
+    ? `PRO (Trial ${trialDaysLeft}d)` 
+    : `Plano ${plan}`;
 
   return (
     <>
@@ -270,7 +269,7 @@ const Sidebar: React.FC<SidebarProps> = ({
             <img
               src={logoUrl || APP_LOGO_ICON}
               alt="Logo"
-              className="w-full h-full object-contain"
+              className="w-full h-full object-contain max-h-32 max-w-32"
               loading="eager"
             />
           </div>
@@ -285,12 +284,14 @@ const Sidebar: React.FC<SidebarProps> = ({
               className={`mt-2.5 inline-flex items-center gap-1.5 rounded-full px-4 py-1.5 text-[10px] font-black uppercase tracking-[0.1em] ring-1 ring-inset shadow-sm ${
                 isAdmin
                   ? 'bg-rose-50 text-rose-700 ring-rose-200'
+                  : hasActiveTrial
+                  ? 'bg-gradient-to-r from-emerald-500 to-teal-600 text-white ring-emerald-400 shadow-emerald-200'
                   : plan === 'Profissional'
                   ? 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white ring-blue-400 shadow-blue-200'
                   : 'bg-white text-slate-600 ring-slate-200'
               }`}
             >
-              <Zap size={11} className={isAdmin ? 'text-rose-600' : plan === 'Profissional' ? 'text-white' : 'text-slate-400'} />
+              <Zap size={11} className={isAdmin ? 'text-rose-600' : (hasActiveTrial || plan === 'Profissional') ? 'text-white' : 'text-slate-400'} />
               {planLabel}
             </span>
           </div>
@@ -300,16 +301,6 @@ const Sidebar: React.FC<SidebarProps> = ({
           >
             Acessar Configurações
           </button>
-        </div>
-
-        <div className="p-4">
-          <input
-            type="text"
-            placeholder="Pesquisar..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full p-2 border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-          />
         </div>
 
         <div className="flex-1 overflow-y-auto">
@@ -324,21 +315,51 @@ const Sidebar: React.FC<SidebarProps> = ({
               </button>
               {!collapsedSections[section.title] && (
                 <ul className="mt-2 space-y-1">
-                  {section.items.map((item) => (
-                    <li key={item.id}>
-                      <button
-                        onClick={() => handleNavigation(item.id)}
-                        className={`w-full flex items-center gap-2 px-4 py-2 text-sm rounded-md transition-colors ${
-                          activeTab === item.id
-                            ? 'bg-blue-100 text-blue-700 font-bold'
-                            : 'text-slate-600 hover:bg-slate-100'
-                        }`}
-                      >
-                        {item.icon}
-                        {item.label}
-                      </button>
-                    </li>
-                  ))}
+                  {section.items.map((item: any) => {
+                    const isPro = item.pro;
+                    const showProBadge = isPro && !hasProAccess;
+                    const isInbox = item.id === 'community-inbox';
+                    const hasUnread = isInbox && unreadInboxCount > 0;
+
+                    return (
+                      <li key={item.id}>
+                        <button
+                          onClick={() => {
+                            if (isPro && !hasProAccess) {
+                              goToSubscriptionPlans();
+                            } else {
+                              handleNavigation(item.id);
+                            }
+                          }}
+                          className={`w-full flex items-center gap-2 px-4 py-2 text-sm rounded-md transition-colors relative ${
+                            activeTab === item.id
+                              ? 'bg-blue-100 text-blue-700 font-bold'
+                              : showProBadge
+                              ? 'text-slate-400 hover:bg-amber-50 hover:text-amber-700'
+                              : 'text-slate-600 hover:bg-slate-100'
+                          }`}
+                        >
+                          {item.icon}
+                          <span className="flex-1 text-left">{item.label}</span>
+                          
+                          {/* Badge PRO */}
+                          {showProBadge && (
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-gradient-to-r from-amber-400 to-amber-500 text-white text-[9px] font-black uppercase tracking-wider rounded-full shadow-sm">
+                              <Zap size={9} fill="currentColor" />
+                              PRO
+                            </span>
+                          )}
+                          
+                          {/* Badge de mensagens não lidas */}
+                          {hasUnread && (
+                            <span className="inline-flex items-center justify-center w-5 h-5 bg-red-500 text-white text-[10px] font-black rounded-full">
+                              {unreadInboxCount > 9 ? '9+' : unreadInboxCount}
+                            </span>
+                          )}
+                        </button>
+                      </li>
+                    );
+                  })}
                 </ul>
               )}
             </div>

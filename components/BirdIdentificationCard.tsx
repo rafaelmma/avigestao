@@ -126,7 +126,7 @@ export function BirdIdentificationCard({ bird, settings }: BirdIdentificationCar
           {/* Logo */}
           <div className="absolute top-3 left-3 w-11 h-11 bg-white rounded-lg p-1 shadow-lg">
             {settings.logoUrl ? (
-              <img src={settings.logoUrl} alt="Logo" className="w-full h-full object-contain" />
+              <img src={settings.logoUrl} alt="Logo" className="w-full h-full object-contain max-h-11 max-w-11" />
             ) : (
               <div className="w-full h-full flex items-center justify-center text-gray-400 text-xs">
                 🦜
@@ -259,7 +259,7 @@ export function BirdIdentificationCard({ bird, settings }: BirdIdentificationCar
           style={{ borderColor: accent }}
         >
           {bird.photoUrl ? (
-            <img src={bird.photoUrl} alt={bird.name} className="w-full h-full object-cover" />
+            <img src={bird.photoUrl} alt={bird.name} className="w-full h-full object-cover rounded-lg max-h-40 max-w-40" />
           ) : (
             <div className="w-full h-full flex items-center justify-center text-4xl">🦜</div>
           )}

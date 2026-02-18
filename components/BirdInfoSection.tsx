@@ -51,7 +51,7 @@ const BirdInfoSection: React.FC<BirdInfoSectionProps> = ({
             <img
               src={photoUrl}
               alt={bird.name}
-              className="w-48 h-48 rounded-2xl object-cover shadow-md group-hover:shadow-lg transition-shadow"
+              className="w-48 h-48 rounded-2xl object-cover shadow-md group-hover:shadow-lg transition-shadow max-h-48 max-w-48"
             />
             {isEditing && (
               <div className="absolute inset-0 flex items-center justify-center bg-slate-900/0 group-hover:bg-slate-900/40 rounded-2xl transition-all">

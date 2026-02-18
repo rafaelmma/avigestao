@@ -11,13 +11,6 @@ service cloud.firestore {
     function isOwner(userId) {
       return request.auth.uid == userId;
     }
-    
-    // Função helper para verificar se é acesso público
-    function isPublic() {
-      // Acesso público apenas lê dados básicos do pássaro (sem dados sensíveis)
-      // Verificamos se está tentando ler apenas campos públicos
-      return !isAuthenticated();
-    }
 
     // Permite resposta a mensagem quando houver replyToMessageId apontando
     // para uma mensagem enviada ao usuário autenticado.
@@ -54,8 +47,8 @@ service cloud.firestore {
     // Regras para dados de usuários
     match /users/{userId} {
       // Permite que usuário autenticado leia seu próprio documento e permite que admins leiam todos os usuários
-      allow read: if isAuthenticated() && (isOwner(userId) || isAdminUser());
-      // Permitir leitura pública para estatísticas da comunidade (apenas contagem)
+      allow get: if isAuthenticated() && (isOwner(userId) || isAdminUser());
+      // Permitir listagem pública para estatísticas da comunidade (apenas contagem)
       allow list: if true;
       // Permitir escrita ao dono ou admin (para gerenciar planos, status, etc)
       allow create: if isAuthenticated() && (isOwner(userId) || isAdminUser());
@@ -70,17 +63,17 @@ service cloud.firestore {
       
       // Settings do usuário
       match /settings/{settingId} {
-        // Leitura permitida ao dono, a admins, e pública para dados de comunidade
-        allow read: if isAuthenticated() && (isOwner(userId) || isAdminUser()) || true;
-        allow write: if isAuthenticated() && (isOwner(userId) || isAdminUser());
+        // Permitir leitura pública dos settings para estatísticas da comunidade
+        // (apenas campos públicos como nome do criador, cidade, estado, opt-in)
+        allow get, list: if true;
+        // Escrita apenas ao dono (permite todos os campos de configuração)
+        allow write: if isAuthenticated() && isOwner(userId);
       }
       
       // Birds (pássaros)
       match /birds/{birdId} {
-        // Permite leitura pública (para comunidade e estatísticas)
-        allow read: if true;
-        // List permitido para comunidade (contagem pública)
-        allow list: if true;
+        // Permite leitura e listagem pública (para comunidade e estatísticas)
+        allow read, list: if true;
         // Escrita apenas ao dono
         allow create: if isAuthenticated() && isOwner(userId) && (
           isAdminUser() || hasProAccess(userId) || activeBirdCount(userId) < 5
@@ -130,7 +123,8 @@ service cloud.firestore {
       
       // Tournaments (torneios)
       match /tournaments/{tournamentId} {
-        allow read, write: if isAuthenticated() && isOwner(userId);
+        allow read, list: if true; // Permitir leitura pública para estatísticas
+        allow write: if isAuthenticated() && isOwner(userId);
       }
       
       // Documents (documentos)
@@ -147,11 +141,16 @@ service cloud.firestore {
       match /rings/{ringId} {
         allow read, write: if isAuthenticated() && isOwner(userId);
       }
+
+      // Library (dados de biblioteca - artigos, pedigrees, tarefas sazonais)
+      match /library/{document=**} {
+        allow read, write: if isAuthenticated() && isOwner(userId);
+      }
     }
 
     // Regra Global para busca pública de pássaros (Permite busca por anilha via Collection Group)
     match /{path=**}/birds/{birdId} {
-      allow read: if true;
+      allow read, list: if true;
     }
     
     // Catálogo global de medicamentos (leitura pública)
@@ -169,7 +168,7 @@ service cloud.firestore {
     
     // Torneios públicos (coleção raiz)
     match /tournaments/{tournamentId} {
-      allow read: if true; // Qualquer pessoa pode ver torneios
+      allow read, list: if true; // Qualquer pessoa pode ver e listar torneios
       allow create: if isAuthenticated(); // Usuários autenticados podem criar
       allow update, delete: if isAuthenticated() && resource.data.createdBy == request.auth.uid; // Apenas criador pode editar/deletar
     }
@@ -201,8 +200,8 @@ service cloud.firestore {
     
     // Pássaros públicos (coleção raiz)
     match /birds/{birdId} {
-      // Qualquer pessoa pode ler pássaros marcados como públicos
-      allow read: if true;
+      // Qualquer pessoa pode ler e listar pássaros marcados como públicos
+      allow read, list: if true;
       // Apenas criadores autenticados podem criar/editar/deletar seus próprios pássaros
       allow create: if isAuthenticated();
       allow update, delete: if isAuthenticated() && resource.data.breederId == request.auth.uid;

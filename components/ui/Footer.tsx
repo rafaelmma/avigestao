@@ -39,17 +39,17 @@ const Footer: React.FC<FooterProps> = ({ onContactClick }) => {
   return (
     <footer
       ref={footerRef}
-      className="fixed bottom-0 left-0 right-0 w-full border-t border-slate-200 bg-white/95 p-4 text-sm text-slate-600 backdrop-blur lg:left-64 lg:w-[calc(100%-16rem)]"
+      className="border-t border-slate-300 bg-white p-6 text-sm text-slate-700 shadow-md"
       role="contentinfo"
       aria-label="Rodapé do site"
     >
       <div className="max-w-6xl mx-auto flex flex-col items-start gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div>© {new Date().getFullYear()} AviGestão</div>
+        <div className="font-semibold text-slate-800">© {new Date().getFullYear()} AviGestão</div>
         <div className="flex flex-wrap items-center gap-4">
           <a
             href="mailto:contato@avigestao.com.br"
             onClick={handleContato}
-            className="text-slate-600 hover:underline"
+            className="text-slate-700 hover:text-blue-600 font-medium"
             aria-label="Contato"
           >
             Contato
@@ -57,7 +57,7 @@ const Footer: React.FC<FooterProps> = ({ onContactClick }) => {
           <a
             href="/about"
             onClick={handleNavigate('/about')}
-            className="text-slate-600 hover:underline"
+            className="text-slate-700 hover:text-blue-600 font-medium"
             aria-label="Sobre o AviGestão"
           >
             Sobre
@@ -65,7 +65,7 @@ const Footer: React.FC<FooterProps> = ({ onContactClick }) => {
           <a
             href="/privacy"
             onClick={handleNavigate('/privacy')}
-            className="text-slate-600 hover:underline"
+            className="text-slate-700 hover:text-blue-600 font-medium"
             aria-label="Política de privacidade"
           >
             Privacidade
@@ -73,12 +73,12 @@ const Footer: React.FC<FooterProps> = ({ onContactClick }) => {
           <a
             href="/terms"
             onClick={handleNavigate('/terms')}
-            className="text-slate-600 hover:underline"
+            className="text-slate-700 hover:text-blue-600 font-medium"
             aria-label="Termos de uso"
           >
             Termos de Uso
           </a>
-          <span className="text-xs text-slate-400">v{pkg.version}</span>
+          <span className="text-xs text-slate-500">v{pkg.version}</span>
         </div>
       </div>
     </footer>

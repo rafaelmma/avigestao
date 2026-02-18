@@ -88,7 +88,7 @@ const Auth: React.FC<AuthProps> = ({
         <div className="relative z-10">
           {/* Logo Circular e Elegante */}
           <div className="w-44 h-44 bg-white rounded-full overflow-hidden flex items-center justify-center mb-10 p-4 shadow-[0_0_50px_rgba(79,70,229,0.3)] border-2 border-indigo-500/20 group hover:scale-105 transition-transform duration-500">
-            <img src={APP_LOGO} className="w-full h-full object-contain" alt="AviGestão Logo" />
+            <img src={APP_LOGO} className="w-auto h-32 object-contain" alt="AviGestão Logo" />
           </div>
           <h1 className="text-5xl font-black tracking-tight leading-tight mb-6">
             Gestão profissional <br />
@@ -122,7 +122,7 @@ const Auth: React.FC<AuthProps> = ({
           {/* Logo para Mobile (visível apenas em telas pequenas) */}
           <div className="lg:hidden flex justify-center mb-8">
             <div className="w-40 h-40 bg-white rounded-full overflow-hidden flex items-center justify-center p-4 shadow-xl border-2 border-indigo-100">
-              <img src={APP_LOGO} className="w-full h-full object-contain" alt="AviGestão Logo" />
+              <img src={APP_LOGO} className="w-auto h-32 object-contain" alt="AviGestão Logo" />
             </div>
           </div>
 

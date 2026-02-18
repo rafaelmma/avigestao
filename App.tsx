@@ -17,9 +17,10 @@ import {
   RingBatch,
   RingItem,
 } from './types';
-import { Mail, X } from 'lucide-react';
+import { Mail, X, Zap } from 'lucide-react';
 import { INITIAL_SETTINGS } from './constants';
 import { hasActiveProPlan } from './lib/subscription';
+import { logError, logWarning } from './lib/logger';
 import Sidebar from './components/Sidebar';
 import PageHeader from './components/ui/PageHeader';
 import PrimaryButton from './components/ui/PrimaryButton';
@@ -57,10 +58,44 @@ const AdminCommunityModeration = lazy(() => import('./pages/Admin/CommunityModer
 const About = lazy(() => import('./pages/About'));
 const Privacy = lazy(() => import('./pages/Privacy'));
 const Terms = lazy(() => import('./pages/Terms'));
+const LibraryCenter = lazy(() => import('./pages/LibraryCenter'));
 
 // Firebase auth
 import { getAuth, onAuthStateChanged, signOut } from 'firebase/auth';
 import { httpsCallable } from 'firebase/functions';
+
+// Bloquear DevTools em produção
+if (import.meta.env.PROD) {
+  // Bloqueia F12, Ctrl+Shift+I, Ctrl+Shift+C, Ctrl+Shift+J
+  document.addEventListener('keydown', (e) => {
+    if (
+      e.key === 'F12' ||
+      (e.ctrlKey && e.shiftKey && e.key === 'I') ||
+      (e.ctrlKey && e.shiftKey && e.key === 'C') ||
+      (e.ctrlKey && e.shiftKey && e.key === 'J') ||
+      (e.ctrlKey && e.shiftKey && e.key === 'K')
+    ) {
+      e.preventDefault();
+    }
+  });
+
+  // Bloqueia right-click (context menu)
+  document.addEventListener('contextmenu', (e) => {
+    if (e.target instanceof Element && !e.target.closest('[data-allow-context-menu]')) {
+      e.preventDefault();
+    }
+  });
+
+  // Detecta abertura de DevTools por mudanças no tamanho da window
+  let lastWidth = window.innerWidth;
+  let lastHeight = window.innerHeight;
+  setInterval(() => {
+    if (window.innerWidth - lastWidth > 160 || lastHeight - window.innerHeight > 160) {
+      // DevTools foi aberto
+      document.body.innerHTML = '';
+    }
+  }, 500);
+}
 
 // Firestore services
 import {
@@ -224,18 +259,43 @@ const normalizeTrialEndDate = (value?: string) => {
 };
 
 const getTabFromPath = (path: string) => {
-  if (path.startsWith('/about')) return 'about';
-  if (path.startsWith('/privacy')) return 'privacy';
-  if (path.startsWith('/terms')) return 'terms';
-  if (path.startsWith('/rings')) return 'rings';
-  if (path.startsWith('/public-tournaments')) return 'public-tournaments';
-  if (path.startsWith('/tournament-results')) return 'tournament-results';
-  if (path.startsWith('/statistics')) return 'statistics';
-  if (path.startsWith('/community-inbox')) return 'community-inbox';
-  if (path.startsWith('/public-birds')) return 'public-birds';
-  if (path.startsWith('/top-breeders')) return 'top-breeders';
-  if (path.startsWith('/recent-birds')) return 'recent-birds';
-  if (path.startsWith('/verification')) return 'verification';
+  const internalPath = path.substring(1); // Remove leading /
+  const validInternalPages = [
+    'birds',
+    'breeding',
+    'meds',
+    'movements',
+    'finance',
+    'tasks',
+    'tournaments',
+    'tournament-manager',
+    'settings',
+    'help',
+    'documents',
+    'library',
+    'admin-users',
+    'admin-community-moderation',
+    'about',
+    'privacy',
+    'terms',
+    'rings',
+    'public-tournaments',
+    'tournament-results',
+    'statistics',
+    'community-inbox',
+    'public-birds',
+    'top-breeders',
+    'recent-birds',
+    'verification',
+    'analytics',
+  ];
+
+  // Verifica se o caminho atual é válido
+  if (validInternalPages.includes(internalPath)) {
+    return internalPath;
+  }
+
+  // Caso contrário, retorna dashboard como padrão
   return 'dashboard';
 };
 
@@ -265,8 +325,13 @@ const getPathFromTab = (tab: string) => {
       return '/recent-birds';
     case 'verification':
       return '/verification';
-    default:
+    case 'analytics':
+      return '/analytics';
+    case 'dashboard':
       return '/';
+    default:
+      // Internal pages use simple /pagename path
+      return '/' + tab;
   }
 };
 
@@ -317,6 +382,7 @@ const App: React.FC = () => {
 
   const lastValidSessionRef = useRef<any>(null);
   const loadedTabsRef = useRef(new Set<string>());
+  const isInitialSessionLoadRef = useRef(true);
   const auth = getAuth();
 
   const clearAllState = (userId?: string) => {
@@ -342,6 +408,14 @@ const App: React.FC = () => {
       /* ignore storage failures */
     }
   };
+
+  // Sincronizar com URL do navegador no primeiro carregamento
+  useEffect(() => {
+    const urlTab = getTabFromPath(window.location.pathname);
+    if (activeTab !== urlTab) {
+      setActiveTab(urlTab);
+    }
+  }, []);
 
   // Persist state + theme colors
   useEffect(() => {
@@ -387,7 +461,7 @@ const App: React.FC = () => {
         setUnreadInboxCount(snap.size);
       },
       (err) => {
-        console.error('Erro ao carregar contagem de mensagens não lidas', err);
+        logError('Erro ao carregar contagem de mensagens não lidas', err);
         setUnreadInboxCount(0);
       },
     );
@@ -414,7 +488,7 @@ const App: React.FC = () => {
               setIsLoading(false);
               return;
             }
-            // otherwise continue as if verified
+            // Caso contrário, continua como verificado
           }
 
           setIsEmailVerificationPending(false);
@@ -467,6 +541,7 @@ const App: React.FC = () => {
       loadedTabsRef.current = new Set();
       setState(defaultState);
       setHasHydratedOnce(false);
+      isInitialSessionLoadRef.current = true;
     }
 
     lastValidSessionRef.current = newSession;
@@ -539,7 +614,7 @@ const App: React.FC = () => {
         if (shouldInitTrial && auth.currentUser) {
           const initResult = await initializeNewUser(auth.currentUser);
           if (initResult.error) {
-            console.warn('Falha ao inicializar novo usuário:', initResult.error);
+            logWarning('Falha ao inicializar novo usuário:', initResult.error);
           }
           settings = await getSettings(newUserId);
         }
@@ -552,15 +627,6 @@ const App: React.FC = () => {
           userId: newUserId,
           trialEndDate: normalizeTrialEndDate(settings?.trialEndDate),
         };
-
-        console.log('=== DADOS CARREGADOS DO FIRESTORE ===');
-        console.log('Total de aves carregadas:', birds.length);
-        console.log('Aves:', birds);
-        const pendingSexingFromDB = birds.filter(
-          (b) =>
-            b.sex === 'Desconhecido' && !b.sexing?.sentDate && b.status === 'Ativo' && !b.deletedAt,
-        );
-        console.log('Aves pendentes de sexagem (filtradas):', pendingSexingFromDB);
 
         // Separar movimentos normais dos deletados
         // IMPORTANTE: deletedAt é um Firestore Timestamp, que é um objeto com método toDate()
@@ -583,15 +649,6 @@ const App: React.FC = () => {
             }
             return false; // Valor inválido = não deletado
           }) || [];
-
-        console.log('=== MOVIMENTOS CARREGADOS ===');
-        console.log('Total de movimentos no Firestore:', movements?.length);
-        console.log('Movimentos normais (ativos):', normalMovements.length);
-        console.log('Movimentos deletados:', deletedMovements.length);
-        console.log('Movimentos normais:', normalMovements);
-        console.log('Movimentos deletados:', deletedMovements);
-        console.log('Sample movimento normal:', normalMovements[0]);
-        console.log('Sample movimento deletado:', deletedMovements[0]);
 
         const { activePairs, archivedPairs, deletedPairs } = splitPairsByStatus(pairs || []);
 
@@ -619,8 +676,9 @@ const App: React.FC = () => {
         });
 
         setHasHydratedOnce(true);
+        isInitialSessionLoadRef.current = false;
       } catch (err: any) {
-        console.error('Erro ao carregar dados:', err);
+        logError('Erro ao carregar dados:', err);
         setAuthError(err?.message || 'Erro ao carregar dados');
       } finally {
         setIsLoading(false);
@@ -630,18 +688,27 @@ const App: React.FC = () => {
 
   const persistSettings = async (settings: BreederSettings) => {
     const userId = session?.user?.id;
-    if (!userId) return;
+    if (!userId) {
+      console.warn('[persistSettings] Usuário não autenticado, não é possível salvar');
+      return;
+    }
 
     try {
+      console.log('[persistSettings] Salvando configurações...', {
+        sispassNumber: settings.sispassNumber,
+        renewalDate: settings.renewalDate
+      });
       await saveSettings(userId, settings);
       setState((prev: any) => ({ ...prev, settings }));
       // Só mostrar toast se não for alteração automática de preferências de visualização
       if (!(settings as any)._autoViewPrefUpdate) {
         toast.success('Configurações salvas');
       }
+      console.log('[persistSettings] Configurações salvas com sucesso!');
     } catch (err: any) {
-      console.error('Erro ao salvar configurações:', err);
+      logError('Erro ao salvar configurações:', err);
       toast.error('Erro ao salvar configurações');
+      console.error('[persistSettings] Erro:', err);
     }
   };
 
@@ -671,7 +738,18 @@ const App: React.FC = () => {
 
   useEffect(() => {
     if (!session?.user?.id) return;
-    if (userNavigatedRef.current) return;
+    
+    // Se for o primeiro carregamento da sessão, respeitar a URL e não restaurar lastActiveTab
+    if (isInitialSessionLoadRef.current) {
+      isInitialSessionLoadRef.current = false;
+      return;
+    }
+    
+    if (userNavigatedRef.current) {
+      userNavigatedRef.current = false;
+      return;
+    }
+    
     const publicTabs = new Set([
       'verification',
       'public-tournaments',
@@ -683,6 +761,16 @@ const App: React.FC = () => {
       'terms',
     ]);
     if (publicTabs.has(activeTab)) return;
+    
+    // IMPORTANTE: Se a URL atual não é '/' (dashboard), NUNCA restaurar lastActiveTab
+    // A URL é a fonte de verdade quando é específica
+    const currentPath = window.location.pathname;
+    
+    if (currentPath !== '/' && currentPath !== '') {
+      return;
+    }
+    
+    // Só restaurar lastActiveTab se estiver em dashboard (/)
     if (state.settings?.lastActiveTab && state.settings.lastActiveTab !== activeTab) {
       setActiveTab(state.settings.lastActiveTab);
     }
@@ -809,7 +897,7 @@ const App: React.FC = () => {
       toast.success('Ave adicionada com sucesso!');
       return true;
     } catch (e) {
-      console.error('Erro ao adicionar ave:', e);
+      logError('Erro ao adicionar ave:', e);
       const errorMsg = e instanceof Error ? e.message : 'Erro desconhecido';
       toast.error(`Erro ao adicionar ave: ${errorMsg}`);
       return false;
@@ -900,7 +988,7 @@ const App: React.FC = () => {
         };
       });
     } catch (e) {
-      console.error('Erro ao deletar ave:', e);
+      logError('Erro ao deletar ave:', e);
       toast.error('Erro ao deletar ave');
     }
   };
@@ -924,7 +1012,7 @@ const App: React.FC = () => {
       });
       toast.success('Ave removida permanentemente');
     } catch (e) {
-      console.error('Erro ao deletar ave permanentemente:', e);
+      logError('Erro ao deletar ave permanentemente:', e);
       toast.error('Erro ao deletar ave permanentemente');
     }
   };
@@ -1227,7 +1315,7 @@ const App: React.FC = () => {
       await reloadPairsFromFirestore(userId);
       toast.success('Casal removido permanentemente');
     } catch (e) {
-      console.error('Erro ao deletar casal permanentemente:', e);
+      logError('Erro ao deletar casal permanentemente:', e);
       toast.error('Erro ao deletar casal permanentemente');
     }
   };
@@ -1243,7 +1331,7 @@ const App: React.FC = () => {
       if (!success) throw new Error('Falha ao arquivar casal no banco de dados');
       await reloadPairsFromFirestore(userId);
     } catch (e) {
-      console.error('Erro ao arquivar casal:', e);
+      logError('Erro ao arquivar casal:', e);
     }
   };
 
@@ -2322,6 +2410,44 @@ const App: React.FC = () => {
 
   // ========== RENDER CONTENT ==========
   const renderContent = () => {
+    // Páginas que requerem Plano Profissional
+    const proOnlyPages = ['finance', 'documents', 'tournament-manager', 'tournament-results', 'analytics'];
+    const isProPage = proOnlyPages.includes(activeTab);
+    const hasProAccess = hasActiveProPlan(state.settings) || isAdmin;
+
+    // Se é uma página Pro e o usuário não tem acesso, redireciona para plano
+    if (isProPage && !hasProAccess) {
+      return (
+        <div className="flex items-center justify-center min-h-[60vh] p-8">
+          <div className="max-w-md text-center space-y-6">
+            <div className="w-20 h-20 bg-gradient-to-br from-amber-400 to-amber-600 rounded-[2rem] flex items-center justify-center mx-auto shadow-2xl shadow-amber-500/20">
+              <Zap size={40} className="text-white" fill="currentColor" />
+            </div>
+            <h3 className="text-3xl font-black text-slate-800 tracking-tight leading-tight">
+              Recurso Profissional
+            </h3>
+            <p className="text-slate-500 font-medium leading-relaxed">
+              Este recurso está disponível apenas no Plano Profissional. Faça upgrade agora para aproveitar todos os recursos do AviGestão.
+            </p>
+            <button
+              onClick={() => {
+                try {
+                  localStorage.setItem('avigestao_settings_tab', 'plano');
+                } catch {
+                  /* ignore storage errors */
+                }
+                setActiveTab('settings');
+              }}
+              className="w-full px-6 py-4 bg-gradient-to-r from-amber-500 to-amber-600 text-white font-black text-sm uppercase tracking-widest rounded-2xl shadow-xl hover:from-amber-600 hover:to-amber-700 transition-all flex items-center justify-center gap-2"
+            >
+              <Zap size={20} fill="currentColor" />
+              Ver Planos
+            </button>
+          </div>
+        </div>
+      );
+    }
+
     switch (activeTab) {
       case 'dashboard':
         return (
@@ -2560,7 +2686,9 @@ const App: React.FC = () => {
       case 'tournament-manager':
         return <TournamentManager />;
       case 'statistics':
-        return <PublicStatistics />;
+        return <PublicStatistics onNavigateToLibrary={() => navigateTo('library')} />;
+      case 'library':
+        return <LibraryCenter />;
       case 'community-inbox':
         return <CommunityInbox />;
       case 'public-birds':
@@ -2646,6 +2774,8 @@ const App: React.FC = () => {
         return 'Licenças';
       case 'analytics':
         return 'Relatórios';
+      case 'library':
+        return 'Central de Biblioteca';
       case 'statistics':
         return 'Comunidade';
       case 'top-breeders':
@@ -2729,9 +2859,9 @@ const App: React.FC = () => {
 
     if (publicRoutes.includes(activeTab)) {
       return (
-        <div className="h-screen overflow-y-auto bg-gray-50">
+        <div className="min-h-screen bg-gray-50">
           <Suspense
-            fallback={<div className="flex items-center justify-center h-screen bg-gray-50" />}
+            fallback={<div className="flex items-center justify-center min-h-screen bg-gray-50" />}
           >
             {renderContent()}
           </Suspense>
@@ -2743,9 +2873,9 @@ const App: React.FC = () => {
     // Se for rota pública (verificação de pássaro com ID), mostra sem autenticação
     if (isPublicRoute && birdIdFromUrl) {
       return (
-        <div className="h-screen overflow-y-auto bg-gray-50">
+        <div className="min-h-screen bg-gray-50">
           <Suspense
-            fallback={<div className="flex items-center justify-center h-screen bg-gray-50" />}
+            fallback={<div className="flex items-center justify-center min-h-screen bg-gray-50" />}
           >
             <BirdVerification birdId={birdIdFromUrl} />
           </Suspense>
@@ -2756,9 +2886,9 @@ const App: React.FC = () => {
 
     // Caso contrário, pede login
     return (
-      <div className="h-screen overflow-y-auto bg-slate-50">
+      <div className="min-h-screen bg-slate-50">
         <Suspense
-          fallback={<div className="flex items-center justify-center h-screen bg-gray-50" />}
+          fallback={<div className="flex items-center justify-center min-h-screen bg-gray-50" />}
         >
           <Auth
             onLogin={(settings) => {
@@ -2780,7 +2910,7 @@ const App: React.FC = () => {
   }
 
   return (
-    <div className="h-screen bg-gray-100 overflow-hidden">
+    <div className="flex h-screen bg-gray-100">
       <a href="#main-content" className="skip-link">
         Pular para o conteúdo
       </a>
@@ -2799,48 +2929,26 @@ const App: React.FC = () => {
         isAdmin={isAdmin}
         adminOnly={isAdminOnly}
       />
-      <main
-        id="main-content"
-        className="h-full ml-0 lg:ml-64 flex flex-col overflow-y-auto overflow-x-hidden"
-      >
-        <div className="p-3 md:p-4 lg:p-6 pb-6 flex-1">
-          <PageHeader
-            title={<>{getPageTitle(activeTab)}</>}
-            subtitle=""
-            actions={null}
-          />
+      <div className="flex flex-col flex-1 overflow-hidden">
+        <main className="flex-grow overflow-y-auto">
+          <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-6">
+            <PageHeader
+              title={<>{getPageTitle(activeTab)}</>}
+              subtitle=""
+              actions={null}
+            />
 
-          <Suspense
-            fallback={
-              <div className="flex items-center justify-center min-h-[400px]">Carregando...</div>
-            }
-          >
-            {renderContent()}
-          </Suspense>
-        </div>
-        <Footer onContactClick={() => setIsContactOpen(true)} />
-      </main>
-      <ContactModal
-        isOpen={isContactOpen}
-        onClose={() => setIsContactOpen(false)}
-        defaultName={state.settings?.breederName || 'Criador'}
-        defaultEmail={state.settings?.breederEmail || session?.user?.email || ''}
-      />
-      {showUpgradeModal && (
-        <div className="fixed inset-0 bg-black/50 z-50 flex items-start justify-center overflow-y-auto">
-          <div className="relative w-full max-w-6xl mx-auto my-8 px-4">
-            <button
-              onClick={() => setShowUpgradeModal(false)}
-              className="absolute top-4 right-4 z-10 bg-white rounded-full p-2 shadow-lg hover:bg-slate-100 transition-colors"
+            <Suspense
+              fallback={
+                <div className="flex items-center justify-center min-h-[400px]">Carregando...</div>
+              }
             >
-              <X className="w-6 h-6 text-slate-600" />
-            </button>
-            <div className="bg-white rounded-2xl shadow-2xl p-8">
-              <PlanComparative currentPlan={state.settings?.plan || 'Básico'} />
-            </div>
+              {renderContent()}
+            </Suspense>
           </div>
-        </div>
-      )}
+        </main>
+        <Footer onContactClick={() => setIsContactOpen(true)} />
+      </div>
     </div>
   );
 };

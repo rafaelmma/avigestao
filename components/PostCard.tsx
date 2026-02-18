@@ -149,7 +149,7 @@ const PostCard: React.FC<{ post: Post }> = ({ post }) => {
           {post.attachments && post.attachments.length > 0 && (
             <div className="mt-3 grid grid-cols-1 sm:grid-cols-2 gap-2">
               {post.attachments.map((url, idx) => (
-                <img key={idx} src={url} alt={`anexo-${idx}`} className="w-full rounded-lg object-cover max-h-60" />
+                <img key={idx} src={url} alt={`anexo-${idx}`} className="w-full rounded-lg object-cover max-h-60 max-w-full" />
               ))}
             </div>
           )}

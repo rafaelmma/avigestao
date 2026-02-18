@@ -198,6 +198,13 @@ const SettingsManager: React.FC<SettingsManagerProps> = ({
   const planLabel = isAdmin ? 'Admin' : settings.plan;
   const monthlyPrice = PLANS[0]?.price ?? 0;
   const selectedPlan = PLANS.find((plan) => plan.id === selectedPlanId) || PLANS[0];
+  
+  // Detectar provedor de pagamento
+  const paymentProvider = settings.subscriptionProvider?.toLowerCase().includes('mercadopago') 
+    ? 'Mercado Pago' 
+    : settings.subscriptionProvider?.toLowerCase().includes('stripe')
+    ? 'Stripe'
+    : 'Stripe'; // Default para Stripe
 
   const daysSispass = daysTo(settings.renewalDate);
   const daysCert = daysTo(settings.certificate?.expiryDate);
@@ -1288,11 +1295,63 @@ const SettingsManager: React.FC<SettingsManagerProps> = ({
                 </p>
               )}
 
-              {settings.plan === 'Profissional' && !isTrial && !isAdmin && (
+              {((settings.plan === 'Profissional' && !isTrial) || isTrial) && !isAdmin && (
                 <div
                   data-subscription-section
                   className="mt-4 bg-slate-50 border border-slate-200 rounded-xl p-4 space-y-3"
                 >
+                  {/* Informação do provedor atual - só mostra se tiver assinatura paga */}
+                  {!isTrial && (
+                    <div className="flex items-center justify-between pb-3 border-b border-slate-200">
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs font-black uppercase text-slate-500">
+                          Provedor de Pagamento
+                        </span>
+                        <span className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-[10px] font-black uppercase ${
+                          paymentProvider === 'Mercado Pago' 
+                            ? 'bg-blue-100 text-blue-700' 
+                            : 'bg-purple-100 text-purple-700'
+                        }`}>
+                          {paymentProvider}
+                        </span>
+                      </div>
+                      {settings.subscriptionEndDate && (
+                        <button
+                          onClick={() => {
+                            if (confirm(
+                              `Para trocar de ${paymentProvider} para ${paymentProvider === 'Stripe' ? 'Mercado Pago' : 'Stripe'}, você precisará:\n\n` +
+                              `1. Cancelar sua assinatura atual\n` +
+                              `2. Aguardar o término do período pago\n` +
+                              `3. Fazer uma nova assinatura com o outro provedor\n\n` +
+                              `Deseja continuar?`
+                            )) {
+                              if (hasStripeCustomer) {
+                                openBillingPortal();
+                              } else {
+                                alert('Para trocar do Mercado Pago para Stripe:\n\n1. Não renove seu plano atual\n2. Aguarde o vencimento\n3. Faça uma nova assinatura escolhendo o período desejado');
+                              }
+                            }
+                          }}
+                          className="text-xs text-blue-600 hover:text-blue-700 font-bold underline"
+                        >
+                          Trocar provedor
+                        </button>
+                      )}
+                    </div>
+                  )}
+
+                  {/* Informação sobre escolha de provedor durante trial */}
+                  {isTrial && (
+                    <div className="pb-3 border-b border-slate-200">
+                      <p className="text-xs font-black uppercase text-slate-500 mb-2">
+                        Escolha seu provedor de pagamento
+                      </p>
+                      <p className="text-xs text-slate-600">
+                        Quando assinar, você poderá escolher entre <span className="font-bold text-purple-600">Stripe</span> (assinatura recorrente com cartão) ou <span className="font-bold text-blue-600">Mercado Pago</span> (pagamento único com PIX).
+                      </p>
+                    </div>
+                  )}
+
                   <div className="flex items-center justify-between">
                     <div>
                       <p className="text-xs font-black uppercase text-slate-500">
@@ -1374,7 +1433,7 @@ const SettingsManager: React.FC<SettingsManagerProps> = ({
                   </div>
                   <div className="flex items-center gap-2 text-white/80">
                     <ExternalLink size={14} className="text-emerald-300" />
-                    Pagamento seguro via Stripe
+                    Pagamento seguro via {paymentProvider}
                   </div>
                 </div>
 

@@ -1,4 +1,5 @@
 ﻿import React, { useState, useEffect } from 'react';
+import toast from 'react-hot-toast';
 import {
   BarChart,
   Bar,
@@ -81,7 +82,11 @@ interface InboxMessage {
   read?: boolean;
 }
 
-const PublicStatistics: React.FC = () => {
+interface PublicStatisticsProps {
+  onNavigateToLibrary?: () => void;
+}
+
+const PublicStatistics: React.FC<PublicStatisticsProps> = ({ onNavigateToLibrary }) => {
   const [stats, setStats] = useState<Stats>({
     totalBirds: 0,
     totalUsers: 0,
@@ -96,7 +101,6 @@ const PublicStatistics: React.FC = () => {
     recentBirds: [],
   });
   const [loading, setLoading] = useState(true);
-  const [libraryExpanded, setLibraryExpanded] = useState(false);
   const [dismissedTips, setDismissedTips] = useState<Set<string>>(new Set());
   const [showTipDialog, setShowTipDialog] = useState(false);
   const [tipToHide, setTipToHide] = useState<string | null>(null);
@@ -262,14 +266,20 @@ const PublicStatistics: React.FC = () => {
 
   const updateUserCommunitySettings = async (key: string, value: boolean) => {
     try {
+      console.log('[updateUserCommunitySettings] Iniciando salvamento...', { key, value });
       setSavingUserSettings(true);
       const currentUser = auth.currentUser;
-      if (!currentUser) return;
+      if (!currentUser) {
+        console.warn('[updateUserCommunitySettings] Usuário não autenticado');
+        return;
+      }
 
       const newSettings = {
         ...userSettings,
         [key]: value,
       };
+      
+      console.log('[updateUserCommunitySettings] Novas configurações:', newSettings);
       
       // Se desabilitar comunidade, desabilitar tudo
       if (key === 'communityOptIn' && !value) {
@@ -278,15 +288,19 @@ const PublicStatistics: React.FC = () => {
         newSettings.communityAllowContact = false;
       }
 
+      console.log('[updateUserCommunitySettings] Salvando no Firestore...', currentUser.uid);
       await setDoc(
         doc(db, 'users', currentUser.uid, 'settings', 'preferences'),
         newSettings,
         { merge: true }
       );
 
+      console.log('[updateUserCommunitySettings] Salvamento concluído com sucesso!');
       setUserSettings(newSettings);
+      toast.success('Configurações salvas com sucesso!');
     } catch (error) {
       console.error('Erro ao atualizar configurações:', error);
+      toast.error('Erro ao salvar configurações');
     } finally {
       setSavingUserSettings(false);
     }
@@ -533,29 +547,6 @@ const PublicStatistics: React.FC = () => {
     { title: 'Top Criadores', subtitle: 'Por volume de plantel', icon: <Medal size={18} /> },
     { title: 'Top Espécies', subtitle: 'Mais registradas', icon: <Bird size={18} /> },
     { title: 'Top Torneios', subtitle: 'Mais participações', icon: <Trophy size={18} /> },
-  ];
-
-  const libraryItems = [
-    { title: 'Genética de cores em Bicudos', meta: 'Guia completo', url: 'https://www.wikiaves.com.br/wiki/Bicudo' },
-    { title: 'Nutrição e suplementação', meta: 'Por veterinário especialista', url: 'https://www.passaromania.com.br/' },
-    { title: 'Calendário sazonal de manejo', meta: 'Muda, reprodução, repouso', url: 'https://www.criadoresdobicudo.com.br/' },
-    { title: 'Anilhamento IBAMA - Guia prático', meta: 'Procedimentos e padrões', url: 'https://www.icmbio.gov.br/' },
-    { title: 'Prevenção de doenças', meta: 'Higiene e profilaxia', url: 'https://www.avesselvagens.com.br/' },
-    { title: 'Técnicas de treino e adestramento', meta: 'Do básico ao avançado', url: 'https://www.passaromania.com.br/treino/' },
-    { title: 'Reprodução: período reprodutivo', meta: 'Estímulos, condições ideais', url: 'https://www.criadoresdobicudo.com.br/reproducao/' },
-    { title: 'Alimentação para criadores', meta: 'Receitas práticas e nutrição balanceada', url: 'https://www.passaromania.com.br/alimentacao/' },
-    { title: 'Infraestrutura e espaços', meta: 'Viveiros, polteiros, comedouros', url: 'https://www.criadoresdobicudo.com.br/infraestrutura/' },
-    { title: 'Seleção e melhoramento genético', meta: 'Princípios básicos de seleção', url: 'https://www.wikiaves.com.br/wiki/Sele%C3%A7%C3%A3o_gen%C3%A9tica' },
-    { title: 'Documentação e registros', meta: 'IBAMA, genealogia, passaporte', url: 'https://www.icmbio.gov.br/cites/' },
-    { title: 'Curió: tudo que você precisa saber', meta: 'Espécie, características, manejo', url: 'https://www.wikiaves.com.br/wiki/Curio' },
-    { title: 'Saúde respiratória em aves', meta: 'Infecções, sinais de alerta', url: 'https://www.passaromania.com.br/saude/' },
-    { title: 'Muda das penas: protocolo completo', meta: 'Iluminação, temperatura, alimentos', url: 'https://www.criadoresdobicudo.com.br/muda/' },
-    { title: 'Comportamento e socialização', meta: 'Entender o seu pássaro', url: 'https://www.wikiaves.com.br/wiki/Comportamento' },
-    { title: 'Parasitas internos e externos', meta: 'Identificação e tratamento', url: 'https://www.passaromania.com.br/parasitas/' },
-    { title: 'Repouso vegetativo (inverno)', meta: 'Importância e condições ideais', url: 'https://www.criadoresdobicudo.com.br/repouso/' },
-    { title: 'Qualidade da água para aves', meta: 'Higiene e requisitos essenciais', url: 'https://www.passaromania.com.br/agua/' },
-    { title: 'Ferramenta: Gerador de pedigrees', meta: 'Calcule genealogias facilmente', url: 'https://www.criadoresdobicudo.com.br/pedigree/' },
-    { title: 'Legislação CITES para criadores', meta: 'Espécies protegidas e normas', url: 'https://www.icmbio.gov.br/cites/' },
   ];
 
   if (loading) {
@@ -916,37 +907,24 @@ const PublicStatistics: React.FC = () => {
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-            <div className="bg-white rounded-[40px] p-8 shadow-sm border border-slate-100 lg:col-span-1">
-              <div className="flex items-center gap-3 mb-8">
-                <div className="p-2 bg-indigo-50 rounded-lg">
-                  <BookOpen className="text-indigo-600" size={20} />
+            <div className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-[40px] p-8 shadow-sm border border-blue-200 lg:col-span-1 flex flex-col justify-between">
+              <div>
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="p-2 bg-blue-100 rounded-lg">
+                    <BookOpen className="text-blue-600" size={20} />
+                  </div>
+                  <h2 className="text-xl font-black text-slate-900 tracking-tight">Central de Biblioteca</h2>
                 </div>
-                <h2 className="text-xl font-black text-slate-900 tracking-tight">Biblioteca</h2>
+                <p className="text-sm text-slate-700 mb-6 leading-relaxed">
+                  Acesse artigos educacionais, guias práticos e ferramentas interativas para aprimorar suas técnicas de criação.
+                </p>
               </div>
-              <div className="space-y-3">
-                {libraryItems.slice(0, libraryExpanded ? undefined : 4).map((item) => (
-                  <a
-                    key={item.title}
-                    href={item.url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="block p-5 rounded-2xl bg-slate-50/50 border border-slate-100 hover:bg-white hover:border-indigo-100 transition-all group"
-                  >
-                    <h4 className="font-black text-slate-800 text-sm group-hover:text-indigo-600 transition-colors">
-                      {item.title}
-                    </h4>
-                    <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider mt-1">{item.meta}</p>
-                  </a>
-                ))}
-                {!libraryExpanded && (
-                  <button
-                    onClick={() => setLibraryExpanded(true)}
-                    className="w-full py-4 text-[10px] font-black uppercase tracking-widest text-slate-400 hover:text-indigo-600 transition-colors"
-                  >
-                    +14 itens (clique para expandir)
-                  </button>
-                )}
-              </div>
+              <button
+                onClick={() => onNavigateToLibrary?.()}
+                className="w-full py-4 px-6 bg-blue-600 text-white rounded-2xl font-bold hover:bg-blue-700 transition-all shadow-lg hover:shadow-xl active:scale-95"
+              >
+                Ir para a Biblioteca →
+              </button>
             </div>
 
             <div className="bg-white rounded-[40px] p-8 shadow-sm border border-slate-100 lg:col-span-1">
@@ -1076,11 +1054,6 @@ const PublicStatistics: React.FC = () => {
                 <p className="text-indigo-100 font-medium leading-relaxed mb-8 text-lg">
                   Conecte-se com outros criadores, compartilhe experiências e acompanhe as novidades do AviGestão.
                 </p>
-                <div className="flex gap-4">
-                  <button className="px-8 py-3 bg-white text-indigo-600 rounded-xl font-black uppercase text-xs tracking-widest hover:scale-105 active:scale-95 transition-all shadow-lg">
-                    Ver Feed Completo
-                  </button>
-                </div>
               </div>
             </div>
           </div>

@@ -17,6 +17,7 @@ import {
   limit,
 } from 'firebase/firestore';
 import { db } from '../lib/firebase';
+import { logError, logWarning } from '../lib/logger';
 import {
   Bird,
   Pair,
@@ -664,25 +665,35 @@ export const permanentlyDeletePairInFirestore = async (
 // ============= SETTINGS =============
 export const getSettings = async (userId: string): Promise<BreederSettings | null> => {
   try {
+    console.log('Buscando configurações para o usuário:', userId);
     const settingsRef = doc(db, 'users', userId, 'settings', 'preferences');
     const snapshot = await getDoc(settingsRef);
     if (snapshot.exists()) {
+      console.log('Configurações encontradas em preferences:', snapshot.data());
       return snapshot.data() as BreederSettings;
     }
     const generalRef = doc(db, 'users', userId, 'settings', 'general');
     const generalSnapshot = await getDoc(generalRef);
     if (generalSnapshot.exists()) {
+      console.log('Configurações encontradas em general:', generalSnapshot.data());
       return generalSnapshot.data() as BreederSettings;
     }
+    console.log('Nenhuma configuração encontrada para o usuário:', userId);
     return null;
   } catch (error) {
-    console.error('Erro ao buscar settings:', error);
+    logError('Erro ao buscar settings:', error);
     return null;
   }
 };
 
 export const saveSettings = async (userId: string, settings: BreederSettings): Promise<boolean> => {
   try {
+    console.log('[saveSettings] Iniciando salvamento para usuário:', userId);
+    console.log('[saveSettings] Dados a salvar:', {
+      sispassNumber: settings.sispassNumber,
+      renewalDate: settings.renewalDate,
+      lastRenewalDate: settings.lastRenewalDate
+    });
     const settingsRef = doc(db, 'users', userId, 'settings', 'preferences');
     const generalRef = doc(db, 'users', userId, 'settings', 'general');
     const cleanedUpdates = cleanUndefined({
@@ -693,9 +704,11 @@ export const saveSettings = async (userId: string, settings: BreederSettings): P
       setDoc(settingsRef, cleanedUpdates, { merge: true }),
       setDoc(generalRef, cleanedUpdates, { merge: true }),
     ]);
+    console.log('[saveSettings] Salvamento concluído com sucesso!');
     return true;
   } catch (error) {
-    console.error('Erro ao salvar settings:', error);
+    logError('Erro ao salvar settings:', error);
+    console.error('[saveSettings] Erro detalhado:', error);
     return false;
   }
 };
