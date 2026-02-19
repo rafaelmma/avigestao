@@ -1,5 +1,6 @@
 import React, { useState, Suspense } from 'react';
 import { AppState, Medication, MedicationApplication, ContinuousTreatment, Bird } from '../types';
+import { hasActiveProPlan } from '../lib/subscription';
 import {
   Plus,
   FlaskConical,
@@ -83,6 +84,7 @@ const MedsManager: React.FC<MedsManagerProps> = ({
   const [showAddMed, setShowAddMed] = useState(false);
   const [showApplyMed, setShowApplyMed] = useState(false);
   const [showAddTreatment, setShowAddTreatment] = useState(false);
+  const [showBasicPlanModal, setShowBasicPlanModal] = useState(false);
   const [selectedCatalogId, setSelectedCatalogId] = useState('');
 
   // States de Edição
@@ -350,7 +352,8 @@ const MedsManager: React.FC<MedsManagerProps> = ({
   };
 
   // Verifica plano para exibir restrições
-  const isBasicPlan = state.settings.plan === 'Básico' && !isAdmin;
+  // Bloqueado apenas para plano Básico (sem trial PRO ativo nem pro ativado)
+  const isBasicPlan = !hasActiveProPlan(state.settings) && !isAdmin;
 
   const medWizardStepsBase: Array<{ id: typeof activeTab; label: string }> = [
     { id: 'inventory', label: 'Estoque' },
@@ -851,10 +854,10 @@ const MedsManager: React.FC<MedsManagerProps> = ({
               </p>
             </div>
             <button
-              onClick={isBasicPlan ? undefined : handleOpenAddTreatment}
+              onClick={isBasicPlan ? () => setShowBasicPlanModal(true) : handleOpenAddTreatment}
               className={`px-6 py-3 font-bold text-xs uppercase tracking-widest rounded-xl shadow-lg transition-all flex items-center gap-2 ${
                 isBasicPlan
-                  ? 'bg-slate-200 text-slate-400 cursor-not-allowed'
+                  ? 'bg-slate-200 text-slate-400 cursor-not-allowed hover:bg-slate-300'
                   : 'bg-indigo-600 text-white shadow-indigo-200 hover:bg-indigo-700'
               }`}
             >
@@ -863,10 +866,20 @@ const MedsManager: React.FC<MedsManagerProps> = ({
           </div>
 
           {/* BLOQUEIO PARA PLANO BÁSICO - OVERLAY AMIGÁVEL */}
-          {isBasicPlan && (
+          {isBasicPlan && showBasicPlanModal && (
             <div className="absolute inset-0 top-[100px] z-10 flex items-start justify-center backdrop-blur-[2px] bg-white/50 pt-10">
               <div className="bg-white rounded-[40px] shadow-2xl p-10 max-w-md text-center border border-indigo-100 relative overflow-hidden">
                 <div className="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-amber-400 to-amber-500"></div>
+                
+                {/* Botão Fechar (X) */}
+                <button
+                  onClick={() => setShowBasicPlanModal(false)}
+                  className="absolute top-4 right-4 p-2 hover:bg-slate-100 rounded-full transition-all"
+                  aria-label="Fechar"
+                >
+                  <X size={20} className="text-slate-400 hover:text-slate-600" />
+                </button>
+
                 <div className="w-20 h-20 bg-amber-50 text-amber-500 rounded-full flex items-center justify-center mx-auto mb-6">
                   <Zap size={40} fill="currentColor" />
                 </div>
@@ -881,8 +894,15 @@ const MedsManager: React.FC<MedsManagerProps> = ({
                   Evite esquecimentos e garanta a saúde do seu plantel.
                 </p>
 
-                {/* Botão Fake para demonstração, na prática redirecionaria para Settings */}
-                <button className="w-full mt-8 py-4 bg-amber-500 text-white font-black uppercase tracking-widest rounded-2xl shadow-xl shadow-amber-200 hover:scale-[1.02] transition-all">
+                {/* Botão de Upgrade */}
+                <button 
+                  onClick={() => {
+                    // Redirecionar para Settings/Upgrade
+                    window.location.href = '#/settings';
+                    setShowBasicPlanModal(false);
+                  }}
+                  className="w-full mt-8 py-4 bg-amber-500 text-white font-black uppercase tracking-widest rounded-2xl shadow-xl shadow-amber-200 hover:scale-[1.02] transition-all"
+                >
                   Liberar Recurso PRO
                 </button>
               </div>

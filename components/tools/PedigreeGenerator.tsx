@@ -61,7 +61,7 @@ const PedigreeGenerator: React.FC<PedigreeGeneratorProps> = ({ onBack }) => {
 
     try {
       const birdsRef = collection(db, 'users', user.uid, 'birds');
-      const q = query(birdsRef, where('status', '!=', 'Vendido'));
+      const q = query(birdsRef, where('status', '==', 'Ativo'));
       const snap = await getDocs(q);
       
       const userBirds = snap.docs.map(doc => ({

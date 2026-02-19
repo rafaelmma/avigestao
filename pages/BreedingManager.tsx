@@ -235,7 +235,7 @@ const BreedingManager: React.FC<BreedingManagerProps> = ({
 
   useEffect(() => {
     if (notification) {
-      const timer = setTimeout(() => setNotification(null), 5000);
+      const timer = setTimeout(() => setNotification(null), 8000);
       return () => clearTimeout(timer);
     }
   }, [notification]);
@@ -359,11 +359,16 @@ const BreedingManager: React.FC<BreedingManagerProps> = ({
       return;
     }
 
-    if (hatchlingsToRegister.length === 0) {
-      setNotification({ message: 'Nenhum filhote para registrar', type: 'error' });
-      return;
-    }
+    // Verificar se há pássaros em sexagem (para alerta após sucesso)
+    const birdsInSexing = state.birds.filter(
+      (b) => b.sex === 'Desconhecido' && !b.sexing?.resultDate && b.status === 'Ativo' && !b.deletedAt
+    );
 
+    console.log('Debug: Verificando pássaros em sexagem...');
+    console.log('Estado atual de state.birds:', state.birds);
+    console.log('Pássaros em sexagem identificados:', birdsInSexing);
+
+    // ...restante da lógica existente para registrar os filhotes
     const pair = state.pairs.find((p) => p.id === hatchlingParentPairId);
     if (!pair) {
       setNotification({ message: 'Erro: Casal não encontrado', type: 'error' });
@@ -404,8 +409,14 @@ const BreedingManager: React.FC<BreedingManagerProps> = ({
 
       await updatePair({ ...pair, lastHatchDate: hatchlingBirthDate });
 
+      // Exibir mensagem de sucesso com aviso sobre pássaros em sexagem se houver
+      let successMessage = `${hatchlingsToRegister.length} filhotes foram adicionados ao plantel!`;
+      if (birdsInSexing.length > 0) {
+        successMessage += `\n⚠️ Você tem ${birdsInSexing.length} pássaro(s) aguardando sexagem.`;
+      }
+
       setNotification({
-        message: `${hatchlingsToRegister.length} filhotes foram adicionados ao plantel!`,
+        message: successMessage,
         type: 'success',
       });
 

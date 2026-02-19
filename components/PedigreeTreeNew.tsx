@@ -248,8 +248,7 @@ const PedigreeTreeNew: React.FC<PedigreeTreeProps> = ({ bird, allBirds, settings
               className="h-20 w-20 rounded-2xl border-4 flex items-center justify-center overflow-hidden bg-white shadow-xl"
               style={{ borderColor: accent }}
             >
-              <img src={settings.logoUrl} alt="Logo" className="h-full w-full object-contain p-2" />
-                       <img src={settings.logoUrl} alt="Logo" className="h-full w-full object-contain p-2 max-h-20 max-w-20" />
+              <img src={settings.logoUrl} alt="Logo" className="h-full w-full object-contain p-2 max-h-20 max-w-20" />
             </div>
           )}
           <div>

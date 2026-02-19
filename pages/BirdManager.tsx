@@ -69,6 +69,8 @@ import {
   Globe,
   Syringe,
   HelpCircle,
+  AlertCircle,
+  Eye,
 } from 'lucide-react';
 import {
   BRAZILIAN_SPECIES,
@@ -94,12 +96,13 @@ const normalizeSpeciesName = (species: string): string => {
 interface BirdManagerProps {
   state: AppState;
   addBird: (bird: Bird) => Promise<boolean>;
-  updateBird: (bird: Bird) => void;
+  updateBird: (bird: Bird) => Promise<boolean>;
   deleteBird: (id: string) => void;
   addMovement?: (mov: MovementRecord) => Promise<void>;
   restoreBird?: (id: string) => void;
   permanentlyDeleteBird?: (id: string) => void;
   saveSettings?: (settings: any) => Promise<boolean>;
+  updateSettings?: (updates: any) => void;
   isAdmin?: boolean;
   initialList?: 'plantel' | 'lixeira' | 'sexagem' | 'histórico' | 'ibama-pendentes' | 'etiquetas';
   showListTabs?: boolean;
@@ -117,6 +120,7 @@ const BirdManager: React.FC<BirdManagerProps> = ({
   restoreBird,
   permanentlyDeleteBird,
   saveSettings,
+  updateSettings,
   isAdmin,
   initialList = 'plantel',
   showListTabs = true,
@@ -154,7 +158,7 @@ const BirdManager: React.FC<BirdManagerProps> = ({
   const [showQuickStatusModal, setShowQuickStatusModal] = useState(false);
   const [quickStatusBird, setQuickStatusBird] = useState<Bird | null>(null);
   const [quickStatusData, setQuickStatusData] = useState({
-    newStatus: 'Óbito' as 'Óbito' | 'Vendido' | 'Doado' | 'Fuga' | 'Transferência',
+    newStatus: 'Óbito' as 'Óbito' | 'Doado' | 'Fuga' | 'Transferência',
     date: new Date().toISOString().split('T')[0],
     createMovement: true,
     notes: '',
@@ -556,7 +560,14 @@ const BirdManager: React.FC<BirdManagerProps> = ({
 
   // --- Função de Status Rápido ---
   const handleQuickStatusConfirm = async () => {
+    console.log('[handleQuickStatusConfirm] ===== INÍCIO =====');
+    console.log('[handleQuickStatusConfirm] quickStatusBird:', quickStatusBird);
+    console.log('[handleQuickStatusConfirm] quickStatusData:', quickStatusData);
+    
     if (quickStatusBird) {
+      console.log('[DEBUG TRANSFER] Status ANTES:', quickStatusBird.status);
+      console.log('[DEBUG TRANSFER] Novo status:', quickStatusData.newStatus);
+      
       // 1. Atualizar status da ave
       const updatedBird = {
         ...quickStatusBird,
@@ -564,10 +575,24 @@ const BirdManager: React.FC<BirdManagerProps> = ({
         ibamaBaixaPendente: true, // Sempre marca como pendente IBAMA
         ibamaBaixaData: undefined, // Limpa data anterior se houver
       };
-      await updateBird(updatedBird);
+      
+      console.log('[DEBUG TRANSFER] Ave a atualizar:', {
+        id: updatedBird.id,
+        name: updatedBird.name,
+        statusAntigo: quickStatusBird.status,
+        statusNovo: updatedBird.status,
+      });
+      
+      const result = await updateBird(updatedBird);
+      console.log('[DEBUG TRANSFER] Resultado do updateBird:', result);
+      
+      if (!result) {
+        toast.error('Erro ao atualizar status da ave!');
+        return;
+      }
 
       // Esperar um tick do React para garantir que o estado foi atualizado
-      await new Promise((resolve) => setTimeout(resolve, 50));
+      await new Promise((resolve) => setTimeout(resolve, 100));
 
       // 2. Se marcado, criar movimentação também
       if (quickStatusData.createMovement && addMovement) {
@@ -577,36 +602,33 @@ const BirdManager: React.FC<BirdManagerProps> = ({
           : `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
         // Mapear status para tipo de movimentação
         let movementType: MovementType = 'Entrada';
-        if (quickStatusData.newStatus === 'Vendido') movementType = 'Venda';
-        else if (quickStatusData.newStatus === 'Doado') movementType = 'Doação';
+        if (quickStatusData.newStatus === 'Doado') movementType = 'Doação';
         else if (quickStatusData.newStatus === 'Transferência') movementType = 'Transferência';
         else if (quickStatusData.newStatus === 'Óbito') movementType = 'Óbito';
         else if (quickStatusData.newStatus === 'Fuga') movementType = 'Fuga';
 
+        // Criar objeto base do movimento
         const newMovement: MovementRecord = {
           id: movementId,
           birdId: quickStatusBird.id,
           type: movementType,
           date: quickStatusData.date,
           notes: quickStatusData.notes || '',
-          gtrUrl: undefined,
-          destination: undefined,
-          buyerSispass: undefined,
           ibamaBaixaPendente: true,
-          // Dados do receptor (se aplicável)
-          receptorName: ['Venda', 'Doação', 'Transferência'].includes(movementType)
-            ? quickStatusData.receptorName
-            : undefined,
-          receptorDocument: ['Venda', 'Doação', 'Transferência'].includes(movementType)
-            ? quickStatusData.receptorDocument
-            : undefined,
-          receptorDocumentType: ['Venda', 'Doação', 'Transferência'].includes(movementType)
-            ? quickStatusData.receptorDocumentType
-            : undefined,
         };
+
+        // Adicionar dados do receptor apenas se aplicável (evita campos undefined)
+        if (['Doação', 'Transferência'].includes(movementType)) {
+          if (quickStatusData.receptorName) newMovement.receptorName = quickStatusData.receptorName;
+          if (quickStatusData.receptorDocument) newMovement.receptorDocument = quickStatusData.receptorDocument;
+          if (quickStatusData.receptorDocumentType) newMovement.receptorDocumentType = quickStatusData.receptorDocumentType;
+        }
+
         console.log('[DEBUG] Criando movimento:', newMovement);
         await addMovement(newMovement); // Espera a promessa resolver
       }
+
+      toast.success('Status atualizado com sucesso!');
 
       // Só fecha o modal se não for doação (doação fecha no botão onClick)
       if (quickStatusData.newStatus !== 'Doado') {
@@ -634,7 +656,7 @@ const BirdManager: React.FC<BirdManagerProps> = ({
         ibamaBaixaPendente: false, // Marca como não pendente
         ibamaBaixaData: quickIbamaDate, // Armazena data de registro
       };
-      updateBird(updatedBird);
+      await updateBird(updatedBird);
 
       // 2. Criar movimentação automaticamente baseada no status da ave
       const movementId = crypto.randomUUID
@@ -642,8 +664,7 @@ const BirdManager: React.FC<BirdManagerProps> = ({
         : `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
       // Mapear status para tipo de movimentação
       let movementType: MovementType = 'Entrada';
-      if (quickIbamaBird.status === 'Vendido') movementType = 'Venda';
-      else if (quickIbamaBird.status === 'Doado') movementType = 'Doação';
+      if (quickIbamaBird.status === 'Doado') movementType = 'Doação';
       else if (quickIbamaBird.status === 'Óbito') movementType = 'Óbito';
       else if (quickIbamaBird.status === 'Fuga') movementType = 'Fuga';
 
@@ -653,9 +674,6 @@ const BirdManager: React.FC<BirdManagerProps> = ({
         type: movementType,
         date: quickIbamaDate, // Usa a data do registro IBAMA
         notes: `Registro IBAMA concluído em ${quickIbamaDate}`,
-        gtrUrl: undefined,
-        destination: undefined,
-        buyerSispass: undefined,
       };
       await addMovement(newMovement); // Espera a promessa resolver
 
@@ -680,7 +698,6 @@ const BirdManager: React.FC<BirdManagerProps> = ({
           b.ibamaBaixaPendente &&
           !b.deletedAt &&
           (b.status === 'Óbito' ||
-            b.status === 'Vendido' ||
             b.status === 'Doado' ||
             b.status === 'Fuga' ||
             b.status === 'Transferência'),
@@ -703,7 +720,7 @@ const BirdManager: React.FC<BirdManagerProps> = ({
       // Plantel mostra apenas aves Ativas
       list = state.birds.filter((b) => b.status === 'Ativo');
     } else if (currentList === 'histórico') {
-      // Histórico mostra aves com status não-ativo (Óbito, Fuga, Vendido, Doado)
+      // Histórico mostra aves com status não-ativo (Óbito, Fuga, Doado, Transferência)
       list = state.birds.filter((b) => b.status !== 'Ativo');
     } else if (currentList === 'lixeira') {
       // Lixeira mostra aves deletadas
@@ -868,11 +885,11 @@ const BirdManager: React.FC<BirdManagerProps> = ({
     }
   };
 
-  const handleUpdateBird = (e: React.FormEvent) => {
+  const handleUpdateBird = async (e: React.FormEvent) => {
     e.preventDefault();
     const updatedBird = { ...editingBird };
     processGenealogyForSave(updatedBird);
-    updateBird(updatedBird as Bird);
+    await updateBird(updatedBird as Bird);
     setIsEditing(false);
     setSelectedBird(updatedBird as Bird);
   };
@@ -882,7 +899,7 @@ const BirdManager: React.FC<BirdManagerProps> = ({
     const birdToUpdate = state.birds.find((b) => b.id === birdId);
     if (birdToUpdate) {
       const updated = { ...birdToUpdate, [field]: value };
-      updateBird(updated);
+      updateBird(updated).catch((err) => console.error('Erro ao atualizar campo:', err));
       setSelectedBird(updated); // Atualiza o modal aberto também
     }
   };
@@ -939,7 +956,7 @@ const BirdManager: React.FC<BirdManagerProps> = ({
 
       // Atualiza estado local e global
       setEditingBird(updatedBird);
-      updateBird(updatedBird as Bird);
+      updateBird(updatedBird as Bird).catch((err) => console.error('Erro ao salvar documento:', err));
       if (selectedBird) setSelectedBird(updatedBird as Bird);
 
       // Reset Form
@@ -1067,7 +1084,7 @@ const BirdManager: React.FC<BirdManagerProps> = ({
     setShowResultModal(true);
   };
 
-  const handleSaveResult = () => {
+  const handleSaveResult = async () => {
     const bird = state.birds.find((b) => b.id === resultForm.birdId);
     if (bird) {
       console.log('[handleSaveResult] SALVANDO resultado para bird:', { id: bird.id, name: bird.name });
@@ -1111,7 +1128,7 @@ const BirdManager: React.FC<BirdManagerProps> = ({
       });
       
       console.log('[handleSaveResult] sexing após limpeza:', updateData.sexing);
-      updateBird(updateData as any);
+      await updateBird(updateData as any);
     }
     setShowResultModal(false);
   };
@@ -1174,7 +1191,7 @@ const BirdManager: React.FC<BirdManagerProps> = ({
         ...birdToRestore,
         status: 'Ativo',
         ibamaBaixaPendente: false, // Limpa também o pendente IBAMA
-      });
+      }).catch((err) => console.error('Erro ao restaurar ave:', err));
       toast.success(`${birdToRestore.name} restaurada para o plantel ativo!`);
     }
   };
@@ -1664,8 +1681,8 @@ const BirdManager: React.FC<BirdManagerProps> = ({
                     <option value="Ativo">Ativo</option>
                     <option value="Óbito">Óbito</option>
                     <option value="Fuga">Fuga</option>
-                    <option value="Vendido">Vendido</option>
                     <option value="Doado">Doado</option>
+                    <option value="Transferência">Transferência</option>
                   </select>
                 </div>
                 <div>
@@ -1708,6 +1725,36 @@ const BirdManager: React.FC<BirdManagerProps> = ({
         <div className="bg-gradient-to-r from-blue-50 to-slate-50 rounded-2xl p-6 border border-blue-200">
           <TagGenerator birds={state.birds} settings={state.settings} />
         </div>
+      )}
+
+      {/* Banner de Orientação: Como mudar status do pássaro */}
+      {currentList === 'plantel' && filteredBirds.length > 0 && !state.settings?.hideDiscoveryBanner && (
+        <AlertBanner variant="info" className="animate-in slide-in-from-top-4 duration-500 relative">
+          <button
+            onClick={() => {
+              if (updateSettings) {
+                updateSettings({ hideDiscoveryBanner: true });
+                if (saveSettings) {
+                  saveSettings({ hideDiscoveryBanner: true });
+                }
+              }
+            }}
+            className="absolute top-4 right-4 p-1 hover:bg-blue-100 rounded-full transition-colors"
+            title="Ocultar dica temporariamente (volta ao abrir a página)"
+          >
+            <Eye size={18} className="text-blue-600" />
+          </button>
+          <div className="space-y-2 pr-8">
+            <p className="font-bold text-sm">💡 Dica: Como registrar Doação, Transferência, Óbito ou Fuga?</p>
+            <p className="text-xs leading-relaxed">
+              Clique no <strong>card do pássaro</strong> e depois no ícone <strong>⚡ (raio)</strong> no cabeçalho do modal para acessar a <strong>"Ação Rápida"</strong>. 
+              Lá você poderá mudar o status e o sistema te guiará passo a passo no registro IBAMA.
+            </p>
+            <p className="text-xs font-semibold text-blue-700 mt-2">
+              ✅ Todas as mudanças de status (exceto Ativo) exigem registro no IBAMA!
+            </p>
+          </div>
+        </AlertBanner>
       )}
 
       {currentList !== 'sexagem' && currentList !== 'etiquetas' && (
@@ -2019,16 +2066,6 @@ const BirdManager: React.FC<BirdManagerProps> = ({
                               </p>
                             </div>
                           )}
-                          <PrimaryButton
-                            onClick={() => {
-                              setQuickIbamaBird(bird);
-                              setQuickIbamaDate(new Date().toISOString().split('T')[0]);
-                              setShowQuickIbamaModal(true);
-                            }}
-                            className="w-full text-[10px] font-bold bg-green-500 hover:bg-green-600"
-                          >
-                            ✅ Registrar no IBAMA
-                          </PrimaryButton>
                         </>
                       );
                     })()}
@@ -2105,8 +2142,8 @@ const BirdManager: React.FC<BirdManagerProps> = ({
                       },
                       {
                         id: 'status',
-                        label: 'Mudar Status',
-                        icon: <CheckCircle2 size={14} />,
+                        label: '⚡ Mudar Status',
+                        icon: <Zap size={14} className="text-amber-500" />,
                         onClick: () => {
                           setQuickStatusBird(bird);
                           setQuickStatusData({
@@ -2245,6 +2282,29 @@ const BirdManager: React.FC<BirdManagerProps> = ({
                 )}
               </div>
               <div className="flex gap-2">
+                {/* Botão Ação Rápida - apenas para pássaros ativos no plantel */}
+                {!isEditing && selectedBird.status === 'Ativo' && currentList === 'plantel' && (
+                  <button
+                    onClick={() => {
+                      setQuickStatusBird(selectedBird);
+                      setQuickStatusData({
+                        newStatus: 'Óbito',
+                        date: new Date().toISOString().split('T')[0],
+                        createMovement: true,
+                        notes: '',
+                        receptorName: '',
+                        receptorDocument: '',
+                        receptorDocumentType: 'ibama',
+                      });
+                      setShowQuickStatusModal(true);
+                    }}
+                    className="p-3 bg-amber-50 text-amber-600 rounded-lg hover:bg-amber-100 transition-colors flex items-center gap-2 font-bold text-sm"
+                    title="Ação Rápida: Mudar Status"
+                  >
+                    <Zap size={20} />
+                    <span className="hidden sm:inline">Mudar Status</span>
+                  </button>
+                )}
                 <button
                   onClick={() => {
                     deleteBird(selectedBird.id);
@@ -2446,8 +2506,8 @@ const BirdManager: React.FC<BirdManagerProps> = ({
                             <option value="Ativo">Ativo</option>
                             <option value="Óbito">Óbito</option>
                             <option value="Fuga">Fuga</option>
-                            <option value="Vendido">Vendido</option>
                             <option value="Doado">Doado</option>
+                            <option value="Transferência">Transferência</option>
                           </select>
                         </div>
                       </div>
@@ -2510,8 +2570,8 @@ const BirdManager: React.FC<BirdManagerProps> = ({
 
                       {/* Controle de Registro IBAMA */}
                       {(editingBird.status === 'Óbito' ||
-                        editingBird.status === 'Vendido' ||
-                        editingBird.status === 'Doado') && (
+                        editingBird.status === 'Doado' ||
+                        editingBird.status === 'Transferência') && (
                         <div className="p-6 bg-amber-50 border-2 border-amber-200 rounded-xl space-y-4">
                           <div className="flex items-center gap-2 text-amber-800">
                             <Zap size={18} />
@@ -2521,10 +2581,10 @@ const BirdManager: React.FC<BirdManagerProps> = ({
                             <p className="text-xs font-bold text-amber-800">
                               {editingBird.status === 'Óbito' &&
                                 '⚠️ Óbito: Necessário dar baixa no sistema IBAMA'}
-                              {editingBird.status === 'Vendido' &&
-                                '⚠️ Venda: Necessário registrar a transferência no IBAMA (com SISPASS do comprador)'}
                               {editingBird.status === 'Doado' &&
                                 '⚠️ Doação: Necessário registrar a doação no IBAMA (com SISPASS do destinatário)'}
+                              {editingBird.status === 'Transferência' &&
+                                '⚠️ Transferência: Necessário registrar a transferência no IBAMA'}
                             </p>
                           </div>
                           <div className="space-y-4">
@@ -3787,7 +3847,7 @@ const BirdManager: React.FC<BirdManagerProps> = ({
                         >
                           {' '}
                           <option value="Ativo">Ativo</option>{' '}
-                          <option value="Vendido">Vendido</option>{' '}
+                          <option value="Doado">Doado</option>{' '}
                           <option value="Falecido">Falecido</option>{' '}
                           <option value="Transferido">Transferido</option>{' '}
                         </select>
@@ -4320,10 +4380,10 @@ const BirdManager: React.FC<BirdManagerProps> = ({
                 <p className="text-xs text-amber-700 font-bold leading-relaxed">
                   {quickIbamaBird.status === 'Óbito' &&
                     'Acesse o sistema IBAMA e registre a baixa do animal falecido.'}
-                  {quickIbamaBird.status === 'Vendido' &&
-                    'Acesse o sistema IBAMA e registre a transferência com o SISPASS do comprador.'}
                   {quickIbamaBird.status === 'Doado' &&
                     'Acesse o sistema IBAMA e registre a doação com o SISPASS do destinatário.'}
+                  {quickIbamaBird.status === 'Transferência' &&
+                    'Acesse o sistema IBAMA e registre a transferência com o SISPASS do receptor.'}
                   {quickIbamaBird.status === 'Fuga' &&
                     'Acesse o sistema IBAMA e registre o desaparecimento do animal.'}
                 </p>
@@ -4370,8 +4430,8 @@ const BirdManager: React.FC<BirdManagerProps> = ({
                   ? 'bg-red-500'
                   : quickStatusData.newStatus === 'Fuga'
                   ? 'bg-orange-500'
-                  : quickStatusData.newStatus === 'Vendido'
-                  ? 'bg-blue-500'
+                  : quickStatusData.newStatus === 'Transferência'
+                  ? 'bg-teal-500'
                   : 'bg-purple-500'
               }`}
             >
@@ -4379,8 +4439,8 @@ const BirdManager: React.FC<BirdManagerProps> = ({
                 <div className="w-12 h-12 bg-white/20 rounded-2xl flex items-center justify-center text-2xl">
                   {quickStatusData.newStatus === 'Óbito' && '🔴'}
                   {quickStatusData.newStatus === 'Fuga' && '🟠'}
-                  {quickStatusData.newStatus === 'Vendido' && '🔵'}
                   {quickStatusData.newStatus === 'Doado' && '🟣'}
+                  {quickStatusData.newStatus === 'Transferência' && '🔄'}
                 </div>
                 <div className="flex-1">
                   <h3 className="text-xl font-black text-white tracking-tight">
@@ -4413,7 +4473,7 @@ const BirdManager: React.FC<BirdManagerProps> = ({
                   Novo Status
                 </label>
                 <div className="grid grid-cols-2 gap-2">
-                  {(['Óbito', 'Fuga', 'Vendido', 'Doado', 'Transferência'] as const).map(
+                  {(['Óbito', 'Fuga', 'Doado', 'Transferência'] as const).map(
                     (status) => (
                       <button
                         key={status}
@@ -4426,8 +4486,6 @@ const BirdManager: React.FC<BirdManagerProps> = ({
                               ? 'bg-red-500 text-white shadow-lg shadow-red-200'
                               : status === 'Fuga'
                               ? 'bg-orange-500 text-white shadow-lg shadow-orange-200'
-                              : status === 'Vendido'
-                              ? 'bg-blue-500 text-white shadow-lg shadow-blue-200'
                               : status === 'Transferência'
                               ? 'bg-teal-500 text-white shadow-lg shadow-teal-200'
                               : 'bg-purple-500 text-white shadow-lg shadow-purple-200'
@@ -4435,7 +4493,7 @@ const BirdManager: React.FC<BirdManagerProps> = ({
                         }`}
                       >
                         {status === 'Óbito' && '🔴'} {status === 'Fuga' && '🟠'}{' '}
-                        {status === 'Vendido' && '🔵'} {status === 'Doado' && '🟣'}{' '}
+                        {status === 'Doado' && '🟣'}{' '}
                         {status === 'Transferência' && '🔄'} {status}
                       </button>
                     ),
@@ -4455,8 +4513,8 @@ const BirdManager: React.FC<BirdManagerProps> = ({
                 />
               </div>
 
-              {/* Campos do Receptor (apenas para Venda/Doação/Transferência) */}
-              {['Vendido', 'Doado', 'Transferência'].includes(quickStatusData.newStatus) && (
+              {/* Campos do Receptor (apenas para Doação/Transferência) */}
+              {['Doado', 'Transferência'].includes(quickStatusData.newStatus) && (
                 <>
                   <div className="p-4 bg-blue-50 border border-blue-200 rounded-2xl">
                     <p className="text-xs font-bold text-blue-700 mb-3">
@@ -4524,6 +4582,75 @@ const BirdManager: React.FC<BirdManagerProps> = ({
                 />
               </div>
 
+              {/* Guias: Como funcionam as ações de status */}
+              {quickStatusData.newStatus === 'Transferência' && (
+                <div className="p-4 bg-teal-50 border-l-4 border-teal-500 rounded-r-2xl">
+                  <p className="text-xs font-bold text-teal-800 uppercase tracking-widest mb-3 flex items-center gap-2">
+                    <AlertCircle size={14} /> ⚠️ Como funciona a Transferência
+                  </p>
+                  <div className="space-y-2 text-xs text-teal-700">
+                    <p className="font-bold">📝 <strong>Passo 1:</strong> Preencha os dados do receptor (nome + IBAMA/CPF)</p>
+                    <p className="font-semibold">🔄 <strong>Passo 2:</strong> Clique em "Confirmar" - o pássaro irá para "IBAMA Pendentes"</p>
+                    <p className="font-semibold">🌐 <strong>Passo 3:</strong> Acesse o portal do IBAMA e registre a transferência oficial</p>
+                    <p className="font-semibold">✅ <strong>Passo 4:</strong> Ao retornar, clique em "Registrar IBAMA" para marcar como concluído</p>
+                  </div>
+                  <p className="text-xs text-teal-600 font-medium mt-3 bg-teal-100 p-2 rounded-lg">
+                    💡 <strong>Dica:</strong> O pássaro só sairá definitivamente do plantel após confirmar o registro IBAMA.
+                  </p>
+                </div>
+              )}
+
+              {quickStatusData.newStatus === 'Doado' && (
+                <div className="p-4 bg-purple-50 border-l-4 border-purple-500 rounded-r-2xl">
+                  <p className="text-xs font-bold text-purple-800 uppercase tracking-widest mb-3 flex items-center gap-2">
+                    <AlertCircle size={14} /> ⚠️ Como funciona a Doação
+                  </p>
+                  <div className="space-y-2 text-xs text-purple-700">
+                    <p className="font-bold">📝 <strong>Passo 1:</strong> Preencha os dados do destinatário (nome + IBAMA/CPF)</p>
+                    <p className="font-semibold">🔄 <strong>Passo 2:</strong> Clique em "Confirmar" - o pássaro irá para "IBAMA Pendentes"</p>
+                    <p className="font-semibold">🌐 <strong>Passo 3:</strong> Acesse o portal do IBAMA e registre a doação oficial</p>
+                    <p className="font-semibold">✅ <strong>Passo 4:</strong> Ao retornar, clique em "Registrar IBAMA" para marcar como concluído</p>
+                  </div>
+                  <p className="text-xs text-purple-600 font-medium mt-3 bg-purple-100 p-2 rounded-lg">
+                    💡 <strong>Lembre-se:</strong> Mesmo doações precisam ser registradas no IBAMA para regularidade.
+                  </p>
+                </div>
+              )}
+
+              {quickStatusData.newStatus === 'Óbito' && (
+                <div className="p-4 bg-red-50 border-l-4 border-red-500 rounded-r-2xl">
+                  <p className="text-xs font-bold text-red-800 uppercase tracking-widest mb-3 flex items-center gap-2">
+                    <AlertCircle size={14} /> ⚠️ Como funciona o Registro de Óbito
+                  </p>
+                  <div className="space-y-2 text-xs text-red-700">
+                    <p className="font-bold">📝 <strong>Passo 1:</strong> Preencha a data do óbito e observações (opcional)</p>
+                    <p className="font-semibold">🔄 <strong>Passo 2:</strong> Clique em "Confirmar" - o pássaro irá para "IBAMA Pendentes"</p>
+                    <p className="font-semibold">🌐 <strong>Passo 3:</strong> Acesse o portal do IBAMA e registre a baixa por óbito</p>
+                    <p className="font-semibold">✅ <strong>Passo 4:</strong> Ao retornar, clique em "Registrar IBAMA" para marcar como concluído</p>
+                  </div>
+                  <p className="text-xs text-red-600 font-medium mt-3 bg-red-100 p-2 rounded-lg">
+                    💡 <strong>Importante:</strong> O registro de óbito no IBAMA evita problemas futuros com fiscalização.
+                  </p>
+                </div>
+              )}
+
+              {quickStatusData.newStatus === 'Fuga' && (
+                <div className="p-4 bg-orange-50 border-l-4 border-orange-500 rounded-r-2xl">
+                  <p className="text-xs font-bold text-orange-800 uppercase tracking-widest mb-3 flex items-center gap-2">
+                    <AlertCircle size={14} /> ⚠️ Como funciona o Registro de Fuga
+                  </p>
+                  <div className="space-y-2 text-xs text-orange-700">
+                    <p className="font-bold">📝 <strong>Passo 1:</strong> Preencha a data da fuga e detalhes (opcional)</p>
+                    <p className="font-semibold">🔄 <strong>Passo 2:</strong> Clique em "Confirmar" - o pássaro irá para "IBAMA Pendentes"</p>
+                    <p className="font-semibold">🌐 <strong>Passo 3:</strong> Acesse o portal do IBAMA e registre o desaparecimento</p>
+                    <p className="font-semibold">✅ <strong>Passo 4:</strong> Ao retornar, clique em "Registrar IBAMA" para marcar como concluído</p>
+                  </div>
+                  <p className="text-xs text-orange-600 font-medium mt-3 bg-orange-100 p-2 rounded-lg">
+                    💡 <strong>Atenção:</strong> Registre a fuga no IBAMA o quanto antes para evitar responsabilização.
+                  </p>
+                </div>
+              )}
+
               <label className="flex items-center gap-3 cursor-pointer p-4 bg-blue-50 border border-blue-200 rounded-2xl hover:bg-blue-100 transition-colors">
                 <input
                   type="checkbox"
@@ -4545,9 +4672,11 @@ const BirdManager: React.FC<BirdManagerProps> = ({
                 </button>
                 <button
                   onClick={async () => {
+                    console.log('[BOTÃO CONFIRMAR] Clicado! Status:', quickStatusData.newStatus);
+                    console.log('[BOTÃO CONFIRMAR] Bird:', quickStatusBird?.name, quickStatusBird?.id);
                     await handleQuickStatusConfirm();
-                    // Se for doação, força a aba IBAMA a atualizar imediatamente
-                    if (quickStatusData.newStatus === 'Doado') {
+                    // Se for transferência ou doação, força a aba IBAMA a atualizar imediatamente
+                    if (['Doado', 'Transferência'].includes(quickStatusData.newStatus)) {
                       setShowQuickStatusModal(false);
                       // Pequeno delay para garantir que o estado propagou
                       setTimeout(() => setCurrentList('ibama-pendentes'), 100);
@@ -4558,8 +4687,8 @@ const BirdManager: React.FC<BirdManagerProps> = ({
                       ? 'bg-red-500 hover:bg-red-600 shadow-red-200'
                       : quickStatusData.newStatus === 'Fuga'
                       ? 'bg-orange-500 hover:bg-orange-600 shadow-orange-200'
-                      : quickStatusData.newStatus === 'Vendido'
-                      ? 'bg-blue-500 hover:bg-blue-600 shadow-blue-200'
+                      : quickStatusData.newStatus === 'Transferência'
+                      ? 'bg-teal-500 hover:bg-teal-600 shadow-teal-200'
                       : 'bg-purple-500 hover:bg-purple-600 shadow-purple-200'
                   }`}
                 >

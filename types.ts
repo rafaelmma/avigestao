@@ -4,7 +4,6 @@
 export type BirdStatus =
   | 'Ativo'
   | 'Inativo'
-  | 'Vendido'
   | 'Doado'
   | 'Falecido'
   | 'Criação'
@@ -18,7 +17,6 @@ export type MovementType =
   | 'Entrada'
   | 'Saída'
   | 'Transferência'
-  | 'Venda'
   | 'Doação'
   | 'Óbito'
   | 'Fuga';
@@ -28,7 +26,7 @@ export type MedicationType =
   | 'Antiparasitário'
   | 'Desinfetante'
   | 'Outro';
-export type EventType = 'Nascimento' | 'Sexagem' | 'Certificação' | 'Concurso' | 'Venda' | 'Outro';
+export type EventType = 'Nascimento' | 'Sexagem' | 'Certificação' | 'Concurso' | 'Outro';
 export type SharePlatform = 'WhatsApp' | 'Email' | 'Facebook' | 'Instagram' | 'Twitter' | 'Outro';
 export type SubscriptionPlan = 'Básico' | 'Profissional';
 
@@ -354,6 +352,7 @@ export interface BreederSettings {
   sidebarCollapsedSections?: Record<string, boolean>; // Seções colapsadas do menu lateral
   lastActiveTab?: string; // Última aba acessada pelo usuário
   onboardingDismissed?: boolean; // Dicas do primeiro acesso dispensadas
+  hideDiscoveryBanner?: boolean; // Ocultar banner de descoberta da ação rápida no plantel
 }
 // Estado global da aplicação
 export interface AppState {

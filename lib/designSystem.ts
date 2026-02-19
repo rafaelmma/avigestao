@@ -79,8 +79,8 @@ export const getStatusColor = (status: string): string => {
   const statusMap: Record<string, string> = {
     Ativo: designTokens.colors.success,
     Óbito: designTokens.colors.danger,
-    Vendido: designTokens.colors.info,
     Doado: designTokens.colors.info,
+    Transferência: designTokens.colors.info,
     Fuga: designTokens.colors.warning,
   };
   return statusMap[status] || designTokens.colors.neutral;
@@ -92,8 +92,8 @@ export const getStatusBadgeVariant = (
   const variantMap: Record<string, 'success' | 'danger' | 'warning' | 'info' | 'neutral'> = {
     Ativo: 'success',
     Óbito: 'danger',
-    Vendido: 'info',
     Doado: 'info',
+    Transferência: 'info',
     Fuga: 'warning',
   };
   return variantMap[status] || 'neutral';

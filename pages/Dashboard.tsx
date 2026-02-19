@@ -745,14 +745,14 @@ const Dashboard: React.FC<DashboardProps> = ({
                   </div>
                   <div className="flex-1">
                     <h3 className="text-sm font-black text-amber-800 uppercase tracking-widest mb-1">
-                      âš ï¸ Registro IBAMA Pendente
+                      ⚠️ Registro IBAMA Pendente
                     </h3>
                     <p className="text-sm text-amber-700 font-bold mb-3">
                       {state.birds.filter((b) => b.ibamaBaixaPendente).length}{' '}
                       {state.birds.filter((b) => b.ibamaBaixaPendente).length === 1
                         ? 'ave necessita'
                         : 'aves necessitam'}{' '}
-                      de registro no sistema IBAMA (óbito, fuga, venda ou doação).
+                      de registro no sistema IBAMA (óbito, fuga, doação ou transferência).
                     </p>
                     <PrimaryButton
                       onClick={(event) => {
@@ -1062,6 +1062,7 @@ const Dashboard: React.FC<DashboardProps> = ({
 };
 
 export default Dashboard;
+
 
 
 

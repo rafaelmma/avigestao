@@ -20,24 +20,11 @@ service cloud.firestore {
         get(/databases/$(database)/documents/community_messages/$(replyToId)).data.fromUserId == toId;
     }
     
-    // Função helper para verificar se o usuário autenticado é admin
     function isAdminUser() {
       return isAuthenticated() && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.isAdmin == true;
     }
-
-    function getUserDoc(userId) {
-      return get(/databases/$(database)/documents/users/$(userId)).data;
-    }
-
-    function hasProAccess(userId) {
-      return getUserDoc(userId).isProActive == true;
-    }
-
-    function activeBirdCount(userId) {
-      return getUserDoc(userId).activeBirdsCount is int
-        ? getUserDoc(userId).activeBirdsCount
-        : 999;
-    }
+    
+    // ... existing code ...
     
     // Regra global para collectionGroup de reports (permite admin ler de qualquer subcoleção)
     match /{path=**}/reports/{reportId} {
@@ -74,10 +61,9 @@ service cloud.firestore {
       match /birds/{birdId} {
         // Permite leitura e listagem pública (para comunidade e estatísticas)
         allow read, list: if true;
-        // Escrita apenas ao dono
-        allow create: if isAuthenticated() && isOwner(userId) && (
-          isAdminUser() || hasProAccess(userId) || activeBirdCount(userId) < 5
-        );
+        // Escrita: qualquer usuário autenticado pode criar/atualizar/deletar seus próprios pássaros
+        // O bloqueio de planos (trial expirado, básico) é feito no JavaScript
+        allow create: if isAuthenticated() && isOwner(userId);
         allow update, delete: if isAuthenticated() && isOwner(userId);
       }
       

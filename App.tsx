@@ -848,10 +848,18 @@ const App: React.FC = () => {
     }
 
     try {
-      // Validar limite de aves no plano Básico
-      const isBasicPlan = !hasActiveProPlan(state.settings);
-      if (isBasicPlan && state.birds.length >= 5) {
-        toast.error('Limite de 5 aves atingido no plano Básico. Faça upgrade para Profissional para adicionar mais aves.');
+      // Validar acesso Pro (plano ou trial)
+      const hasProAccess = hasActiveProPlan(state.settings);
+      if (!hasProAccess) {
+        // Verificar se o trial expirou ou nunca foi iniciado
+        const trialEndDate = state.settings?.trialEndDate ? new Date(state.settings.trialEndDate) : null;
+        const now = new Date();
+        
+        if (trialEndDate && trialEndDate <= now) {
+          toast.error('🔒 Seu período de trial expirou. Para continuar adicionando aves, assine o plano Profissional.');
+        } else {
+          toast.error('📦 No plano Básico, você pode ter no máximo 5 aves. Assine o plano Profissional para criar ilimitadas aves.');
+        }
         return false;
       }
 
@@ -1463,10 +1471,6 @@ const App: React.FC = () => {
         switch (mov.type) {
           case 'Óbito':
             newStatus = 'Óbito';
-            shouldMarkIbamaPendente = true;
-            break;
-          case 'Venda':
-            newStatus = 'Vendido';
             shouldMarkIbamaPendente = true;
             break;
           case 'Doação':
@@ -2470,6 +2474,7 @@ const App: React.FC = () => {
             restoreBird={restoreBird}
             permanentlyDeleteBird={permanentlyDeleteBird}
             saveSettings={handleSaveSettings}
+            updateSettings={updateSettings}
             isAdmin={isAdmin}
             onShowUpgradeModal={() => setShowUpgradeModal(true)}
           />
@@ -2606,6 +2611,7 @@ const App: React.FC = () => {
             deleteMovement={deleteMovement}
             restoreMovement={restoreMovement}
             permanentlyDeleteMovement={permanentlyDeleteMovement}
+            updateBird={updateBird}
           />
         );
       case 'finance':

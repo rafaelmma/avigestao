@@ -1,5 +1,5 @@
 import React, { useState, useRef, Suspense } from 'react';
-import { AppState, MovementRecord } from '../types';
+import { AppState, MovementRecord, Bird } from '../types';
 import {
   Skull,
   Plus,
@@ -15,7 +15,9 @@ import {
   RefreshCcw,
   X,
   Edit,
+  AlertCircle,
 } from 'lucide-react';
+import toast from 'react-hot-toast';
 const TipCarousel = React.lazy(() => import('../components/TipCarousel'));
 import WizardLayout, { WizardStep } from '../components/WizardLayout';
 
@@ -26,6 +28,7 @@ interface MovementsManagerProps {
   deleteMovement?: (id: string) => void;
   restoreMovement?: (id: string) => void;
   permanentlyDeleteMovement?: (id: string) => void;
+  updateBird?: (bird: Bird) => Promise<boolean>;
 }
 
 const MovementsManager: React.FC<MovementsManagerProps> = ({
@@ -35,6 +38,7 @@ const MovementsManager: React.FC<MovementsManagerProps> = ({
   deleteMovement,
   restoreMovement,
   permanentlyDeleteMovement,
+  updateBird,
 }) => {
   const [showModal, setShowModal] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
@@ -127,6 +131,34 @@ const MovementsManager: React.FC<MovementsManagerProps> = ({
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
     if (newMov.birdId && newMov.type && newMov.date) {
+      // Sincronizar status do pássaro automaticamente
+      const statusChangeTypes = ['Doação', 'Transferência', 'Óbito', 'Fuga'];
+      if (statusChangeTypes.includes(newMov.type || '') && updateBird && newMov.birdId) {
+        const bird = getBirdById(newMov.birdId);
+        if (bird) {
+          const statusMap: { [key: string]: string } = {
+            'Doação': 'Doado',
+            'Transferência': 'Transferência',
+            'Óbito': 'Óbito',
+            'Fuga': 'Fuga',
+          };
+          const newStatus = statusMap[newMov.type || ''];
+          
+          if (newStatus) {
+            const updatedBird = {
+              ...bird,
+              status: newStatus as any,
+              ibamaBaixaPendente: true,
+            };
+            await updateBird(updatedBird);
+            toast.success(`Status do pássaro atualizado para "${newStatus}" e movido para IBAMA Pendentes`);
+          }
+        } else {
+          toast.error('Pássaro não encontrado. Verifique o ID selecionado.');
+          return;
+        }
+      }
+
       if (isEditing && newMov.id) {
         await updateMovement(newMov as MovementRecord);
       } else {
@@ -162,7 +194,7 @@ const MovementsManager: React.FC<MovementsManagerProps> = ({
     {
       id: 'active',
       label: 'Ativos',
-      description: 'Histórico de entradas, saídas, vendas e transferências.',
+      description: 'Histórico de entradas, saídas, doações e transferências.',
       content: null,
     },
     {
@@ -182,7 +214,7 @@ const MovementsManager: React.FC<MovementsManagerProps> = ({
     <div className="space-y-6 animate-in fade-in duration-500">
       <div>
         <p className="text-slate-400 font-medium text-sm">
-          Entrada, saída, transferência, venda, doação e óbito
+          Entrada, saída, transferência, doação e óbito
         </p>
       </div>
 
@@ -190,6 +222,24 @@ const MovementsManager: React.FC<MovementsManagerProps> = ({
       <Suspense fallback={<div />}>
         <TipCarousel category="movements" />
       </Suspense>
+
+      {/* Banner de Sincronização Automática */}
+      <div className="bg-amber-50 border-l-4 border-amber-500 p-4 rounded-r-xl">
+        <div className="flex items-start gap-3">
+          <AlertCircle className="text-amber-600 flex-shrink-0 mt-0.5" size={20} />
+          <div>
+            <p className="text-amber-900 font-bold text-sm">
+              ⚡ Sincronização Automática de Status
+            </p>
+            <p className="text-amber-800 text-xs mt-1">
+              <strong>Doação, Transferência, Óbito e Fuga</strong> atualizam automaticamente o status do pássaro e o movem para <strong>"IBAMA Pendentes"</strong>.
+            </p>
+            <p className="text-amber-700 text-xs mt-1">
+              O pássaro sairá do plantel ativo e aparecerá na aba "IBAMA Pendentes" aguardando registro no sistema IBAMA.
+            </p>
+          </div>
+        </div>
+      </div>
 
       {currentList === 'trash' && (
         <div className="bg-rose-50 border-l-4 border-rose-500 p-4 rounded-r-xl">
@@ -266,13 +316,13 @@ const MovementsManager: React.FC<MovementsManagerProps> = ({
                           className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-lg text-[10px] font-black uppercase ${
                             m.type === 'Óbito'
                               ? 'bg-slate-100 text-slate-600'
-                              : m.type === 'Venda'
-                              ? 'bg-emerald-50 text-emerald-600'
+                              : m.type === 'Doação'
+                              ? 'bg-purple-50 text-purple-600'
                               : 'bg-blue-50 text-blue-600'
                           }`}
                         >
-                          {m.type === '\u00d3bito' && <Skull size={12} />}
-                          {m.type === 'Venda' && <ArrowRightLeft size={12} />}
+                          {m.type === 'Óbito' && <Skull size={12} />}
+                          {m.type === 'Doação' && <ArrowRightLeft size={12} />}
                           {m.type}
                         </span>
                       </td>
@@ -404,7 +454,7 @@ const MovementsManager: React.FC<MovementsManagerProps> = ({
               <div className="p-4 bg-amber-50 rounded-2xl border border-amber-100 flex gap-3">
                 <Info size={16} className="text-amber-600 flex-shrink-0 mt-0.5" />
                 <p className="text-[11px] text-amber-900 leading-relaxed font-medium">
-                  Atenção: Ao registrar um **Óbito**, **Saída** ou **Venda**, o status do pássaro no
+                  Atenção: Ao registrar um **Óbito** ou **Saída**, o status do pássaro no
                   plantel será alterado automaticamente.
                 </p>
               </div>
@@ -446,9 +496,9 @@ const MovementsManager: React.FC<MovementsManagerProps> = ({
                     <option value="Entrada">Entrada</option>
                     <option value="Saída">Saída</option>
                     <option value="Transferência">Transferência</option>
-                    <option value="Venda">Venda</option>
                     <option value="Doação">Doação</option>
                     <option value="Óbito">Óbito</option>
+                    <option value="Fuga">Fuga</option>
                   </select>
                 </div>
                 <div>
@@ -466,15 +516,12 @@ const MovementsManager: React.FC<MovementsManagerProps> = ({
               </div>
 
               {(newMov.type === 'Entrada' ||
-                newMov.type === 'Venda' ||
                 newMov.type === 'Transferência' ||
                 newMov.type === 'Doação') && (
                 <div className="space-y-4">
                   <div>
                     <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">
-                      {newMov.type === 'Venda'
-                        ? 'Novo Proprietário'
-                        : newMov.type === 'Transferência'
+                      {newMov.type === 'Transferência'
                         ? 'Nome do Receptor'
                         : newMov.type === 'Doação'
                         ? 'Nome do Receptor'
@@ -483,9 +530,7 @@ const MovementsManager: React.FC<MovementsManagerProps> = ({
                     <input
                       type="text"
                       placeholder={
-                        newMov.type === 'Venda'
-                          ? 'Ex: João Silva'
-                          : newMov.type === 'Transferência' || newMov.type === 'Doação'
+                        newMov.type === 'Transferência' || newMov.type === 'Doação'
                           ? 'Nome completo de quem recebe'
                           : 'Ex: Criatório BH'
                       }
@@ -505,40 +550,26 @@ const MovementsManager: React.FC<MovementsManagerProps> = ({
                     />
                   </div>
 
-                  {(newMov.type === 'Venda' ||
-                    newMov.type === 'Transferência' ||
-                    newMov.type === 'Doação') && (
+                  {(newMov.type === 'Transferência' || newMov.type === 'Doação') && (
                     <>
                       <div>
                         <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 flex items-center gap-2">
                           <UserCheck size={14} className="text-brand" />
-                          {newMov.type === 'Venda'
-                            ? 'Cadastro SISPASS do Comprador'
-                            : 'Tipo de Documento'}
+                          Tipo de Documento
                         </label>
-                        {newMov.type === 'Venda' ? (
-                          <input
-                            type="text"
-                            placeholder="Ex: 1234567-8"
-                            className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-brand"
-                            value={newMov.buyerSispass || ''}
-                            onChange={(e) => setNewMov({ ...newMov, buyerSispass: e.target.value })}
-                          />
-                        ) : (
-                          <select
-                            className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-brand"
-                            value={newMov.receptorDocumentType || 'ibama'}
-                            onChange={(e) =>
-                              setNewMov({
-                                ...newMov,
-                                receptorDocumentType: e.target.value as 'ibama' | 'cpf',
-                              })
-                            }
-                          >
-                            <option value="ibama">Cadastro IBAMA</option>
-                            <option value="cpf">CPF</option>
-                          </select>
-                        )}
+                        <select
+                          className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-brand"
+                          value={newMov.receptorDocumentType || 'ibama'}
+                          onChange={(e) =>
+                            setNewMov({
+                              ...newMov,
+                              receptorDocumentType: e.target.value as 'ibama' | 'cpf',
+                            })
+                          }
+                        >
+                          <option value="ibama">Cadastro IBAMA</option>
+                          <option value="cpf">CPF</option>
+                        </select>
                       </div>
 
                       {(newMov.type === 'Transferência' || newMov.type === 'Doação') && (
