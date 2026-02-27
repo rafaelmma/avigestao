@@ -46,14 +46,15 @@ const Footer: React.FC<FooterProps> = ({ onContactClick }) => {
       <div className="max-w-6xl mx-auto flex flex-col items-start gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div className="font-semibold text-slate-800">© {new Date().getFullYear()} AviGestão</div>
         <div className="flex flex-wrap items-center gap-4">
-          <a
-            href="mailto:contato@avigestao.com.br"
-            onClick={handleContato}
-            className="text-slate-700 hover:text-blue-600 font-medium"
+          <button
+            type="button"
+            onClick={onContactClick}
+            className="text-slate-700 hover:text-blue-600 font-medium bg-transparent border-none cursor-pointer"
             aria-label="Contato"
+            style={{ background: 'none', border: 'none', padding: 0 }}
           >
             Contato
-          </a>
+          </button>
           <a
             href="/about"
             onClick={handleNavigate('/about')}

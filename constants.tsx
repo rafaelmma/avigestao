@@ -23,10 +23,12 @@ export const SPECIES_INCUBATION_DAYS: Record<string, number> = {
 };
 
 // Logo Completa (imagem real do usuário)
-export const APP_LOGO = '/logo.png';
+const BASE_ASSET_PATH = import.meta.env.BASE_URL || '/';
+
+export const APP_LOGO = `${BASE_ASSET_PATH}logo.png`;
 
 // Logo Icon (mesma imagem para sidebar - será redimensionada via CSS)
-export const APP_LOGO_ICON = '/logo.png';
+export const APP_LOGO_ICON = `${BASE_ASSET_PATH}logo.png`;
 
 export const DEFAULT_BIRD_ICONS = {
   male: {

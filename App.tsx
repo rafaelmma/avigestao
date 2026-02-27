@@ -59,6 +59,7 @@ const About = lazy(() => import('./pages/About'));
 const Privacy = lazy(() => import('./pages/Privacy'));
 const Terms = lazy(() => import('./pages/Terms'));
 const LibraryCenter = lazy(() => import('./pages/LibraryCenter'));
+const LabelPreview = lazy(() => import('./pages/LabelPreview'));
 
 // Firebase auth
 import { getAuth, onAuthStateChanged, signOut } from 'firebase/auth';
@@ -286,6 +287,7 @@ const getTabFromPath = (path: string) => {
     'public-birds',
     'top-breeders',
     'recent-birds',
+    'label-preview',
     'verification',
     'analytics',
   ];
@@ -2954,6 +2956,12 @@ const App: React.FC = () => {
           </div>
         </main>
         <Footer onContactClick={() => setIsContactOpen(true)} />
+        <ContactModal
+          isOpen={isContactOpen}
+          onClose={() => setIsContactOpen(false)}
+          defaultEmail={session?.user?.email ?? ''}
+          defaultName={state?.settings?.responsibleName ?? ''}
+        />
       </div>
     </div>
   );

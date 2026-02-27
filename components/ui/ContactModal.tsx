@@ -83,15 +83,23 @@ const ContactModal: React.FC<ContactModalProps> = ({
     <div className="fixed inset-0 z-[60] flex items-center justify-center bg-slate-900/50 px-4">
       <div className="w-full max-w-lg rounded-3xl bg-white p-6 shadow-xl relative overflow-hidden">
         <div className="absolute -top-6 -right-6 w-32 h-32 bg-slate-50 rounded-full flex items-center justify-center p-6 opacity-50">
-          <img src={APP_LOGO} alt="" className="w-full h-full object-contain grayscale opacity-20" />
-                   <img src={APP_LOGO} alt="" className="w-full h-full object-contain grayscale opacity-20 max-h-32 max-w-32" />
+          <img
+            src={APP_LOGO}
+            alt=""
+            className="w-full h-full object-contain grayscale opacity-20"
+            onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
+          />
         </div>
 
         <div className="flex items-start justify-between relative z-10">
           <div className="flex items-center gap-4">
             <div className="w-16 h-16 bg-white border-2 border-slate-100 rounded-2xl p-1 shadow-sm flex-shrink-0">
-              <img src={APP_LOGO} alt="AviGestão" className="w-full h-full object-contain" />
-                       <img src={APP_LOGO} alt="AviGestão" className="w-full h-full object-contain max-h-16 max-w-16" />
+              <img
+                src={APP_LOGO}
+                alt="AviGestão"
+                className="w-full h-full object-contain"
+                onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
+              />
             </div>
             <div>
               <p className="text-xs font-black uppercase tracking-[0.2em] text-slate-400">Contato</p>

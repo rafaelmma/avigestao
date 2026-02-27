@@ -11,6 +11,15 @@
 			],
 			"isBackground": true,
 			"group": "build"
+		},
+		{
+			"label": "Build projeto Vite",
+			"type": "shell",
+			"command": "npm run build",
+			"problemMatcher": [
+				"$tsc"
+			],
+			"group": "build"
 		}
 	]
 }
